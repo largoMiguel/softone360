@@ -1,0 +1,1398 @@
+<div class="dashboard-container">
+    <div class="container-fluid">
+
+
+
+        <!-- Tabs movidas a la barra global -->
+
+        <!-- Modal Selector de Fechas y Filtros -->
+        <div class="modal fade show d-block" *ngIf="mostrarSelectorFechas" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-filter me-2"></i>Configurar Informe de PQRS
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" (click)="cancelarInforme()"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted mb-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Selecciona el período y los filtros para generar el informe personalizado
+                        </p>
+
+                        <!-- Fechas -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="fechaInicio" class="form-label fw-bold">
+                                    <i class="fas fa-calendar-check me-1"></i>Fecha Inicial
+                                </label>
+                                <input type="date" class="form-control" id="fechaInicio" [(ngModel)]="fechaInicio"
+                                    required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="fechaFin" class="form-label fw-bold">
+                                    <i class="fas fa-calendar-times me-1"></i>Fecha Final
+                                </label>
+                                <input type="date" class="form-control" id="fechaFin" [(ngModel)]="fechaFin" required>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Filtros Opcionales -->
+                        <h6 class="text-muted mb-3">
+                            <i class="fas fa-sliders-h me-2"></i>Filtros Opcionales (dejar en blanco para incluir todos)
+                        </h6>
+
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="filtroSecretario" class="form-label fw-bold">
+                                    <i class="fas fa-user-tie me-1"></i>Secretario
+                                </label>
+                                <select class="form-select" id="filtroSecretario" [(ngModel)]="filtroSecretario">
+                                    <option value="">Todos los secretarios</option>
+                                    <option *ngFor="let secretario of secretariosList" [value]="secretario.id">
+                                        {{ secretario.full_name }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="filtroEstado" class="form-label fw-bold">
+                                    <i class="fas fa-tasks me-1"></i>Estado
+                                </label>
+                                <select class="form-select" id="filtroEstado" [(ngModel)]="filtroEstado">
+                                    <option value="">Todos los estados</option>
+                                    <option value="pendiente">Pendiente</option>
+                                    <option value="en_proceso">En Proceso</option>
+                                    <option value="resuelto">Resuelto</option>
+                                    <option value="cerrado">Cerrado</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="filtroTipo" class="form-label fw-bold">
+                                    <i class="fas fa-tag me-1"></i>Tipo
+                                </label>
+                                <select class="form-select" id="filtroTipo" [(ngModel)]="filtroTipo">
+                                    <option value="">Todos los tipos</option>
+                                    <option value="peticion">Petición</option>
+                                    <option value="queja">Queja</option>
+                                    <option value="reclamo">Reclamo</option>
+                                    <option value="sugerencia">Sugerencia</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" (click)="cancelarInforme()">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </button>
+                        <button type="button" class="btn btn-success" (click)="generarInforme()">
+                            <i class="fas fa-file-pdf me-2"></i>Generar Informe PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard View -->
+        <div *ngIf="activeView === 'dashboard' && canAccessPqrs()">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3 class="mb-1"><i class="fas fa-chart-line me-2 text-primary"></i>Análisis del Panel</h3>
+                    <p class="text-muted mb-0 small">Panel de control y estadísticas de PQRS</p>
+                </div>
+                <div>
+                    <button class="btn btn-primary btn-sm me-2" (click)="loadPqrs()">
+                        <i class="fas fa-sync-alt me-1" [class.fa-spin]="isLoading"></i>Actualizar
+                    </button>
+                    <button class="btn btn-primary btn-sm me-2" (click)="setActiveView('nueva-pqrs')">
+                        <i class="fas fa-plus me-1"></i>Nueva PQRS
+                    </button>
+                    <button class="btn btn-primary btn-sm" (click)="openReportForm()" *ngIf="reportsPdfEnabled()">
+                        <i class="fas fa-file-pdf me-1"></i>Generar Informe
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="stats-card stats-primary" style="cursor: pointer;" (click)="filtrarPorEstado('')"
+                        title="Clic para ver todas las PQRS">
+                        <div class="stats-icon">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                        <div class="stats-info">
+                            <h2 class="stats-number">{{ getTotalPqrs() }}</h2>
+                            <p class="stats-label">Total PQRS</p>
+                            <small class="stats-detail">
+                                <i class="fas fa-calendar"></i> {{ getPqrsDelMes() }} este mes
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card stats-warning" style="cursor: pointer;"
+                        (click)="filtrarPorEstado('pendiente')" title="Clic para ver PQRS pendientes">
+                        <div class="stats-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stats-info">
+                            <h2 class="stats-number">{{ getPqrsPendientes() }}</h2>
+                            <p class="stats-label">Pendientes</p>
+                            <small class="stats-detail">
+                                <i class="fas fa-exclamation-circle"></i> Requieren atención
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card stats-info" style="cursor: pointer;" (click)="filtrarPorEstado('en_proceso')"
+                        title="Clic para ver PQRS en proceso">
+                        <div class="stats-icon">
+                            <i class="fas fa-tasks"></i>
+                        </div>
+                        <div class="stats-info">
+                            <h2 class="stats-number">{{ getPqrsEnProceso() }}</h2>
+                            <p class="stats-label">En Proceso</p>
+                            <small class="stats-detail">
+                                <i class="fas fa-spinner"></i> En gestión activa
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card stats-success" style="cursor: pointer;"
+                        (click)="filtrarPorEstado('resuelta')" title="Clic para ver PQRS resueltas">
+                        <div class="stats-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stats-info">
+                            <h2 class="stats-number">{{ getPqrsResueltas() }}</h2>
+                            <p class="stats-label">Resueltas</p>
+                            <small class="stats-detail">
+                                <i class="fas fa-trophy"></i> Completadas
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <div class="card chart-card">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Distribución por Estado</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="estadosChart" baseChart [data]="estadosChartData" [type]="doughnutChartType"
+                                    [options]="chartOptions"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card chart-card">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>PQRS por Tipo</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="tiposChart" baseChart [data]="tiposChartData" [type]="barChartType"
+                                    [options]="chartOptions"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="card chart-card">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Tendencia de los Últimos 7 Días</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="tendenciasChart" baseChart [data]="tendenciasChartData"
+                                    [type]="lineChartType" [options]="chartOptions"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div *ngIf="isLoading" class="text-center my-5">
+                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+                <p class="text-muted mt-3">Cargando datos...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div *ngIf="!isLoading && pqrsList.length === 0" class="text-center my-5">
+                <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                <h5 class="text-muted">No hay PQRS registradas</h5>
+                <p class="text-secondary">Comienza creando tu primera solicitud</p>
+                <button class="btn btn-primary mt-2" (click)="setActiveView('nueva-pqrs')">
+                    <i class="fas fa-plus-circle me-1"></i>Crear Primera PQRS
+                </button>
+            </div>
+
+            <!-- Table -->
+            <div *ngIf="!isLoading && pqrsList.length > 0" class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-list me-2 text-primary"></i>PQRS Recientes ({{
+                        pqrsList.length }})</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Número</th>
+                                    <th>Ciudadano</th>
+                                    <th>Asunto</th>
+                                    <th>Tipo</th>
+                                    <th>Estado</th>
+                                    <th *ngIf="isAdmin()">Asignado a</th>
+                                    <th>Fecha</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let pqrs of pqrsList" (click)="verDetallesPqrs(pqrs)"
+                                    style="cursor: pointer;">
+                                    <td><strong class="text-primary">{{ pqrs.numero_radicado }}</strong></td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-user-circle text-primary me-2 fs-5"></i>
+                                            <span>{{ pqrs.nombre_ciudadano }}</span>
+                                        </div>
+                                    </td>
+                                    <td>{{ pqrs.asunto }}</td>
+                                    <td><span class="badge bg-light text-dark border">{{ pqrs.tipo_solicitud |
+                                            titlecase }}</span></td>
+                                    <td><span [ngClass]="'badge bg-' + getEstadoColor(pqrs.estado)">{{
+                                            getEstadoLabel(pqrs.estado) }}</span></td>
+                                    <td *ngIf="isAdmin()">
+                                        <div *ngIf="pqrs.assigned_to" class="d-flex align-items-center">
+                                            <i class="fas fa-user-check text-success me-1"></i>
+                                            <small>{{ pqrs.assigned_to.full_name }}</small>
+                                        </div>
+                                        <small *ngIf="!pqrs.assigned_to" class="text-muted">
+                                            <i class="fas fa-user-times me-1"></i>Sin asignar
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ pqrs.fecha_solicitud | date:'dd/MM/yyyy' }}<br>
+                                            {{ pqrs.fecha_solicitud | date:'HH:mm' }}
+                                        </small>
+                                    </td>
+                                    <td (click)="$event.stopPropagation()">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button class="btn btn-outline-primary" title="Ver detalles"
+                                                (click)="verDetallesPqrs(pqrs)">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-outline-success" *ngIf="isAdmin()" title="Asignar"
+                                                (click)="mostrarAsignacion(pqrs)" data-bs-toggle="modal"
+                                                data-bs-target="#asignacionModal">
+                                                <i class="fas fa-user-plus"></i>
+                                            </button>
+                                            <button class="btn btn-outline-warning" *ngIf="canChangeStatus()"
+                                                title="Cambiar estado" (click)="mostrarCambioEstado(pqrs)"
+                                                data-bs-toggle="modal" data-bs-target="#estadoModal">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-outline-info"
+                                                *ngIf="!pqrs.respuesta && (isAdmin() || isSecretario())"
+                                                title="Responder" (click)="verDetallesPqrs(pqrs)">
+                                                <i class="fas fa-reply"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger" *ngIf="isAdmin()" title="Eliminar"
+                                                (click)="eliminarPqrs(pqrs)">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estado cuando PQRS está desactivado -->
+        <div *ngIf="activeView === 'dashboard' && !canAccessPqrs()" class="card">
+            <div class="card-body text-center text-muted">
+                <i class="fas fa-ban fa-2x mb-2"></i>
+                <p>El módulo de PQRS está desactivado para esta entidad o no tienes permisos para acceder.</p>
+            </div>
+        </div>
+
+        <!-- Mis PQRS View -->
+        <div *ngIf="activeView === 'mis-pqrs' && canAccessPqrs()">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h3 class="mb-1"><i class="fas fa-list me-2 text-primary"></i>Mis PQRS</h3>
+                    <p class="text-muted mb-0 small">Listado y gestión de peticiones, quejas, reclamos y sugerencias</p>
+                </div>
+                <div>
+                    <button class="btn btn-primary btn-sm me-2" (click)="setActiveView('nueva-pqrs')">
+                        <i class="fas fa-plus me-1"></i>Nueva PQRS
+                    </button>
+                    <button class="btn btn-primary btn-sm" (click)="openReportForm()" *ngIf="reportsPdfEnabled()">
+                        <i class="fas fa-file-pdf me-1"></i>Generar Informe
+                    </button>
+                </div>
+            </div>
+
+            <!-- Panel de Filtros -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h6 class="card-title mb-3">
+                        <i class="fas fa-filter me-2"></i>Filtros de Búsqueda
+                    </h6>
+                    <div class="row g-3">
+                        <!-- Búsqueda por texto -->
+                        <div class="col-md-3">
+                            <label for="textoBusqueda" class="form-label">
+                                <i class="fas fa-search me-1"></i>Buscar
+                            </label>
+                            <input type="text" class="form-control" id="textoBusqueda" [(ngModel)]="textoBusqueda"
+                                placeholder="Radicado, ciudadano, asunto...">
+                        </div>
+
+                        <!-- Filtro por secretario (solo admin) -->
+                        <div class="col-md-3" *ngIf="isAdmin()">
+                            <label for="filtroGeneralSecretario" class="form-label">
+                                <i class="fas fa-user-tie me-1"></i>Secretario
+                            </label>
+                            <select class="form-select" id="filtroGeneralSecretario"
+                                [(ngModel)]="filtroGeneralSecretario">
+                                <option value="">Todos</option>
+                                <option *ngFor="let secretario of secretariosList" [value]="secretario.id">
+                                    {{ secretario.full_name }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- Filtro por estado -->
+                        <div class="col-md-2">
+                            <label for="filtroGeneralEstado" class="form-label">
+                                <i class="fas fa-tasks me-1"></i>Estado
+                            </label>
+                            <select class="form-select" id="filtroGeneralEstado" [(ngModel)]="filtroGeneralEstado">
+                                <option value="">Todos</option>
+                                <option value="pendiente">Pendiente</option>
+                                <option value="en_proceso">En Proceso</option>
+                                <option value="resuelto">Resuelto</option>
+                                <option value="cerrado">Cerrado</option>
+                            </select>
+                        </div>
+
+                        <!-- Filtro por tipo -->
+                        <div class="col-md-2">
+                            <label for="filtroGeneralTipo" class="form-label">
+                                <i class="fas fa-tag me-1"></i>Tipo
+                            </label>
+                            <select class="form-select" id="filtroGeneralTipo" [(ngModel)]="filtroGeneralTipo">
+                                <option value="">Todos</option>
+                                <option value="peticion">Petición</option>
+                                <option value="queja">Queja</option>
+                                <option value="reclamo">Reclamo</option>
+                                <option value="sugerencia">Sugerencia</option>
+                            </select>
+                        </div>
+
+                        <!-- Botón limpiar filtros -->
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button class="btn btn-outline-secondary w-100" (click)="limpiarFiltrosGenerales()">
+                                <i class="fas fa-eraser me-1"></i>Limpiar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Contador de resultados -->
+                    <div class="mt-3 text-muted">
+                        <small>
+                            <i class="fas fa-info-circle me-1"></i>
+                            Mostrando {{ getMisPqrs().length }} PQRS
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <div *ngIf="isLoading" class="text-center my-4">
+                <div class="spinner-border" role="status"></div>
+            </div>
+
+            <div *ngIf="!isLoading && getMisPqrs().length === 0" class="text-center text-muted my-4">
+                <i class="fas fa-inbox fa-3x mb-3"></i>
+                <p>No se encontraron PQRS con los filtros seleccionados</p>
+                <button class="btn btn-outline-primary" (click)="limpiarFiltrosGenerales()">
+                    <i class="fas fa-redo me-1"></i>Limpiar filtros
+                </button>
+            </div>
+
+            <div *ngIf="!isLoading && getMisPqrs().length > 0" class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Número</th>
+                            <th>Ciudadano</th>
+                            <th>Asunto</th>
+                            <th>Tipo</th>
+                            <th>Estado</th>
+                            <th *ngIf="isAdmin()">Asignado a</th>
+                            <th>Fecha</th>
+                            <th>Días Restantes</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let pqrs of getMisPqrs()" (click)="verDetallesPqrs(pqrs)" style="cursor: pointer;">
+                            <td><strong>{{ pqrs.numero_radicado }}</strong></td>
+                            <td>{{ pqrs.nombre_ciudadano }}</td>
+                            <td>{{ pqrs.asunto }}</td>
+                            <td><span class="badge bg-light text-dark">{{ pqrs.tipo_solicitud | titlecase }}</span></td>
+                            <td><span [ngClass]="'badge bg-' + getEstadoColor(pqrs.estado)">{{
+                                    getEstadoLabel(pqrs.estado) }}</span></td>
+                            <td *ngIf="isAdmin()">
+                                <div *ngIf="pqrs.assigned_to" class="d-flex align-items-center">
+                                    <i class="fas fa-user-check text-success me-1"></i>
+                                    <small>{{ pqrs.assigned_to.full_name }}</small>
+                                </div>
+                                <small *ngIf="!pqrs.assigned_to" class="text-muted">
+                                    <i class="fas fa-user-times me-1"></i>Sin asignar
+                                </small>
+                            </td>
+                            <td><small>{{ pqrs.fecha_solicitud | date:'dd/MM/yyyy HH:mm' }}</small></td>
+                            <td>
+                                <!-- PQRS Finalizada -->
+                                <span *ngIf="pqrs.estado === 'resuelto' || pqrs.estado === 'cerrado'"
+                                    class="text-muted">
+                                    <i class="fas fa-check-circle me-1"></i>Finalizada
+                                </span>
+
+                                <!-- PQRS Vencida -->
+                                <span
+                                    *ngIf="(pqrs.estado !== 'resuelto' && pqrs.estado !== 'cerrado') && estaVencida(pqrs)"
+                                    class="text-danger fw-bold">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>Vencida hace {{
+                                    getDiasVencidos(pqrs) }} días
+                                </span>
+
+                                <!-- PQRS Vigente -->
+                                <span
+                                    *ngIf="(pqrs.estado !== 'resuelto' && pqrs.estado !== 'cerrado') && !estaVencida(pqrs)"
+                                    [ngClass]="getColorDiasRestantes(getDiasRestantes(pqrs))">
+                                    <i class="fas fa-clock me-1"></i>{{ getDiasRestantes(pqrs) }} días
+                                </span>
+                            </td>
+                            <td (click)="$event.stopPropagation()">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button class="btn btn-outline-primary" title="Ver detalles"
+                                        (click)="verDetallesPqrs(pqrs)"><i class="fas fa-eye"></i></button>
+                                    <button class="btn btn-outline-info" *ngIf="canEditPqrs(pqrs)" title="Editar"
+                                        (click)="mostrarEdicionPqrs(pqrs)"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-outline-success" *ngIf="isAdmin()" title="Asignar"
+                                        (click)="mostrarAsignacion(pqrs)" data-bs-toggle="modal"
+                                        data-bs-target="#asignacionModal"><i class="fas fa-user-plus"></i></button>
+                                    <button class="btn btn-outline-warning" *ngIf="canChangeStatus()"
+                                        title="Cambiar estado" (click)="mostrarCambioEstado(pqrs)"
+                                        data-bs-toggle="modal" data-bs-target="#estadoModal"><i
+                                            class="fas fa-tasks"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Nueva PQRS View -->
+        <div *ngIf="activeView === 'nueva-pqrs' && canAccessPqrs()">
+            <div class="card">
+                <div class="card-body">
+                    <form [formGroup]="nuevaPqrsForm" (ngSubmit)="onSubmitNuevaPqrs()">
+                        <!-- Tipo de Identificación -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">¿Cómo desea presentar su PQRS? *</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="tipo_identificacion"
+                                        id="tipo_personal" value="personal" formControlName="tipo_identificacion">
+                                    <label class="form-check-label" for="tipo_personal">
+                                        <i class="fas fa-user me-1"></i> A nombre personal (con identificación)
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="tipo_identificacion"
+                                        id="tipo_anonima" value="anonima" formControlName="tipo_identificacion">
+                                    <label class="form-check-label" for="tipo_anonima">
+                                        <i class="fas fa-user-secret me-1"></i> Anónima (solo descripción)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="tipo_solicitud" class="form-label">Tipo de Solicitud *</label>
+                            <select id="tipo_solicitud" formControlName="tipo_solicitud" class="form-select" required>
+                                <option value="">Seleccione...</option>
+                                <option value="peticion">Petición</option>
+                                <option value="queja">Queja</option>
+                                <option value="reclamo">Reclamo</option>
+                                <option value="sugerencia">Sugerencia</option>
+                            </select>
+                        </div>
+
+                        <!-- Campos para PQRS Personal -->
+                        <div *ngIf="nuevaPqrsForm.get('tipo_identificacion')?.value === 'personal'">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="cedula_ciudadano" class="form-label">Cédula del Ciudadano *</label>
+                                    <input id="cedula_ciudadano" type="text" class="form-control"
+                                        formControlName="cedula_ciudadano">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="nombre_ciudadano" class="form-label">Nombre Completo *</label>
+                                    <input id="nombre_ciudadano" type="text" class="form-control"
+                                        formControlName="nombre_ciudadano">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="telefono_ciudadano" class="form-label">Teléfono</label>
+                                <input id="telefono_ciudadano" type="tel" class="form-control"
+                                    formControlName="telefono_ciudadano">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="email_ciudadano" class="form-label">Email</label>
+                                <input id="email_ciudadano" type="email" class="form-control"
+                                    formControlName="email_ciudadano">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="direccion_ciudadano" class="form-label">Dirección</label>
+                                <input id="direccion_ciudadano" type="text" class="form-control"
+                                    formControlName="direccion_ciudadano">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="asunto" class="form-label">Asunto *</label>
+                                <input id="asunto" type="text" class="form-control" formControlName="asunto"
+                                    placeholder="Resumen breve del motivo de la PQRS...">
+                            </div>
+                        </div>
+
+                        <!-- Campo Descripción (siempre visible) -->
+                        <div class="mb-4">
+                            <label for="descripcion" class="form-label">Descripción *</label>
+                            <textarea id="descripcion" class="form-control" rows="4" formControlName="descripcion"
+                                required placeholder="Describa detalladamente su solicitud..."></textarea>
+                        </div>
+
+                        <!-- Medio de Respuesta -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Selecciona el medio por el que te gustaría recibir la
+                                respuesta *</label>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="medio_respuesta"
+                                            id="medio_email" value="email" formControlName="medio_respuesta">
+                                        <label class="form-check-label" for="medio_email">
+                                            <i class="fas fa-envelope me-1"></i> Por correo electrónico
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="medio_respuesta"
+                                            id="medio_fisica" value="fisica" formControlName="medio_respuesta">
+                                        <label class="form-check-label" for="medio_fisica">
+                                            <i class="fas fa-mail-bulk me-1"></i> Por correspondencia física
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="medio_respuesta"
+                                            id="medio_telefono" value="telefono" formControlName="medio_respuesta">
+                                        <label class="form-check-label" for="medio_telefono">
+                                            <i class="fas fa-phone me-1"></i> Por teléfono
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="medio_respuesta"
+                                            id="medio_ticket" value="ticket" formControlName="medio_respuesta">
+                                        <label class="form-check-label" for="medio_ticket">
+                                            <i class="fas fa-ticket-alt me-1"></i> Seguimiento por ticket
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Campos condicionales según medio de respuesta -->
+                        <div class="mb-3" *ngIf="nuevaPqrsForm.get('medio_respuesta')?.value === 'email'">
+                            <label for="email_respuesta" class="form-label">
+                                <i class="fas fa-envelope text-primary me-1"></i> Correo Electrónico para Respuesta *
+                            </label>
+                            <input id="email_respuesta" type="email" class="form-control"
+                                formControlName="email_ciudadano" placeholder="correo@ejemplo.com"
+                                [required]="nuevaPqrsForm.get('medio_respuesta')?.value === 'email'">
+                            <small class="form-text text-muted">
+                                Ingresa el correo donde deseas recibir la respuesta
+                            </small>
+                        </div>
+
+                        <div class="mb-3" *ngIf="nuevaPqrsForm.get('medio_respuesta')?.value === 'fisica'">
+                            <label for="direccion_respuesta" class="form-label">
+                                <i class="fas fa-map-marker-alt text-danger me-1"></i> Dirección para Correspondencia
+                                Física *
+                            </label>
+                            <textarea id="direccion_respuesta" class="form-control" rows="2"
+                                formControlName="direccion_ciudadano" placeholder="Calle, número, barrio, ciudad..."
+                                [required]="nuevaPqrsForm.get('medio_respuesta')?.value === 'fisica'"></textarea>
+                            <small class="form-text text-muted">
+                                Ingresa la dirección completa donde deseas recibir la respuesta física
+                            </small>
+                        </div>
+
+                        <div class="mb-3" *ngIf="nuevaPqrsForm.get('medio_respuesta')?.value === 'telefono'">
+                            <label for="telefono_respuesta" class="form-label">
+                                <i class="fas fa-phone text-success me-1"></i> Número de Teléfono para Contacto *
+                            </label>
+                            <input id="telefono_respuesta" type="tel" class="form-control"
+                                formControlName="telefono_ciudadano" placeholder="3001234567"
+                                [required]="nuevaPqrsForm.get('medio_respuesta')?.value === 'telefono'">
+                            <small class="form-text text-muted">
+                                Ingresa el número donde deseas ser contactado
+                            </small>
+                        </div>
+
+                        <!-- Botones -->
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary" (click)="setActiveView('dashboard')"><i
+                                    class="fas fa-arrow-left me-1"></i>Volver</button>
+                            <button type="submit" class="btn btn-primary"
+                                [disabled]="nuevaPqrsForm.invalid || isSubmitting">
+                                <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-2"></span>
+                                {{ isSubmitting ? 'Creando...' : 'Crear PQRS' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Usuarios View -->
+        <div *ngIf="activeView === 'usuarios' && isAdmin() && usersAdminEnabled()">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h3 class="mb-1"><i class="fas fa-users me-2 text-primary"></i>Gestión de Usuarios</h3>
+                    <p class="text-muted mb-0 small">Administración y control de usuarios del sistema</p>
+                </div>
+                <div>
+                    <button class="btn btn-primary btn-sm me-2" (click)="loadUsuarios()">
+                        <i class="fas fa-sync me-1"></i>Actualizar
+                    </button>
+                    <button class="btn btn-primary btn-sm" (click)="setActiveView('crear-secretario')">
+                        <i class="fas fa-user-plus me-1"></i>Nuevo Usuario
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div *ngIf="isLoadingUsuarios" class="text-center my-4">
+                        <div class="spinner-border" role="status"></div>
+                    </div>
+
+                    <div *ngIf="usuariosList.length === 0 && !isLoadingUsuarios" class="text-center text-muted">No hay
+                        usuarios cargados. Haga clic en "Actualizar".</div>
+
+                    <div *ngIf="usuariosList.length > 0" class="table-responsive mt-3">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Usuario</th>
+                                    <th>Email</th>
+                                    <th>Rol</th>
+                                    <th>Tipo</th>
+                                    <th>Módulos</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let usuario of usuariosList">
+                                    <td>{{ usuario.full_name }}</td>
+                                    <td>{{ usuario.username }}</td>
+                                    <td>{{ usuario.email }}</td>
+                                    <td><span
+                                            [ngClass]="'badge bg-' + (usuario.role === 'admin' ? 'primary' : 'secondary')">{{
+                                            usuario.role | titlecase }}</span></td>
+                                    <td>
+                                        <span *ngIf="usuario.user_type" class="badge bg-info">
+                                            {{ usuario.user_type | titlecase }}
+                                        </span>
+                                        <span *ngIf="!usuario.user_type" class="text-muted">-</span>
+                                    </td>
+                                    <td>
+                                        <div *ngIf="usuario.allowed_modules && usuario.allowed_modules.length > 0"
+                                            class="d-flex flex-wrap gap-1">
+                                            <span *ngFor="let module of usuario.allowed_modules"
+                                                class="badge bg-light text-dark border" style="font-size: 0.7rem;">
+                                                <i class="fas" [ngClass]="{
+                                                    'fa-inbox': module === 'pqrs',
+                                                    'fa-tasks': module === 'planes_institucionales',
+                                                    'fa-file-contract': module === 'contratacion',
+                                                    'fa-chart-line': module === 'pdm'
+                                                }"></i>
+                                                {{ getModuleName(module) }}
+                                            </span>
+                                        </div>
+                                        <span *ngIf="!usuario.allowed_modules || usuario.allowed_modules.length === 0"
+                                            class="text-muted">Todos</span>
+                                    </td>
+                                    <td><span [ngClass]="usuario.is_active ? 'badge bg-success' : 'badge bg-danger'">{{
+                                            usuario.is_active ? 'Activo' : 'Inactivo' }}</span></td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button class="btn btn-outline-primary" title="Editar módulos"
+                                                (click)="abrirModalModulos(usuario)">
+                                                <i class="fas fa-th-large"></i>
+                                            </button>
+                                            <button class="btn btn-outline-warning" title="Cambiar estado"
+                                                (click)="toggleUsuarioEstado(usuario)"
+                                                [disabled]="usuario.id === currentUser?.id">
+                                                <i class="fas fa-toggle-on"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger" title="Eliminar usuario"
+                                                (click)="eliminarUsuario(usuario)"
+                                                [disabled]="usuario.id === currentUser?.id">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Crear Secretario View -->
+        <div *ngIf="activeView === 'crear-secretario' && isAdmin() && usersAdminEnabled()">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-user-plus me-2"></i>Crear Nuevo Usuario
+                        </h5>
+                        <button class="btn btn-light btn-sm" (click)="setActiveView('usuarios')">
+                            <i class="fas fa-times me-1"></i>Cancelar
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form [formGroup]="nuevoSecretarioForm" (ngSubmit)="onSubmitNuevoSecretario()">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="full_name" class="form-label">
+                                    <i class="fas fa-user me-1 text-success"></i>Nombre Completo *
+                                </label>
+                                <input type="text" class="form-control" id="full_name" formControlName="full_name"
+                                    placeholder="Ej: Juan Pérez García" required>
+                                <div class="text-danger small mt-1"
+                                    *ngIf="nuevoSecretarioForm.get('full_name')?.invalid && nuevoSecretarioForm.get('full_name')?.touched">
+                                    El nombre completo es requerido
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="username" class="form-label">
+                                    <i class="fas fa-at me-1 text-success"></i>Usuario *
+                                </label>
+                                <input type="text" class="form-control" id="username" formControlName="username"
+                                    placeholder="Ej: juanperez" required>
+                                <div class="text-danger small mt-1"
+                                    *ngIf="nuevoSecretarioForm.get('username')?.invalid && nuevoSecretarioForm.get('username')?.touched">
+                                    El usuario es requerido
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">
+                                    <i class="fas fa-envelope me-1 text-success"></i>Email *
+                                </label>
+                                <input type="email" class="form-control" id="email" formControlName="email"
+                                    placeholder="Ej: juan.perez@alcaldia.gov.co" required>
+                                <div class="text-danger small mt-1"
+                                    *ngIf="nuevoSecretarioForm.get('email')?.invalid && nuevoSecretarioForm.get('email')?.touched">
+                                    Ingrese un email válido
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="secretaria" class="form-label">
+                                    <i class="fas fa-building me-1 text-success"></i>Secretaría
+                                </label>
+                                <input type="text" class="form-control" id="secretaria" formControlName="secretaria"
+                                    [attr.list]="'opc-secretaria'"
+                                    placeholder="Escribe el nombre de la secretaría (o selecciona sugerencia)">
+                                <datalist id="opc-secretaria">
+                                    <option *ngFor="let nombre of secretariasSugeridas" [value]="nombre"></option>
+                                </datalist>
+                                <small class="text-muted">Este campo es libre: si no ves tu secretaría en la lista,
+                                    escríbela para crearla.</small>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="user_type" class="form-label">
+                                    <i class="fas fa-id-badge me-1 text-success"></i>Tipo de Usuario *
+                                </label>
+                                <select class="form-select" id="user_type" formControlName="user_type" required>
+                                    <option value="">Seleccione...</option>
+                                    <option value="secretario">Secretario</option>
+                                    <option value="contratista">Contratista</option>
+                                </select>
+                                <div class="text-danger small mt-1"
+                                    *ngIf="nuevoSecretarioForm.get('user_type')?.invalid && nuevoSecretarioForm.get('user_type')?.touched">
+                                    Debe seleccionar un tipo de usuario
+                                </div>
+                            </div>
+
+                            <div class="col-12 mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-th-large me-1 text-success"></i>Módulos Permitidos *
+                                </label>
+                                <div class="alert alert-light border">
+                                    <div class="form-check" *ngIf="pqrsEnabled()">
+                                        <input class="form-check-input" type="checkbox" value="pqrs" id="module_pqrs"
+                                            formControlName="module_pqrs">
+                                        <label class="form-check-label" for="module_pqrs">
+                                            <i class="fas fa-inbox me-1 text-primary"></i>
+                                            <strong>PQRS</strong> - Gestión de Peticiones, Quejas, Reclamos y
+                                            Sugerencias
+                                        </label>
+                                    </div>
+                                    <div class="form-check mt-2" *ngIf="planesEnabled()">
+                                        <input class="form-check-input" type="checkbox" value="planes_institucionales"
+                                            id="module_planes" formControlName="module_planes">
+                                        <label class="form-check-label" for="module_planes">
+                                            <i class="fas fa-tasks me-1 text-success"></i>
+                                            <strong>Planes Institucionales</strong> - Gestión de objetivos e indicadores
+                                        </label>
+                                    </div>
+                                    <div class="form-check mt-2" *ngIf="contratacionEnabled()">
+                                        <input class="form-check-input" type="checkbox" value="contratacion"
+                                            id="module_contratacion" formControlName="module_contratacion">
+                                        <label class="form-check-label" for="module_contratacion">
+                                            <i class="fas fa-file-contract me-1 text-warning"></i>
+                                            <strong>Contratación</strong> - Consulta y análisis SECOP II
+                                        </label>
+                                    </div>
+                                    <div class="form-check mt-2" *ngIf="pdmEnabled()">
+                                        <input class="form-check-input" type="checkbox" value="pdm" id="module_pdm"
+                                            formControlName="module_pdm">
+                                        <label class="form-check-label" for="module_pdm">
+                                            <i class="fas fa-chart-line me-1 text-info"></i>
+                                            <strong>Plan de Desarrollo</strong> - Análisis y seguimiento del PDM
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="text-danger small"
+                                    *ngIf="!hasAnyModuleSelected() && nuevoSecretarioForm.get('user_type')?.touched">
+                                    Debe seleccionar al menos un módulo
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="password" class="form-label">
+                                    <i class="fas fa-lock me-1 text-success"></i>Contraseña *
+                                </label>
+                                <input type="password" class="form-control" id="password" formControlName="password"
+                                    placeholder="Mínimo 6 caracteres" required>
+                                <div class="text-danger small mt-1"
+                                    *ngIf="nuevoSecretarioForm.get('password')?.invalid && nuevoSecretarioForm.get('password')?.touched">
+                                    La contraseña debe tener al menos 6 caracteres
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="password_confirm" class="form-label">
+                                    <i class="fas fa-lock me-1 text-success"></i>Confirmar Contraseña *
+                                </label>
+                                <input type="password" class="form-control" id="password_confirm"
+                                    formControlName="password_confirm" placeholder="Repita la contraseña" required>
+                                <div class="text-danger small mt-1"
+                                    *ngIf="nuevoSecretarioForm.hasError('passwordMismatch') && nuevoSecretarioForm.get('password_confirm')?.touched">
+                                    Las contraseñas no coinciden
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Nota:</strong> Este usuario podrá gestionar únicamente los módulos que se le
+                            asignen.
+                            Los módulos disponibles dependen de la configuración de la entidad.
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-secondary" (click)="setActiveView('usuarios')">
+                                <i class="fas fa-arrow-left me-1"></i>Volver
+                            </button>
+                            <button type="submit" class="btn btn-success"
+                                [disabled]="nuevoSecretarioForm.invalid || isSubmitting || !hasAnyModuleSelected()">
+                                <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-2"></span>
+                                <i *ngIf="!isSubmitting" class="fas fa-save me-1"></i>
+                                {{ isSubmitting ? 'Creando...' : 'Crear Usuario' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detalle PQRS View -->
+        <div *ngIf="activeView === 'detalle-pqrs' && selectedPqrs" class="detalle-pqrs-view">
+            <div class="card">
+                <div class="card-header bg-primary text-white" [class.highlight]="highlightDetalle">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-file-alt me-2"></i>Detalle de PQRS - {{ selectedPqrs.numero_radicado }}
+                        </h5>
+                        <button class="btn btn-light btn-sm" (click)="cerrarDetalles()">
+                            <i class="fas fa-times me-1"></i>Cerrar
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Información General -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="info-card">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-info-circle me-2"></i>Información General
+                                </h6>
+                                <div class="info-row">
+                                    <strong>Número de Radicado:</strong>
+                                    <span class="badge bg-primary">{{ selectedPqrs.numero_radicado }}</span>
+                                </div>
+                                <div class="info-row">
+                                    <strong>Tipo de Solicitud:</strong>
+                                    <span class="badge bg-light text-dark">{{ selectedPqrs.tipo_solicitud | titlecase
+                                        }}</span>
+                                </div>
+                                <div class="info-row">
+                                    <strong>Estado:</strong>
+                                    <span [ngClass]="'badge bg-' + getEstadoColor(selectedPqrs.estado)">
+                                        {{ getEstadoLabel(selectedPqrs.estado) }}
+                                    </span>
+                                </div>
+                                <div class="info-row">
+                                    <strong>Fecha de Solicitud:</strong>
+                                    <span>{{ selectedPqrs.fecha_solicitud | date:'dd/MM/yyyy HH:mm' }}</span>
+                                </div>
+                                <div class="info-row" *ngIf="selectedPqrs.fecha_respuesta">
+                                    <strong>Fecha de Respuesta:</strong>
+                                    <span>{{ selectedPqrs.fecha_respuesta | date:'dd/MM/yyyy HH:mm' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-card">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-user me-2"></i>Información del Ciudadano
+                                </h6>
+                                <div class="info-row">
+                                    <strong>Nombre:</strong>
+                                    <span>{{ selectedPqrs.nombre_ciudadano }}</span>
+                                </div>
+                                <div class="info-row">
+                                    <strong>Cédula:</strong>
+                                    <span>{{ selectedPqrs.cedula_ciudadano }}</span>
+                                </div>
+                                <div class="info-row" *ngIf="selectedPqrs.telefono_ciudadano">
+                                    <strong>Teléfono:</strong>
+                                    <span>{{ selectedPqrs.telefono_ciudadano }}</span>
+                                </div>
+                                <div class="info-row" *ngIf="selectedPqrs.email_ciudadano">
+                                    <strong>Email:</strong>
+                                    <span>{{ selectedPqrs.email_ciudadano }}</span>
+                                </div>
+                                <div class="info-row" *ngIf="selectedPqrs.direccion_ciudadano">
+                                    <strong>Dirección:</strong>
+                                    <span>{{ selectedPqrs.direccion_ciudadano }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Asunto y Descripción -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="info-card">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-align-left me-2"></i>Asunto y Descripción
+                                </h6>
+                                <div class="info-row">
+                                    <strong>Asunto:</strong>
+                                    <span>{{ selectedPqrs.asunto }}</span>
+                                </div>
+                                <div class="info-row">
+                                    <strong>Descripción:</strong>
+                                    <p class="mt-2 mb-0">{{ selectedPqrs.descripcion }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Asignación -->
+                    <div class="row mb-4" *ngIf="selectedPqrs.assigned_to || isAdmin()">
+                        <div class="col-12">
+                            <div class="info-card">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-user-tie me-2"></i>Asignación
+                                </h6>
+                                <div class="info-row" *ngIf="selectedPqrs.assigned_to">
+                                    <strong>Asignado a:</strong>
+                                    <span>{{ selectedPqrs.assigned_to.full_name }}</span>
+                                </div>
+                                <div class="info-row" *ngIf="!selectedPqrs.assigned_to">
+                                    <span class="text-muted">No asignado</span>
+                                </div>
+                                <div class="mt-3" *ngIf="isAdmin()">
+                                    <button class="btn btn-success btn-sm" (click)="mostrarAsignacion(selectedPqrs)"
+                                        data-bs-toggle="modal" data-bs-target="#asignacionModal">
+                                        <i class="fas fa-user-plus me-1"></i>
+                                        {{ selectedPqrs.assigned_to ? 'Reasignar' : 'Asignar' }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Respuesta -->
+                    <div class="row mb-4" *ngIf="selectedPqrs.respuesta || (isAdmin() || isSecretario())">
+                        <div class="col-12">
+                            <div class="info-card">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-reply me-2"></i>Respuesta
+                                </h6>
+                                <div *ngIf="selectedPqrs.respuesta">
+                                    <div class="alert alert-success">
+                                        <strong>Respuesta:</strong>
+                                        <p class="mb-0 mt-2">{{ selectedPqrs.respuesta }}</p>
+                                    </div>
+                                </div>
+                                <div *ngIf="!selectedPqrs.respuesta && (isAdmin() || isSecretario())">
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        Esta PQRS no ha sido respondida aún.
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label"><strong>Escribir Respuesta:</strong></label>
+                                        <textarea class="form-control" rows="4" [(ngModel)]="respuestaTexto"
+                                            placeholder="Escriba la respuesta detallada..."></textarea>
+                                    </div>
+                                    <button class="btn btn-primary" (click)="enviarRespuesta()"
+                                        [disabled]="!respuestaTexto.trim()">
+                                        <i class="fas fa-paper-plane me-1"></i>Enviar Respuesta
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Acciones -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="d-flex gap-2 justify-content-between">
+                                <button class="btn btn-secondary" (click)="cerrarDetalles()">
+                                    <i class="fas fa-arrow-left me-1"></i>Volver
+                                </button>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-warning" *ngIf="canChangeStatus()"
+                                        (click)="mostrarCambioEstado(selectedPqrs)" data-bs-toggle="modal"
+                                        data-bs-target="#estadoModal">
+                                        <i class="fas fa-edit me-1"></i>Cambiar Estado
+                                    </button>
+                                    <button class="btn btn-danger" *ngIf="isAdmin()"
+                                        (click)="eliminarPqrs(selectedPqrs)">
+                                        <i class="fas fa-trash me-1"></i>Eliminar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modales (Asignación y Estado) -->
+        <div class="modal fade" id="asignacionModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Asignar PQRS</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" *ngIf="selectedPqrs">
+                        <p><strong>PQRS:</strong> {{ selectedPqrs.numero_radicado }}</p>
+                        <p><strong>Ciudadano:</strong> {{ selectedPqrs.nombre_ciudadano }}</p>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Seleccionar Secretaría:</label>
+                            <select class="form-select" [(ngModel)]="selectedSecretarioId">
+                                <option value="">Seleccione una secretaría...</option>
+                                <option *ngFor="let nombre of secretariasSugeridas" [value]="nombre">
+                                    {{ nombre }}
+                                </option>
+                            </select>
+                            <small class="text-muted d-block mt-2">
+                                <i class="fas fa-info-circle me-1"></i>Asigne la PQRS a una secretaría
+                            </small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" (click)="confirmarAsignacion()"
+                            [disabled]="!selectedSecretarioId">Asignar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="estadoModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Cambiar Estado</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" *ngIf="selectedPqrs">
+                        <p><strong>PQRS:</strong> {{ selectedPqrs.numero_radicado }}</p>
+                        <p><strong>Estado actual:</strong> <span
+                                [ngClass]="'badge bg-' + getEstadoColor(selectedPqrs.estado)">{{
+                                getEstadoLabel(selectedPqrs.estado) }}</span></p>
+                        <div class="mb-3">
+                            <label class="form-label">Nuevo Estado:</label>
+                            <select class="form-select" [(ngModel)]="selectedEstado">
+                                <option *ngFor="let estado of estadosColor" [value]="estado.value">{{ estado.label }}
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-warning" (click)="confirmarCambioEstado()"
+                            [disabled]="!selectedEstado || selectedEstado === selectedPqrs?.estado">Cambiar
+                            Estado</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Editar PQRS -->
+        <div class="modal fade show d-block" *ngIf="mostrarFormularioEdicion"
+            style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header bg-info text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-edit me-2"></i>Editar PQRS - {{ pqrsEditando?.numero_radicado }}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" (click)="cancelarEdicion()"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form [formGroup]="editarPqrsForm">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="edit_tipo_solicitud" class="form-label">Tipo de Solicitud *</label>
+                                    <select id="edit_tipo_solicitud" formControlName="tipo_solicitud"
+                                        class="form-select" required>
+                                        <option value="">Seleccione...</option>
+                                        <option value="peticion">Petición</option>
+                                        <option value="queja">Queja</option>
+                                        <option value="reclamo">Reclamo</option>
+                                        <option value="sugerencia">Sugerencia</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="edit_cedula_ciudadano" class="form-label">Cédula del Ciudadano *</label>
+                                    <input type="text" id="edit_cedula_ciudadano" formControlName="cedula_ciudadano"
+                                        class="form-control" required>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="edit_nombre_ciudadano" class="form-label">Nombre del Ciudadano *</label>
+                                    <input type="text" id="edit_nombre_ciudadano" formControlName="nombre_ciudadano"
+                                        class="form-control" required>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="edit_telefono_ciudadano" class="form-label">Teléfono</label>
+                                    <input type="tel" id="edit_telefono_ciudadano" formControlName="telefono_ciudadano"
+                                        class="form-control">
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="edit_email_ciudadano" class="form-label">Email</label>
+                                    <input type="email" id="edit_email_ciudadano" formControlName="email_ciudadano"
+                                        class="form-control">
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="edit_direccion_ciudadano" class="form-label">Dirección</label>
+                                    <input type="text" id="edit_direccion_ciudadano"
+                                        formControlName="direccion_ciudadano" class="form-control">
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="edit_fecha_solicitud" class="form-label">
+                                        <i class="fas fa-calendar me-1"></i>Fecha de Solicitud *
+                                    </label>
+                                    <input type="datetime-local" id="edit_fecha_solicitud"
+                                        formControlName="fecha_solicitud" class="form-control" required>
+                                    <small class="text-muted">Esta fecha afecta el cálculo de días restantes</small>
+                                </div>
+
+                                <div class="col-12 mb-3">
+                                    <label for="edit_asunto" class="form-label">Asunto *</label>
+                                    <input type="text" id="edit_asunto" formControlName="asunto" class="form-control"
+                                        required>
+                                </div>
+
+                                <div class="col-12 mb-3">
+                                    <label for="edit_descripcion" class="form-label">Descripción *</label>
+                                    <textarea id="edit_descripcion" formControlName="descripcion" class="form-control"
+                                        rows="4" required></textarea>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" (click)="cancelarEdicion()">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </button>
+                        <button type="button" class="btn btn-info" (click)="guardarEdicion()"
+                            [disabled]="!editarPqrsForm.valid || isSubmitting">
+                            <i class="fas fa-save me-2"></i>{{ isSubmitting ? 'Guardando...' : 'Guardar Cambios' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Edición de Módulos -->
+        <div class="modal fade show d-block" *ngIf="mostrarModalModulos" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-th-large me-2"></i>Editar Módulos Permitidos
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" (click)="cerrarModalModulos()"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div *ngIf="usuarioEditandoModulos" class="mb-3">
+                            <p class="mb-2">
+                                <strong>Usuario:</strong> {{ usuarioEditandoModulos.full_name }} ({{
+                                usuarioEditandoModulos.username }})
+                            </p>
+                            <p class="text-muted mb-3">
+                                <small>
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Selecciona los módulos a los que este usuario tendrá acceso. Solo se muestran los
+                                    módulos habilitados para la entidad.
+                                </small>
+                            </p>
+                        </div>
+
+                        <div class="form-check mb-2" *ngIf="entity?.enable_pqrs">
+                            <input class="form-check-input" type="checkbox" id="module_pqrs"
+                                [(ngModel)]="modulosSeleccionados.pqrs">
+                            <label class="form-check-label" for="module_pqrs">
+                                <i class="fas fa-inbox me-2 text-primary"></i>
+                                <strong>PQRS</strong>
+                                <br>
+                                <small class="text-muted">Sistema de peticiones, quejas, reclamos y sugerencias</small>
+                            </label>
+                        </div>
+
+                        <div class="form-check mb-2" *ngIf="entity?.enable_planes_institucionales">
+                            <input class="form-check-input" type="checkbox" id="module_planes"
+                                [(ngModel)]="modulosSeleccionados.planes_institucionales">
+                            <label class="form-check-label" for="module_planes">
+                                <i class="fas fa-tasks me-2 text-success"></i>
+                                <strong>Planes Institucionales</strong>
+                                <br>
+                                <small class="text-muted">Gestión de planes y metas institucionales</small>
+                            </label>
+                        </div>
+
+                        <div class="form-check mb-2" *ngIf="entity?.enable_contratacion">
+                            <input class="form-check-input" type="checkbox" id="module_contratacion"
+                                [(ngModel)]="modulosSeleccionados.contratacion">
+                            <label class="form-check-label" for="module_contratacion">
+                                <i class="fas fa-file-contract me-2 text-warning"></i>
+                                <strong>Contratación Pública</strong>
+                                <br>
+                                <small class="text-muted">Consulta y análisis de contratación pública (SECOP II)</small>
+                            </label>
+                        </div>
+
+                        <div class="form-check mb-2" *ngIf="pdmEnabled()">
+                            <input class="form-check-input" type="checkbox" id="module_pdm"
+                                [(ngModel)]="modulosSeleccionados.pdm">
+                            <label class="form-check-label" for="module_pdm">
+                                <i class="fas fa-chart-line me-2 text-info"></i>
+                                <strong>Plan de Desarrollo Municipal</strong>
+                                <br>
+                                <small class="text-muted">Análisis y seguimiento del Plan de Desarrollo</small>
+                            </label>
+                        </div>
+
+                        <div class="alert alert-info mt-3"
+                            *ngIf="!entity?.enable_pqrs && !entity?.enable_planes_institucionales && !entity?.enable_contratacion && !pdmEnabled()">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            No hay módulos disponibles para esta entidad. Contacta al super administrador para habilitar
+                            módulos.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" (click)="cerrarModalModulos()">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </button>
+                        <button type="button" class="btn btn-primary" (click)="guardarModulos()"
+                            [disabled]="guardandoModulos">
+                            <i class="fas fa-save me-2" [class.fa-spin]="guardandoModulos"></i>
+                            {{ guardandoModulos ? 'Guardando...' : 'Guardar Cambios' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

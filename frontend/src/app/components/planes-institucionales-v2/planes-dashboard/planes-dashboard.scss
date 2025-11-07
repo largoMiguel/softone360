@@ -1,0 +1,80 @@
+.planes-dashboard-container {
+    padding: 1.5rem;
+    background-color: #f8f9fa;
+    min-height: 100vh;
+}
+
+.dashboard-header {
+    h3 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+}
+
+.chart-container {
+    position: relative;
+
+    canvas {
+        max-height: 100%;
+    }
+}
+
+// Plan Card
+.plan-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+
+    .card-subtitle {
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .plan-meta {
+        .meta-item {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-bottom: 0.25rem;
+        }
+    }
+}
+
+.loading-overlay {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 3rem;
+}
+
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .header-actions {
+        width: 100%;
+
+        button {
+            flex: 1;
+        }
+    }
+
+    .stats-card {
+        flex-direction: column;
+        text-align: center;
+    }
+}

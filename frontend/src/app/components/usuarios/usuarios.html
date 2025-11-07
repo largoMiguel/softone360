@@ -1,0 +1,122 @@
+<div class="usuarios-container">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0"><i class="fas fa-users"></i> Usuarios</h4>
+        <button class="btn btn-primary" (click)="abrirModal()">
+            <i class="fas fa-user-plus"></i> Nuevo Usuario
+        </button>
+    </div>
+
+    <div *ngIf="cargando" class="text-center py-4">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+
+    <div class="card" *ngIf="!cargando">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Rol</th>
+                        <th>Secretaría</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let u of usuarios">
+                        <td>{{ u.username }}</td>
+                        <td>{{ u.full_name }}</td>
+                        <td>{{ u.email }}</td>
+                        <td>{{ u.role }}</td>
+                        <td>{{ u.secretaria || '-' }}</td>
+                        <td>
+                            <span class="badge" [class.bg-success]="u.is_active" [class.bg-secondary]="!u.is_active">
+                                {{ u.is_active ? 'Activo' : 'Inactivo' }}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger" (click)="eliminarUsuario(u)"><i
+                                    class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                    <tr *ngIf="usuarios.length === 0">
+                        <td colspan="7" class="text-center text-muted py-4">No hay usuarios</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal Crear Usuario -->
+    <div class="modal fade show d-block" *ngIf="modalAbierto" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuevo Usuario</h5>
+                    <button type="button" class="btn-close" (click)="cerrarModal()"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Usuario *</label>
+                                <input type="text" class="form-control" [(ngModel)]="form.username" name="username"
+                                    required />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nombre Completo *</label>
+                                <input type="text" class="form-control" [(ngModel)]="form.full_name" name="full_name"
+                                    required />
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Email *</label>
+                                <input type="email" class="form-control" [(ngModel)]="form.email" name="email"
+                                    required />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Contraseña *</label>
+                                <input type="password" class="form-control" [(ngModel)]="form.password" name="password"
+                                    required />
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Rol *</label>
+                                <select class="form-select" [(ngModel)]="form.role" name="role" required>
+                                    <option value="ADMIN">ADMIN</option>
+                                    <option value="SECRETARIO">SECRETARIO</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Tipo de Usuario</label>
+                                <select class="form-select" [(ngModel)]="form.user_type" name="user_type">
+                                    <option [ngValue]="'secretario'">Secretario</option>
+                                    <option [ngValue]="'contratista'">Contratista</option>
+                                    <option [ngValue]="null">Ninguno</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Secretaría: solo pedir el nombre, sin lista -->
+                        <div class="mb-3">
+                            <label class="form-label">Nombre de la Secretaría</label>
+                            <input type="text" class="form-control" [(ngModel)]="form.secretaria" name="secretaria"
+                                placeholder="Ej: Secretaría de Gobierno" />
+                            <small class="text-muted">Se guardará como texto. No se carga lista; se crea con el nombre
+                                indicado.</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" (click)="cerrarModal()">Cancelar</button>
+                    <button type="button" class="btn btn-primary" (click)="crearUsuario()"
+                        [disabled]="!form.username || !form.full_name || !form.email || !form.password || !form.role">Crear</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

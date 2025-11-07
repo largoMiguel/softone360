@@ -1,0 +1,339 @@
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="hero-overlay"></div>
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-7 hero-content animate">
+                <div class="badge-pill mb-3">
+                    <i class="fas fa-star me-2"></i>Sistema Líder en Gestión Pública
+                </div>
+                <h1 class="hero-title mb-4">
+                    Transforme la <span class="text-gradient">Gestión Pública</span> de su Entidad
+                </h1>
+                <p class="hero-subtitle mb-4">
+                    Plataforma integral para PQRS, Planes Institucionales y Contratación Pública.
+                    IA generativa para reportes ejecutivos, control granular de permisos y dashboards en tiempo real.
+                </p>
+                <div class="hero-actions">
+                    <button class="btn btn-primary btn-lg me-3" (click)="scrollToSection('modules')">
+                        <i class="fas fa-rocket me-2"></i>Ver Módulos
+                    </button>
+                    <button class="btn btn-outline-light btn-lg"
+                        (click)="contactarWhatsApp('Hola, me gustaría solicitar una demostración de SoftOne360 para mi entidad.')">
+                        <i class="fab fa-whatsapp me-2"></i>Solicitar Demo
+                    </button>
+                </div>
+                <div class="hero-stats mt-5">
+                    <div class="stat-item" *ngFor="let stat of stats">
+                        <i [class]="stat.icon + ' stat-icon'"></i>
+                        <div>
+                            <div class="stat-value">{{ stat.value }}</div>
+                            <div class="stat-label">{{ stat.label }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5 d-none d-lg-block animate">
+                <div class="hero-illustration">
+                    <i class="fas fa-laptop-code illustration-icon"></i>
+                    <div class="floating-card card-1">
+                        <i class="fas fa-check-circle text-success"></i>
+                        <span>PQRS Automatizado</span>
+                    </div>
+                    <div class="floating-card card-2">
+                        <i class="fas fa-chart-line text-primary"></i>
+                        <span>Analytics en vivo</span>
+                    </div>
+                    <div class="floating-card card-3">
+                        <i class="fas fa-shield-alt text-warning"></i>
+                        <span>100% Seguro</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hero-wave">
+        <svg viewBox="0 0 1440 120" xmlns="http://www.w3.org/2000/svg">
+            <path fill="#ffffff"
+                d="M0,64L80,69.3C160,75,320,85,480,80C640,75,800,53,960,48C1120,43,1280,53,1360,58.7L1440,64L1440,120L1360,120C1280,120,1120,120,960,120C800,120,640,120,480,120C320,120,160,120,80,120L0,120Z">
+            </path>
+        </svg>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section py-5" id="features">
+    <div class="container">
+        <div class="section-header text-center mb-5 animate">
+            <h2 class="section-title">Características Destacadas</h2>
+            <p class="section-subtitle">Tecnología de vanguardia al servicio del sector público</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-4 animate" *ngFor="let feature of features">
+                <div class="feature-card">
+                    <div class="feature-icon"
+                        [style.background]="'linear-gradient(135deg, ' + feature.color + ', ' + feature.color + 'dd)'">
+                        <i [class]="feature.icon"></i>
+                    </div>
+                    <h3 class="feature-title">{{ feature.title }}</h3>
+                    <p class="feature-description">{{ feature.description }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Modules Section -->
+<section class="modules-section py-5 bg-light" id="modules">
+    <div class="container">
+        <div class="section-header text-center mb-5 animate">
+            <h2 class="section-title">Módulos del Sistema</h2>
+            <p class="section-subtitle">Soluciones completas para cada necesidad de su entidad</p>
+        </div>
+
+        <div class="module-showcase" *ngFor="let module of modules; let i = index">
+            <div class="row align-items-center" [class.flex-row-reverse]="i % 2 !== 0">
+                <div class="col-lg-6 animate">
+                    <div class="module-visual"
+                        [style.background]="'linear-gradient(135deg, ' + module.color + '22, ' + module.color + '44)'">
+                        <i [class]="module.image + ' module-icon'" [style.color]="module.color"></i>
+                    </div>
+                </div>
+                <div class="col-lg-6 animate">
+                    <div class="module-content">
+                        <div class="module-badge" [style.background]="module.color">
+                            <i [class]="module.icon + ' me-2'"></i>Módulo
+                        </div>
+                        <h3 class="module-title">{{ module.name }}</h3>
+                        <p class="module-description">{{ module.description }}</p>
+                        <ul class="module-features">
+                            <li *ngFor="let feat of module.features">
+                                <i class="fas fa-check-circle" [style.color]="module.color"></i>
+                                {{ feat }}
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Benefits Section -->
+<section class="benefits-section py-5">
+    <div class="container">
+        <div class="section-header text-center mb-5 animate">
+            <h2 class="section-title">Beneficios para su Entidad</h2>
+            <p class="section-subtitle">Por qué elegir nuestro sistema</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-4 animate" *ngFor="let benefit of benefits">
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <i [class]="benefit.icon"></i>
+                    </div>
+                    <h4 class="benefit-title">{{ benefit.title }}</h4>
+                    <p class="benefit-description">{{ benefit.description }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Use Cases Section -->
+<section class="use-cases-section py-5 bg-light">
+    <div class="container">
+        <div class="section-header text-center mb-5 animate">
+            <h2 class="section-title">Casos de Uso</h2>
+            <p class="section-subtitle">Adaptado a diferentes tipos de entidades</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-lg-4 animate" *ngFor="let useCase of useCases">
+                <div class="use-case-card">
+                    <div class="use-case-icon">
+                        <i [class]="useCase.icon"></i>
+                    </div>
+                    <h3 class="use-case-title">{{ useCase.title }}</h3>
+                    <p class="use-case-description">{{ useCase.description }}</p>
+                    <div class="use-case-metrics">
+                        <div class="metric" *ngFor="let metric of useCase.metrics">
+                            <i class="fas fa-check-circle text-success me-2"></i>{{ metric }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Testimonials Section 
+<section class="testimonials-section py-5">
+    <div class="container">
+        <div class="section-header text-center mb-5 animate">
+            <h2 class="section-title">Lo Que Dicen Nuestros Clientes</h2>
+            <p class="section-subtitle">Historias de éxito reales</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-lg-4 animate" *ngFor="let testimonial of testimonials">
+                <div class="testimonial-card">
+                    <div class="testimonial-quote">
+                        <i class="fas fa-quote-left"></i>
+                    </div>
+                    <p class="testimonial-message">{{ testimonial.message }}</p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">
+                            <i [class]="testimonial.avatar"></i>
+                        </div>
+                        <div class="author-info">
+                            <div class="author-name">{{ testimonial.name }}</div>
+                            <div class="author-role">{{ testimonial.role }}</div>
+                            <div class="author-entity">{{ testimonial.entity }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>-->
+
+<!-- Tech Stack Section -->
+<section class="tech-section py-5 bg-dark text-white">
+    <div class="container">
+        <div class="section-header text-center mb-5 animate">
+            <h2 class="section-title text-white">Tecnologías de Última Generación</h2>
+            <p class="section-subtitle text-white-50">Stack tecnológico moderno y confiable</p>
+        </div>
+        <div class="tech-stack">
+            <div class="tech-item animate" *ngFor="let tech of techStack">
+                <div class="tech-icon" [style.color]="tech.color">
+                    <i [class]="tech.icon"></i>
+                </div>
+                <div class="tech-name">{{ tech.name }}</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section py-5" id="contact">
+    <div class="container">
+        <div class="cta-box animate">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h2 class="cta-title mb-3">¿Listo para Transformar su Entidad?</h2>
+                    <p class="cta-text mb-0">
+                        Solicite una demostración personalizada y descubra cómo nuestro sistema puede
+                        optimizar la gestión de su entidad gubernamental.
+                    </p>
+                </div>
+                <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
+                    <button class="btn btn-light btn-lg"
+                        (click)="contactarWhatsApp('Hola, quiero agendar una reunión para conocer más sobre SoftOne360.')">
+                        <i class="fab fa-whatsapp me-2"></i>Contactar por WhatsApp
+                    </button>
+                </div>
+            </div>
+        </div>
+<!-- 
+        <div class="contact-info mt-5 text-center animate">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="contact-item">
+                        <i class="fas fa-envelope contact-icon"></i>
+                        <h4>Email</h4>
+                        <p>contactenos@softone360.com</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="contact-item">
+                        <i class="fas fa-phone contact-icon"></i>
+                        <h4>Teléfono</h4>
+                        <p>3162987496 - 310 2432469</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="contact-item">
+                        <i class="fas fa-map-marker-alt contact-icon"></i>
+                        <h4>Ubicación</h4>
+                        <p>Tunja - Boyacá, Colombia</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    -->
+
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="showcase-footer py-5 bg-dark text-white">
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-md-4 mb-4 mb-md-0">
+                <div class="d-flex align-items-center mb-3">
+                    <img src="assets/logos/logo_icono.png" alt="SoftOne360" height="40" class="me-2">
+                    <div>
+                        <h5 class="mb-0 fw-bold">SoftOne360</h5>
+                        <small class="text-white-50">Gestión Completa, Visión Total</small>
+                    </div>
+                </div>
+                <p class="text-white-50 small">
+                    Plataforma integral de gestión pública con IA generativa,
+                    analytics avanzado y cumplimiento normativo garantizado.
+                </p>
+            </div>
+            <div class="col-md-4 mb-4 mb-md-0">
+                <h6 class="fw-bold mb-3">Enlaces Rápidos</h6>
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <a class="text-white-50 text-decoration-none" (click)="scrollToSection('features')"
+                            style="cursor: pointer;">
+                            <i class="fas fa-chevron-right me-2"></i>Características
+                        </a>
+                    </li>
+                    <li class="mb-2">
+                        <a class="text-white-50 text-decoration-none" (click)="scrollToSection('modules')"
+                            style="cursor: pointer;">
+                            <i class="fas fa-chevron-right me-2"></i>Módulos
+                        </a>
+                    </li>
+                    <li class="mb-2">
+                        <a class="text-white-50 text-decoration-none" (click)="scrollToSection('contact')"
+                            style="cursor: pointer;">
+                            <i class="fas fa-chevron-right me-2"></i>Contacto
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-md-4">
+                <h6 class="fw-bold mb-3">Contacto</h6>
+                <p class="text-white-50 small mb-2">
+                    <i class="fas fa-envelope me-2"></i>contactenos@softone360.com
+                </p>
+                <p class="text-white-50 small mb-2">
+                    <i class="fas fa-phone me-2"></i>+57 316 298 7496
+                </p>
+                <p class="text-white-50 small mb-3">
+                    <i class="fas fa-map-marker-alt me-2"></i>Tunja - Boyacá, Colombia
+                </p>
+                <button class="btn btn-success btn-sm"
+                    (click)="contactarWhatsApp('Hola, quiero más información sobre SoftOne360.')">
+                    <i class="fab fa-whatsapp me-2"></i>Escríbenos por WhatsApp
+                </button>
+            </div>
+        </div>
+        <hr class="border-secondary my-4">
+        <div class="row align-items-center">
+            <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
+                <p class="mb-0 small">
+                    <i class="fas fa-code me-2"></i>
+                    Desarrollado con <i class="fas fa-heart text-danger mx-1"></i> por SoftOne360
+                </p>
+            </div>
+            <div class="col-md-6 text-center text-md-end">
+                <p class="mb-0 small">© 2025 SoftOne360 - Gestión Completa, Visión Total. Todos los derechos reservados.
+                </p>
+            </div>
+        </div>
+    </div>
+</footer>

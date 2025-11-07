@@ -1,0 +1,89 @@
+/* You can add global styles to this file, and also import other style files */
+@import 'bootstrap/dist/css/bootstrap.min.css';
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    width: 100%;
+    height: 100%;
+}
+
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+// Scrollbar personalizado
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Override Bootstrap primary color to match design (#216ba8) */
+.bg-primary,
+.navbar.bg-primary,
+.card-header.bg-primary,
+.modal-header.bg-primary,
+.badge.bg-primary,
+.progress-bar.bg-primary,
+.stats-card.bg-primary {
+    background-color: #216ba8 !important;
+    border-color: #216ba8 !important;
+}
+
+/* Asegurar que navbar no tenga margen */
+nav.navbar {
+    margin: 0 !important;
+}
+
+.text-primary {
+    color: #216ba8 !important;
+}
+
+.btn-primary,
+.btn-primary:focus,
+.btn-primary:hover {
+    background-color: #216ba8 !important;
+    border-color: #195683 !important;
+}
+
+/* Ensure badges and progress bars use the correct color */
+.badge.bg-primary {
+    background-color: #216ba8 !important;
+    color: #fff !important;
+}
+
+.navbar-brand,
+.navbar .nav-link {
+    color: #fff !important;
+    /* keep nav text white when using bg-primary */
+}
+
+/* Fallback for any rgba-based shadows using bootstrap primary */
+.shadow-primary,
+.box-shadow-primary {
+    box-shadow: 0 4px 12px rgba(33, 107, 168, 0.15) !important;
+}

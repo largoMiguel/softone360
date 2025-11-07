@@ -1,0 +1,100 @@
+.planes-institucionales-container {
+    position: relative;
+}
+
+.page-header {
+    margin-bottom: 1rem;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.page-title {
+    font-weight: 600;
+}
+
+.loading-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.7);
+    z-index: 1050;
+}
+
+.plan-card .progress-bar {
+    background: linear-gradient(90deg, #4e73df, #1cc88a);
+}
+
+.plan-meta .meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 12px;
+    color: #6c757d;
+}
+
+.plan-info-card .stat-box {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 10px 16px;
+    display: inline-block;
+}
+
+.plan-info-card .stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.plan-info-card .stat-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.componente-card .component-summary {
+    display: flex;
+    gap: 16px;
+}
+
+.componente-card .summary-item {
+    color: #6c757d;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.vista-actividades .table td,
+.vista-actividades .table th {
+    vertical-align: middle;
+}
+
+.ejecucion-item {
+    background: #fcfcfd;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+/* Prioridad badges (map custom names to Bootstrap colors) */
+.badge.bg-low {
+    background-color: #6c757d;
+}
+
+.badge.bg-medium {
+    background-color: #0dcaf0;
+    color: #05292e;
+}
+
+.badge.bg-high {
+    background-color: #ffc107;
+    color: #332701;
+}
+
+.badge.bg-critical {
+    background-color: #dc3545;
+}

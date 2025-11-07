@@ -1,0 +1,80 @@
+/* Navbar height control */
+nav.navbar {
+    min-height: 72px;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1030;
+}
+
+.entity-logo {
+    height: 40px;
+    width: auto;
+}
+
+.software-logo {
+    height: 32px;
+    width: auto;
+}
+
+.navbar-divider {
+    width: 1px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.35);
+}
+
+.entity-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.entity-name {
+    color: #fff;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.entity-subtitle {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.75rem;
+}
+
+.software-name {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.alerts-panel {
+    position: absolute;
+    right: 0;
+    top: 48px;
+    width: 360px;
+    max-height: 400px;
+    overflow: auto;
+    z-index: 1050;
+}
+
+.alerts-list .list-group-item.unread {
+    background-color: #f5f8ff;
+}
+
+.user-dropdown {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-avatar i {
+    font-size: 1.5rem;
+}
+
+.user-dropdown .user-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+}

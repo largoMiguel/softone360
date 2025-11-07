@@ -1,0 +1,55 @@
+<div class="login-container">
+    <div class="login-card">
+        <div class="card">
+            <div class="card-header text-center">
+                <ng-container *ngIf="(currentEntity$ | async) as entity; else defaultHeader">
+                    <ng-container *ngIf="entity.logo_url; else loginEntityFallback">
+                        <img [src]="entity.logo_url" [alt]="entity.name" class="login-logo mb-3">
+                    </ng-container>
+                    <ng-template #loginEntityFallback>
+                        <img src="assets/logos/logo_completo.png" alt="SoftOne360 Gestión Completa, Visión Total"
+                            class="login-logo mb-3">
+                    </ng-template>
+                    <h5 class="mb-1">{{ entity.name }}</h5>
+                    <p class="text-muted">Inicia sesión para continuar</p>
+                </ng-container>
+                <ng-template #defaultHeader>
+                    <img src="assets/logos/logo_completo.png" alt="SoftOne360 Gestión Completa, Visión Total"
+                        class="login-logo mb-3">
+                    <p class="text-muted">Inicia sesión para continuar</p>
+                </ng-template>
+            </div>
+            <div class="card-body">
+                <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Usuario</label>
+                        <input type="text" class="form-control" id="username" formControlName="username"
+                            [class.is-invalid]="loginForm.get('username')?.invalid && loginForm.get('username')?.touched">
+                        <div class="invalid-feedback">
+                            El usuario es requerido
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Contraseña</label>
+                        <input type="password" class="form-control" id="password" formControlName="password"
+                            [class.is-invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+                        <div class="invalid-feedback">
+                            La contraseña es requerida
+                        </div>
+                    </div>
+
+                    <div class="alert alert-danger" *ngIf="errorMessage">
+                        {{ errorMessage }}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 mb-2"
+                        [disabled]="loginForm.invalid || isLoading">
+                        <span *ngIf="isLoading" class="spinner-border spinner-border-sm me-2"></span>
+                        {{ isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión' }}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

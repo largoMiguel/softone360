@@ -1,0 +1,2188 @@
+<!-- Toast Container -->
+<div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
+
+<!-- La barra de navegación global ahora vive en el shell de la app -->
+
+<div class="pdm-container container-fluid py-4">
+    <!-- Loading State -->
+    @if (cargando) {
+    <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+        <div class="text-center">
+            <div class="spinner-border text-primary" style="width: 4rem; height: 4rem;" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-3 text-muted fs-5">Cargando datos del PDM...</p>
+        </div>
+    </div>
+    }
+
+    <!-- No Data State -->
+    @else if (!pdmData || !analisis) {
+    <div class="text-center py-5">
+        <i class="fas fa-cloud-off fa-5x text-muted mb-4"></i>
+        <h3 class="mb-3">No hay datos disponibles</h3>
+        <p class="text-muted mb-4">Por favor carga un archivo Excel del PDM</p>
+        <button class="btn btn-primary btn-lg" (click)="cargarNuevoArchivo()">
+            <i class="fas fa-upload me-2"></i>Cargar Archivo
+        </button>
+    </div>
+    }
+
+    <!-- Main Dashboard -->
+    @else {
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="mb-1"><i class="fas fa-chart-line me-2 text-primary"></i>Dashboard PDM</h3>
+            <p class="text-muted mb-0 small">Análisis y seguimiento del Plan de Desarrollo Municipal</p>
+            @if (excelEnBD.existe) {
+            <small class="text-success d-block mt-1">
+                <i class="fas fa-database me-1"></i>Excel en BD: {{ excelEnBD.nombre }}
+                ({{ formatearTamano(excelEnBD.tamano || 0) }})
+                · {{ formatearFechaExcel(excelEnBD.fecha) }}
+            </small>
+            }
+            @if (authService.getCurrentUserValue()?.role === 'secretario' &&
+            authService.getCurrentUserValue()?.secretaria) {
+            <small class="text-info d-block mt-1">
+                <i class="fas fa-filter me-1"></i>
+                <strong>Vista filtrada:</strong> Mostrando solo productos asignados a {{
+                authService.getCurrentUserValue()?.secretaria }}
+            </small>
+            }
+        </div>
+        <div class="d-flex align-items-center">
+            @if (!modoEdicion) {
+            <button class="btn btn-primary btn-sm me-2" (click)="descargarExcelDeBD()" [disabled]="!excelEnBD.existe"
+                title="Descargar Excel desde base de datos">
+                <i class="fas fa-download me-1"></i>Descargar Excel
+            </button>
+            <button class="btn btn-primary btn-sm me-2" (click)="recargarDatosDesdeLocalStorage()"
+                title="Recargar datos desde caché local">
+                <i class="fas fa-sync me-1"></i>Recargar
+            </button>
+            <button class="btn btn-primary btn-sm me-2" (click)="actualizarExcel()" title="Subir nuevo archivo Excel">
+                <i class="fas fa-upload me-1"></i>Actualizar Excel
+            </button>
+            <button class="btn btn-outline-secondary btn-sm me-2" (click)="exportarDatos()" title="Exportar datos">
+                <i class="fas fa-file-export me-1"></i>Exportar
+            </button>
+            @if (authService.isAdminOrSuperAdmin() && pdmData) {
+            <button class="btn btn-warning btn-sm" (click)="activarModoEdicion()" title="Editar datos del Excel">
+                <i class="fas fa-edit me-1"></i>Editar Excel
+            </button>
+            }
+            } @else {
+            <span class="badge bg-warning me-2">
+                <i class="fas fa-edit me-1"></i>Modo Edición: {{ productosModificados.size }} cambio(s)
+            </span>
+            <button class="btn btn-success btn-sm me-2" (click)="guardarCambiosExcel()"
+                [disabled]="guardandoCambios || productosModificados.size === 0" title="Guardar cambios en el Excel">
+                <i class="fas fa-save me-1"></i>
+                @if (guardandoCambios) {
+                <span class="spinner-border spinner-border-sm me-1"></span>
+                }
+                Guardar Cambios
+            </button>
+            <button class="btn btn-secondary btn-sm" (click)="cancelarEdicion()" [disabled]="guardandoCambios"
+                title="Cancelar edición">
+                <i class="fas fa-times me-1"></i>Cancelar
+            </button>
+            }
+        </div>
+    </div>
+
+    <!-- ========== SECCIÓN 1: RESUMEN EJECUTIVO ========== -->
+    <div class="section-header mb-3">
+        <h4 class="mb-0">
+            <i class="fas fa-chart-pie me-2 text-primary"></i>
+            Resumen Ejecutivo - Año {{ anioSeleccionado }}
+        </h4>
+        <small class="text-muted">Indicadores clave de desempeño del Plan de Desarrollo Municipal para el año
+            seleccionado</small>
+    </div>
+
+    <div class="row mb-5 g-3">
+        <!-- Total Productos -->
+        <div class="col-md-2">
+            <div class="card shadow-sm border-0 h-100 card-hover border-start border-primary border-4">
+                <div class="card-body text-center py-4">
+                    <div class="bg-primary bg-opacity-10 rounded-circle p-3 d-inline-flex mb-3">
+                        <i class="fas fa-list fa-2x text-primary"></i>
+                    </div>
+                    <h2 class="mb-1 fw-bold text-primary">{{ productos.length }}</h2>
+                    <p class="text-muted mb-0 small text-uppercase fw-bold">Total Productos</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cumplidas -->
+        <div class="col-md-2">
+            <div class="card shadow-sm border-0 h-100 card-hover border-start border-success border-4">
+                <div class="card-body text-center py-4">
+                    <div class="bg-success bg-opacity-10 rounded-circle p-3 d-inline-flex mb-3">
+                        <i class="fas fa-check-circle fa-2x text-success"></i>
+                    </div>
+                    <h2 class="mb-1 fw-bold text-success">{{ contarMetasPorEstado(EstadoMeta.CUMPLIDA, anioSeleccionado)
+                        }}</h2>
+                    <p class="text-muted mb-0 small text-uppercase fw-bold">Cumplidas</p>
+                    <small class="text-success d-block mt-1">
+                        <i class="fas fa-arrow-up me-1"></i>
+                        {{ formatearPorcentaje((contarMetasPorEstado(EstadoMeta.CUMPLIDA, anioSeleccionado) /
+                        productos.length) * 100) }}
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- En Progreso -->
+        <div class="col-md-2">
+            <div class="card shadow-sm border-0 h-100 card-hover border-start border-info border-4">
+                <div class="card-body text-center py-4">
+                    <div class="bg-info bg-opacity-10 rounded-circle p-3 d-inline-flex mb-3">
+                        <i class="fas fa-spinner fa-2x text-info"></i>
+                    </div>
+                    <h2 class="mb-1 fw-bold text-info">{{ contarMetasPorEstado(EstadoMeta.EN_PROGRESO, anioSeleccionado)
+                        }}</h2>
+                    <p class="text-muted mb-0 small text-uppercase fw-bold">En Progreso</p>
+                    <small class="text-info d-block mt-1">
+                        {{ formatearPorcentaje((contarMetasPorEstado(EstadoMeta.EN_PROGRESO, anioSeleccionado) /
+                        productos.length) * 100) }}
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pendientes -->
+        <div class="col-md-2">
+            <div class="card shadow-sm border-0 h-100 card-hover border-start border-warning border-4">
+                <div class="card-body text-center py-4">
+                    <div class="bg-warning bg-opacity-10 rounded-circle p-3 d-inline-flex mb-3">
+                        <i class="fas fa-clock fa-2x text-warning"></i>
+                    </div>
+                    <h2 class="mb-1 fw-bold text-warning">{{ contarMetasPorEstado(EstadoMeta.PENDIENTE,
+                        anioSeleccionado) }}</h2>
+                    <p class="text-muted mb-0 small text-uppercase fw-bold">Pendientes</p>
+                    <small class="text-warning d-block mt-1">
+                        {{ formatearPorcentaje((contarMetasPorEstado(EstadoMeta.PENDIENTE, anioSeleccionado) /
+                        productos.length) * 100) }}
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Por Cumplir -->
+        <div class="col-md-2">
+            <div class="card shadow-sm border-0 h-100 card-hover border-start border-secondary border-4">
+                <div class="card-body text-center py-4">
+                    <div class="bg-secondary bg-opacity-10 rounded-circle p-3 d-inline-flex mb-3">
+                        <i class="fas fa-hourglass-half fa-2x text-secondary"></i>
+                    </div>
+                    <h2 class="mb-1 fw-bold text-secondary">{{ contarMetasPorEstado(EstadoMeta.POR_CUMPLIR,
+                        anioSeleccionado) }}</h2>
+                    <p class="text-muted mb-0 small text-uppercase fw-bold">Por Cumplir</p>
+                    <small class="text-secondary d-block mt-1">
+                        {{ formatearPorcentaje((contarMetasPorEstado(EstadoMeta.POR_CUMPLIR, anioSeleccionado) /
+                        productos.length) * 100) }}
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Selector de Año -->
+        <div class="col-md-2">
+            <div class="card shadow-sm border-0 h-100 bg-gradient-light">
+                <div class="card-body text-center py-4 d-flex flex-column justify-content-center">
+                    <i class="fas fa-calendar-alt fa-2x text-primary mb-3"></i>
+                    <p class="text-muted mb-2 small text-uppercase fw-bold">Año Seleccionado</p>
+                    <div class="btn-group-vertical w-100">
+                        @for (anio of aniosDisponibles; track anio) {
+                        <button class="btn btn-sm" [class.btn-primary]="anioSeleccionado === anio"
+                            [class.btn-outline-secondary]="anioSeleccionado !== anio"
+                            (click)="cambiarAnioSeleccionado(anio)">
+                            {{ anio }}
+                        </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== SECCIÓN 2: ANÁLISIS VISUAL ========== -->
+    <div class="section-header mb-3">
+        <h4 class="mb-0">
+            <i class="fas fa-chart-line me-2 text-primary"></i>
+            Análisis Visual
+        </h4>
+        <small class="text-muted">Visualización de indicadores y estadísticas clave</small>
+    </div>
+
+    <div class="row mb-5">
+        <div class="col">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <ul class="nav nav-tabs" id="chartsTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="cumplimiento-tab" data-bs-toggle="tab"
+                                data-bs-target="#cumplimiento" type="button" role="tab">
+                                <i class="fas fa-chart-pie me-2"></i>Cumplimiento General
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="sector-tab" data-bs-toggle="tab" data-bs-target="#sector"
+                                type="button" role="tab">
+                                <i class="fas fa-chart-bar me-2"></i>Por Sector
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="presupuesto-tab" data-bs-toggle="tab"
+                                data-bs-target="#presupuesto" type="button" role="tab">
+                                <i class="fas fa-dollar-sign me-2"></i>Presupuesto
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="ods-tab" data-bs-toggle="tab" data-bs-target="#ods"
+                                type="button" role="tab">
+                                <i class="fas fa-globe me-2"></i>ODS
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="sgr-tab" data-bs-toggle="tab" data-bs-target="#sgr"
+                                type="button" role="tab">
+                                <i class="fas fa-coins me-2"></i>Iniciativas SGR
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="indicadores-resultado-tab" data-bs-toggle="tab"
+                                data-bs-target="#indicadores-resultado" type="button" role="tab">
+                                <i class="fas fa-bullseye me-2"></i>Indicadores de Resultado
+                            </button>
+                        </li>
+                    </ul>
+                    <div class="tab-content pt-4" id="chartsTabContent">
+                        <!-- Cumplimiento Tab -->
+                        <div class="tab-pane fade show active" id="cumplimiento" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5 class="mb-3">
+                                        <i class="fas fa-chart-pie me-2 text-primary"></i>
+                                        Distribución de Metas por Estado
+                                    </h5>
+                                    @if (chartCumplimiento) {
+                                    <div class="chart-container" style="height: 300px;">
+                                        <canvas baseChart [data]="chartCumplimiento" [type]="'doughnut'"
+                                            [options]="doughnutOptions"></canvas>
+                                    </div>
+                                    }
+                                </div>
+                                <div class="col-md-6">
+                                    <h5 class="mb-3">
+                                        <i class="fas fa-chart-bar me-2 text-primary"></i>
+                                        Metas por Año
+                                    </h5>
+                                    @if (chartPorAnio) {
+                                    <div class="chart-container" style="height: 300px;">
+                                        <canvas baseChart [data]="chartPorAnio" [type]="'bar'"
+                                            [options]="chartOptions"></canvas>
+                                    </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sector Tab -->
+                        <div class="tab-pane fade" id="sector" role="tabpanel">
+                            <h5 class="mb-3">
+                                <i class="fas fa-chart-bar me-2 text-primary"></i>
+                                Cumplimiento por Sector (Top 10)
+                            </h5>
+                            @if (chartPorSector) {
+                            <div class="chart-container" style="height: 500px;">
+                                <canvas baseChart [data]="chartPorSector" [type]="'bar'"
+                                    [options]="barHorizontalOptions"></canvas>
+                            </div>
+                            }
+                        </div>
+
+                        <!-- Presupuesto Tab -->
+                        <div class="tab-pane fade" id="presupuesto" role="tabpanel">
+                            <h5 class="mb-4">
+                                <i class="fas fa-money-bill-wave me-2 text-primary"></i>
+                                Análisis Presupuestal Detallado
+                            </h5>
+
+                            <!-- KPIs Presupuesto -->
+                            <div class="row mb-4 g-3">
+                                <div class="col-md-3">
+                                    <div class="card shadow-sm border-0 h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <div class="bg-primary bg-opacity-10 rounded-circle p-3 me-3">
+                                                    <i class="fas fa-coins fa-2x text-primary"></i>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <h6 class="text-muted mb-0 small">Recursos Ordinarios</h6>
+                                                    <h5 class="mb-0">{{
+                                                        formatearMoneda(analisis.analisisPresupuestoDetallado.presupuestoOrdinarioTotal
+                                                        || 0) }}</h5>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small class="text-primary">
+                                                    <i class="fas fa-percentage me-1"></i>
+                                                    {{formatearPorcentaje(analisis.analisisPresupuestoDetallado.porcentajeOrdinario
+                                                    || 0) }}
+                                                </small>
+                                                <div class="progress flex-grow-1 ms-2" style="height: 6px;">
+                                                    <div class="progress-bar bg-primary"
+                                                        [style.width.%]="analisis.analisisPresupuestoDetallado.porcentajeOrdinario || 0">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card shadow-sm border-0 h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <div class="bg-warning bg-opacity-10 rounded-circle p-3 me-3">
+                                                    <i class="fas fa-hand-holding-usd fa-2x text-warning"></i>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <h6 class="text-muted mb-0 small">Recursos SGR</h6>
+                                                    <h5 class="mb-0">{{
+                                                        formatearMoneda(analisis.analisisPresupuestoDetallado.presupuestoSGRTotal
+                                                        || 0) }}</h5>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small class="text-warning">
+                                                    <i class="fas fa-percentage me-1"></i>
+                                                    {{
+                                                    formatearPorcentaje(analisis.analisisPresupuestoDetallado.porcentajeSGR
+                                                    || 0) }}
+                                                </small>
+                                                <div class="progress flex-grow-1 ms-2" style="height: 6px;">
+                                                    <div class="progress-bar bg-warning"
+                                                        [style.width.%]="analisis.analisisPresupuestoDetallado.porcentajeSGR || 0">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card shadow-sm border-0 h-100 bg-success bg-opacity-10">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <div class="bg-success bg-opacity-25 rounded-circle p-3 me-3">
+                                                    <i class="fas fa-calculator fa-2x text-success"></i>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <h6 class="text-muted mb-0 small">Presupuesto Total</h6>
+                                                    <h4 class="mb-0 text-success">{{
+                                                        formatearMoneda((analisis.analisisPresupuestoDetallado.presupuestoOrdinarioTotal
+                                                        || 0) +
+                                                        (analisis.analisisPresupuestoDetallado.presupuestoSGRTotal ||
+                                                        0)) }}</h4>
+                                                </div>
+                                            </div>
+                                            <small class="text-muted">
+                                                <i class="fas fa-calendar-alt me-1"></i>Cuatrienio 2024-2027
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card shadow-sm border-0 h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <div class="bg-info bg-opacity-10 rounded-circle p-3 me-3">
+                                                    <i class="fas fa-chart-line fa-2x text-info"></i>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <h6 class="text-muted mb-0 small">Promedio Anual</h6>
+                                                    <h5 class="mb-0">{{
+                                                        formatearMoneda(((analisis.analisisPresupuestoDetallado.presupuestoOrdinarioTotal
+                                                        || 0) +
+                                                        (analisis.analisisPresupuestoDetallado.presupuestoSGRTotal ||
+                                                        0)) / 4) }}</h5>
+                                                </div>
+                                            </div>
+                                            <small class="text-muted">
+                                                <i class="fas fa-divide me-1"></i>Distribución por 4 años
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Gráficos -->
+                            <div class="row mb-4">
+                                <div class="col-md-4">
+                                    <h6 class="mb-3">Composición del Presupuesto</h6>
+                                    @if (chartPresupuestoOrdinarioVsSGR) {
+                                    <div class="chart-container" style="height: 300px;">
+                                        <canvas baseChart [data]="chartPresupuestoOrdinarioVsSGR" [type]="'doughnut'"
+                                            [options]="doughnutOptions"></canvas>
+                                    </div>
+                                    }
+                                </div>
+                                <div class="col-md-8">
+                                    <h6 class="mb-3">Presupuesto por Año (Ordinario + SGR)</h6>
+                                    @if (chartPresupuestoPorAnioDetallado) {
+                                    <div class="chart-container" style="height: 300px;">
+                                        <canvas baseChart [data]="chartPresupuestoPorAnioDetallado" [type]="'bar'"
+                                            [options]="chartOptions"></canvas>
+                                    </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Tabla por año -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="mb-3">Detalle por Año</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Año</th>
+                                                    <th class="text-end">Recursos Ordinarios</th>
+                                                    <th class="text-end">Recursos SGR</th>
+                                                    <th class="text-end">Total</th>
+                                                    <th class="text-center">% Ordinario</th>
+                                                    <th class="text-center">% SGR</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @for (anio of
+                                                analisis.analisisPresupuestoDetallado.presupuestoPorAnio; track
+                                                anio.anio) {
+                                                <tr class="table-row-clickeable" (click)="filtrarPorAnio(anio.anio)"
+                                                    role="button">
+                                                    <td>
+                                                        <i class="fas fa-filter me-2 text-muted small"></i>
+                                                        <strong>{{ anio.anio }}</strong>
+                                                    </td>
+                                                    <td class="text-end">{{ formatearMoneda(anio.ordinario) }}</td>
+                                                    <td class="text-end">{{ formatearMoneda(anio.sgr) }}</td>
+                                                    <td class="text-end"><strong>{{ formatearMoneda(anio.total)
+                                                            }}</strong></td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-primary">{{ formatearPorcentaje(anio.total
+                                                            > 0 ? (anio.ordinario / anio.total * 100) : 0) }}</span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-warning">{{ formatearPorcentaje(anio.total
+                                                            > 0 ? (anio.sgr / anio.total * 100) : 0) }}</span>
+                                                    </td>
+                                                </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Presupuesto por Sector -->
+                            <div class="row">
+                                <div class="col-md-7">
+                                    <h6 class="mb-3">Top 8 Sectores por Presupuesto</h6>
+                                    @if (chartPresupuestoPorSectorDetallado) {
+                                    <div class="chart-container" style="height: 400px;">
+                                        <canvas baseChart [data]="chartPresupuestoPorSectorDetallado" [type]="'bar'"
+                                            [options]="chartOptions"></canvas>
+                                    </div>
+                                    }
+                                </div>
+                                <div class="col-md-5">
+                                    <h6 class="mb-3">Detalle por Sector (Top 10)</h6>
+                                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                        <table class="table table-sm table-hover mb-0">
+                                            <thead class="table-light sticky-top">
+                                                <tr>
+                                                    <th>Sector</th>
+                                                    <th class="text-end">Total</th>
+                                                    <th class="text-center" style="width: 80px;">% del Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @for (sector of
+                                                analisis.analisisPresupuestoDetallado.presupuestoPorSector.slice(0,
+                                                10); track sector.sector) {
+                                                <tr>
+                                                    <td>
+                                                        <div class="text-truncate" style="max-width: 200px;"
+                                                            [title]="sector.sector">
+                                                            <strong>{{ truncarTexto(sector.sector, 25) }}</strong>
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <span class="badge bg-secondary">{{
+                                                            formatearMoneda(sector.total) }}</span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="d-flex align-items-center justify-content-center">
+                                                            <small class="me-1">{{ formatearPorcentaje(sector.total /
+                                                                ((analisis.analisisPresupuestoDetallado.presupuestoOrdinarioTotal
+                                                                || 0) +
+                                                                (analisis.analisisPresupuestoDetallado.presupuestoSGRTotal
+                                                                || 0)) * 100) }}</small>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ODS Tab -->
+                        <div class="tab-pane fade" id="ods" role="tabpanel">
+                            <h5 class="mb-4">
+                                <i class="fas fa-globe me-2 text-primary"></i>
+                                Análisis por Objetivos de Desarrollo Sostenible (ODS)
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="mb-3">Distribución de Metas por ODS</h6>
+                                    @if (chartODS) {
+                                    <div class="chart-container" style="height: 400px;">
+                                        <canvas baseChart [data]="chartODS" [type]="'doughnut'"
+                                            [options]="doughnutOptions"></canvas>
+                                    </div>
+                                    }
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="mb-3">Top 5 ODS por Presupuesto Asignado</h6>
+                                    @if (chartODSPresupuesto) {
+                                    <div class="chart-container" style="height: 400px;">
+                                        <canvas baseChart [data]="chartODSPresupuesto" [type]="'bar'"
+                                            [options]="chartOptions"></canvas>
+                                    </div>
+                                    }
+                                </div>
+                            </div>
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h6 class="mb-3">Detalle por ODS</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>ODS</th>
+                                                    <th class="text-center">Total Metas</th>
+                                                    <th class="text-center">Metas Cumplidas</th>
+                                                    <th class="text-center">% Cumplimiento</th>
+                                                    <th class="text-end">Presupuesto Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @for (ods of analisis.analisisPorODS; track ods.codigoODS) {
+                                                <tr class="table-row-clickeable" (click)="filtrarPorODS(ods.codigoODS)"
+                                                    role="button">
+                                                    <td>
+                                                        <strong>{{ ods.codigoODS }}.</strong> {{ ods.nombreODS }}
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-secondary">{{ ods.totalMetas }}</span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-success">{{ ods.metasCumplidas }}</span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <div
+                                                            class="d-flex align-items-center justify-content-center gap-2">
+                                                            <div class="progress" style="width: 80px; height: 8px;">
+                                                                <div class="progress-bar"
+                                                                    [class.bg-success]="ods.porcentajeCumplimiento >= 70"
+                                                                    [class.bg-warning]="ods.porcentajeCumplimiento >= 40 && ods.porcentajeCumplimiento < 70"
+                                                                    [class.bg-danger]="ods.porcentajeCumplimiento < 40"
+                                                                    [style.width.%]="ods.porcentajeCumplimiento">
+                                                                </div>
+                                                            </div>
+                                                            <small class="fw-bold">{{
+                                                                formatearPorcentaje(ods.porcentajeCumplimiento)
+                                                                }}</small>
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <strong>{{ formatearMoneda(ods.presupuestoTotal) }}</strong>
+                                                    </td>
+                                                </tr>
+                                                }
+                                                @if (!analisis.analisisPorODS || analisis.analisisPorODS.length === 0)
+                                                {
+                                                <tr>
+                                                    <td colspan="5" class="text-center text-muted py-4">
+                                                        <i class="fas fa-info-circle me-2"></i>
+                                                        No hay datos de ODS disponibles
+                                                    </td>
+                                                </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SGR Tab -->
+                        <div class="tab-pane fade" id="sgr" role="tabpanel">
+                            <h5 class="mb-4">
+                                <i class="fas fa-coins me-2 text-primary"></i>
+                                Iniciativas del Sistema General de Regalías (SGR)
+                            </h5>
+
+                            <!-- KPIs SGR -->
+                            <div class="row mb-4 g-3">
+                                <div class="col-md-3">
+                                    <div class="card shadow-sm border-0 h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-info bg-opacity-10 rounded-circle p-3 me-3">
+                                                    <i class="fas fa-list-check fa-2x text-info"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="text-muted mb-0 small">Total Iniciativas</h6>
+                                                    <h2 class="mb-0">{{ analisis.analisisSGR.totalIniciativas || 0 }}
+                                                    </h2>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card shadow-sm border-0 h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-success bg-opacity-10 rounded-circle p-3 me-3">
+                                                    <i class="fas fa-money-bill-wave fa-2x text-success"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="text-muted mb-0 small">Recursos SGR</h6>
+                                                    <h5 class="mb-0">{{
+                                                        formatearMoneda(analisis.analisisSGR.recursosSGRTotales || 0)
+                                                        }}</h5>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card shadow-sm border-0 h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-primary bg-opacity-10 rounded-circle p-3 me-3">
+                                                    <i class="fas fa-check-circle fa-2x text-primary"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="text-muted mb-0 small">Con BPIN</h6>
+                                                    <h2 class="mb-0">{{ analisis.analisisSGR.iniciativasConBPIN || 0
+                                                        }}
+                                                    </h2>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card shadow-sm border-0 h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-warning bg-opacity-10 rounded-circle p-3 me-3">
+                                                    <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="text-muted mb-0 small">Sin BPIN</h6>
+                                                    <h2 class="mb-0">{{ analisis.analisisSGR.iniciativasSinBPIN || 0
+                                                        }}
+                                                    </h2>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="mb-3">Recursos SGR por Sector</h6>
+                                    @if (chartSGRPorSector) {
+                                    <div class="chart-container" style="height: 400px;">
+                                        <canvas baseChart [data]="chartSGRPorSector" [type]="'bar'"
+                                            [options]="barHorizontalOptions"></canvas>
+                                    </div>
+                                    }
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="mb-3">Detalle por Sector</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-hover">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Sector</th>
+                                                    <th class="text-center">Iniciativas</th>
+                                                    <th class="text-end">Recursos SGR</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @for (sector of analisis.analisisSGR.recursosSGRPorSector; track
+                                                sector.sector) {
+                                                <tr>
+                                                    <td><strong>{{ sector.sector }}</strong></td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-info">{{ sector.numeroIniciativas
+                                                            }}</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <strong>{{ formatearMoneda(sector.totalRecursosSGR) }}</strong>
+                                                    </td>
+                                                </tr>
+                                                }
+                                                @if (!analisis.analisisSGR.recursosSGRPorSector ||
+                                                analisis.analisisSGR.recursosSGRPorSector.length === 0) {
+                                                <tr>
+                                                    <td colspan="3" class="text-center text-muted py-3">
+                                                        No hay iniciativas SGR registradas
+                                                    </td>
+                                                </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Indicadores de Resultado Tab -->
+                        <div class="tab-pane fade" id="indicadores-resultado" role="tabpanel">
+                            <h5 class="mb-4">
+                                <i class="fas fa-bullseye me-2 text-primary"></i>
+                                Indicadores de Resultado - Alineación con PND
+                            </h5>
+
+                            <!-- KPIs Indicadores -->
+                            <div class="row mb-4 g-3">
+                                <div class="col-md-3">
+                                    <div class="card shadow-sm border-0 h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-primary bg-opacity-10 rounded-circle p-3 me-3">
+                                                    <i class="fas fa-list fa-2x text-primary"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="text-muted mb-0 small">Total Indicadores</h6>
+                                                    <h2 class="mb-0">{{
+                                                        analisis.analisisIndicadoresResultado.totalIndicadores || 0 }}
+                                                    </h2>
+                                                </div>
+                                            </div>
+                                            <small class="text-muted d-block mt-2">
+                                                <i class="fas fa-info-circle me-1"></i>Indicadores de resultado del PDM
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card shadow-sm border-0 h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-success bg-opacity-10 rounded-circle p-3 me-3">
+                                                    <i class="fas fa-check-circle fa-2x text-success"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="text-muted mb-0 small">En PND</h6>
+                                                    <h2 class="mb-0">{{
+                                                        analisis.analisisIndicadoresResultado.indicadoresEnPND || 0 }}
+                                                    </h2>
+                                                </div>
+                                            </div>
+                                            <small class="text-success d-block mt-2">
+                                                <i class="fas fa-check me-1"></i>Alineados con Plan Nacional
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card shadow-sm border-0 h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-warning bg-opacity-10 rounded-circle p-3 me-3">
+                                                    <i class="fas fa-times-circle fa-2x text-warning"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="text-muted mb-0 small">Fuera de PND</h6>
+                                                    <h2 class="mb-0">{{
+                                                        analisis.analisisIndicadoresResultado.indicadoresFueraPND || 0
+                                                        }}</h2>
+                                                </div>
+                                            </div>
+                                            <small class="text-warning d-block mt-2">
+                                                <i class="fas fa-exclamation-triangle me-1"></i>Sin alineación nacional
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card shadow-sm border-0 h-100 bg-info bg-opacity-10">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-info bg-opacity-25 rounded-circle p-3 me-3">
+                                                    <i class="fas fa-percentage fa-2x text-info"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="text-muted mb-0 small">% Alineación PND</h6>
+                                                    <h2 class="mb-0 text-info">{{
+                                                        formatearPorcentaje(analisis.analisisIndicadoresResultado.porcentajeAlineacionPND
+                                                        || 0) }}</h2>
+                                                </div>
+                                            </div>
+                                            <div class="progress mt-2" style="height: 6px;">
+                                                <div class="progress-bar bg-info"
+                                                    [style.width.%]="analisis.analisisIndicadoresResultado.porcentajeAlineacionPND || 0">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Gráficos -->
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <h6 class="mb-3">Alineación con el Plan Nacional de Desarrollo</h6>
+                                    @if (chartIndicadoresPND) {
+                                    <div class="chart-container" style="height: 300px;">
+                                        <canvas baseChart [data]="chartIndicadoresPND" [type]="'doughnut'"
+                                            [options]="doughnutOptions"></canvas>
+                                    </div>
+                                    }
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="mb-3">Indicadores por Línea Estratégica</h6>
+                                    @if (chartIndicadoresPorLinea) {
+                                    <div class="chart-container" style="height: 300px;">
+                                        <canvas baseChart [data]="chartIndicadoresPorLinea" [type]="'bar'"
+                                            [options]="chartOptions"></canvas>
+                                    </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Tabla detallada por línea -->
+                            <div class="row">
+                                <div class="col-12">
+                                    <h6 class="mb-3">Detalle por Línea Estratégica</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-hover">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Línea Estratégica</th>
+                                                    <th class="text-center">Total Indicadores</th>
+                                                    <th class="text-center">En PND</th>
+                                                    <th class="text-center">% Alineación</th>
+                                                    <th class="text-end">Meta Cuatrienio</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @for (linea of
+                                                analisis.analisisIndicadoresResultado.indicadoresPorLinea; track
+                                                linea.lineaEstrategica) {
+                                                <tr class="table-row-clickeable"
+                                                    (click)="filtrarPorLinea(linea.lineaEstrategica)" role="button">
+                                                    <td>
+                                                        <i class="fas fa-filter me-2 text-muted small"></i>
+                                                        <strong>{{ linea.lineaEstrategica }}</strong>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-primary">{{ linea.totalIndicadores
+                                                            }}</span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-success">{{ linea.indicadoresEnPND
+                                                            }}</span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge" [ngClass]="{
+                                                            'bg-success': (linea.indicadoresEnPND / linea.totalIndicadores * 100) >= 70,
+                                                            'bg-warning': (linea.indicadoresEnPND / linea.totalIndicadores * 100) >= 40 && (linea.indicadoresEnPND / linea.totalIndicadores * 100) < 70,
+                                                            'bg-danger': (linea.indicadoresEnPND / linea.totalIndicadores * 100) < 40
+                                                        }">
+                                                            {{ formatearPorcentaje(linea.indicadoresEnPND /
+                                                            linea.totalIndicadores * 100) }}
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <strong>{{ linea.metaCuatrienioTotal.toLocaleString('es-CO')
+                                                            }}</strong>
+                                                    </td>
+                                                </tr>
+                                                }
+                                                @if (!analisis.analisisIndicadoresResultado.indicadoresPorLinea ||
+                                                analisis.analisisIndicadoresResultado.indicadoresPorLinea.length ===
+                                                0) {
+                                                <tr>
+                                                    <td colspan="5" class="text-center text-muted py-3">
+                                                        No hay indicadores de resultado registrados
+                                                    </td>
+                                                </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Transformaciones PND -->
+                            @if (analisis.analisisIndicadoresResultado.transformacionesPND &&
+                            analisis.analisisIndicadoresResultado.transformacionesPND.length > 0) {
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h6 class="mb-3">
+                                        <i class="fas fa-tags me-2 text-primary"></i>
+                                        Transformaciones del Plan Nacional de Desarrollo
+                                    </h6>
+                                    <div class="row g-3">
+                                        @for (trans of analisis.analisisIndicadoresResultado.transformacionesPND; track
+                                        trans.transformacion) {
+                                        <div class="col-md-6 col-lg-4">
+                                            <div class="card h-100 border-info border-opacity-25">
+                                                <div
+                                                    class="card-body d-flex align-items-center justify-content-between p-3">
+                                                    <div class="flex-grow-1 me-2">
+                                                        <i class="fas fa-bookmark text-info me-2"></i>
+                                                        <strong class="text-info">{{ trans.transformacion }}</strong>
+                                                    </div>
+                                                    <span class="badge bg-info rounded-pill fs-6">
+                                                        {{ trans.numeroIndicadores }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas Avanzadas -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h5 class="mb-4">
+                        <i class="fas fa-chart-area me-2 text-primary"></i>
+                        Resumen de Avances por Año
+                    </h5>
+
+                    <ul class="nav nav-pills mb-4" id="statsTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="secretaria-stats-tab" data-bs-toggle="tab"
+                                data-bs-target="#secretaria-stats" type="button" role="tab">
+                                <i class="fas fa-building me-2"></i>Por Secretaría
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="linea-stats-tab" data-bs-toggle="tab"
+                                data-bs-target="#linea-stats" type="button" role="tab">
+                                <i class="fas fa-project-diagram me-2"></i>Por Línea Estratégica
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="statsTabContent">
+                        <!-- Stats por Secretaría -->
+                        <div class="tab-pane fade show active" id="secretaria-stats" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Secretaría</th>
+                                            <th class="text-center">Total Metas</th>
+                                            <th class="text-center">Avance 2024</th>
+                                            <th class="text-center">Avance 2025</th>
+                                            <th class="text-center">Avance 2026</th>
+                                            <th class="text-center">Avance 2027</th>
+                                            <th class="text-center">Promedio</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for (stat of estadisticasPorSecretaria; track stat.secretaria) {
+                                        <tr class="table-row-clickeable" (click)="filtrarPorSecretaria(stat.secretaria)"
+                                            role="button">
+                                            <td>
+                                                <strong>{{ stat.secretaria }}</strong>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-secondary">{{ stat.totalMetas }}</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                                    <div class="progress" style="width: 60px; height: 8px;">
+                                                        <div class="progress-bar"
+                                                            [class.bg-success]="stat.avance2024 >= 70"
+                                                            [class.bg-warning]="stat.avance2024 >= 40 && stat.avance2024 < 70"
+                                                            [class.bg-danger]="stat.avance2024 < 40"
+                                                            [style.width.%]="stat.avance2024">
+                                                        </div>
+                                                    </div>
+                                                    <small class="fw-bold">{{ formatearPorcentaje(stat.avance2024)
+                                                        }}</small>
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                                    <div class="progress" style="width: 60px; height: 8px;">
+                                                        <div class="progress-bar"
+                                                            [class.bg-success]="stat.avance2025 >= 70"
+                                                            [class.bg-warning]="stat.avance2025 >= 40 && stat.avance2025 < 70"
+                                                            [class.bg-danger]="stat.avance2025 < 40"
+                                                            [style.width.%]="stat.avance2025">
+                                                        </div>
+                                                    </div>
+                                                    <small class="fw-bold">{{ formatearPorcentaje(stat.avance2025)
+                                                        }}</small>
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                                    <div class="progress" style="width: 60px; height: 8px;">
+                                                        <div class="progress-bar"
+                                                            [class.bg-success]="stat.avance2026 >= 70"
+                                                            [class.bg-warning]="stat.avance2026 >= 40 && stat.avance2026 < 70"
+                                                            [class.bg-danger]="stat.avance2026 < 40"
+                                                            [style.width.%]="stat.avance2026">
+                                                        </div>
+                                                    </div>
+                                                    <small class="fw-bold">{{ formatearPorcentaje(stat.avance2026)
+                                                        }}</small>
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                                    <div class="progress" style="width: 60px; height: 8px;">
+                                                        <div class="progress-bar"
+                                                            [class.bg-success]="stat.avance2027 >= 70"
+                                                            [class.bg-warning]="stat.avance2027 >= 40 && stat.avance2027 < 70"
+                                                            [class.bg-danger]="stat.avance2027 < 40"
+                                                            [style.width.%]="stat.avance2027">
+                                                        </div>
+                                                    </div>
+                                                    <small class="fw-bold">{{ formatearPorcentaje(stat.avance2027)
+                                                        }}</small>
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge fs-6" [class.bg-success]="stat.avancePromedio >= 70"
+                                                    [class.bg-warning]="stat.avancePromedio >= 40 && stat.avancePromedio < 70"
+                                                    [class.bg-danger]="stat.avancePromedio < 40">
+                                                    {{ formatearPorcentaje(stat.avancePromedio) }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        }
+                                        @if (estadisticasPorSecretaria.length === 0) {
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted py-4">
+                                                <i class="fas fa-info-circle me-2"></i>
+                                                No hay estadísticas disponibles
+                                            </td>
+                                        </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Stats por Línea Estratégica -->
+                        <div class="tab-pane fade" id="linea-stats" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Línea Estratégica</th>
+                                            <th class="text-center">Total Metas</th>
+                                            <th class="text-center">Avance 2024</th>
+                                            <th class="text-center">Avance 2025</th>
+                                            <th class="text-center">Avance 2026</th>
+                                            <th class="text-center">Avance 2027</th>
+                                            <th class="text-center">Promedio</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for (stat of estadisticasPorLinea; track stat.lineaEstrategica) {
+                                        <tr class="table-row-clickeable"
+                                            (click)="filtrarPorLinea(stat.lineaEstrategica)" role="button">
+                                            <td>
+                                                <strong>{{ stat.lineaEstrategica }}</strong>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-secondary">{{ stat.totalMetas }}</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                                    <div class="progress" style="width: 60px; height: 8px;">
+                                                        <div class="progress-bar"
+                                                            [class.bg-success]="stat.avance2024 >= 70"
+                                                            [class.bg-warning]="stat.avance2024 >= 40 && stat.avance2024 < 70"
+                                                            [class.bg-danger]="stat.avance2024 < 40"
+                                                            [style.width.%]="stat.avance2024">
+                                                        </div>
+                                                    </div>
+                                                    <small class="fw-bold">{{ formatearPorcentaje(stat.avance2024)
+                                                        }}</small>
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                                    <div class="progress" style="width: 60px; height: 8px;">
+                                                        <div class="progress-bar"
+                                                            [class.bg-success]="stat.avance2025 >= 70"
+                                                            [class.bg-warning]="stat.avance2025 >= 40 && stat.avance2025 < 70"
+                                                            [class.bg-danger]="stat.avance2025 < 40"
+                                                            [style.width.%]="stat.avance2025">
+                                                        </div>
+                                                    </div>
+                                                    <small class="fw-bold">{{ formatearPorcentaje(stat.avance2025)
+                                                        }}</small>
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                                    <div class="progress" style="width: 60px; height: 8px;">
+                                                        <div class="progress-bar"
+                                                            [class.bg-success]="stat.avance2026 >= 70"
+                                                            [class.bg-warning]="stat.avance2026 >= 40 && stat.avance2026 < 70"
+                                                            [class.bg-danger]="stat.avance2026 < 40"
+                                                            [style.width.%]="stat.avance2026">
+                                                        </div>
+                                                    </div>
+                                                    <small class="fw-bold">{{ formatearPorcentaje(stat.avance2026)
+                                                        }}</small>
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                                    <div class="progress" style="width: 60px; height: 8px;">
+                                                        <div class="progress-bar"
+                                                            [class.bg-success]="stat.avance2027 >= 70"
+                                                            [class.bg-warning]="stat.avance2027 >= 40 && stat.avance2027 < 70"
+                                                            [class.bg-danger]="stat.avance2027 < 40"
+                                                            [style.width.%]="stat.avance2027">
+                                                        </div>
+                                                    </div>
+                                                    <small class="fw-bold">{{ formatearPorcentaje(stat.avance2027)
+                                                        }}</small>
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge fs-6" [class.bg-success]="stat.avancePromedio >= 70"
+                                                    [class.bg-warning]="stat.avancePromedio >= 40 && stat.avancePromedio < 70"
+                                                    [class.bg-danger]="stat.avancePromedio < 40">
+                                                    {{ formatearPorcentaje(stat.avancePromedio) }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        }
+                                        @if (estadisticasPorLinea.length === 0) {
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted py-4">
+                                                <i class="fas fa-info-circle me-2"></i>
+                                                No hay estadísticas disponibles
+                                            </td>
+                                        </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== SECCIÓN 3: DETALLE DE PRODUCTOS POR AÑO ========== -->
+    <div class="section-header mb-3">
+        <h4 class="mb-0">
+            <i class="fas fa-table me-2 text-primary"></i>
+            Detalle de Productos e Indicadores
+        </h4>
+        <small class="text-muted">Información detallada de productos e indicadores del PDM por año</small>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <div class="card shadow-sm border-0">
+                <!-- Filtros de Búsqueda -->
+                <div class="card-header bg-white border-0 pt-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0 text-uppercase fw-bold text-muted">
+                            <i class="fas fa-filter me-2"></i>
+                            Filtros de Búsqueda
+                        </h6>
+                        <span class="badge bg-primary fs-6">
+                            <i class="fas fa-list me-1"></i>
+                            {{ productosFiltrados.length }} productos
+                        </span>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="row g-3 mb-3">
+                        <!-- Search -->
+                        <div class="col-md-3">
+                            <input type="text" class="form-control" placeholder="🔍 Buscar..." [(ngModel)]="searchTerm"
+                                (ngModelChange)="onSearchChange()">
+                        </div>
+
+                        <!-- Sector -->
+                        <div class="col-md-2">
+                            <select class="form-select" [(ngModel)]="filtros.sector" (ngModelChange)="aplicarFiltros()">
+                                <option [value]="undefined">Todos los sectores</option>
+                                @for (sector of sectoresDisponibles; track sector) {
+                                <option [value]="sector">{{ sector }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Linea -->
+                        <div class="col-md-3">
+                            <select class="form-select" [(ngModel)]="filtros.lineaEstrategica"
+                                (ngModelChange)="aplicarFiltros()">
+                                <option [value]="undefined">Todas las líneas</option>
+                                @for (linea of lineasDisponibles; track linea) {
+                                <option [value]="linea">{{ linea }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Estado -->
+                        <div class="col-md-2">
+                            <select class="form-select" [(ngModel)]="filtros.estado" (ngModelChange)="aplicarFiltros()">
+                                <option [value]="undefined">Todos los estados</option>
+                                @for (estado of estadosDisponibles; track estado.valor) {
+                                <option [value]="estado.valor">{{ estado.etiqueta }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Secretaría Asignada -->
+                        <div class="col-md-2">
+                            <select class="form-select" [(ngModel)]="filtros.secretaria"
+                                (ngModelChange)="aplicarFiltros()" title="Filtrar por secretaría asignada">
+                                <option [value]="undefined">Todas las secretarías</option>
+                                <option value="SIN_ASIGNAR">Sin asignar</option>
+                                @for (sec of secretariasDisponibles; track sec) {
+                                <option [value]="sec">{{ sec }}</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-outline-secondary btn-sm" (click)="limpiarFiltros()">
+                        <i class="fas fa-times me-2"></i>Limpiar filtros
+                    </button>
+                </div>
+
+                <!-- Navegación por Años -->
+                <div class="card-header bg-gradient-primary border-top py-3">
+                    <h6 class="mb-3 text-center text-uppercase fw-bold">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Seleccionar Año del Cuatrienio
+                    </h6>
+                    <ul class="nav nav-pills nav-fill gap-2">
+                        @for (anio of aniosDisponibles; track anio) {
+                        <li class="nav-item">
+                            <button class="nav-link" [class.active]="anioSeleccionado === anio"
+                                (click)="cambiarAnioSeleccionado(anio)">
+                                <i class="fas fa-calendar me-2"></i>
+                                <strong>{{ anio }}</strong>
+                                <br>
+                                <small class="d-block mt-1">
+                                    <span class="badge bg-success me-1">{{ contarMetasPorEstado(EstadoMeta.CUMPLIDA,
+                                        anio) }}</span>
+                                    <span class="badge bg-info me-1">{{ contarMetasPorEstado(EstadoMeta.EN_PROGRESO,
+                                        anio) }}</span>
+                                    <span class="badge bg-warning me-1">{{ contarMetasPorEstado(EstadoMeta.PENDIENTE,
+                                        anio) }}</span>
+                                    <span class="badge bg-secondary">{{ contarMetasPorEstado(EstadoMeta.POR_CUMPLIR,
+                                        anio) }}</span>
+                                </small>
+                            </button>
+                        </li>
+                        }
+                    </ul>
+                </div>
+
+                <!-- Tabla de Productos -->
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th (click)="onSort('codigoIndicadorProducto')" style="cursor: pointer;">
+                                        Código
+                                        <i class="fas fa-sort ms-1"></i>
+                                    </th>
+                                    <th (click)="onSort('sector')" style="cursor: pointer;">
+                                        Sector
+                                        <i class="fas fa-sort ms-1"></i>
+                                    </th>
+                                    <th>Producto / Indicador</th>
+                                    <th>Secretaría</th>
+                                    <th class="text-center">Meta {{ anioSeleccionado }}</th>
+                                    <th class="text-center">Avance {{ anioSeleccionado }}</th>
+                                    <th class="text-center">Estado {{ anioSeleccionado }}</th>
+                                    <th class="text-end">Presupuesto {{ anioSeleccionado }}</th>
+                                    <th class="text-center">Meta Total</th>
+                                    <th class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (row of paginatedData; track row.codigoIndicadorProducto) {
+                                <tr class="table-row-clickeable" (click)="verDetalleProducto(row)"
+                                    style="cursor: pointer;">
+                                    <td><code class="fs-6">{{ row.codigoIndicadorProducto }}</code></td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ row.sector }}</span>
+                                    </td>
+                                    <td>
+                                        <div style="max-width: 350px;">
+                                            <strong class="d-block text-truncate">{{ row.personalizacion ||
+                                                row.indicadorProducto }}</strong>
+                                            <small class="text-muted">{{ row.lineaEstrategica }}</small>
+                                        </div>
+                                    </td>
+                                    <td (click)="$event.stopPropagation()">
+                                        @if (authService.isAdminOrSuperAdmin()) {
+                                        <select class="form-select form-select-sm"
+                                            [value]="row.secretariaAsignada || ''"
+                                            (change)="onCambiarSecretaria(row, $any($event.target).value || undefined)">
+                                            <option value="">Sin asignar</option>
+                                            <option *ngFor="let secretaria of secretariasList"
+                                                [value]="secretaria.nombre">
+                                                {{ secretaria.nombre }}
+                                            </option>
+                                        </select>
+                                        } @else {
+                                        <span class="badge bg-info">{{ row.secretariaAsignada || 'Sin asignar' }}</span>
+                                        }
+                                    </td>
+                                    <td class="text-center" (click)="$event.stopPropagation()">
+                                        @if (modoEdicion) {
+                                        <input type="number" class="form-control form-control-sm text-center"
+                                            style="width: 80px; display: inline-block;"
+                                            [ngModel]="obtenerProgramacionEditable(row, anioSeleccionado)"
+                                            (ngModelChange)="actualizarProgramacion(row, anioSeleccionado, $event)"
+                                            min="0" step="1" />
+                                        } @else {
+                                        <span class="badge bg-primary fs-6">
+                                            {{ obtenerMetaDelAnio(row, anioSeleccionado) }}
+                                        </span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="progress" style="height: 28px; min-width: 100px;">
+                                            <div class="progress-bar fw-bold"
+                                                [class.bg-success]="obtenerAvanceDelAnio(row, anioSeleccionado) >= 70"
+                                                [class.bg-warning]="obtenerAvanceDelAnio(row, anioSeleccionado) >= 40 && obtenerAvanceDelAnio(row, anioSeleccionado) < 70"
+                                                [class.bg-danger]="obtenerAvanceDelAnio(row, anioSeleccionado) < 40"
+                                                [style.width.%]="obtenerAvanceDelAnio(row, anioSeleccionado)">
+                                                {{ obtenerAvanceDelAnio(row, anioSeleccionado) }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge fs-6 px-3 py-2" [ngClass]="{
+                                            'bg-success': obtenerColorEstado(obtenerEstadoDelAnio(row, anioSeleccionado)) === 'success',
+                                            'bg-info': obtenerColorEstado(obtenerEstadoDelAnio(row, anioSeleccionado)) === 'primary',
+                                            'bg-warning': obtenerColorEstado(obtenerEstadoDelAnio(row, anioSeleccionado)) === 'warn',
+                                            'bg-danger': obtenerColorEstado(obtenerEstadoDelAnio(row, anioSeleccionado)) === 'accent',
+                                            'bg-secondary': obtenerColorEstado(obtenerEstadoDelAnio(row, anioSeleccionado)) === 'secondary'
+                                        }">
+                                            {{ obtenerEtiquetaEstado(obtenerEstadoDelAnio(row, anioSeleccionado)) }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong class="text-primary">{{ formatearMoneda(obtenerPresupuestoDelAnio(row,
+                                            anioSeleccionado)) }}</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-dark">{{ row.metaCuatrienio }}</span>
+                                    </td>
+                                    <td class="text-center" (click)="$event.stopPropagation()">
+                                        <div class="btn-group btn-group-sm">
+                                            @if (modoEdicion) {
+                                            <button class="btn btn-warning" (click)="abrirModalEdicion(row)"
+                                                title="Editar todos los campos">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            } @else {
+                                            <button class="btn btn-primary" (click)="abrirDialogoAvance(row)"
+                                                [disabled]="!puedeModificarProducto(row)"
+                                                [title]="puedeModificarProducto(row) ? 'Registrar avance' : 'No tienes permisos para modificar este producto'">
+                                                <i class="fas fa-plus-circle"></i>
+                                            </button>
+                                            }
+                                            <button class="btn btn-info" (click)="verDetalleProducto(row)"
+                                                title="Ver detalle">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    @if (totalPages > 1) {
+                    <div class="card-footer bg-white border-0">
+                        <nav>
+                            <ul class="pagination justify-content-center mb-0">
+                                <li class="page-item" [class.disabled]="currentPage === 1">
+                                    <button class="page-link" (click)="currentPage = 1" [disabled]="currentPage === 1">
+                                        <i class="fas fa-angle-double-left"></i>
+                                    </button>
+                                </li>
+                                <li class="page-item" [class.disabled]="currentPage === 1">
+                                    <button class="page-link" (click)="currentPage = currentPage - 1"
+                                        [disabled]="currentPage === 1">
+                                        <i class="fas fa-angle-left"></i>
+                                    </button>
+                                </li>
+
+                                @for (page of pages; track page) {
+                                @if (page === currentPage || (page >= currentPage - 2 && page <= currentPage + 2)) { <li
+                                    class="page-item" [class.active]="page === currentPage">
+                                    <button class="page-link" (click)="currentPage = page">{{ page }}</button>
+                                    </li>
+                                    }
+                                    }
+
+                                    <li class="page-item" [class.disabled]="currentPage === totalPages">
+                                        <button class="page-link" (click)="currentPage = currentPage + 1"
+                                            [disabled]="currentPage === totalPages">
+                                            <i class="fas fa-angle-right"></i>
+                                        </button>
+                                    </li>
+                                    <li class="page-item" [class.disabled]="currentPage === totalPages">
+                                        <button class="page-link" (click)="currentPage = totalPages"
+                                            [disabled]="currentPage === totalPages">
+                                            <i class="fas fa-angle-double-right"></i>
+                                        </button>
+                                    </li>
+                            </ul>
+                        </nav>
+                        <p class="text-center text-muted mt-2 mb-0">
+                            Mostrando {{ (currentPage - 1) * itemsPerPage + 1 }} a {{ currentPage * itemsPerPage >
+                            productosFiltrados.length ? productosFiltrados.length : currentPage * itemsPerPage }}
+                            de {{ productosFiltrados.length }} productos
+                        </p>
+                    </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    }
+</div>
+
+<!-- Avance Modal -->
+@if (avanceDialogData) {
+<div class="modal fade" id="avanceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <app-pdm-avance-dialog [data]="avanceDialogData" (onSave)="onAvanceSave($event)" (onCancel)="onAvanceCancel()">
+        </app-pdm-avance-dialog>
+    </div>
+</div>
+}
+
+<!-- Modal de Detalle del Producto -->
+@if (productoSeleccionado) {
+<div class="modal fade show" id="detalleModal" tabindex="-1" style="display: block; background: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Detalle del Producto
+                </h5>
+                <button type="button" class="btn-close btn-close-white" (click)="cerrarDetalle()"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Información General -->
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="fas fa-tag me-2"></i>Información General</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="text-muted small">Código</label>
+                                <p class="mb-0"><code
+                                        class="fs-6">{{ productoSeleccionado.codigoIndicadorProducto }}</code></p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="text-muted small">Sector</label>
+                                <p class="mb-0"><span class="badge bg-primary">{{ productoSeleccionado.sector }}</span>
+                                </p>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label class="text-muted small">Producto / Indicador</label>
+                                <p class="mb-0">{{ productoSeleccionado.personalizacion ||
+                                    productoSeleccionado.indicadorProducto }}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="text-muted small">Línea Estratégica</label>
+                                <p class="mb-0">{{ productoSeleccionado.lineaEstrategica }}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="text-muted small">Programa</label>
+                                <p class="mb-0">{{ productoSeleccionado.programa }}</p>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="text-muted small">Unidad de Medida</label>
+                                <p class="mb-0">{{ productoSeleccionado.unidadMedida }}</p>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="text-muted small">Meta Cuatrienio</label>
+                                <p class="mb-0"><span class="badge bg-success fs-6">{{
+                                        productoSeleccionado.metaCuatrienio }}</span></p>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="text-muted small">ODS</label>
+                                <p class="mb-0">{{ productoSeleccionado.ods }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Programación Anual -->
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Programación Anual</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-3">
+                                <label class="text-muted small d-block">2024</label>
+                                <h4 class="mb-0">{{ productoSeleccionado.programacion2024 }}</h4>
+                                <small class="text-muted">{{ formatearMoneda(productoSeleccionado.total2024) }}</small>
+                            </div>
+                            <div class="col-3">
+                                <label class="text-muted small d-block">2025</label>
+                                <h4 class="mb-0">{{ productoSeleccionado.programacion2025 }}</h4>
+                                <small class="text-muted">{{ formatearMoneda(productoSeleccionado.total2025) }}</small>
+                            </div>
+                            <div class="col-3">
+                                <label class="text-muted small d-block">2026</label>
+                                <h4 class="mb-0">{{ productoSeleccionado.programacion2026 }}</h4>
+                                <small class="text-muted">{{ formatearMoneda(productoSeleccionado.total2026) }}</small>
+                            </div>
+                            <div class="col-3">
+                                <label class="text-muted small d-block">2027</label>
+                                <h4 class="mb-0">{{ productoSeleccionado.programacion2027 }}</h4>
+                                <small class="text-muted">{{ formatearMoneda(productoSeleccionado.total2027) }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Avances Registrados -->
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Avances Registrados</h6>
+                    </div>
+                    <div class="card-body">
+                        @if (productoSeleccionado.avances && Object.keys(productoSeleccionado.avances).length > 0) {
+                        <div class="row">
+                            @for (anio of [2024, 2025, 2026, 2027]; track anio) {
+                            @if (productoSeleccionado.avances![anio]) {
+                            <div class="col-md-6 mb-3">
+                                <div class="card border-start border-4"
+                                    [class.border-success]="productoSeleccionado.avances![anio].valor >= 70"
+                                    [class.border-warning]="productoSeleccionado.avances![anio].valor >= 40 && productoSeleccionado.avances![anio].valor < 70"
+                                    [class.border-danger]="productoSeleccionado.avances![anio].valor < 40">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Año {{ anio }}</h6>
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span>Valor Ejecutado:</span>
+                                            <span class="badge fs-6"
+                                                [class.bg-success]="productoSeleccionado.avances![anio].valor >= 70"
+                                                [class.bg-warning]="productoSeleccionado.avances![anio].valor >= 40 && productoSeleccionado.avances![anio].valor < 70"
+                                                [class.bg-danger]="productoSeleccionado.avances![anio].valor < 40">
+                                                {{ productoSeleccionado.avances![anio].valor }}%
+                                            </span>
+                                        </div>
+                                        @if (productoSeleccionado.avances![anio].comentario) {
+                                        <div class="alert alert-info py-2 mb-0">
+                                            <small><strong>Comentario:</strong> {{
+                                                productoSeleccionado.avances![anio].comentario }}</small>
+                                        </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            }
+                            }
+                        </div>
+                        } @else {
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            No hay avances registrados para este producto
+                        </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Estado Actual -->
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="fas fa-flag me-2"></i>Estado Actual</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <label class="text-muted small d-block">Avance General</label>
+                                <div class="progress" style="height: 30px;">
+                                    <div class="progress-bar"
+                                        [class.bg-success]="(productoSeleccionado.avance || 0) >= 70"
+                                        [class.bg-warning]="(productoSeleccionado.avance || 0) >= 40 && (productoSeleccionado.avance || 0) < 70"
+                                        [class.bg-danger]="(productoSeleccionado.avance || 0) < 40"
+                                        [style.width.%]="productoSeleccionado.avance || 0">
+                                        <strong>{{ formatearPorcentaje(productoSeleccionado.avance || 0) }}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 text-center">
+                                <label class="text-muted small d-block">Estado</label>
+                                <span class="badge fs-5 px-4 py-2" [ngClass]="{
+                                    'bg-success': obtenerColorEstado(productoSeleccionado.estado) === 'success',
+                                    'bg-info': obtenerColorEstado(productoSeleccionado.estado) === 'primary',
+                                    'bg-warning': obtenerColorEstado(productoSeleccionado.estado) === 'warn',
+                                    'bg-danger': obtenerColorEstado(productoSeleccionado.estado) === 'accent',
+                                    'bg-secondary': obtenerColorEstado(productoSeleccionado.estado) === 'secondary'
+                                }">
+                                    {{ obtenerEtiquetaEstado(productoSeleccionado.estado) }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actividades para Cumplimiento de Meta -->
+                <div class="card">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="fas fa-tasks me-2"></i>Actividades para Cumplimiento</h6>
+                        @if (authService.isAdminOrSuperAdmin()) {
+                        <button class="btn btn-sm btn-success" (click)="mostrarFormularioActividad()">
+                            <i class="fas fa-plus me-1"></i>Nueva Actividad
+                        </button>
+                        }
+                    </div>
+                    <div class="card-body">
+                        @if (cargandoActividades) {
+                        <div class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Cargando actividades...</span>
+                            </div>
+                        </div>
+                        } @else if (actividadesProducto && actividadesProducto.length > 0) {
+                        <div class="list-group">
+                            @for (actividad of actividadesProducto; track actividad.id) {
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">{{ actividad.nombre }}</h6>
+                                        @if (actividad.descripcion) {
+                                        <p class="mb-2 text-muted small">{{ actividad.descripcion }}</p>
+                                        }
+                                        <div class="row g-2 mb-2">
+                                            @if (actividad.anio) {
+                                            <div class="col-auto">
+                                                <span class="badge bg-primary"><i class="fas fa-calendar me-1"></i>{{
+                                                    actividad.anio }}</span>
+                                            </div>
+                                            }
+                                            @if (actividad.meta_ejecutar) {
+                                            <div class="col-auto">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-bullseye me-1"></i>
+                                                    Meta: {{ actividad.meta_ejecutar }}
+                                                </small>
+                                            </div>
+                                            }
+                                            @if (actividad.valor_ejecutado !== undefined) {
+                                            <div class="col-auto">
+                                                <small class="text-success">
+                                                    <i class="fas fa-check-circle me-1"></i>
+                                                    Ejecutado: {{ actividad.valor_ejecutado?.toFixed(2) || 0 }}
+                                                </small>
+                                            </div>
+                                            }
+                                            @if (actividad.responsable) {
+                                            <div class="col-auto">
+                                                <small class="text-muted"><i class="fas fa-user me-1"></i>{{
+                                                    actividad.responsable }}</small>
+                                            </div>
+                                            }
+                                            @if (actividad.fecha_inicio) {
+                                            <div class="col-auto">
+                                                <small class="text-muted"><i class="fas fa-calendar-start me-1"></i>{{
+                                                    formatearFecha(actividad.fecha_inicio) }}</small>
+                                            </div>
+                                            }
+                                            @if (actividad.fecha_fin) {
+                                            <div class="col-auto">
+                                                <small class="text-muted"><i class="fas fa-calendar-end me-1"></i>{{
+                                                    formatearFecha(actividad.fecha_fin) }}</small>
+                                            </div>
+                                            }
+                                        </div>
+                                        <div class="d-flex align-items-center gap-3">
+                                            <span class="badge" [ngClass]="{
+                                                'bg-secondary': actividad.estado === 'pendiente',
+                                                'bg-info': actividad.estado === 'en_progreso',
+                                                'bg-success': actividad.estado === 'completada',
+                                                'bg-danger': actividad.estado === 'cancelada'
+                                            }">
+                                                {{ obtenerEtiquetaEstadoActividad(actividad.estado) }}
+                                            </span>
+                                            <!-- Progreso por porcentaje eliminado; se calcula por metas a ejecutar -->
+                                        </div>
+                                    </div>
+                                    <div class="btn-group btn-group-sm ms-2">
+                                        <button class="btn btn-outline-primary" (click)="editarActividad(actividad)">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" (click)="eliminarActividad(actividad)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            }
+                        </div>
+                        } @else {
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No hay actividades registradas. Agrega actividades para planificar el cumplimiento de esta
+                            meta.
+                        </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="cerrarDetalle()">
+                    <i class="fas fa-times me-2"></i>Cerrar
+                </button>
+                <button type="button" class="btn btn-primary" (click)="abrirDialogoAvanceDesdeDetalle()">
+                    <i class="fas fa-plus-circle me-2"></i>Registrar Avance
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+}
+
+<!-- Modal de Formulario de Actividad -->
+@if (mostrandoFormActividad) {
+<div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-tasks me-2"></i>
+                    {{ actividadEditando ? 'Editar Actividad' : 'Nueva Actividad' }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" (click)="cerrarFormularioActividad()"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="actNombre" class="form-label">Nombre de la Actividad <span
+                                class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="actNombre" [(ngModel)]="formActividad.nombre"
+                            name="nombre" placeholder="Ej: Socialización con la comunidad" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="actDescripcion" class="form-label">Descripción</label>
+                        <textarea class="form-control" id="actDescripcion" [(ngModel)]="formActividad.descripcion"
+                            name="descripcion" rows="3" placeholder="Describe los detalles de la actividad"></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="actResponsable" class="form-label">Responsable (Secretaría) <span
+                                    class="text-danger">*</span></label>
+                            <select class="form-select" id="actResponsable" [(ngModel)]="formActividad.responsable"
+                                name="responsable" required>
+                                <option value="">Seleccione una secretaría...</option>
+                                <option *ngFor="let secretaria of secretariasList" [value]="secretaria.nombre">{{
+                                    secretaria.nombre }}</option>
+                            </select>
+                            @if (!(formActividad.responsable && formActividad.responsable.trim())) {
+                            <div class="text-danger small mt-1">
+                                El responsable es requerido.
+                            </div>
+                            }
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="actEstado" class="form-label">Estado</label>
+                            <select class="form-select" id="actEstado" [(ngModel)]="formActividad.estado" name="estado">
+                                <option value="pendiente">Pendiente</option>
+                                <option value="en_progreso">En Progreso</option>
+                                <option value="completada">Completada</option>
+                                <option value="cancelada">Cancelada</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="actFechaInicio" class="form-label">Fecha de Inicio</label>
+                            <input type="date" class="form-control" id="actFechaInicio"
+                                [(ngModel)]="formActividad.fecha_inicio" name="fecha_inicio">
+                            @if (!validFechaRango()) {
+                            <div class="text-danger small mt-1">
+                                La fecha de inicio debe ser menor o igual a la fecha de fin.
+                            </div>
+                            }
+                            @if (!fechasCompletas()) {
+                            <div class="text-danger small mt-1">
+                                Si diligencias una fecha, completa también la otra.
+                            </div>
+                            }
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="actFechaFin" class="form-label">Fecha de Fin</label>
+                            <input type="date" class="form-control" id="actFechaFin"
+                                [(ngModel)]="formActividad.fecha_fin" name="fecha_fin">
+                            @if (!validFechaRango()) {
+                            <div class="text-danger small mt-1">
+                                La fecha de fin debe ser mayor o igual a la fecha de inicio.
+                            </div>
+                            }
+                            @if (!fechasCompletas()) {
+                            <div class="text-danger small mt-1">
+                                Si diligencias una fecha, completa también la otra.
+                            </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Año y Meta a Ejecutar -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="actAnio" class="form-label">Año de Ejecución <span
+                                    class="text-danger">*</span></label>
+                            <select class="form-select" id="actAnio" [(ngModel)]="formActividad.anio" name="anio"
+                                [disabled]="!!actividadEditando">
+                                @for (anio of obtenerAniosDisponibles(); track anio) {
+                                <option [value]="anio">{{ anio }}</option>
+                                }
+                            </select>
+                            <small class="text-muted">Solo años con presupuesto asignado</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="actMetaEjecutar" class="form-label">
+                                Meta a Ejecutar <span class="text-danger">*</span>
+                                <small class="text-muted">(Disponible: {{ obtenerMetaDisponibleAnio(formActividad.anio)
+                                    }})</small>
+                            </label>
+                            <input type="number" class="form-control" id="actMetaEjecutar"
+                                [(ngModel)]="formActividad.meta_ejecutar" name="meta_ejecutar" [min]="1"
+                                [max]="obtenerMetaDisponibleAnio(formActividad.anio)" placeholder="Ej: 50">
+                            @if (formActividad.meta_ejecutar > obtenerMetaDisponibleAnio(formActividad.anio)) {
+                            <div class="text-danger small mt-1">
+                                Supera el disponible ({{ obtenerMetaDisponibleAnio(formActividad.anio) }})
+                            </div>
+                            }
+                            @if (formActividad.meta_ejecutar <= 0) { <div class="text-danger small mt-1">
+                                Debe ser mayor a 0
+                        </div>
+                        }
+                    </div>
+            </div>
+
+            <!-- Info de Meta Anual -->
+            <div class="alert alert-info mb-3">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Meta del año {{ formActividad.anio }}:</strong> {{ obtenerMetaAnio(formActividad.anio) }}
+                | <strong>Presupuesto:</strong> {{ formatearMoneda(obtenerPresupuestoAnio(formActividad.anio)) }}
+            </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="cerrarFormularioActividad()">
+                <i class="fas fa-times me-2"></i>Cancelar
+            </button>
+            <button type="button" class="btn btn-primary" (click)="guardarActividad()"
+                [disabled]="!validActividadForm() || guardandoActividad">
+                <i class="fas fa-save me-2"></i>
+                {{ guardandoActividad ? 'Guardando...' : 'Guardar Actividad' }}
+            </button>
+        </div>
+    </div>
+</div>
+</div>
+}
+
+<!-- Modal de Edición Completa de Producto -->
+@if (mostrandoModalEdicion && productoEditando) {
+<div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>
+                    Editar Producto PDM
+                </h5>
+                <button type="button" class="btn-close" (click)="cerrarModalEdicion()"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Código:</strong> {{ productoEditando.codigoIndicadorProducto }}
+                </div>
+
+                <form>
+                    <div class="row g-3">
+                        <!-- Información Básica -->
+                        <div class="col-12">
+                            <h6 class="border-bottom pb-2 mb-3">
+                                <i class="fas fa-info-circle me-2"></i>Información Básica
+                            </h6>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Código DANE</label>
+                            <input type="text" class="form-control" [(ngModel)]="productoEditando.codigoDane"
+                                name="codigoDane">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Entidad Territorial</label>
+                            <input type="text" class="form-control" [(ngModel)]="productoEditando.entidadTerritorial"
+                                name="entidadTerritorial">
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label">Nombre del Plan</label>
+                            <input type="text" class="form-control" [(ngModel)]="productoEditando.nombrePlan"
+                                name="nombrePlan">
+                        </div>
+
+                        <!-- Línea Estratégica y Sectores -->
+                        <div class="col-12">
+                            <h6 class="border-bottom pb-2 mb-3 mt-3">
+                                <i class="fas fa-sitemap me-2"></i>Organización
+                            </h6>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Código Indicador</label>
+                            <input type="text" class="form-control" [(ngModel)]="productoEditando.codigoIndicador"
+                                name="codigoIndicador">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Línea Estratégica</label>
+                            <input type="text" class="form-control" [(ngModel)]="productoEditando.lineaEstrategica"
+                                name="lineaEstrategica">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Código Sector</label>
+                            <input type="text" class="form-control" [(ngModel)]="productoEditando.codigoSector"
+                                name="codigoSector">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Sector</label>
+                            <input type="text" class="form-control" [(ngModel)]="productoEditando.sector" name="sector">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Código Programa</label>
+                            <input type="text" class="form-control" [(ngModel)]="productoEditando.codigoPrograma"
+                                name="codigoPrograma">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Programa</label>
+                            <input type="text" class="form-control" [(ngModel)]="productoEditando.programa"
+                                name="programa">
+                        </div>
+
+                        <!-- Producto e Indicador -->
+                        <div class="col-12">
+                            <h6 class="border-bottom pb-2 mb-3 mt-3">
+                                <i class="fas fa-chart-line me-2"></i>Producto e Indicador
+                            </h6>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Código Producto</label>
+                            <input type="text" class="form-control" [(ngModel)]="productoEditando.codigoProducto"
+                                name="codigoProducto">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Producto</label>
+                            <input type="text" class="form-control" [(ngModel)]="productoEditando.producto"
+                                name="producto">
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label">Indicador de Producto</label>
+                            <textarea class="form-control" rows="2" [(ngModel)]="productoEditando.indicadorProducto"
+                                name="indicadorProducto"></textarea>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label">Personalización</label>
+                            <textarea class="form-control" rows="2" [(ngModel)]="productoEditando.personalizacion"
+                                name="personalizacion"></textarea>
+                        </div>
+
+                        <!-- Metas y Medición -->
+                        <div class="col-12">
+                            <h6 class="border-bottom pb-2 mb-3 mt-3">
+                                <i class="fas fa-bullseye me-2"></i>Metas y Medición
+                            </h6>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Unidad de Medida</label>
+                            <input type="text" class="form-control" [(ngModel)]="productoEditando.unidadMedida"
+                                name="unidadMedida">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Meta Cuatrienio</label>
+                            <input type="number" class="form-control" [(ngModel)]="productoEditando.metaCuatrienio"
+                                name="metaCuatrienio" min="0" step="0.01">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Principal</label>
+                            <input type="text" class="form-control" [(ngModel)]="productoEditando.principal"
+                                name="principal">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Tipo de Acumulación</label>
+                            <input type="text" class="form-control" [(ngModel)]="productoEditando.tipoAcumulacion"
+                                name="tipoAcumulacion">
+                        </div>
+
+                        <!-- Programación por Año -->
+                        <div class="col-12">
+                            <h6 class="border-bottom pb-2 mb-3 mt-3">
+                                <i class="fas fa-calendar-alt me-2"></i>Programación por Año
+                            </h6>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Programación 2024</label>
+                            <input type="number" class="form-control" [(ngModel)]="productoEditando.programacion2024"
+                                name="programacion2024" min="0" step="0.01">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Programación 2025</label>
+                            <input type="number" class="form-control" [(ngModel)]="productoEditando.programacion2025"
+                                name="programacion2025" min="0" step="0.01">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Programación 2026</label>
+                            <input type="number" class="form-control" [(ngModel)]="productoEditando.programacion2026"
+                                name="programacion2026" min="0" step="0.01">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Programación 2027</label>
+                            <input type="number" class="form-control" [(ngModel)]="productoEditando.programacion2027"
+                                name="programacion2027" min="0" step="0.01">
+                        </div>
+
+                        <!-- Totales por Año -->
+                        <div class="col-md-3">
+                            <label class="form-label">Total 2024</label>
+                            <input type="number" class="form-control" [(ngModel)]="productoEditando.total2024"
+                                name="total2024" min="0" step="0.01">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Total 2025</label>
+                            <input type="number" class="form-control" [(ngModel)]="productoEditando.total2025"
+                                name="total2025" min="0" step="0.01">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Total 2026</label>
+                            <input type="number" class="form-control" [(ngModel)]="productoEditando.total2026"
+                                name="total2026" min="0" step="0.01">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Total 2027</label>
+                            <input type="number" class="form-control" [(ngModel)]="productoEditando.total2027"
+                                name="total2027" min="0" step="0.01">
+                        </div>
+
+                        <!-- ODS y Otros -->
+                        <div class="col-12">
+                            <h6 class="border-bottom pb-2 mb-3 mt-3">
+                                <i class="fas fa-globe me-2"></i>ODS y Otros
+                            </h6>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Código ODS</label>
+                            <input type="text" class="form-control" [(ngModel)]="productoEditando.codigoODS"
+                                name="codigoODS">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">ODS</label>
+                            <input type="text" class="form-control" [(ngModel)]="productoEditando.ods" name="ods">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">BPIN</label>
+                            <input type="text" class="form-control" [(ngModel)]="productoEditando.bpin" name="bpin">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="cerrarModalEdicion()">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-success" (click)="guardarProductoEditado()">
+                    <i class="fas fa-check me-2"></i>Aplicar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+}

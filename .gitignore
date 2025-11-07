@@ -1,0 +1,74 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.env
+venv/
+.env.*
+*.sqlite3
+instance/
+.pytest_cache/
+.coverage
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Distribution / packaging
+build/
+dist/
+.eggs/
+*.egg
+*.egg-info/
+
+# VSCode
+.vscode/
+
+# PyCharm
+.idea/
+
+# Logs
+*.log
+
+# Node / frontend
+node_modules/
+dist/
+build/
+coverage/
+.npm/
+
+# Angular
+.angular/
+output/
+
+# Temporary
+*.tmp
+*.swp
+
+# Env files
+.env.local
+.env.development
+.env.production
+
+# Misc
+*.bak
+*.old
+
+# Backend specific
+backend/*.pyc
+backend/__pycache__/
+
+# Frontend build
+frontend/dist/
+
+# Secret files
+secrets.json
+
+# Ignore the repo's own .gitignore changes in case user wants
+# keep this file tracked

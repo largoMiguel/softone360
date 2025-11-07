@@ -1,0 +1,350 @@
+<div class="ventanilla-container">
+    <div class="hero-section">
+        <div class="overlay"></div>
+        <div class="content">
+            <div class="logo-container" *ngIf="(currentEntity$ | async) as entity; else defaultLogo">
+                <img [src]="entity.logo_url || 'assets/logos/logo_completo.png'" [alt]="entity.name" class="hero-logo">
+            </div>
+            <ng-template #defaultLogo>
+                <div class="logo-container">
+                    <img src="assets/logos/logo_completo.png" alt="SoftOne360 Gestión Completa, Visión Total"
+                        class="hero-logo">
+                </div>
+            </ng-template>
+            <h1 class="hero-title">Ventanilla Única de Servicios</h1>
+            <h2 class="hero-subtitle">
+                <ng-container *ngIf="(currentEntity$ | async) as entity; else defaultSubtitle">
+                    {{ entity.name }}
+                </ng-container>
+                <ng-template #defaultSubtitle> SoftOne360 - Gestión Completa, Visión Total </ng-template>
+            </h2>
+            <p class="hero-description">
+                Bienvenido al sistema de Peticiones, Quejas, Reclamos y Sugerencias.
+                Aquí podrás gestionar tus solicitudes de manera rápida y eficiente.
+            </p>
+        </div>
+    </div>
+
+    <div class="services-section">
+        <div class="container">
+            <h3 class="section-title">
+                <i class="fas fa-concierge-bell me-2"></i>Servicios Disponibles
+            </h3>
+
+            <div class="row g-4">
+                <!-- Portal Administrativo -->
+                <div class="col-md-3">
+                    <div class="service-card" (click)="navigateToLogin()">
+                        <div class="service-icon">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <h4 class="service-title">Portal Administrativo</h4>
+                        <p class="service-description">
+                            Acceso para administradores y secretarios del sistema.
+                        </p>
+                        <button class="btn btn-primary w-100">
+                            <i class="fas fa-sign-in-alt me-2"></i>Ingresar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Portal Ciudadano -->
+                <div class="col-md-3" *ngIf="pqrsEnabled()">
+                    <div class="service-card" (click)="navigateToPortalCiudadano()">
+                        <div class="service-icon service-icon-secondary">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <h4 class="service-title">Portal Ciudadano</h4>
+                        <p class="service-description">
+                            Acceso para ciudadanos. Gestiona tus PQRS de forma personalizada.
+                        </p>
+                        <button class="btn btn-secondary w-100">
+                            <i class="fas fa-arrow-right me-2"></i>Ingresar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Radicar PQRS -->
+                <div class="col-md-3" *ngIf="pqrsEnabled()">
+                    <div class="service-card" (click)="navigateToRadicacion()">
+                        <div class="service-icon service-icon-success">
+                            <i class="fas fa-file-signature"></i>
+                        </div>
+                        <h4 class="service-title">Radicar PQRS</h4>
+                        <p class="service-description">
+                            Presenta tu petición, queja, reclamo o sugerencia sin necesidad de registro.
+                        </p>
+                        <button class="btn btn-success w-100">
+                            <i class="fas fa-paper-plane me-2"></i>Radicar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Consultar Estado -->
+                <div class="col-md-3" *ngIf="pqrsEnabled()">
+                    <div class="service-card" (click)="navigateToConsulta()">
+                        <div class="service-icon service-icon-info">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <h4 class="service-title">Consultar Estado</h4>
+                        <p class="service-description">
+                            Consulta el estado de tu PQRS ingresando el número de radicado.
+                        </p>
+                        <button class="btn btn-info w-100">
+                            <i class="fas fa-eye me-2"></i>Consultar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mensaje cuando PQRS está desactivado -->
+            <div class="alert alert-warning mt-4" *ngIf="!pqrsEnabled()">
+                <i class="fas fa-ban me-2"></i>
+                El módulo de PQRS está desactivado para esta entidad. Por favor, contacte al administrador si requiere
+                habilitarlo.
+            </div>
+
+            <!-- Información Adicional -->
+            <div class="info-section mt-5">
+                <div class="row">
+                    <div class="col-md-4 mb-4">
+                        <div class="info-card">
+                            <i class="fas fa-clock info-icon"></i>
+                            <h5>Horario de Atención</h5>
+                            <ng-container *ngIf="(currentEntity$ | async) as entity">
+                                <p>{{ entity.horario_atencion || 'Lunes a Viernes\n8:00 AM - 5:00 PM' }}</p>
+                            </ng-container>
+                            <p *ngIf="!(currentEntity$ | async)">Lunes a Viernes<br>8:00 AM - 5:00 PM</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="info-card">
+                            <i class="fas fa-phone info-icon"></i>
+                            <h5>Línea de Atención</h5>
+                            <ng-container *ngIf="(currentEntity$ | async) as entity">
+                                <p>{{ entity.phone ? 'Tel: ' + entity.phone : 'Tel: (000) 000-0000' }}<br>{{
+                                    entity.address || 'Ext: 123' }}</p>
+                            </ng-container>
+                            <p *ngIf="!(currentEntity$ | async)">Tel: (000) 000-0000<br>Ext: 123</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="info-card">
+                            <i class="fas fa-envelope info-icon"></i>
+                            <h5>Correo Electrónico</h5>
+                            <ng-container *ngIf="(currentEntity$ | async) as entity">
+                                <p>{{ entity.email || 'pqrs@alcaldia.gov.co' }}<br>{{ entity.tiempo_respuesta ||
+                                    'Respuesta en 24 horas' }}</p>
+                            </ng-container>
+                            <p *ngIf="!(currentEntity$ | async)">pqrs@alcaldia.gov.co<br>Respuesta en 24 horas</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p class="mb-0">
+                <i class="fas fa-shield-alt me-2"></i>
+                © 2025 Alcaldía Municipal - Sistema de PQRS | Todos los derechos reservados
+            </p>
+        </div>
+    </footer>
+
+    <!-- Modal Radicar PQRS -->
+    <div class="modal fade show d-block" *ngIf="mostrarModalRadicacion" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-file-signature me-2"></i>Radicar Nueva PQRS
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" (click)="cerrarModalRadicacion()"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Completa el siguiente formulario para radicar tu solicitud. Los campos marcados con * son
+                        obligatorios.
+                    </p>
+
+                    <form>
+                        <div class="mb-3">
+                            <label for="tipo_solicitud" class="form-label">Tipo de Solicitud *</label>
+                            <select id="tipo_solicitud" class="form-select" [(ngModel)]="radicacionForm.tipo_solicitud"
+                                name="tipo_solicitud" required>
+                                <option value="">Seleccione...</option>
+                                <option value="peticion">Petición</option>
+                                <option value="queja">Queja</option>
+                                <option value="reclamo">Reclamo</option>
+                                <option value="sugerencia">Sugerencia</option>
+                            </select>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="cedula_ciudadano" class="form-label">Cédula *</label>
+                                <input id="cedula_ciudadano" type="text" class="form-control"
+                                    [(ngModel)]="radicacionForm.cedula_ciudadano" name="cedula_ciudadano" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="nombre_ciudadano" class="form-label">Nombre Completo *</label>
+                                <input id="nombre_ciudadano" type="text" class="form-control"
+                                    [(ngModel)]="radicacionForm.nombre_ciudadano" name="nombre_ciudadano" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="telefono_ciudadano" class="form-label">Teléfono</label>
+                                <input id="telefono_ciudadano" type="tel" class="form-control"
+                                    [(ngModel)]="radicacionForm.telefono_ciudadano" name="telefono_ciudadano">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="email_ciudadano" class="form-label">Email</label>
+                                <input id="email_ciudadano" type="email" class="form-control"
+                                    [(ngModel)]="radicacionForm.email_ciudadano" name="email_ciudadano">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="direccion_ciudadano" class="form-label">Dirección</label>
+                            <input id="direccion_ciudadano" type="text" class="form-control"
+                                [(ngModel)]="radicacionForm.direccion_ciudadano" name="direccion_ciudadano">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="asunto" class="form-label">Asunto *</label>
+                            <input id="asunto" type="text" class="form-control" [(ngModel)]="radicacionForm.asunto"
+                                name="asunto" required placeholder="Resumen breve del motivo">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="descripcion" class="form-label">Descripción *</label>
+                            <textarea id="descripcion" class="form-control" rows="4"
+                                [(ngModel)]="radicacionForm.descripcion" name="descripcion" required
+                                placeholder="Describe detalladamente tu solicitud..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" (click)="cerrarModalRadicacion()">
+                        <i class="fas fa-times me-2"></i>Cancelar
+                    </button>
+                    <button type="button" class="btn btn-success" (click)="submitRadicacion()"
+                        [disabled]="isSubmitting">
+                        <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-2"></span>
+                        <i *ngIf="!isSubmitting" class="fas fa-paper-plane me-2"></i>
+                        {{ isSubmitting ? 'Radicando...' : 'Radicar PQRS' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Consultar PQRS -->
+    <div class="modal fade show d-block" *ngIf="mostrarModalConsulta" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-search me-2"></i>Consultar Estado de PQRS
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" (click)="cerrarModalConsulta()"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Ingresa el número de radicado de tu PQRS para consultar su estado.
+                    </p>
+
+                    <div class="mb-3">
+                        <label for="numero_radicado" class="form-label">Número de Radicado</label>
+                        <input id="numero_radicado" type="text" class="form-control form-control-lg text-center"
+                            [(ngModel)]="numeroRadicado" placeholder="Ej: 20251024001" (keyup.enter)="consultarPqrs()">
+                        <small class="text-muted">Formato: YYYYMMDDNNN</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" (click)="cerrarModalConsulta()">
+                        <i class="fas fa-times me-2"></i>Cancelar
+                    </button>
+                    <button type="button" class="btn btn-info" (click)="consultarPqrs()"
+                        [disabled]="isConsulting || !numeroRadicado.trim()">
+                        <span *ngIf="isConsulting" class="spinner-border spinner-border-sm me-2"></span>
+                        <i *ngIf="!isConsulting" class="fas fa-search me-2"></i>
+                        {{ isConsulting ? 'Consultando...' : 'Consultar' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Resultado Consulta -->
+    <div class="modal fade show d-block" *ngIf="mostrarResultadoConsulta && pqrsConsultada"
+        style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-file-alt me-2"></i>Resultado de Consulta
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white"
+                        (click)="cerrarResultadoConsulta()"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="result-card">
+                        <div class="result-header">
+                            <h4>PQRS N° {{ pqrsConsultada.numero_radicado }}</h4>
+                            <span [ngClass]="'badge bg-' + getEstadoColor(pqrsConsultada.estado)">
+                                {{ getEstadoLabel(pqrsConsultada.estado) }}
+                            </span>
+                        </div>
+
+                        <div class="result-section">
+                            <h6><i class="fas fa-info-circle me-2 text-primary"></i>Información General</h6>
+                            <div class="result-row">
+                                <strong>Tipo:</strong>
+                                <span>{{ pqrsConsultada.tipo_solicitud | titlecase }}</span>
+                            </div>
+                            <div class="result-row">
+                                <strong>Asunto:</strong>
+                                <span>{{ pqrsConsultada.asunto }}</span>
+                            </div>
+                            <div class="result-row">
+                                <strong>Fecha de Solicitud:</strong>
+                                <span>{{ pqrsConsultada.fecha_solicitud | date:'dd/MM/yyyy HH:mm' }}</span>
+                            </div>
+                            <div class="result-row" *ngIf="pqrsConsultada.fecha_respuesta">
+                                <strong>Fecha de Respuesta:</strong>
+                                <span>{{ pqrsConsultada.fecha_respuesta | date:'dd/MM/yyyy HH:mm' }}</span>
+                            </div>
+                        </div>
+
+                        <div class="result-section" *ngIf="pqrsConsultada.respuesta">
+                            <h6><i class="fas fa-reply me-2 text-success"></i>Respuesta</h6>
+                            <div class="alert alert-success">
+                                {{ pqrsConsultada.respuesta }}
+                            </div>
+                        </div>
+
+                        <div class="result-section" *ngIf="!pqrsConsultada.respuesta">
+                            <div class="alert alert-info">
+                                <i class="fas fa-clock me-2"></i>
+                                Tu PQRS está en proceso. Recibirás una respuesta pronto.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" (click)="cerrarResultadoConsulta()">
+                        <i class="fas fa-check me-2"></i>Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

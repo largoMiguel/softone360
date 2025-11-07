@@ -1,0 +1,517 @@
+<div class="soft-admin-container">
+    <div class="header">
+        <div class="header-content">
+            <div>
+                <h1>🔐 Panel de Super Administrador</h1>
+                <p class="subtitle">Gestión de Entidades y Administradores</p>
+            </div>
+            <button class="btn btn-logout" (click)="logout()">
+                🚪 Cerrar Sesión
+            </button>
+        </div>
+    </div>
+
+    <!-- Vista: Listado de Entidades -->
+    <div *ngIf="currentView === 'entities'" class="entities-view">
+        <div class="view-header">
+            <h2>Entidades del Sistema</h2>
+            <button class="btn btn-primary" (click)="showCreateEntity()">
+                ➕ Nueva Entidad
+            </button>
+        </div>
+
+        <div class="entities-grid" *ngIf="!loading && entities.length > 0">
+            <div class="entity-card" *ngFor="let entity of entities" [class.inactive]="!entity.is_active">
+                <div class="entity-header">
+                    <div>
+                        <h3>{{ entity.name }}</h3>
+                        <span class="entity-code">{{ entity.code }}</span>
+                    </div>
+                    <span class="status-badge" [class.active]="entity.is_active">
+                        {{ entity.is_active ? '✓ Activa' : '✗ Inactiva' }}
+                    </span>
+                </div>
+
+                <div class="entity-info">
+                    <p *ngIf="entity.description">{{ entity.description }}</p>
+                    <p *ngIf="entity.email">📧 {{ entity.email }}</p>
+                    <p *ngIf="entity.phone">📞 {{ entity.phone }}</p>
+                    <p class="entity-slug">
+                        🔗 <a [href]="'/' + entity.slug" target="_blank">{{ entity.slug }}</a>
+                        <button class="btn-copy" (click)="copySlug(entity.slug)" title="Copiar URL">📋</button>
+                    </p>
+                </div>
+
+                <div class="entity-stats">
+                    <div class="stat">
+                        <span class="stat-value">{{ entity.admin_count }}</span>
+                        <span class="stat-label">Admins</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value">{{ entity.user_count }}</span>
+                        <span class="stat-label">Usuarios</span>
+                    </div>
+                </div>
+
+                <div class="entity-actions">
+                    <button class="btn btn-sm btn-info" (click)="viewEntityUsers(entity)">
+                        👥 Ver Usuarios
+                    </button>
+                    <button class="btn btn-sm btn-success" (click)="showCreateAdmin(entity)">
+                        ➕ Crear Admin
+                    </button>
+                    <button class="btn btn-sm btn-primary" (click)="showEditEntity(entity)">
+                        ✏️ Editar
+                    </button>
+                    <button class="btn btn-sm" [class.btn-warning]="entity.is_active"
+                        [class.btn-secondary]="!entity.is_active" (click)="toggleEntityStatus(entity)">
+                        {{ entity.is_active ? '🔒 Desactivar' : '🔓 Activar' }}
+                    </button>
+                    <button class="btn btn-sm btn-danger" (click)="deleteEntity(entity)">
+                        🗑️ Eliminar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div *ngIf="loading" class="loading">
+            <p>Cargando entidades...</p>
+        </div>
+
+        <div *ngIf="!loading && entities.length === 0" class="empty-state">
+            <p>No hay entidades registradas</p>
+            <button class="btn btn-primary" (click)="showCreateEntity()">
+                Crear Primera Entidad
+            </button>
+        </div>
+    </div>
+
+    <!-- Vista: Crear Entidad -->
+    <div *ngIf="currentView === 'create-entity'" class="create-entity-view">
+        <div class="view-header">
+            <h2>Nueva Entidad</h2>
+            <button class="btn btn-secondary" (click)="showEntities()">
+                ← Volver
+            </button>
+        </div>
+
+        <form class="form-container" (ngSubmit)="createEntity()">
+            <div class="form-group">
+                <label for="name">Nombre de la Entidad *</label>
+                <input type="text" id="name" [(ngModel)]="newEntity.name" (blur)="generateSlug()" name="name" required
+                    class="form-control" placeholder="Ej: Alcaldía de Chiquizá - Boyacá">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="code">Código *</label>
+                    <input type="text" id="code" [(ngModel)]="newEntity.code" name="code" required class="form-control"
+                        placeholder="Ej: ALC-CHIQUIZA">
+                </div>
+
+                <div class="form-group">
+                    <label for="nit">NIT</label>
+                    <input type="text" id="nit" [(ngModel)]="newEntity.nit" name="nit" class="form-control"
+                        placeholder="Ej: 891801994">
+                    <small class="form-hint">NIT de la entidad para consultas de contratación SECOP</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="slug">URL Slug *</label>
+                    <input type="text" id="slug" [(ngModel)]="newEntity.slug" name="slug" required class="form-control"
+                        placeholder="Ej: chiquiza-boyaca">
+                    <small class="form-hint">Se generará automáticamente del nombre. Se usará para la URL
+                        pública.</small>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Descripción</label>
+                <textarea id="description" [(ngModel)]="newEntity.description" name="description" rows="3"
+                    class="form-control" placeholder="Descripción de la entidad"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="logo_url">URL del Logo</label>
+                <input type="url" id="logo_url" [(ngModel)]="newEntity.logo_url" name="logo_url" class="form-control"
+                    placeholder="https://ejemplo.com/logo.png">
+                <small class="form-hint">URL de la imagen del logo de la entidad (opcional)</small>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" [(ngModel)]="newEntity.email" name="email" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Teléfono</label>
+                    <input type="tel" id="phone" [(ngModel)]="newEntity.phone" name="phone" class="form-control">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="address">Dirección</label>
+                <input type="text" id="address" [(ngModel)]="newEntity.address" name="address" class="form-control">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="horario_atencion">Horario de Atención</label>
+                    <input type="text" id="horario_atencion" [(ngModel)]="newEntity.horario_atencion"
+                        name="horario_atencion" class="form-control"
+                        placeholder="Ej: Lunes a Viernes 8:00 AM - 5:00 PM">
+                </div>
+
+                <div class="form-group">
+                    <label for="tiempo_respuesta">Tiempo de Respuesta</label>
+                    <input type="text" id="tiempo_respuesta" [(ngModel)]="newEntity.tiempo_respuesta"
+                        name="tiempo_respuesta" class="form-control" placeholder="Ej: Respuesta en 24 horas">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Módulos Activos</label>
+                <div class="checkbox-grid">
+                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_pqrs" name="enable_pqrs"> PQRS</label>
+                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_users_admin" name="enable_users_admin">
+                        Administración de Usuarios</label>
+                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_planes_institucionales"
+                            name="enable_planes_institucionales"> Planes Institucionales</label>
+                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_pdm" name="enable_pdm">
+                        Plan de Desarrollo Municipal</label>
+                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_contratacion"
+                            name="enable_contratacion">
+                        Contratación</label>
+                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_reports_pdf" name="enable_reports_pdf">
+                        Reportes PDF</label>
+                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_ai_reports" name="enable_ai_reports">
+                        Análisis con IA</label>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" (click)="showEntities()">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-primary" [disabled]="loading">
+                    {{ loading ? 'Creando...' : 'Crear Entidad' }}
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Vista: Editar Entidad -->
+    <div *ngIf="currentView === 'edit-entity'" class="create-entity-view">
+        <div class="view-header">
+            <h2>Editar Entidad</h2>
+            <button class="btn btn-secondary" (click)="showEntities()">
+                ← Volver
+            </button>
+        </div>
+
+        <form class="form-container" (ngSubmit)="updateEntity()">
+            <div class="form-group">
+                <label for="edit-name">Nombre de la Entidad *</label>
+                <input type="text" id="edit-name" [(ngModel)]="newEntity.name" name="name" required class="form-control"
+                    placeholder="Ej: Alcaldía de Chiquizá - Boyacá">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="edit-code">Código *</label>
+                    <input type="text" id="edit-code" [(ngModel)]="newEntity.code" name="code" required
+                        class="form-control" placeholder="Ej: ALC-CHIQUIZA">
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-nit">NIT</label>
+                    <input type="text" id="edit-nit" [(ngModel)]="newEntity.nit" name="nit" class="form-control"
+                        placeholder="Ej: 891801994">
+                    <small class="form-hint">NIT de la entidad para consultas de contratación SECOP</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-slug">URL Slug *</label>
+                    <input type="text" id="edit-slug" [(ngModel)]="newEntity.slug" name="slug" required
+                        class="form-control" placeholder="Ej: chiquiza-boyaca">
+                    <small class="form-hint">Se usará para la URL pública.</small>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="edit-description">Descripción</label>
+                <textarea id="edit-description" [(ngModel)]="newEntity.description" name="description" rows="3"
+                    class="form-control" placeholder="Descripción de la entidad"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="edit-logo_url">URL del Logo</label>
+                <input type="url" id="edit-logo_url" [(ngModel)]="newEntity.logo_url" name="logo_url"
+                    class="form-control" placeholder="https://ejemplo.com/logo.png">
+                <small class="form-hint">URL de la imagen del logo de la entidad (opcional)</small>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="edit-email">Email</label>
+                    <input type="email" id="edit-email" [(ngModel)]="newEntity.email" name="email" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-phone">Teléfono</label>
+                    <input type="tel" id="edit-phone" [(ngModel)]="newEntity.phone" name="phone" class="form-control">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="edit-address">Dirección</label>
+                <input type="text" id="edit-address" [(ngModel)]="newEntity.address" name="address"
+                    class="form-control">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="edit-horario_atencion">Horario de Atención</label>
+                    <input type="text" id="edit-horario_atencion" [(ngModel)]="newEntity.horario_atencion"
+                        name="horario_atencion" class="form-control"
+                        placeholder="Ej: Lunes a Viernes 8:00 AM - 5:00 PM">
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-tiempo_respuesta">Tiempo de Respuesta</label>
+                    <input type="text" id="edit-tiempo_respuesta" [(ngModel)]="newEntity.tiempo_respuesta"
+                        name="tiempo_respuesta" class="form-control" placeholder="Ej: Respuesta en 24 horas">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Módulos Activos</label>
+                <div class="checkbox-grid">
+                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_pqrs" name="edit_enable_pqrs">
+                        PQRS</label>
+                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_users_admin"
+                            name="edit_enable_users_admin"> Administración de Usuarios</label>
+                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_planes_institucionales"
+                            name="edit_enable_planes_institucionales"> Planes Institucionales</label>
+                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_pdm" name="edit_enable_pdm"> Plan de
+                        Desarrollo Municipal</label>
+                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_contratacion"
+                            name="edit_enable_contratacion">
+                        Contratación</label>
+                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_reports_pdf"
+                            name="edit_enable_reports_pdf"> Reportes PDF</label>
+                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_ai_reports"
+                            name="edit_enable_ai_reports"> Análisis con IA</label>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" (click)="showEntities()">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-primary" [disabled]="loading">
+                    {{ loading ? 'Actualizando...' : 'Actualizar Entidad' }}
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Vista: Usuarios de Entidad -->
+    <div *ngIf="currentView === 'entity-users'" class="entity-users-view">
+        <div class="view-header">
+            <div>
+                <h2>Usuarios de {{ selectedEntity?.name }}</h2>
+                <p class="subtitle">Código: {{ selectedEntity?.code }}</p>
+            </div>
+            <button class="btn btn-secondary" (click)="showEntities()">
+                ← Volver
+            </button>
+        </div>
+
+        <div class="users-table" *ngIf="!loading && entityUsers.length > 0">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Rol</th>
+                        <th>Estado</th>
+                        <th>Creado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let user of entityUsers" [class.inactive]="!user.is_active">
+                        <td><strong>{{ user.username }}</strong></td>
+                        <td>{{ user.full_name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            <span class="role-badge" [class]="user.role">
+                                {{ getRoleName(user.role) }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status-badge" [class.active]="user.is_active">
+                                {{ user.is_active ? 'Activo' : 'Inactivo' }}
+                            </span>
+                        </td>
+                        <td>{{ user.created_at | date:'short' }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" (click)="showEditUser(user)">
+                                ✏️ Editar
+                            </button>
+                            <button class="btn btn-sm" [class.btn-warning]="user.is_active"
+                                [class.btn-secondary]="!user.is_active" (click)="toggleUserStatus(user)">
+                                {{ user.is_active ? 'Desactivar' : 'Activar' }}
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div *ngIf="!loading && entityUsers.length === 0" class="empty-state">
+            <p>No hay usuarios en esta entidad</p>
+            <button class="btn btn-primary" (click)="showCreateAdmin(selectedEntity!)">
+                Crear Primer Usuario
+            </button>
+        </div>
+    </div>
+
+    <!-- Vista: Editar Usuario -->
+    <div *ngIf="currentView === 'edit-user'" class="create-admin-view">
+        <div class="view-header">
+            <h2>Editar Usuario</h2>
+            <button class="btn btn-secondary" (click)="cancelEditUser()">
+                ← Volver
+            </button>
+        </div>
+
+        <form class="form-container" (ngSubmit)="updateUser()">
+            <div class="form-group">
+                <label for="edit-role">Rol</label>
+                <select id="edit-role" [(ngModel)]="editUserForm.role" name="edit_role" class="form-control">
+                    <option value="admin">Administrador</option>
+                    <option value="secretario">Secretario</option>
+                    <option value="ciudadano">Ciudadano</option>
+                </select>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="edit-username">Nombre de Usuario *</label>
+                    <input type="text" id="edit-username" [(ngModel)]="editUserForm.username" name="edit_username"
+                        required class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-full_name">Nombre Completo *</label>
+                    <input type="text" id="edit-full_name" [(ngModel)]="editUserForm.full_name" name="edit_full_name"
+                        required class="form-control">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="edit-email">Email *</label>
+                <input type="email" id="edit-email" [(ngModel)]="editUserForm.email" name="edit_email" required
+                    class="form-control">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="edit-password">Nueva Contraseña (opcional)</label>
+                    <input type="password" id="edit-password" [(ngModel)]="editUserForm.password" name="edit_password"
+                        class="form-control" placeholder="Dejar vacío para no cambiar">
+                </div>
+                <div class="form-group">
+                    <label for="edit-password-confirm">Confirmar Contraseña</label>
+                    <input type="password" id="edit-password-confirm" [(ngModel)]="confirmEditPassword"
+                        name="edit_password_confirm" class="form-control" placeholder="Repita la nueva contraseña">
+                </div>
+
+                <div class="form-group" *ngIf="entities?.length">
+                    <label for="edit-entity">Entidad</label>
+                    <select id="edit-entity" [(ngModel)]="editUserForm.entity_id" name="edit_entity"
+                        class="form-control">
+                        <option [ngValue]="undefined">(Sin entidad)</option>
+                        <option *ngFor="let e of entities" [ngValue]="e.id">{{ e.name }}</option>
+                    </select>
+                    <small class="form-hint">Solo Superadmin puede cambiar de entidad</small>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" (click)="cancelEditUser()">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-primary" [disabled]="loading">
+                    {{ loading ? 'Guardando...' : 'Guardar Cambios' }}
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Vista: Crear Admin -->
+    <div *ngIf="currentView === 'create-admin'" class="create-admin-view">
+        <div class="view-header">
+            <h2>Nuevo Administrador para {{ selectedEntity?.name }}</h2>
+            <button class="btn btn-secondary" (click)="viewEntityUsers(selectedEntity!)">
+                ← Volver
+            </button>
+        </div>
+
+        <form class="form-container" (ngSubmit)="createAdmin()">
+            <div class="form-group">
+                <label for="role">Rol *</label>
+                <select id="role" [(ngModel)]="newAdmin.role" name="role" required class="form-control">
+                    <option value="admin">Administrador</option>
+                    <option value="secretario">Secretario</option>
+                </select>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="username">Nombre de Usuario *</label>
+                    <input type="text" id="username" [(ngModel)]="newAdmin.username" name="username" required
+                        class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label for="full_name">Nombre Completo *</label>
+                    <input type="text" id="full_name" [(ngModel)]="newAdmin.full_name" name="full_name" required
+                        class="form-control">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email *</label>
+                <input type="email" id="email" [(ngModel)]="newAdmin.email" name="email" required class="form-control">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="password">Contraseña *</label>
+                    <input type="password" id="password" [(ngModel)]="newAdmin.password" name="password" required
+                        class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword">Confirmar Contraseña *</label>
+                    <input type="password" id="confirmPassword" [(ngModel)]="confirmPassword" name="confirmPassword"
+                        required class="form-control">
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" (click)="viewEntityUsers(selectedEntity!)">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-primary" [disabled]="loading">
+                    {{ loading ? 'Creando...' : 'Crear Usuario' }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

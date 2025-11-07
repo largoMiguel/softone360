@@ -1,0 +1,89 @@
+<div class="sidebar h-100 d-flex flex-column">
+    <!-- Close button (visible only on small screens) -->
+    <button class="btn btn-link text-white text-start d-lg-none mb-0 p-3" (click)="sidebar.toggle()">
+        <i class="fas fa-times me-2"></i>Cerrar
+    </button>
+
+    <div class="menu px-3 py-2">
+        <!-- Dashboard Group -->
+        <div class="menu-group">
+            <div class="menu-title">
+                <i class="fas fa-tachometer-alt me-2"></i>GESTIÓN DE PQRS
+            </div>
+            <ul class="list-unstyled ms-1">
+                <li>
+                    <a class="menu-link" [class.active]="isActiveView('dashboard')" (click)="goDashboard('dashboard')">
+                        <i class="fas fa-chart-pie me-2"></i>Resumen
+                    </a>
+                </li>
+                <li *ngIf="canAccessPqrs()">
+                    <a class="menu-link" [class.active]="isActiveView('mis-pqrs')" (click)="goDashboard('mis-pqrs')">
+                        <i class="fas fa-list me-2"></i>Mis PQRS
+                    </a>
+                </li>
+
+            </ul>
+        </div>
+
+        <!-- Usuarios (independiente) -->
+        <div class="menu-group" *ngIf="isAdmin() && usersAdminEnabled()">
+            <div class="menu-title">
+                <i class="fas fa-users me-2"></i>Usuarios
+            </div>
+            <ul class="list-unstyled ms-1">
+                <li>
+                    <a class="menu-link" [class.active]="isActiveView('usuarios')" (click)="goDashboard('usuarios')">
+                        <i class="fas fa-user-cog me-2"></i>Administrar
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Planes -->
+        <div class="menu-group" *ngIf="canAccessPlanes()">
+            <div class="menu-title">
+                <i class="fas fa-clipboard-list me-2"></i>Planes Institucionales
+            </div>
+            <ul class="list-unstyled ms-1">
+                <li>
+                    <a class="menu-link" [class.active]="isActiveRoutePlanesDashboard()" (click)="goPlanesDashboard()">
+                        <i class="fas fa-chart-pie me-2"></i>Resumen
+                    </a>
+                </li>
+                <li>
+                    <a class="menu-link" [class.active]="isActiveRoutePlanes()" (click)="goPlanes()">
+                        <i class="fas fa-angle-right me-2"></i>Ingresar
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Contratación -->
+        <div class="menu-group" *ngIf="canAccessContratacion()">
+            <div class="menu-title">
+                <i class="fas fa-file-contract me-2"></i>Contratación
+            </div>
+            <ul class="list-unstyled ms-1">
+                <li>
+                    <a class="menu-link" [class.active]="isActiveRouteContratacion()" (click)="goContratacion()">
+                        <i class="fas fa-angle-right me-2"></i>Ingresar
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- PDM -->
+        <div class="menu-group" *ngIf="canAccessPdm()">
+            <div class="menu-title">
+                <i class="fas fa-chart-line me-2"></i>Plan de Desarrollo
+            </div>
+            <ul class="list-unstyled ms-1">
+                <li>
+                    <a class="menu-link" [class.active]="isActiveRoutePdmDashboard()" (click)="goPdmDashboard()">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard PDM
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,561 @@
+<div class="portal-ciudadano-container" *ngIf="pqrsEnabled(); else pqrsOff">
+    <!-- Header Profesional -->
+    <nav class="navbar navbar-dark bg-secondary mb-0 portal-navbar">
+        <div class="container-fluid">
+            <!-- Logo y Nombre de la Entidad -->
+            <div class="navbar-brand-section d-flex align-items-center" (click)="volverAInicio()"
+                style="cursor: pointer;">
+                <ng-container *ngIf="(currentEntity$ | async) as entity; else defaultBrand">
+                    <!-- Logo de la Entidad -->
+                    <div class="entity-logo-wrapper">
+                        <ng-container *ngIf="entity.logo_url; else entityLogoFallback">
+                            <img [src]="entity.logo_url" [alt]="entity.name" class="entity-logo me-3">
+                        </ng-container>
+                        <ng-template #entityLogoFallback>
+                            <img src="assets/logos/logo_icono.png" alt="SoftOne360" class="entity-logo me-3">
+                        </ng-template>
+                    </div>
+                    <!-- Separador Vertical -->
+                    <div class="navbar-divider"></div>
+                    <!-- Información de la Entidad -->
+                    <div class="entity-info me-3">
+                        <h6 class="entity-name mb-0">{{ entity.name }}</h6>
+                        <small class="entity-subtitle">Portal Ciudadano</small>
+                    </div>
+                </ng-container>
+                <ng-template #defaultBrand>
+                    <div class="entity-logo-wrapper">
+                        <img src="assets/logos/logo_icono.png" alt="SoftOne360" class="entity-logo me-3">
+                    </div>
+                    <div class="navbar-divider"></div>
+                    <div class="entity-info me-3">
+                        <h6 class="entity-name mb-0">Portal Ciudadano</h6>
+                        <small class="entity-subtitle">SoftOne360 Gestión Completa, Visión Total</small>
+                    </div>
+                </ng-template>
+                <!-- Separador Vertical -->
+                <div class="navbar-divider"></div>
+                <!-- Logo del Software (solo cuando hay entidad para evitar duplicados) -->
+                <div class="software-logo-wrapper">
+                    <img src="assets/logos/logo_icono.png" alt="SoftOne360" class="software-logo">
+                    <small class="software-name">SoftOne360</small>
+                </div>
+            </div>
+
+            <!-- Usuario Logueado -->
+            <div *ngIf="isLoggedIn" class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle text-white user-dropdown" href="#" role="button"
+                        data-bs-toggle="dropdown">
+                        <div class="user-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="user-info">
+                            <span class="user-name">{{ currentUser?.full_name }}</span>
+                            <small class="user-role">Ciudadano</small>
+                        </div>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><span class="dropdown-item-text"><i class="fas fa-id-badge me-2"></i>Ciudadano</span></li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item" href="javascript:void(0)" (click)="logout()"><i
+                                    class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Vista de Login/Registro -->
+    <div *ngIf="!isLoggedIn" class="auth-section">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-10 col-lg-8">
+                    <div class="auth-card">
+                        <div class="row g-0">
+                            <!-- Panel Izquierdo - Información -->
+                            <div class="col-md-5 auth-info-panel">
+                                <div class="info-content">
+                                    <ng-container *ngIf="(currentEntity$ | async) as entity; else defaultInfo">
+                                        <!-- Logo de la Entidad con efecto -->
+                                        <div class="entity-logo-circle">
+                                            <img [src]="entity.logo_url || 'assets/logos/logo_icono.png'"
+                                                [alt]="entity.name" class="info-logo mb-4">
+                                        </div>
+                                        <h3 class="text-white mb-3 entity-title">{{ entity.name }}</h3>
+                                        <div class="entity-divider"></div>
+                                    </ng-container>
+                                    <ng-template #defaultInfo>
+                                        <div class="entity-logo-circle">
+                                            <img src="assets/logos/logo_completo.png"
+                                                alt="SoftOne360 Gestión Completa, Visión Total" class="info-logo mb-4">
+                                        </div>
+                                        <h3 class="text-white mb-3 entity-title">Portal Ciudadano</h3>
+                                        <div class="entity-divider"></div>
+                                    </ng-template>
+                                    <p class="text-white-50 mb-4 info-description">
+                                        Accede a tu cuenta para gestionar tus PQRS, ver el historial y recibir
+                                        actualizaciones en tiempo real.
+                                    </p>
+                                    <ul class="features-list">
+                                        <li><i class="fas fa-check-circle me-2"></i>Radicar PQRS fácilmente</li>
+                                        <li><i class="fas fa-check-circle me-2"></i>Ver historial completo</li>
+                                        <li><i class="fas fa-check-circle me-2"></i>Recibir notificaciones</li>
+                                        <li><i class="fas fa-check-circle me-2"></i>Seguimiento en tiempo real</li>
+                                    </ul>
+                                    <!-- Logo del Software -->
+                                    <div class="software-badge mt-4">
+                                        <img src="assets/logos/logo_icono.png" alt="SoftOne360"
+                                            class="software-badge-logo">
+                                        <span class="software-badge-text">Powered by SoftOne360</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Panel Derecho - Formularios -->
+                            <div class="col-md-7 auth-form-panel">
+                                <!-- Login Form -->
+                                <div *ngIf="!showRegisterForm" class="form-container">
+                                    <h4 class="form-title mb-4">Iniciar Sesión</h4>
+                                    <form [formGroup]="loginForm" (ngSubmit)="onLoginSubmit()">
+                                        <div class="mb-3">
+                                            <label for="login_username" class="form-label">Usuario</label>
+                                            <input type="text" class="form-control" id="login_username"
+                                                formControlName="username" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="login_password" class="form-label">Contraseña</label>
+                                            <input type="password" class="form-control" id="login_password"
+                                                formControlName="password" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-secondary w-100 mb-3"
+                                            [disabled]="loginForm.invalid || isSubmitting">
+                                            <span *ngIf="isSubmitting"
+                                                class="spinner-border spinner-border-sm me-2"></span>
+                                            {{ isSubmitting ? 'Ingresando...' : 'Ingresar' }}
+                                        </button>
+                                    </form>
+                                    <p class="text-center text-muted mb-2">¿No tienes cuenta?</p>
+                                    <button class="btn btn-outline-secondary w-100" (click)="toggleView()">
+                                        <i class="fas fa-user-plus me-2"></i>Crear Cuenta
+                                    </button>
+                                    <button class="btn btn-link w-100 mt-2" (click)="volverAInicio()">
+                                        <i class="fas fa-arrow-left me-2"></i>Volver al inicio
+                                    </button>
+                                </div>
+
+                                <!-- Register Form -->
+                                <div *ngIf="showRegisterForm" class="form-container">
+                                    <h4 class="form-title mb-4">Crear Cuenta</h4>
+                                    <form [formGroup]="registerForm" (ngSubmit)="onRegisterSubmit()">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="reg_full_name" class="form-label">Nombre Completo *</label>
+                                                <input type="text" class="form-control" id="reg_full_name"
+                                                    formControlName="full_name" required>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="reg_cedula" class="form-label">Cédula *</label>
+                                                <input type="text" class="form-control" id="reg_cedula"
+                                                    formControlName="cedula" required>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="reg_username" class="form-label">Usuario *</label>
+                                                <input type="text" class="form-control" id="reg_username"
+                                                    formControlName="username" required>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="reg_email" class="form-label">Email *</label>
+                                                <input type="email" class="form-control" id="reg_email"
+                                                    formControlName="email" required>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="reg_telefono" class="form-label">Teléfono</label>
+                                                <input type="tel" class="form-control" id="reg_telefono"
+                                                    formControlName="telefono">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="reg_direccion" class="form-label">Dirección</label>
+                                                <input type="text" class="form-control" id="reg_direccion"
+                                                    formControlName="direccion">
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="reg_password" class="form-label">Contraseña *</label>
+                                                <input type="password" class="form-control" id="reg_password"
+                                                    formControlName="password" required>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="reg_password_confirm" class="form-label">Confirmar
+                                                    Contraseña *</label>
+                                                <input type="password" class="form-control" id="reg_password_confirm"
+                                                    formControlName="password_confirm" required>
+                                            </div>
+                                        </div>
+                                        <div class="text-danger small mb-3"
+                                            *ngIf="registerForm.hasError('passwordMismatch') && registerForm.get('password_confirm')?.touched">
+                                            Las contraseñas no coinciden
+                                        </div>
+                                        <button type="submit" class="btn btn-secondary w-100 mb-3"
+                                            [disabled]="registerForm.invalid || isSubmitting">
+                                            <span *ngIf="isSubmitting"
+                                                class="spinner-border spinner-border-sm me-2"></span>
+                                            {{ isSubmitting ? 'Creando cuenta...' : 'Crear Cuenta' }}
+                                        </button>
+                                    </form>
+                                    <p class="text-center text-muted mb-2">¿Ya tienes cuenta?</p>
+                                    <button class="btn btn-outline-secondary w-100" (click)="toggleView()">
+                                        <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vista del Dashboard Ciudadano -->
+    <div *ngIf="isLoggedIn" class="dashboard-section">
+        <div class="container">
+            <div class="welcome-banner mb-4">
+                <h2><i class="fas fa-home me-2"></i>Bienvenido, {{ currentUser?.full_name }}</h2>
+                <p class="text-muted">Gestiona tus solicitudes y consulta el estado de tus PQRS</p>
+            </div>
+
+            <!-- Botón Nueva PQRS -->
+            <div class="text-end mb-4">
+                <button class="btn btn-secondary" *ngIf="!showNuevaPqrsForm" (click)="toggleNuevaPqrsForm()">
+                    <i class="fas fa-plus-circle me-2"></i>Nueva PQRS
+                </button>
+                <button class="btn btn-outline-secondary" *ngIf="showNuevaPqrsForm" (click)="toggleNuevaPqrsForm()">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+            </div>
+
+            <!-- Formulario Nueva PQRS -->
+            <div class="card mb-4" *ngIf="showNuevaPqrsForm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Nueva PQRS</h5>
+                </div>
+                <div class="card-body">
+                    <form [formGroup]="nuevaPqrsForm" (ngSubmit)="onSubmitPqrs()">
+                        <!-- Tipo de Identificación -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-id-card me-2"></i>Tipo de Identificación *
+                            </label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check" *ngFor="let tipo of tiposIdentificacion">
+                                    <input class="form-check-input" type="radio" [id]="'tipo_' + tipo.value"
+                                        formControlName="tipo_identificacion" [value]="tipo.value">
+                                    <label class="form-check-label" [for]="'tipo_' + tipo.value">
+                                        {{ tipo.label }}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Campos Personales (Solo si tipo_identificacion es 'personal') -->
+                        <div *ngIf="tipo === 'personal'">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="nombre_ciudadano" class="form-label">
+                                        <i class="fas fa-user me-2"></i>Nombre Completo *
+                                    </label>
+                                    <input type="text" class="form-control" id="nombre_ciudadano"
+                                        formControlName="nombre_ciudadano" placeholder="Ingrese su nombre completo"
+                                        [required]="tipo === 'personal'">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="cedula_ciudadano" class="form-label">
+                                        <i class="fas fa-id-card me-2"></i>Cédula *
+                                    </label>
+                                    <input type="text" class="form-control" id="cedula_ciudadano"
+                                        formControlName="cedula_ciudadano" placeholder="Número de identificación"
+                                        [required]="tipo === 'personal'">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tipo de Solicitud -->
+                        <div class="mb-3">
+                            <label for="tipo_solicitud" class="form-label">
+                                <i class="fas fa-list me-2"></i>Tipo de Solicitud *
+                            </label>
+                            <select class="form-select" id="tipo_solicitud" formControlName="tipo_solicitud" required>
+                                <option value="">Seleccione...</option>
+                                <option value="peticion">Petición</option>
+                                <option value="queja">Queja</option>
+                                <option value="reclamo">Reclamo</option>
+                                <option value="sugerencia">Sugerencia</option>
+                            </select>
+                        </div>
+
+                        <!-- Asunto -->
+                        <div class="mb-3">
+                            <label for="asunto" class="form-label">
+                                <i class="fas fa-heading me-2"></i>Asunto *
+                            </label>
+                            <input type="text" class="form-control" id="asunto" formControlName="asunto"
+                                placeholder="Breve descripción del asunto" required>
+                        </div>
+
+                        <!-- Descripción -->
+                        <div class="mb-3">
+                            <label for="descripcion" class="form-label">
+                                <i class="fas fa-align-left me-2"></i>Descripción *
+                            </label>
+                            <textarea class="form-control" id="descripcion" formControlName="descripcion" rows="4"
+                                placeholder="Describa detalladamente su solicitud" required></textarea>
+                        </div>
+
+                        <!-- Medio de Respuesta -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-reply me-2"></i>Medio de Respuesta *
+                            </label>
+                            <div class="row">
+                                <div class="col-md-6 col-lg-3 mb-2" *ngFor="let medio of mediosRespuesta">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" [id]="'medio_' + medio.value"
+                                            formControlName="medio_respuesta" [value]="medio.value">
+                                        <label class="form-check-label" [for]="'medio_' + medio.value">
+                                            <i [class]="medio.icon + ' me-1'"></i>{{ medio.label }}
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Campo Email (Solo si medio_respuesta es 'email') -->
+                        <div class="mb-3" *ngIf="medio === 'email'">
+                            <label for="email_ciudadano" class="form-label">
+                                <i class="fas fa-envelope me-2"></i>Correo Electrónico *
+                            </label>
+                            <input type="email" class="form-control" id="email_ciudadano"
+                                formControlName="email_ciudadano" placeholder="correo@ejemplo.com"
+                                [required]="medio === 'email'">
+                            <div class="form-text">Ingrese el correo donde recibirá la respuesta</div>
+                        </div>
+
+                        <!-- Campo Dirección (Solo si medio_respuesta es 'fisica') -->
+                        <div class="mb-3" *ngIf="medio === 'fisica'">
+                            <label for="direccion_ciudadano" class="form-label">
+                                <i class="fas fa-home me-2"></i>Dirección *
+                            </label>
+                            <textarea class="form-control" id="direccion_ciudadano"
+                                formControlName="direccion_ciudadano" rows="2"
+                                placeholder="Dirección completa de correspondencia"
+                                [required]="medio === 'fisica'"></textarea>
+                            <div class="form-text">Ingrese la dirección donde recibirá la respuesta física</div>
+                        </div>
+
+                        <!-- Campo Teléfono (Solo si medio_respuesta es 'telefono') -->
+                        <div class="mb-3" *ngIf="medio === 'telefono'">
+                            <label for="telefono_ciudadano" class="form-label">
+                                <i class="fas fa-phone me-2"></i>Teléfono *
+                            </label>
+                            <input type="tel" class="form-control" id="telefono_ciudadano"
+                                formControlName="telefono_ciudadano" placeholder="Número de contacto"
+                                [required]="medio === 'telefono'">
+                            <div class="form-text">Ingrese el número donde recibirá la llamada de respuesta</div>
+                        </div>
+
+                        <!-- Botones -->
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-outline-secondary" (click)="toggleNuevaPqrsForm()">
+                                <i class="fas fa-times me-2"></i>Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-secondary"
+                                [disabled]="nuevaPqrsForm.invalid || isSubmittingPqrs">
+                                <span *ngIf="isSubmittingPqrs" class="spinner-border spinner-border-sm me-2"></span>
+                                <i *ngIf="!isSubmittingPqrs" class="fas fa-paper-plane me-2"></i>
+                                {{ isSubmittingPqrs ? 'Enviando...' : 'Enviar PQRS' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="stat-card stat-primary">
+                        <div class="stat-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>{{ totalPqrs }}</h3>
+                            <p>Total PQRS</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card stat-warning">
+                        <div class="stat-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>{{ pqrsEnProceso }}</h3>
+                            <p>En Proceso</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card stat-success">
+                        <div class="stat-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>{{ pqrsResueltas }}</h3>
+                            <p>Resueltas</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mis PQRS Table -->
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Mis Solicitudes</h5>
+                </div>
+                <div class="card-body">
+                    <div *ngIf="isLoading" class="text-center py-5">
+                        <div class="spinner-border text-secondary" role="status"></div>
+                        <p class="text-muted mt-3">Cargando solicitudes...</p>
+                    </div>
+
+                    <div *ngIf="!isLoading && misPqrs.length === 0" class="text-center py-5">
+                        <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                        <h5 class="text-muted">No tienes solicitudes registradas</h5>
+                        <p class="text-secondary">Comienza creando tu primera PQRS desde la ventanilla de servicios</p>
+                        <button class="btn btn-secondary mt-2" (click)="volverAInicio()">
+                            <i class="fas fa-plus-circle me-1"></i>Ir a la Ventanilla
+                        </button>
+                    </div>
+
+                    <div *ngIf="!isLoading && misPqrs.length > 0" class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Radicado</th>
+                                    <th>Tipo</th>
+                                    <th>Asunto</th>
+                                    <th>Estado</th>
+                                    <th>Fecha</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let pqrs of misPqrs" (click)="verDetalles(pqrs)" style="cursor: pointer;">
+                                    <td><strong class="text-secondary">{{ pqrs.numero_radicado }}</strong></td>
+                                    <td><span class="badge bg-light text-dark border">{{ pqrs.tipo_solicitud | titlecase
+                                            }}</span></td>
+                                    <td>{{ pqrs.asunto }}</td>
+                                    <td><span [ngClass]="'badge bg-' + getEstadoColor(pqrs.estado)">{{
+                                            getEstadoLabel(pqrs.estado) }}</span></td>
+                                    <td><small>{{ pqrs.fecha_solicitud | date:'dd/MM/yyyy HH:mm' }}</small></td>
+                                    <td (click)="$event.stopPropagation()">
+                                        <button class="btn btn-sm btn-outline-secondary" (click)="verDetalles(pqrs)">
+                                            <i class="fas fa-eye"></i> Ver
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detalles PQRS -->
+    <div class="modal fade show d-block" *ngIf="showDetails && selectedPqrs" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-secondary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-file-alt me-2"></i>Detalle de PQRS
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" (click)="cerrarDetalles()"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="detail-card">
+                        <div class="detail-header">
+                            <h4>PQRS N° {{ selectedPqrs.numero_radicado }}</h4>
+                            <span [ngClass]="'badge bg-' + getEstadoColor(selectedPqrs.estado)">
+                                {{ getEstadoLabel(selectedPqrs.estado) }}
+                            </span>
+                        </div>
+
+                        <div class="detail-section">
+                            <h6><i class="fas fa-info-circle me-2"></i>Información</h6>
+                            <div class="detail-row">
+                                <strong>Tipo:</strong>
+                                <span>{{ selectedPqrs.tipo_solicitud | titlecase }}</span>
+                            </div>
+                            <div class="detail-row">
+                                <strong>Asunto:</strong>
+                                <span>{{ selectedPqrs.asunto }}</span>
+                            </div>
+                            <div class="detail-row">
+                                <strong>Descripción:</strong>
+                                <p>{{ selectedPqrs.descripcion }}</p>
+                            </div>
+                            <div class="detail-row">
+                                <strong>Fecha de Solicitud:</strong>
+                                <span>{{ selectedPqrs.fecha_solicitud | date:'dd/MM/yyyy HH:mm' }}</span>
+                            </div>
+                        </div>
+
+                        <div class="detail-section" *ngIf="selectedPqrs.respuesta">
+                            <h6><i class="fas fa-reply me-2 text-success"></i>Respuesta</h6>
+                            <div class="alert alert-success">
+                                {{ selectedPqrs.respuesta }}
+                            </div>
+                            <div class="detail-row" *ngIf="selectedPqrs.fecha_respuesta">
+                                <strong>Fecha de Respuesta:</strong>
+                                <span>{{ selectedPqrs.fecha_respuesta | date:'dd/MM/yyyy HH:mm' }}</span>
+                            </div>
+                        </div>
+
+                        <div class="detail-section" *ngIf="!selectedPqrs.respuesta">
+                            <div class="alert alert-info">
+                                <i class="fas fa-clock me-2"></i>
+                                Tu PQRS está en proceso. Recibirás una respuesta pronto.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" (click)="cerrarDetalles()">
+                        <i class="fas fa-times me-2"></i>Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<ng-template #pqrsOff>
+    <div class="container my-5">
+        <div class="alert alert-warning text-center">
+            <i class="fas fa-ban me-2"></i>
+            El módulo de PQRS está desactivado para esta entidad.
+        </div>
+        <div class="text-center">
+            <button class="btn btn-outline-secondary" (click)="volverAInicio()">
+                <i class="fas fa-arrow-left me-2"></i>Volver a la ventanilla
+            </button>
+        </div>
+    </div>
+</ng-template>
