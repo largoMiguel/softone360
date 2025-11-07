@@ -1,5 +1,5 @@
 export const environment = {
     production: true,
-    apiUrl: 'https://pqrs-backend.onrender.com/api',
+    apiUrl: 'http://softone-backend-useast1.eba-epvnmbmk.us-east-1.elasticbeanstalk.com',
     openaiApiKey: ''
 };

@@ -1,0 +1,21 @@
+# Exclude local virtualenvs and development artifacts from EB deployments
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.db
+pqrs_alcaldia.db
+.git/
+.gitignore
+node_modules/
+*.log
+dist/
+frontend/
+/.env
+env/
+venv/**
+*.egg-info
+build/
+.DS_Store
+/.elasticbeanstalk/logs/

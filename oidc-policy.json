@@ -1,0 +1,21 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "BeanstalkAndS3Permissions",
+            "Effect": "Allow",
+            "Action": [
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:ListBucket",
+                "s3:PutObjectAcl",
+                "elasticbeanstalk:CreateApplicationVersion",
+                "elasticbeanstalk:UpdateEnvironment",
+                "elasticbeanstalk:DescribeEnvironments",
+                "elasticbeanstalk:DescribeApplicationVersions",
+                "iam:PassRole"
+            ],
+            "Resource": "*"
+        }
+    ]
+}

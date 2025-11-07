@@ -8,14 +8,17 @@ __pycache__/
 *.egg-info/
 .env
 venv/
+env/
+.venv/
 .env.*
 *.sqlite3
+*.db
+pqrs_alcaldia.db
 instance/
 .pytest_cache/
 .coverage
 
 # Byte-compiled / optimized / DLL files
-__pycache__/
 *.pyc
 *.pyo
 *.pyd
@@ -27,10 +30,8 @@ dist/
 *.egg
 *.egg-info/
 
-# VSCode
+# IDEs
 .vscode/
-
-# PyCharm
 .idea/
 
 # Logs
@@ -38,8 +39,6 @@ dist/
 
 # Node / frontend
 node_modules/
-dist/
-build/
 coverage/
 .npm/
 
@@ -50,25 +49,19 @@ output/
 # Temporary
 *.tmp
 *.swp
+*.bak
+*.old
 
 # Env files
 .env.local
 .env.development
 .env.production
 
-# Misc
-*.bak
-*.old
-
-# Backend specific
-backend/*.pyc
-backend/__pycache__/
-
-# Frontend build
+# Frontend build (no subir dist a git, se hace en deploy)
 frontend/dist/
 
-# Secret files
-secrets.json
+# Elastic Beanstalk
+.elasticbeanstalk/logs/
 
-# Ignore the repo's own .gitignore changes in case user wants
-# keep this file tracked
+# Secrets
+secrets.json

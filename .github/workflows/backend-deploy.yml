@@ -1,0 +1,78 @@
+name: Deploy backend to Elastic Beanstalk
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'backend/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Create backend package
+        working-directory: backend
+        run: |
+          rm -f ../backend-package.zip
+          zip -r ../backend-package.zip . -x "*.pyc" "*.venv/*" "node_modules/*" "__pycache__/*" 
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::YOUR_AWS_ACCOUNT_ID:role/YOUR_GITHUB_OIDC_ROLE
+          aws-region: us-east-1
+
+      - name: Upload package to S3
+        env:
+          S3_BUCKET: my-beanstalk-artifacts-bucket
+          PACKAGE_KEY: backend-${{ github.sha }}.zip
+          REGION: us-east-1
+        run: |
+          aws s3 cp backend-package.zip s3://$S3_BUCKET/$PACKAGE_KEY --region $REGION
+
+      - name: Create Elastic Beanstalk application version
+        env:
+          APP_NAME: softone-backend
+          VERSION_LABEL: ${{ github.sha }}
+          S3_BUCKET: my-beanstalk-artifacts-bucket
+          PACKAGE_KEY: backend-${{ github.sha }}.zip
+          REGION: us-east-1
+        run: |
+          aws elasticbeanstalk create-application-version \
+            --application-name $APP_NAME \
+            --version-label $VERSION_LABEL \
+            --source-bundle S3Bucket=$S3_BUCKET,S3Key=$PACKAGE_KEY \
+            --region $REGION
+
+      - name: Update Elastic Beanstalk environment
+        env:
+          ENV_NAME: softone-backend-prod
+          VERSION_LABEL: ${{ github.sha }}
+          REGION: us-east-1
+        run: |
+          aws elasticbeanstalk update-environment \
+            --environment-name $ENV_NAME \
+            --version-label $VERSION_LABEL \
+            --region $REGION
+
+      - name: Wait for EB deployment (optional)
+        env:
+          APP_NAME: softone-backend
+          ENV_NAME: softone-backend-prod
+          REGION: us-east-1
+        run: |
+          echo "Waiting for environment to be in Ready/Healthy..."
+          aws elasticbeanstalk wait environment-updated --application-name $APP_NAME --environment-names $ENV_NAME --region $REGION || true
+          echo "Deployment triggered."
