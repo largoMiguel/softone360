@@ -77,6 +77,14 @@ class PdmActividad(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # Relaciones (agregado: permite acceso a ejecuciones y cascada completa)
+    ejecuciones = relationship(
+        "PdmActividadEjecucion",
+        back_populates="actividad",
+        cascade="all, delete-orphan",
+        order_by="PdmActividadEjecucion.created_at.desc()"
+    )
+
     __table_args__ = (
         UniqueConstraint("entity_id", "codigo_indicador_producto", "nombre", name="uq_actividad_entity_codigo_nombre"),
     )
