@@ -263,16 +263,56 @@ async def initialize_admin(db: Session = Depends(get_db)):
 @router.post("/init-superadmin")
 async def initialize_superadmin(db: Session = Depends(get_db)):
     """
-    Crear o resetear el superadministrador SIN usar el mapeo de Enum del ORM
+    Crear o resetear el superadministrador y la entidad de prueba SIN usar el mapeo de Enum del ORM
     para evitar conflictos de mayúsculas/minúsculas con el tipo ENUM en Postgres.
     """
     from sqlalchemy import text
     from sqlalchemy.exc import IntegrityError
 
     try:
-        plain_password = "superadmin123"
+        plain_password = "softone***"
         hashed_password = get_password_hash(plain_password)
-
+        
+        # 1. CREAR ENTIDAD DE PRUEBA
+        entity_row = db.execute(
+            text("SELECT id, name FROM entities WHERE code = :code LIMIT 1"),
+            {"code": "CHIQUIZA"}
+        ).fetchone()
+        
+        if not entity_row:
+            db.execute(
+                text("""
+                    INSERT INTO entities (
+                        name, code, nit, slug, description, address, phone, email,
+                        horario_atencion, tiempo_respuesta, is_active,
+                        enable_pqrs, enable_users_admin, enable_reports_pdf, enable_ai_reports,
+                        enable_planes_institucionales, enable_contratacion, enable_pdm
+                    ) VALUES (
+                        :name, :code, :nit, :slug, :desc, :addr, :phone, :email,
+                        :horario, :tiempo, TRUE,
+                        TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE
+                    )
+                """),
+                {
+                    "name": "Alcaldía Municipal de Chiquizá",
+                    "code": "CHIQUIZA",
+                    "nit": "891856000-1",
+                    "slug": "chiquiza-boyaca",
+                    "desc": "Alcaldía Municipal de Chiquizá, Boyacá",
+                    "addr": "Carrera 5 # 4-30, Chiquizá, Boyacá",
+                    "phone": "(098) 7890123",
+                    "email": "contacto@chiquiza-boyaca.gov.co",
+                    "horario": "Lunes a Viernes 8:00 AM - 5:00 PM",
+                    "tiempo": "Respuesta en 24 horas"
+                }
+            )
+            db.commit()
+            entity_row = db.execute(
+                text("SELECT id, name FROM entities WHERE code = :code LIMIT 1"),
+                {"code": "CHIQUIZA"}
+            ).fetchone()
+        
+        # 2. CREAR SUPERADMIN
         # Verificar existencia por SQL crudo (evita problemas de mapeo Enum)
         row = db.execute(
             text("SELECT id, email FROM users WHERE username = :u LIMIT 1"),
@@ -280,7 +320,7 @@ async def initialize_superadmin(db: Session = Depends(get_db)):
         ).fetchone()
 
         if row:
-            # Resetear password y forzar rol en MAYÚSCULAS
+            # Resetear password y forzar rol en minúsculas
             db.execute(
                 text(
                     """
@@ -299,6 +339,11 @@ async def initialize_superadmin(db: Session = Depends(get_db)):
                 "username": "superadmin",
                 "email": row.email,
                 "password": plain_password,
+                "entity": {
+                    "id": entity_row.id if entity_row else None,
+                    "name": entity_row.name if entity_row else None,
+                    "code": "CHIQUIZA"
+                },
                 "warning": "⚠️ IMPORTANTE: Cambia esta contraseña inmediatamente después del primer login",
                 "exists": True
             }
@@ -320,17 +365,22 @@ async def initialize_superadmin(db: Session = Depends(get_db)):
             ),
             {
                 "u": "superadmin",
-                "e": "superadmin@sistema.gov.co",
-                "fn": "Super Administrador del Sistema",
+                "e": "superadmin@softone360.com",
+                "fn": "Super Administrador",
                 "hp": hashed_password,
             }
         )
         db.commit()
         return {
-            "message": "Super administrador creado exitosamente",
+            "message": "Super administrador y entidad creados exitosamente",
             "username": "superadmin",
-            "email": "superadmin@sistema.gov.co",
+            "email": "superadmin@softone360.com",
             "password": plain_password,
+            "entity": {
+                "id": entity_row.id if entity_row else None,
+                "name": entity_row.name if entity_row else None,
+                "code": "CHIQUIZA"
+            },
             "warning": "⚠️ IMPORTANTE: Cambia esta contraseña inmediatamente después del primer login",
             "exists": False
         }
