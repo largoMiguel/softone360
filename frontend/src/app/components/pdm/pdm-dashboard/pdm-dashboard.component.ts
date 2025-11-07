@@ -610,12 +610,16 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
         const valorEjecutado = Number(actividad.meta_ejecutar || 0);
 
         // Preparar imágenes para el backend
-        const imagenesPayload = result.imagenes.map(img => ({
-            nombre_imagen: img.nombre,
-            mime_type: img.mimeType,
-            tamano: img.tamano,
-            contenido: img.base64.split(',')[1] || img.base64 // Remover data:image/...;base64,
-        }));
+        const imagenesPayload = result.imagenes.map(img => {
+            const raw = img.base64.split(',')[1] || img.base64;
+            return {
+                nombre_imagen: img.nombre,
+                mime_type: img.mimeType,
+                tamano: img.tamano,
+                contenido_base64: raw,
+                contenido: raw // compatibilidad
+            };
+        });
 
         // Crear la ejecución con evidencias
         const payload = {

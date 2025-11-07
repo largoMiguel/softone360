@@ -126,7 +126,8 @@ class EjecucionImagenBase(BaseModel):
     nombre_imagen: str = Field(..., max_length=256)
     mime_type: str = Field(..., max_length=64)
     tamano: int = Field(..., gt=0)
-    contenido_base64: str  # Imagen en base64
+    # Nombre unificado: contenido_base64 (mantener alias "contenido" por compatibilidad)
+    contenido_base64: str = Field(..., alias="contenido", description="Imagen en base64")
 
 
 class EjecucionCreateRequest(BaseModel):
@@ -145,7 +146,9 @@ class EvidenciaImagenResponse(BaseModel):
     nombre_imagen: str
     mime_type: str
     tamano: int
-    contenido_base64: str  # Imagen en base64
+    # Exponemos ambos campos para transición. Frontend debe migrar a contenido_base64.
+    contenido_base64: Optional[str] = None
+    contenido: Optional[str] = None  # retrocompatibilidad (mismo valor que contenido_base64)
     created_at: str
 
     class Config:
@@ -183,7 +186,8 @@ class EvidenciaBase(BaseModel):
     nombre_imagen: Optional[str] = Field(None, max_length=256)
     mime_type: Optional[str] = Field(None, max_length=64)
     tamano: Optional[int] = None
-    contenido: Optional[str] = None  # Base64 encoded image
+    # Unificación: mantener ambos nombres hasta retirar el antiguo
+    contenido_base64: Optional[str] = Field(None, alias="contenido", description="Imagen base64")
 
 
 class EvidenciaCreateRequest(BaseModel):
@@ -195,12 +199,16 @@ class EvidenciaCreateRequest(BaseModel):
 
 class EvidenciaResponse(BaseModel):
     id: int
-    ejecucion_id: int
+    actividad_id: Optional[int] = None  # Para respuestas de listado por actividad
+    ejecucion_id: Optional[int] = None  # Para respuestas asociadas a ejecuciones
     entity_id: int
-    nombre_imagen: str
-    mime_type: str
-    tamano: int
-    contenido: str  # Base64 encoded
+    descripcion: Optional[str] = None
+    url: Optional[str] = None
+    nombre_imagen: Optional[str] = None
+    mime_type: Optional[str] = None
+    tamano: Optional[int] = None
+    contenido_base64: Optional[str] = None
+    contenido: Optional[str] = None  # retrocompatibilidad
     created_at: str
     updated_at: str
 
@@ -209,5 +217,7 @@ class EvidenciaResponse(BaseModel):
 
 
 class EvidenciasListResponse(BaseModel):
-    ejecucion_id: int
+    # En listados por actividad no habrá ejecucion_id global
+    actividad_id: Optional[int] = None
+    ejecucion_id: Optional[int] = None
     evidencias: List[EvidenciaResponse]

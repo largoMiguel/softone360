@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of, forkJoin } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 export interface AssignmentUpsertRequest {
@@ -83,14 +84,16 @@ export interface EvidenciaCreateRequest {
 
 export interface EvidenciaResponse {
     id: number;
-    actividad_id: number;
+    actividad_id?: number;
+    ejecucion_id?: number;
     entity_id: number;
     descripcion?: string;
     url?: string;
     nombre_imagen?: string;
     mime_type?: string;
     tamano?: number;
-    contenido?: string;
+    contenido_base64?: string; // nuevo nombre estándar
+    contenido?: string; // compatibilidad temporal
     created_at: string;
     updated_at: string;
 }
@@ -105,7 +108,8 @@ export interface EjecucionImagenBase {
     nombre_imagen: string;
     mime_type: string;
     tamano: number;
-    contenido: string; // base64
+    contenido_base64: string; // base64 unificado
+    contenido?: string; // compatibilidad
 }
 
 export interface EjecucionCreateRequest {
@@ -122,7 +126,9 @@ export interface EvidenciaImagenResponse {
     nombre_imagen: string;
     mime_type: string;
     tamano: number;
-    contenido: string; // base64
+    contenido_base64?: string; // base64 principal
+    contenido?: string; // compatibilidad
+    created_at?: string;
 }
 
 export interface EjecucionResponse {
@@ -170,7 +176,43 @@ export class PdmBackendService {
     }
 
     getActividadesBulk(slug: string, codigos: string[]): Observable<{ items: Record<string, ActividadResponse[]> }> {
-        return this.http.post<{ items: Record<string, ActividadResponse[]> }>(`${this.baseUrl}/${slug}/actividades/bulk`, { codigos });
+        // Manejo seguro: partir en lotes de máximo 100 para cumplir restricción del backend
+        if (!codigos || codigos.length === 0) {
+            return of({ items: {} });
+        }
+        // Si está dentro del límite, llamada directa
+        if (codigos.length <= 100) {
+            return this.http.post<{ items: Record<string, ActividadResponse[]> }>(`${this.baseUrl}/${slug}/actividades/bulk`, { codigos });
+        }
+
+        const chunkSize = 100;
+        const chunks: string[][] = [];
+        for (let i = 0; i < codigos.length; i += chunkSize) {
+            chunks.push(codigos.slice(i, i + chunkSize));
+        }
+
+        const requests = chunks.map(part =>
+            this.http.post<{ items: Record<string, ActividadResponse[]> }>(`${this.baseUrl}/${slug}/actividades/bulk`, { codigos: part })
+                .pipe(
+                    catchError(err => {
+                        console.warn('[PDM] Error en lote actividades/bulk', err);
+                        return of({ items: {} as Record<string, ActividadResponse[]> });
+                    })
+                )
+        );
+
+        return forkJoin(requests).pipe(
+            map(results => {
+                const combined: Record<string, ActividadResponse[]> = {};
+                results.forEach(r => {
+                    Object.entries(r.items || {}).forEach(([codigo, acts]) => {
+                        if (!combined[codigo]) combined[codigo] = [];
+                        combined[codigo].push(...acts);
+                    });
+                });
+                return { items: combined };
+            })
+        );
     }
 
     createActividad(slug: string, payload: ActividadCreateRequest): Observable<ActividadResponse> {
@@ -220,5 +262,12 @@ export class PdmBackendService {
 
     getExcelInfo(slug: string): Observable<{ existe: boolean; nombre_archivo?: string; tamanio?: number; fecha_carga?: string }> {
         return this.http.get<{ existe: boolean; nombre_archivo?: string; tamanio?: number; fecha_carga?: string }>(`${this.baseUrl}/${slug}/excel-info`);
+    }
+
+    // Purga completa del PDM
+    purgePdm(slug: string, dryRun = false): Observable<{ archivo_excel: number; meta_assignments: number; avances: number; actividades: number; ejecuciones: number; evidencias: number; message: string }> {
+        return this.http.delete<{ archivo_excel: number; meta_assignments: number; avances: number; actividades: number; ejecuciones: number; evidencias: number; message: string }>(`${this.baseUrl}/${slug}/purge`, {
+            params: { dry_run: String(dryRun) }
+        });
     }
 }

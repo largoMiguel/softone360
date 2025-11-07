@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Dict
 from io import BytesIO
+from pydantic import BaseModel
 from app.config.database import get_db
 from app.models.entity import Entity
 from app.models.user import User, UserRole
@@ -43,7 +44,79 @@ from app.schemas.pdm import (
 )
 from app.utils.auth import get_current_active_user
 
+# Inicializar router antes de usar decoradores
 router = APIRouter(prefix="/pdm")
+
+# =========================================================================
+# ENDPOINT DE PURGA COMPLETA DEL DOMINIO PDM PARA UNA ENTIDAD
+# =========================================================================
+
+class PdmPurgeSummary(BaseModel):
+    archivo_excel: int
+    meta_assignments: int
+    avances: int
+    actividades: int
+    ejecuciones: int
+    evidencias: int
+    message: str
+
+
+@router.delete("/{slug}/purge", response_model=PdmPurgeSummary)
+async def purge_pdm(
+    slug: str,
+    dry_run: bool = False,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Elimina TODOS los datos del módulo PDM para la entidad indicada.
+    Incluye: archivo Excel, asignaciones de metas, avances, actividades y cascadas
+    (ejecuciones + evidencias). Requiere rol SUPERADMIN o pertenecer a la entidad.
+
+    Parámetros:
+    - dry_run: si es True no elimina nada, sólo devuelve conteos.
+    """
+    entity = get_entity_or_404(db, slug)
+    ensure_user_can_manage_entity(current_user, entity)
+
+    # Conteos previos
+    archivo_excel_cnt = db.query(PdmArchivoExcel).filter(PdmArchivoExcel.entity_id == entity.id).count()
+    meta_assignments_cnt = db.query(PdmMetaAssignment).filter(PdmMetaAssignment.entity_id == entity.id).count()
+    avances_cnt = db.query(PdmAvance).filter(PdmAvance.entity_id == entity.id).count()
+    actividades_cnt = db.query(PdmActividad).filter(PdmActividad.entity_id == entity.id).count()
+    ejecuciones_cnt = db.query(PdmActividadEjecucion).filter(PdmActividadEjecucion.entity_id == entity.id).count()
+    evidencias_cnt = db.query(PdmActividadEvidencia).filter(PdmActividadEvidencia.entity_id == entity.id).count()
+
+    if dry_run:
+        return PdmPurgeSummary(
+            archivo_excel=archivo_excel_cnt,
+            meta_assignments=meta_assignments_cnt,
+            avances=avances_cnt,
+            actividades=actividades_cnt,
+            ejecuciones=ejecuciones_cnt,
+            evidencias=evidencias_cnt,
+            message="Dry run: no se eliminaron datos"
+        )
+
+    # Eliminaciones (orden: actividades se llevan ejecuciones+evidencias por cascade)
+    db.query(PdmArchivoExcel).filter(PdmArchivoExcel.entity_id == entity.id).delete()
+    db.query(PdmMetaAssignment).filter(PdmMetaAssignment.entity_id == entity.id).delete()
+    db.query(PdmAvance).filter(PdmAvance.entity_id == entity.id).delete()
+    db.query(PdmActividad).filter(PdmActividad.entity_id == entity.id).delete()
+    # Por seguridad, limpieza explícita restante (si algo quedó huérfano)
+    db.query(PdmActividadEjecucion).filter(PdmActividadEjecucion.entity_id == entity.id).delete()
+    db.query(PdmActividadEvidencia).filter(PdmActividadEvidencia.entity_id == entity.id).delete()
+
+    db.commit()
+
+    return PdmPurgeSummary(
+        archivo_excel=archivo_excel_cnt,
+        meta_assignments=meta_assignments_cnt,
+        avances=avances_cnt,
+        actividades=actividades_cnt,
+        ejecuciones=ejecuciones_cnt,
+        evidencias=evidencias_cnt,
+        message="Purga completada"
+    )
 
 
 def get_entity_or_404(db: Session, slug: str) -> Entity:
@@ -658,13 +731,14 @@ async def get_evidencias(
         
         evidencias_response.append(EvidenciaResponse(
             id=ev.id,
-            actividad_id=ev.actividad_id,
+            actividad_id=getattr(ev, 'actividad_id', None),
             entity_id=ev.entity_id,
             descripcion=ev.descripcion,
             url=ev.url,
             nombre_imagen=ev.nombre_imagen,
             mime_type=ev.mime_type,
             tamano=ev.tamano,
+            contenido_base64=contenido_base64,
             contenido=contenido_base64,
             created_at=ev.created_at.isoformat() if ev.created_at else '',
             updated_at=ev.updated_at.isoformat() if ev.updated_at else '',
@@ -751,9 +825,10 @@ async def crear_ejecucion(
     evidencias_response = []
     if ejecucion_data.imagenes:
         for imagen in ejecucion_data.imagenes:
-            # Decodificar el contenido base64
+            # Decodificar el contenido base64 (campo unificado contenido_base64 con alias contenido)
+            raw_b64 = getattr(imagen, 'contenido_base64', None) or getattr(imagen, 'contenido', None)
             try:
-                contenido_bytes = base64.b64decode(imagen.contenido)
+                contenido_bytes = base64.b64decode(raw_b64 or '')
             except Exception as e:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -776,7 +851,9 @@ async def crear_ejecucion(
                 nombre_imagen=evidencia.nombre_imagen,
                 mime_type=evidencia.mime_type,
                 tamano=evidencia.tamano,
-                contenido=imagen.contenido,  # Ya está en base64
+                contenido_base64=raw_b64,
+                contenido=raw_b64,
+                created_at=evidencia.created_at.isoformat() if evidencia.created_at else ''
             ))
 
     # Actualizar el valor_ejecutado de la actividad (suma de todas las ejecuciones)
@@ -856,7 +933,9 @@ async def get_ejecuciones(
                 nombre_imagen=ev.nombre_imagen,
                 mime_type=ev.mime_type,
                 tamano=ev.tamano,
+                contenido_base64=contenido_base64,
                 contenido=contenido_base64,
+                created_at=ev.created_at.isoformat() if ev.created_at else ''
             ))
 
         ejecuciones_response.append(EjecucionResponse(
