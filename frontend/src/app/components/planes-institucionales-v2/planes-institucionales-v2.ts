@@ -344,6 +344,7 @@ export class PlanesInstitucionalesV2Component implements OnInit, OnDestroy {
         this.modoEdicion = !!plan;
         if (plan) {
             this.planForm = {
+                id: plan.id,
                 anio: plan.anio,
                 nombre: plan.nombre,
                 descripcion: plan.descripcion,
@@ -364,7 +365,9 @@ export class PlanesInstitucionalesV2Component implements OnInit, OnDestroy {
     abrirModalComponente(componente?: ComponenteProceso) {
         if (!this.planSeleccionado) return;
         this.modoEdicion = !!componente;
-        this.componenteForm = componente ? { id: componente.id, plan_id: componente.plan_id, nombre: componente.nombre, estado: componente.estado } : { plan_id: this.planSeleccionado.id };
+        this.componenteForm = componente
+            ? { id: componente.id, plan_id: componente.plan_id, nombre: componente.nombre, estado: componente.estado }
+            : { plan_id: this.planSeleccionado.id };
         this.modalAbierto = 'componente';
     }
 
@@ -515,6 +518,14 @@ export class PlanesInstitucionalesV2Component implements OnInit, OnDestroy {
 
     guardarEjecucion() {
         if (!this.actividadSeleccionada || !this.ejecucionForm.descripcion) return;
+
+        // Validación requerida: Debe existir al menos una URL de evidencia o una imagen seleccionada
+        const tieneUrl = !!this.ejecucionForm.evidencia_url && this.ejecucionForm.evidencia_url.trim().length > 0;
+        const tieneImagenes = this.imagenesSeleccionadas.length > 0;
+        if (!tieneUrl && !tieneImagenes) {
+            this.showToast('Debes proporcionar una URL de evidencia o al menos una imagen antes de registrar la ejecución.', 'error');
+            return;
+        }
 
         this.guardandoEjecucion = true;
         const actividadId = this.actividadSeleccionada.id;

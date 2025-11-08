@@ -434,6 +434,13 @@ def crear_componente(
     db.add(nuevo_componente)
     db.commit()
     db.refresh(nuevo_componente)
+
+    # Recalcular avance del plan tras agregar un componente
+    try:
+        plan.porcentaje_avance = calcular_porcentaje_avance_plan(plan, db)
+        db.commit()
+    except Exception:
+        db.rollback()
     
     return nuevo_componente
 
@@ -456,48 +463,12 @@ def actualizar_componente(
         raise HTTPException(status_code=403, detail="No tienes permiso para editar este componente")
     
     update_data = componente_data.model_dump(exclude_unset=True)
-    
-    # Detectar cambio de secretaría asignada
-    old_secretaria = componente.secretaria_asignada
-    new_secretaria = update_data.get('secretaria_asignada')
-    secretaria_changed = (
-        'secretaria_asignada' in update_data and 
-        new_secretaria != old_secretaria and 
-        new_secretaria is not None
-    )
-    
+
     for field, value in update_data.items():
         setattr(componente, field, value)
     
     db.commit()
     db.refresh(componente)
-    
-    # Crear alertas si cambió la secretaría asignada
-    if secretaria_changed:
-        try:
-            secretarios = db.query(User).filter(
-                User.role == UserRole.SECRETARIO,
-                User.entity_id == componente.plan.entity_id,
-                User.secretaria == new_secretaria
-            ).all()
-            
-            for secretario in secretarios:
-                db.add(Alert(
-                    entity_id=componente.plan.entity_id,
-                    recipient_user_id=secretario.id,
-                    type="PLAN_COMPONENT_ASSIGNED",
-                    title=f"Componente de Plan asignado a {new_secretaria}",
-                    message=f"Se asignó el componente '{componente.nombre}' del plan '{componente.plan.nombre}' a tu secretaría",
-                    data=json.dumps({
-                        "plan_id": componente.plan_id,
-                        "componente_id": componente_id
-                    }),
-                ))
-            db.commit()
-        except Exception as e:
-            db.rollback()
-            # No interrumpir el flujo por alertas
-            print(f"Error creando alertas de asignación de componente: {e}")
     
     # Actualizar avance del plan
     plan = db.query(PlanInstitucional).filter(PlanInstitucional.id == componente.plan_id).first()
@@ -530,8 +501,19 @@ def eliminar_componente(
     if not tiene_permiso_componente(current_user, componente, db):
         raise HTTPException(status_code=403, detail="No tienes acceso a este componente")
     
+    # Guardar plan_id antes de eliminar
+    plan_id_ref = componente.plan_id
     db.delete(componente)
     db.commit()
+    
+    # Recalcular avance del plan tras eliminar un componente
+    try:
+        plan = db.query(PlanInstitucional).filter(PlanInstitucional.id == plan_id_ref).first()
+        if plan:
+            plan.porcentaje_avance = calcular_porcentaje_avance_plan(plan, db)
+            db.commit()
+    except Exception:
+        db.rollback()
     
     return None
 
@@ -701,6 +683,19 @@ def crear_actividad(
         db.rollback()
         # No interrumpir el flujo por alertas
     
+    # Recalcular avance del componente y del plan (nueva actividad afecta promedio)
+    try:
+        componente = db.query(ComponenteProceso).filter(ComponenteProceso.id == nueva_actividad.componente_id).first()
+        if componente:
+            componente.porcentaje_avance = calcular_porcentaje_avance_componente(componente, db)
+            db.commit()
+            plan = db.query(PlanInstitucional).filter(PlanInstitucional.id == componente.plan_id).first()
+            if plan:
+                plan.porcentaje_avance = calcular_porcentaje_avance_plan(plan, db)
+                db.commit()
+    except Exception:
+        db.rollback()
+
     return nueva_actividad
 
 
@@ -779,9 +774,24 @@ def eliminar_actividad(
     if not tiene_permiso_actividad(current_user, actividad, db):
         raise HTTPException(status_code=403, detail="No tienes acceso a esta actividad")
     
+    # Guardar refs para recálculo
+    componente_id_ref = actividad.componente_id
     db.delete(actividad)
     db.commit()
-    
+
+    # Recalcular avance del componente y del plan tras eliminar una actividad
+    try:
+        componente = db.query(ComponenteProceso).filter(ComponenteProceso.id == componente_id_ref).first()
+        if componente:
+            componente.porcentaje_avance = calcular_porcentaje_avance_componente(componente, db)
+            db.commit()
+            plan = db.query(PlanInstitucional).filter(PlanInstitucional.id == componente.plan_id).first()
+            if plan:
+                plan.porcentaje_avance = calcular_porcentaje_avance_plan(plan, db)
+                db.commit()
+    except Exception:
+        db.rollback()
+
     return None
 
 

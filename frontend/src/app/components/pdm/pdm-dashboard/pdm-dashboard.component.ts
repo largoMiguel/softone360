@@ -72,6 +72,9 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
     anioSeleccionado: number = new Date().getFullYear(); // Para tabs de años
     aniosDisponibles: number[] = [2024, 2025, 2026, 2027];
 
+    // Navegación interna del dashboard
+    seccionActiva: 'resumen' | 'analisis' | 'presupuesto' | 'ods' = 'resumen';
+
     // Gráficos
     chartPorAnio: ChartData<'bar'> | null = null;
     chartPorSector: ChartData<'bar'> | null = null;
@@ -89,6 +92,15 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
     chartOptions: ChartConfiguration<'bar'>['options'] = {
         responsive: true,
         maintainAspectRatio: false,
+        onClick: (event, elements, chart) => {
+            if (elements && elements.length > 0) {
+                const element = elements[0];
+                const label = chart.data.labels?.[element.index];
+                if (label) {
+                    this.onChartDrillDown('sector', label.toString());
+                }
+            }
+        },
         plugins: {
             legend: {
                 display: true,
@@ -112,6 +124,9 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
                 },
                 bodyFont: {
                     size: 12
+                },
+                callbacks: {
+                    footer: () => 'Click para filtrar'
                 }
             }
         },
@@ -136,6 +151,15 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         indexAxis: 'y',
+        onClick: (event, elements, chart) => {
+            if (elements && elements.length > 0) {
+                const element = elements[0];
+                const label = chart.data.labels?.[element.index];
+                if (label) {
+                    this.onChartDrillDown('sector', label.toString());
+                }
+            }
+        },
         plugins: {
             legend: {
                 display: false
@@ -143,7 +167,10 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
             tooltip: {
                 backgroundColor: 'rgba(0, 0, 0, 0.8)',
                 padding: 12,
-                cornerRadius: 8
+                cornerRadius: 8,
+                callbacks: {
+                    footer: () => 'Click para filtrar'
+                }
             }
         },
         scales: {
@@ -168,6 +195,15 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
     doughnutOptions: ChartConfiguration<'doughnut'>['options'] = {
         responsive: true,
         maintainAspectRatio: false,
+        onClick: (event, elements, chart) => {
+            if (elements && elements.length > 0) {
+                const element = elements[0];
+                const label = chart.data.labels?.[element.index];
+                if (label) {
+                    this.onChartDrillDown('estado', label.toString());
+                }
+            }
+        },
         plugins: {
             legend: {
                 display: true,
@@ -979,6 +1015,39 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
         this.actualizarTabla();
     }
 
+    onChartDrillDown(tipo: string, valor: string): void {
+        // Aplicar filtro basado en el clic del gráfico
+        switch (tipo) {
+            case 'sector':
+                this.filtros.sector = valor;
+                break;
+            case 'linea':
+                this.filtros.lineaEstrategica = valor;
+                break;
+            case 'estado':
+                this.filtros.estado = valor as any;
+                break;
+            case 'anio':
+                const anio = parseInt(valor);
+                if ([2024, 2025, 2026, 2027].includes(anio)) {
+                    this.cambiarAnioSeleccionado(anio);
+                }
+                break;
+        }
+        this.aplicarFiltros();
+
+        // Scroll suave a la sección de detalle de productos
+        setTimeout(() => {
+            const element = document.querySelector('.section-header');
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 100);
+
+        // Mostrar notificación
+        this.showToast(`Filtrado por ${tipo}: ${valor}`, 'info');
+    }
+
     private actualizarTabla(): void {
         this.productos = this.pdmService.obtenerDatosFiltrados(this.filtros);
 
@@ -1369,6 +1438,32 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
             default:
                 return 'N/A';
         }
+    }
+
+    obtenerColorSector(sector: string): string {
+        const colores: { [key: string]: string } = {
+            'EDUCACIÓN': 'primary',
+            'SALUD': 'success',
+            'INFRAESTRUCTURA': 'warning',
+            'CULTURA': 'info',
+            'DEPORTE': 'danger',
+            'DESARROLLO SOCIAL': 'secondary',
+            'MEDIO AMBIENTE': 'success',
+            'SEGURIDAD': 'dark',
+            'VIVIENDA': 'warning',
+            'ECONÓMICO': 'primary',
+            'AGRICULTURA': 'success',
+            'TURISMO': 'info',
+            'TECNOLOGÍA': 'primary',
+            'TRANSPORTE': 'dark'
+        };
+        const sectorUpper = sector?.toUpperCase() || '';
+        for (const key in colores) {
+            if (sectorUpper.includes(key)) {
+                return colores[key];
+            }
+        }
+        return 'secondary';
     }
 
     obtenerIconoTendencia(tipo: 'positivo' | 'neutro' | 'negativo'): string {
@@ -2141,5 +2236,14 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
             case 2027: return this.productoSeleccionado.total2027 || 0;
             default: return 0;
         }
+    }
+
+    /**
+     * Cambia la sección activa del dashboard
+     */
+    cambiarSeccion(seccion: 'resumen' | 'analisis' | 'presupuesto' | 'ods'): void {
+        this.seccionActiva = seccion;
+        // Scroll suave al inicio de la sección
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
