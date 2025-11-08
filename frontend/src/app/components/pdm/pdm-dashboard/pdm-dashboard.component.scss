@@ -2,29 +2,53 @@
 // PDM Dashboard - Bootstrap Based Styles
 // ===================================================================
 
-// Tamaños de fuente base mejorados
+// Tamaños de fuente base mejorados (unificados con Planes/Ventanilla)
 :host {
-    font-size: 0.95rem;
+    font-size: 1rem; // Aumentado de 0.95rem
 
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    h6 {
+    h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+    }
+
+    h2 {
+        font-size: 2rem;
+        font-weight: 700;
+    }
+
+    h3 {
+        font-size: 1.75rem;
+        font-weight: 600;
+    }
+
+    h4 {
+        font-size: 1.5rem;
         font-weight: 600;
     }
 
     h5 {
-        font-size: 1.1rem;
+        font-size: 1.25rem; // Aumentado de 1.1rem
+        font-weight: 600;
     }
 
     h6 {
-        font-size: 0.95rem;
+        font-size: 1rem; // Aumentado de 0.95rem
+        font-weight: 600;
     }
 
-    small {
-        font-size: 0.85rem;
+    p {
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+
+    small,
+    .small {
+        font-size: 0.875rem; // Aumentado de 0.85rem
+    }
+
+    label {
+        font-size: 0.95rem;
+        font-weight: 500;
     }
 }
 
@@ -351,10 +375,10 @@
         th {
             font-weight: 700;
             color: #334155;
-            font-size: 0.8rem;
+            font-size: 0.9rem; // Aumentado de 0.8rem
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            padding: 0.75rem 1rem;
+            padding: 1rem 1.25rem; // Aumentado padding
             border-bottom: 2px solid #e2e8f0;
         }
     }
@@ -368,9 +392,9 @@
             }
 
             td {
-                padding: 0.75rem 1rem;
+                padding: 1rem 1.25rem; // Aumentado de 0.75rem 1rem
                 border-bottom: 1px solid #f1f5f9;
-                font-size: 0.875rem;
+                font-size: 0.95rem; // Aumentado de 0.875rem
             }
         }
     }
@@ -1032,7 +1056,7 @@ mat-expansion-panel {
     }
 
     .info-label {
-        font-size: 0.85rem;
+        font-size: 0.95rem; // Aumentado de 0.85rem
         color: #6c757d;
         margin-bottom: 0.5rem;
         font-weight: 600;
@@ -1041,14 +1065,14 @@ mat-expansion-panel {
     }
 
     .info-value {
-        font-size: 1.5rem;
+        font-size: 1.75rem; // Aumentado de 1.5rem
         font-weight: 700;
         color: #2c3e50;
         margin-bottom: 0.5rem;
     }
 
     .info-meta {
-        font-size: 0.8rem;
+        font-size: 0.9rem; // Aumentado de 0.8rem
         color: #6c757d;
     }
 
@@ -1096,10 +1120,10 @@ mat-expansion-panel {
         margin-bottom: 1.5rem;
         padding-bottom: 1rem;
         border-bottom: 2px solid #e9ecef;
-        font-size: 1.05rem;
+        font-size: 1.15rem; // Aumentado de 1.05rem
 
         i {
-            font-size: 1.25rem;
+            font-size: 1.35rem; // Aumentado de 1.25rem
         }
     }
 
@@ -1134,10 +1158,10 @@ mat-expansion-panel {
         margin-bottom: 1.5rem;
         padding-bottom: 1rem;
         border-bottom: 2px solid #e9ecef;
-        font-size: 1.05rem;
+        font-size: 1.15rem; // Aumentado de 1.05rem
 
         i {
-            font-size: 1.25rem;
+            font-size: 1.35rem; // Aumentado de 1.25rem
         }
     }
 
@@ -1461,10 +1485,11 @@ mat-expansion-panel {
     
     h5 {
         color: #2c3e50;
-        font-size: 1.25rem;
+        font-size: 1.35rem; // Aumentado de 1.25rem
         
         i {
             color: #0d6efd;
+            font-size: 1.35rem;
         }
     }
 }
@@ -1478,12 +1503,12 @@ mat-expansion-panel {
         display: block;
         font-weight: 600;
         color: #495057;
-        font-size: 0.875rem;
+        font-size: 0.95rem; // Aumentado de 0.875rem
         margin-bottom: 0.5rem;
         
         i {
             color: #0d6efd;
-            font-size: 0.875rem;
+            font-size: 0.95rem; // Aumentado de 0.875rem
         }
     }
     
@@ -1491,8 +1516,8 @@ mat-expansion-panel {
     .form-select-modern {
         border: 2px solid #e9ecef;
         border-radius: 8px;
-        padding: 0.625rem 0.875rem;
-        font-size: 0.9rem;
+        padding: 0.75rem 1rem; // Aumentado de 0.625rem 0.875rem
+        font-size: 1rem; // Aumentado de 0.9rem
         transition: all 0.3s ease;
         
         &:focus {
@@ -1618,7 +1643,7 @@ mat-expansion-panel {
 
 .year-number {
     display: block;
-    font-size: 1.5rem;
+    font-size: 1.75rem; // Aumentado de 1.5rem
     font-weight: 700;
     color: #2c3e50;
     line-height: 1.2;
@@ -1626,7 +1651,7 @@ mat-expansion-panel {
 
 .year-label {
     display: block;
-    font-size: 0.75rem;
+    font-size: 0.85rem; // Aumentado de 0.75rem
     color: #6c757d;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -1675,5 +1700,16 @@ mat-expansion-panel {
     small {
         color: white !important;
         text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+}
+
+// Estilos para modal BPIN
+.cursor-pointer {
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
 }

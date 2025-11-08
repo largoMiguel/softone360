@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { Subject, takeUntil, forkJoin, of, Observable, firstValueFrom } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { ChartConfiguration, ChartData } from 'chart.js';
@@ -16,8 +17,30 @@ import { AuthService } from '../../../services/auth.service';
 import { NotificationsService, AlertItem } from '../../../services/notifications.service';
 import { AlertsEventsService } from '../../../services/alerts-events.service';
 import { PdmAvanceDialogComponent, AvanceDialogData } from '../pdm-avance-dialog/pdm-avance-dialog.component';
+import { environment } from '../../../../environments/environment';
 
 declare const bootstrap: any;
+
+// Interfaz para datos del BPIN
+interface BPINData {
+    bpin: string;
+    nombreproyecto?: string;
+    objetivogeneral?: string;
+    estadoproyecto?: string;
+    horizonte?: string;
+    sector?: string;
+    entidadresponsable?: string;
+    programapresupuestal?: string;
+    tipoproyecto?: string;
+    plandesarrollonacional?: string;
+    valortotalproyecto?: number;
+    valorvigenteproyecto?: number;
+    valorobligacionproyecto?: number;
+    valorpagoproyecto?: number;
+    subestadoproyecto?: string;
+    codigoentidadresponsable?: string;
+    totalbeneficiario?: number;
+}
 
 @Component({
     selector: 'app-pdm-dashboard',
@@ -74,6 +97,12 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
 
     // Navegación interna del dashboard
     seccionActiva: 'resumen' | 'analisis' | 'presupuesto' | 'ods' = 'resumen';
+
+    // Variables para BPIN
+    mostrandoModalBPIN = false;
+    cargandoBPIN = false;
+    bpinData: BPINData | null = null;
+    bpinError: string | null = null;
 
     // Gráficos
     chartPorAnio: ChartData<'bar'> | null = null;
@@ -321,7 +350,8 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
         private secretariasService: SecretariasService,
         public authService: AuthService, // Público para usar en el template
         private notificationsService: NotificationsService,
-        private alertsEvents: AlertsEventsService
+        private alertsEvents: AlertsEventsService,
+        private http: HttpClient
     ) {
         // Inicializar streams de alertas
         this.alerts$ = this.notificationsService.alertsStream;
@@ -1393,13 +1423,18 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
         return texto.length > maxLength ? texto.substring(0, maxLength) + '...' : texto;
     }
 
-    formatearMoneda(valor: number): string {
+    formatearMoneda(valor: number | string | undefined): string {
+        if (valor === undefined || valor === null) return '$0';
+        
+        const numero = typeof valor === 'string' ? parseFloat(valor) : valor;
+        if (isNaN(numero)) return '$0';
+        
         return new Intl.NumberFormat('es-CO', {
             style: 'currency',
             currency: 'COP',
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
-        }).format(valor);
+        }).format(numero);
     }
 
     formatearPorcentaje(valor: number): string {
@@ -2259,5 +2294,56 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
         }, 0);
         
         return Math.round(totalAvance / this.productos.length);
+    }
+
+    /**
+     * Ver detalles del BPIN desde datos.gov.co (a través del proxy backend)
+     */
+    async verDetallesBPIN(bpin: string): Promise<void> {
+        if (!bpin || bpin === 'N/A') {
+            this.showToast('BPIN no disponible', 'info');
+            return;
+        }
+
+        this.mostrandoModalBPIN = true;
+        this.cargandoBPIN = true;
+        this.bpinError = null;
+        this.bpinData = null;
+
+        try {
+            // Usar el proxy del backend para evitar CORS
+            const apiUrl = `${environment.apiUrl}/bpin/${bpin}`;
+            
+            const response = await firstValueFrom(
+                this.http.get<BPINData | null>(apiUrl).pipe(
+                    catchError(error => {
+                        console.error('Error al consultar BPIN:', error);
+                        throw error;
+                    })
+                )
+            );
+
+            if (response) {
+                this.bpinData = response;
+            } else {
+                this.bpinError = 'No se encontró información para este BPIN en la base de datos de datos.gov.co';
+                this.showToast('BPIN no encontrado en datos.gov.co', 'info');
+            }
+        } catch (error) {
+            console.error('Error al consultar datos.gov.co:', error);
+            this.bpinError = 'Error al consultar la información del BPIN. Por favor intente nuevamente.';
+            this.showToast('Error al consultar datos del BPIN', 'error');
+        } finally {
+            this.cargandoBPIN = false;
+        }
+    }
+
+    /**
+     * Cerrar modal de BPIN
+     */
+    cerrarModalBPIN(): void {
+        this.mostrandoModalBPIN = false;
+        this.bpinData = null;
+        this.bpinError = null;
     }
 }
