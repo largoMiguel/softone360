@@ -459,11 +459,15 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
                             this.pdmBackend.getAssignments(slug).subscribe({
                                 next: (resp: { assignments: Record<string, string | null> }) => {
                                     const map = resp.assignments || {};
+                                    console.log('📋 Asignaciones cargadas desde BD:', map);
                                     this.pdmData!.planIndicativoProductos.forEach(p => {
                                         const sec = map[p.codigoIndicadorProducto];
-                                        if (sec !== undefined) {
-                                            // Asignar el valor de secretaría solo si existe
-                                            p.secretariaAsignada = sec || undefined;
+                                        if (sec !== undefined && sec !== null) {
+                                            // Asignar el valor de secretaría si existe
+                                            p.secretariaAsignada = sec;
+                                        } else {
+                                            // Si es null o undefined, dejar sin asignar
+                                            p.secretariaAsignada = undefined;
                                         }
                                     });
 
@@ -475,6 +479,7 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
                                     this.cargarAvancesParaTodos(slug);
                                 },
                                 error: () => {
+                                    console.error('❌ Error al cargar asignaciones');
                                     this.aplicarFiltrosPorRol();
                                     this.actualizarTabla();
                                 }
@@ -525,6 +530,14 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
         this.secretariasService.listar().subscribe({
             next: (data) => {
                 this.secretariasList = data;
+                // Actualizar secretariasDisponibles con todas las secretarías del sistema
+                // Combinar secretarías del sistema con las que ya tienen productos asignados
+                const secretariasAsignadas = this.pdmService.obtenerSecretariasUnicas();
+                const secretariasSistema = data.map(s => s.nombre);
+                
+                // Unir ambas listas y eliminar duplicados
+                const todasSecretarias = new Set([...secretariasAsignadas, ...secretariasSistema]);
+                this.secretariasDisponibles = Array.from(todasSecretarias).sort();
             },
             error: () => {
                 this.secretariasList = [];
@@ -536,6 +549,12 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
         const slug = this.entityContext.currentEntity?.slug;
         if (!slug) return;
 
+        console.log('🔄 Asignando secretaría:', {
+            producto: row.codigoIndicadorProducto,
+            secretaria: secretaria,
+            slug: slug
+        });
+
         // Actualizar inmediatamente en la UI
         row.secretariaAsignada = secretaria || undefined;
 
@@ -544,12 +563,13 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
             secretaria: secretaria || null,
         }).subscribe({
             next: () => {
+                console.log('✅ Secretaría guardada exitosamente:', secretaria);
                 // Actualizar la tabla para reflejar los cambios
                 this.actualizarTabla();
                 this.showToast('Secretaría asignada correctamente', 'success');
             },
             error: (err) => {
-                console.error('Error asignando secretaría:', err);
+                console.error('❌ Error asignando secretaría:', err);
                 // Revertir cambio en caso de error
                 row.secretariaAsignada = undefined;
                 this.actualizarTabla();

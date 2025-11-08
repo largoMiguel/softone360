@@ -137,17 +137,20 @@
                     <small class="text-muted">Indicadores clave de desempeño del Plan de Desarrollo Municipal</small>
                 </div>
 
-                <!-- Selector de Año Compacto -->
-                <div class="year-selector">
-                    <label class="me-2 text-muted fw-bold" style="font-size: 0.85rem;">
-                        <i class="fas fa-calendar-alt me-1"></i>Año:
-                    </label>
-                    <div class="btn-group" role="group">
+                <!-- Selector de Año Compacto - Mismo diseño que "Año del Cuatrienio" -->
+                <div class="year-tabs-card-compact mb-3">
+                    <div class="year-tabs-header-compact">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        <span>Año:</span>
+                    </div>
+                    <div class="year-tabs-container-compact">
                         @for (anio of aniosDisponibles; track anio) {
-                        <button type="button" class="btn btn-sm px-3" [class.btn-primary]="anioSeleccionado === anio"
-                            [class.btn-outline-primary]="anioSeleccionado !== anio"
+                        <button class="year-tab-compact" [class.active]="anioSeleccionado === anio"
                             (click)="cambiarAnioSeleccionado(anio)">
                             {{ anio }}
+                            @if (anioSeleccionado === anio) {
+                            <i class="fas fa-check"></i>
+                            }
                         </button>
                         }
                     </div>
