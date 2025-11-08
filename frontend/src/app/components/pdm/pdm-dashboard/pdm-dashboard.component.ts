@@ -2246,4 +2246,18 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
         // Scroll suave al inicio de la sección
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+
+    /**
+     * Calcula el avance promedio de todos los productos
+     */
+    calcularAvancePromedio(): number {
+        if (!this.productos || this.productos.length === 0) return 0;
+        
+        const totalAvance = this.productos.reduce((sum, producto) => {
+            const avance = this.obtenerAvanceDelAnio(producto, this.anioSeleccionado);
+            return sum + avance;
+        }, 0);
+        
+        return Math.round(totalAvance / this.productos.length);
+    }
 }

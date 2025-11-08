@@ -1402,6 +1402,43 @@ mat-expansion-panel {
 }
 
 // ===================================================================
+// STAT CARDS (ESTILO PLANES INSTITUCIONALES)
+// ===================================================================
+
+.stat-card {
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    border: 1px solid #e9ecef;
+    
+    &:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12) !important;
+    }
+    
+    .card-body {
+        i {
+            transition: transform 0.3s ease;
+        }
+        
+        h3 {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        
+        p {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+    }
+    
+    &:hover .card-body i {
+        transform: scale(1.1);
+    }
+}
+
+// ===================================================================
 // FILTROS MODERNOS (ESTILO PQRS/VENTANILLA)
 // ===================================================================
 
