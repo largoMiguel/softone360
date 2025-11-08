@@ -555,15 +555,26 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
             slug: slug
         });
 
-        // Actualizar inmediatamente en la UI
+        // Actualizar inmediatamente en la UI y en los datos del servicio
         row.secretariaAsignada = secretaria || undefined;
+
+        // CRÍTICO: También actualizar en pdmData para que persista en el servicio
+        if (this.pdmData) {
+            const productoEnData = this.pdmData.planIndicativoProductos.find(
+                p => p.codigoIndicadorProducto === row.codigoIndicadorProducto
+            );
+            if (productoEnData) {
+                productoEnData.secretariaAsignada = secretaria || undefined;
+                console.log('✅ Actualizado en pdmData:', productoEnData.codigoIndicadorProducto, '→', secretaria);
+            }
+        }
 
         this.pdmBackend.upsertAssignment(slug, {
             codigo_indicador_producto: row.codigoIndicadorProducto,
             secretaria: secretaria || null,
         }).subscribe({
             next: () => {
-                console.log('✅ Secretaría guardada exitosamente:', secretaria);
+                console.log('✅ Secretaría guardada exitosamente en BD:', secretaria);
                 // Actualizar la tabla para reflejar los cambios
                 this.actualizarTabla();
                 this.showToast('Secretaría asignada correctamente', 'success');
@@ -572,6 +583,14 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
                 console.error('❌ Error asignando secretaría:', err);
                 // Revertir cambio en caso de error
                 row.secretariaAsignada = undefined;
+                if (this.pdmData) {
+                    const productoEnData = this.pdmData.planIndicativoProductos.find(
+                        p => p.codigoIndicadorProducto === row.codigoIndicadorProducto
+                    );
+                    if (productoEnData) {
+                        productoEnData.secretariaAsignada = undefined;
+                    }
+                }
                 this.actualizarTabla();
                 const msg = this.extractErrorMsg(err);
                 this.showToast(msg, 'error');
