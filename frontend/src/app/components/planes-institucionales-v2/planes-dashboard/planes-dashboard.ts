@@ -203,8 +203,12 @@ export class PlanesDashboardComponent implements OnInit, OnDestroy {
         this.stats.planesFinalizados = this.planes.filter(p => p.estado === EstadoPlan.FINALIZADO).length;
 
         if (this.planes.length > 0) {
-            const suma = this.planes.reduce((acc, p) => acc + (p.porcentaje_avance || 0), 0);
-            this.stats.promedioAvance = Math.round(suma / this.planes.length);
+            const suma = this.planes.reduce((acc, p) => {
+                const avance = p.porcentaje_avance || 0;
+                return acc + (isNaN(avance) ? 0 : avance);
+            }, 0);
+            const promedio = suma / this.planes.length;
+            this.stats.promedioAvance = Math.round(isNaN(promedio) ? 0 : promedio);
         } else {
             this.stats.promedioAvance = 0;
         }
@@ -236,9 +240,10 @@ export class PlanesDashboardComponent implements OnInit, OnDestroy {
 
         // Tendencia de avance (últimos 6 meses simulado - en producción usarías datos históricos)
         const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'];
+        const promedioBase = isNaN(this.stats.promedioAvance) ? 0 : this.stats.promedioAvance;
         this.estadisticasAvanzadas.tendenciaAvance = meses.map((mes, idx) => ({
             periodo: mes,
-            avance: Math.min(100, this.stats.promedioAvance + (idx * 5))
+            avance: Math.min(100, promedioBase + (idx * 5))
         }));
     }
 

@@ -307,245 +307,191 @@
                 </div>
             </div>
 
+            <!-- Navegación Secundaria -->
+            <div class="analysis-nav-card mb-4">
+                <div class="analysis-nav-tabs">
+                    <button class="analysis-nav-tab" [class.active]="vistaAnalisis === 'cumplimiento'"
+                        (click)="cambiarVistaAnalisis('cumplimiento')">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Cumplimiento
+                    </button>
+                    <button class="analysis-nav-tab" [class.active]="vistaAnalisis === 'sectores'"
+                        (click)="cambiarVistaAnalisis('sectores')">
+                        <i class="fas fa-industry me-2"></i>
+                        Sectores
+                    </button>
+                    <button class="analysis-nav-tab" [class.active]="vistaAnalisis === 'presupuesto'"
+                        (click)="cambiarVistaAnalisis('presupuesto')">
+                        <i class="fas fa-money-bill-wave me-2"></i>
+                        Presupuesto
+                    </button>
+                    <button class="analysis-nav-tab" [class.active]="vistaAnalisis === 'ods'"
+                        (click)="cambiarVistaAnalisis('ods')">
+                        <i class="fas fa-globe me-2"></i>
+                        ODS
+                    </button>
+                    <button class="analysis-nav-tab" [class.active]="vistaAnalisis === 'sgr'"
+                        (click)="cambiarVistaAnalisis('sgr')">
+                        <i class="fas fa-coins me-2"></i>
+                        SGR
+                    </button>
+                    <button class="analysis-nav-tab" [class.active]="vistaAnalisis === 'indicadores'"
+                        (click)="cambiarVistaAnalisis('indicadores')">
+                        <i class="fas fa-bullseye me-2"></i>
+                        Indicadores
+                    </button>
+                    <button class="analysis-nav-tab" [class.active]="vistaAnalisis === 'secretarias'"
+                        (click)="cambiarVistaAnalisis('secretarias')">
+                        <i class="fas fa-building me-2"></i>
+                        Secretarías
+                    </button>
+                    <button class="analysis-nav-tab" [class.active]="vistaAnalisis === 'lineas'"
+                        (click)="cambiarVistaAnalisis('lineas')">
+                        <i class="fas fa-project-diagram me-2"></i>
+                        Líneas
+                    </button>
+                </div>
+            </div>
+
             <div class="row mb-4">
                 <div class="col">
                     <div class="card shadow-sm border-0">
                         <div class="card-body p-3">
-                            <ul class="nav nav-tabs nav-fill" id="chartsTab" role="tablist">
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link active py-2" id="cumplimiento-tab" data-bs-toggle="tab"
-                                        data-bs-target="#cumplimiento" type="button" role="tab">
-                                        <i class="fas fa-chart-pie me-1"></i><small>Cumplimiento</small>
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link py-2" id="sector-tab" data-bs-toggle="tab"
-                                        data-bs-target="#sector" type="button" role="tab">
-                                        <i class="fas fa-chart-bar me-1"></i><small>Sectores</small>
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link py-2" id="presupuesto-tab" data-bs-toggle="tab"
-                                        data-bs-target="#presupuesto" type="button" role="tab">
-                                        <i class="fas fa-dollar-sign me-1"></i><small>Presupuesto</small>
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link py-2" id="ods-tab" data-bs-toggle="tab"
-                                        data-bs-target="#ods" type="button" role="tab">
-                                        <i class="fas fa-globe me-1"></i><small>ODS</small>
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link py-2" id="sgr-tab" data-bs-toggle="tab"
-                                        data-bs-target="#sgr" type="button" role="tab">
-                                        <i class="fas fa-coins me-1"></i><small>SGR</small>
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link py-2" id="indicadores-resultado-tab" data-bs-toggle="tab"
-                                        data-bs-target="#indicadores-resultado" type="button" role="tab">
-                                        <i class="fas fa-bullseye me-1"></i><small>Indicadores</small>
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link py-2" id="avances-secretaria-tab" data-bs-toggle="tab"
-                                        data-bs-target="#avances-secretaria" type="button" role="tab">
-                                        <i class="fas fa-building me-1"></i><small>Secretarías</small>
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link py-2" id="avances-linea-tab" data-bs-toggle="tab"
-                                        data-bs-target="#avances-linea" type="button" role="tab">
-                                        <i class="fas fa-project-diagram me-1"></i><small>Líneas</small>
-                                    </button>
-                                </li>
-                            </ul>
-                            <div class="tab-content pt-3" id="chartsTabContent">
-                                <!-- Cumplimiento Tab -->
-                                <div class="tab-pane fade show active" id="cumplimiento" role="tabpanel">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <h5 class="mb-3">
-                                                <i class="fas fa-chart-pie me-2 text-primary"></i>
-                                                Distribución de Metas por Estado
-                                            </h5>
-                                            @if (chartCumplimiento) {
-                                            <div class="chart-container" style="height: 300px;">
-                                                <canvas baseChart [data]="chartCumplimiento" [type]="'doughnut'"
-                                                    [options]="doughnutOptions"></canvas>
-                                            </div>
-                                            }
+                            
+                            <!-- ===== VISTA: CUMPLIMIENTO ===== -->
+                            @if (vistaAnalisis === 'cumplimiento') {
+                            <div class="pt-3">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h5 class="mb-3">
+                                            <i class="fas fa-chart-pie me-2 text-primary"></i>
+                                            Distribución de Metas por Estado
+                                        </h5>
+                                        @if (chartCumplimiento) {
+                                        <div class="chart-container" style="height: 300px;">
+                                            <canvas baseChart [data]="chartCumplimiento" [type]="'doughnut'"
+                                                [options]="doughnutOptions"></canvas>
                                         </div>
-                                        <div class="col-md-6">
-                                            <h5 class="mb-3">
-                                                <i class="fas fa-chart-bar me-2 text-primary"></i>
-                                                Metas por Año
-                                            </h5>
-                                            @if (chartPorAnio) {
-                                            <div class="chart-container" style="height: 300px;">
-                                                <canvas baseChart [data]="chartPorAnio" [type]="'bar'"
-                                                    [options]="chartOptions"></canvas>
-                                            </div>
-                                            }
+                                        }
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h5 class="mb-3">
+                                            <i class="fas fa-chart-bar me-2 text-primary"></i>
+                                            Metas por Año
+                                        </h5>
+                                        @if (chartPorAnio) {
+                                        <div class="chart-container" style="height: 300px;">
+                                            <canvas baseChart [data]="chartPorAnio" [type]="'bar'"
+                                                [options]="chartOptions"></canvas>
                                         </div>
+                                        }
                                     </div>
                                 </div>
+                            </div>
+                            }
 
-                                <!-- Sector Tab -->
-                                <div class="tab-pane fade" id="sector" role="tabpanel">
-                                    <h5 class="mb-3">
-                                        <i class="fas fa-chart-bar me-2 text-primary"></i>
-                                        Cumplimiento por Sector (Top 10)
-                                    </h5>
-                                    @if (chartPorSector) {
-                                    <div class="chart-container" style="height: 500px;">
-                                        <canvas baseChart [data]="chartPorSector" [type]="'bar'"
-                                            [options]="barHorizontalOptions"></canvas>
-                                    </div>
-                                    }
+                            <!-- ===== VISTA: SECTORES ===== -->
+                            @if (vistaAnalisis === 'sectores') {
+                            <div class="pt-3">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-industry me-2 text-primary"></i>
+                                    Cumplimiento por Sector (Top 10)
+                                </h5>
+                                @if (chartPorSector) {
+                                <div class="chart-container" style="height: 500px;">
+                                    <canvas baseChart [data]="chartPorSector" [type]="'bar'"
+                                        [options]="barHorizontalOptions"></canvas>
                                 </div>
+                                }
+                            </div>
+                            }
 
-                                <!-- Presupuesto Tab -->
-                                <div class="tab-pane fade" id="presupuesto" role="tabpanel">
-                                    <h5 class="mb-4">
-                                        <i class="fas fa-money-bill-wave me-2 text-primary"></i>
-                                        Análisis Presupuestal Detallado
-                                    </h5>
-
-                                    <!-- KPIs Presupuesto -->
-                                    <div class="row mb-4 g-3">
-                                        <div class="col-md-3">
-                                            <div
-                                                class="card shadow border-0 h-100 border-start border-primary border-3">
-                                                <div class="card-body p-3">
-                                                    <div class="d-flex align-items-center mb-2">
-                                                        <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-2"
-                                                            style="width: 50px; height: 50px;">
-                                                            <i class="fas fa-coins text-primary"
-                                                                style="font-size: 1.5rem;"></i>
-                                                        </div>
-                                                        <div class="flex-grow-1">
-                                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">
-                                                                Recursos
-                                                                Ordinarios</p>
-                                                            <h5 class="mb-0 fw-bold">{{
-                                                                formatearMoneda(analisis.analisisPresupuestoDetallado.presupuestoOrdinarioTotal
-                                                                || 0) }}</h5>
-                                                        </div>
-                                                    </div>
-                                                    <div class="d-flex justify-content-between align-items-center">
-                                                        <span class="text-primary" style="font-size: 0.85rem;">
-                                                            <i class="fas fa-percentage me-1"></i>
-                                                            {{formatearPorcentaje(analisis.analisisPresupuestoDetallado.porcentajeOrdinario
-                                                            || 0) }}
-                                                        </span>
-                                                        <div class="progress flex-grow-1 ms-2" style="height: 8px;">
-                                                            <div class="progress-bar bg-primary"
-                                                                [style.width.%]="analisis.analisisPresupuestoDetallado.porcentajeOrdinario || 0">
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                            <!-- ===== VISTA: PRESUPUESTO ===== -->
+                            @if (vistaAnalisis === 'presupuesto') {
+                            <div class="pt-3">
+                                <h5 class="mb-4">
+                                    <i class="fas fa-money-bill-wave me-2 text-primary"></i>
+                                    Análisis Presupuestal Detallado
+                                </h5>
+                                
+                                <!-- KPIs Presupuesto -->
+                                <div class="row mb-4 g-3">
+                                    <div class="col-lg-3 col-md-6">
+                                        <div class="info-card">
+                                            <div class="info-icon-wrapper bg-primary">
+                                                <i class="fas fa-coins"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <p class="info-label">Recursos Ordinarios</p>
+                                                <h5 class="info-value">{{ formatearMoneda(analisis.analisisPresupuestoDetallado.presupuestoOrdinarioTotal || 0) }}</h5>
+                                                <div class="info-meta">
+                                                    <span class="badge bg-primary-subtle text-primary">
+                                                        <i class="fas fa-percentage me-1"></i>
+                                                        {{formatearPorcentaje(analisis.analisisPresupuestoDetallado.porcentajeOrdinario || 0) }}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-md-3">
-                                            <div
-                                                class="card shadow border-0 h-100 border-start border-warning border-3">
-                                                <div class="card-body p-3">
-                                                    <div class="d-flex align-items-center mb-2">
-                                                        <div class="bg-warning bg-opacity-10 rounded-circle p-2 me-2"
-                                                            style="width: 50px; height: 50px;">
-                                                            <i class="fas fa-hand-holding-usd text-warning"
-                                                                style="font-size: 1.5rem;"></i>
-                                                        </div>
-                                                        <div class="flex-grow-1">
-                                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">
-                                                                Recursos SGR
-                                                            </p>
-                                                            <h5 class="mb-0 fw-bold">{{
-                                                                formatearMoneda(analisis.analisisPresupuestoDetallado.presupuestoSGRTotal
-                                                                || 0) }}</h5>
-                                                        </div>
-                                                    </div>
-                                                    <div class="d-flex justify-content-between align-items-center">
-                                                        <span class="text-warning" style="font-size: 0.85rem;">
-                                                            <i class="fas fa-percentage me-1"></i>
-                                                            {{
-                                                            formatearPorcentaje(analisis.analisisPresupuestoDetallado.porcentajeSGR
-                                                            || 0) }}
-                                                        </span>
-                                                        <div class="progress flex-grow-1 ms-2" style="height: 8px;">
-                                                            <div class="progress-bar bg-warning"
-                                                                [style.width.%]="analisis.analisisPresupuestoDetallado.porcentajeSGR || 0">
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                    </div>
+                                    <div class="col-lg-3 col-md-6">
+                                        <div class="info-card">
+                                            <div class="info-icon-wrapper bg-warning">
+                                                <i class="fas fa-hand-holding-usd"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <p class="info-label">Recursos SGR</p>
+                                                <h5 class="info-value">{{ formatearMoneda(analisis.analisisPresupuestoDetallado.presupuestoSGRTotal || 0) }}</h5>
+                                                <div class="info-meta">
+                                                    <span class="badge bg-warning-subtle text-warning">
+                                                        <i class="fas fa-percentage me-1"></i>
+                                                        {{ formatearPorcentaje(analisis.analisisPresupuestoDetallado.porcentajeSGR || 0) }}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-md-3">
-                                            <div class="card shadow-lg border-0 h-100 bg-gradient"
-                                                style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-                                                <div class="card-body p-3">
-                                                    <div class="d-flex align-items-center mb-2">
-                                                        <div class="bg-white bg-opacity-25 rounded-circle p-2 me-2"
-                                                            style="width: 50px; height: 50px;">
-                                                            <i class="fas fa-calculator text-white"
-                                                                style="font-size: 1.5rem;"></i>
-                                                        </div>
-                                                        <div class="flex-grow-1">
-                                                            <p class="mb-1 text-white fw-semibold"
-                                                                style="font-size: 0.85rem;">
-                                                                Presupuesto Total</p>
-                                                            <h4 class="mb-0 fw-bold text-white"
-                                                                style="color: white !important;">{{
-                                                                formatearMoneda((analisis.analisisPresupuestoDetallado.presupuestoOrdinarioTotal
-                                                                || 0) +
-                                                                (analisis.analisisPresupuestoDetallado.presupuestoSGRTotal
-                                                                ||
-                                                                0)) }}</h4>
-                                                        </div>
-                                                    </div>
-                                                    <small class="text-white fw-medium" style="font-size: 0.8rem;">
+                                    </div>
+                                    <div class="col-lg-3 col-md-6">
+                                        <div class="info-card featured-card">
+                                            <div class="info-icon-wrapper bg-success">
+                                                <i class="fas fa-calculator"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <p class="info-label text-white">Presupuesto Total</p>
+                                                <h5 class="info-value text-white fw-bold">{{ formatearMoneda((analisis.analisisPresupuestoDetallado.presupuestoOrdinarioTotal || 0) + (analisis.analisisPresupuestoDetallado.presupuestoSGRTotal || 0)) }}</h5>
+                                                <div class="info-meta">
+                                                    <small class="text-white-50">
                                                         <i class="fas fa-calendar-alt me-1"></i>Cuatrienio 2024-2027
                                                     </small>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-md-3">
-                                            <div class="card shadow border-0 h-100 border-start border-info border-3">
-                                                <div class="card-body p-3">
-                                                    <div class="d-flex align-items-center mb-2">
-                                                        <div class="bg-info bg-opacity-10 rounded-circle p-2 me-2"
-                                                            style="width: 50px; height: 50px;">
-                                                            <i class="fas fa-chart-line text-info"
-                                                                style="font-size: 1.5rem;"></i>
-                                                        </div>
-                                                        <div class="flex-grow-1">
-                                                            <p class="text-muted mb-1" style="font-size: 0.85rem;">
-                                                                Promedio
-                                                                Anual</p>
-                                                            <h5 class="mb-0 fw-bold">{{
-                                                                formatearMoneda(((analisis.analisisPresupuestoDetallado.presupuestoOrdinarioTotal
-                                                                || 0) +
-                                                                (analisis.analisisPresupuestoDetallado.presupuestoSGRTotal
-                                                                ||
-                                                                0)) / 4) }}</h5>
-                                                        </div>
-                                                    </div>
-                                                    <small class="text-muted" style="font-size: 0.8rem;">
+                                    </div>
+                                    <div class="col-lg-3 col-md-6">
+                                        <div class="info-card">
+                                            <div class="info-icon-wrapper bg-info">
+                                                <i class="fas fa-chart-line"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <p class="info-label">Promedio Anual</p>
+                                                <h5 class="info-value">{{ formatearMoneda(((analisis.analisisPresupuestoDetallado.presupuestoOrdinarioTotal || 0) + (analisis.analisisPresupuestoDetallado.presupuestoSGRTotal || 0)) / 4) }}</h5>
+                                                <div class="info-meta">
+                                                    <small class="text-muted">
                                                         <i class="fas fa-divide me-1"></i>Distribución por 4 años
                                                     </small>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
+                                </div>
 
-                                    <!-- Gráficos -->
-                                    <div class="row mb-4">
-                                        <div class="col-md-4">
-                                            <h6 class="mb-3">Composición del Presupuesto</h6>
+                                <!-- Gráficos -->
+                                <div class="row mb-4">
+                                    <div class="col-lg-5">
+                                        <div class="chart-card">
+                                            <h6 class="chart-title">
+                                                <i class="fas fa-chart-pie me-2 text-primary"></i>
+                                                Composición del Presupuesto
+                                            </h6>
                                             @if (chartPresupuestoOrdinarioVsSGR) {
                                             <div class="chart-container" style="height: 300px;">
                                                 <canvas baseChart [data]="chartPresupuestoOrdinarioVsSGR"
@@ -553,8 +499,13 @@
                                             </div>
                                             }
                                         </div>
-                                        <div class="col-md-8">
-                                            <h6 class="mb-3">Presupuesto por Año (Ordinario + SGR)</h6>
+                                    </div>
+                                    <div class="col-lg-7">
+                                        <div class="chart-card">
+                                            <h6 class="chart-title">
+                                                <i class="fas fa-chart-bar me-2 text-primary"></i>
+                                                Presupuesto por Año
+                                            </h6>
                                             @if (chartPresupuestoPorAnioDetallado) {
                                             <div class="chart-container" style="height: 300px;">
                                                 <canvas baseChart [data]="chartPresupuestoPorAnioDetallado"
@@ -563,61 +514,16 @@
                                             }
                                         </div>
                                     </div>
+                                </div>
 
-                                    <!-- Tabla por año -->
-                                    <div class="row mb-4">
-                                        <div class="col-12">
-                                            <h6 class="mb-3">Detalle por Año</h6>
-                                            <div class="table-responsive">
-                                                <table class="table table-hover align-middle">
-                                                    <thead class="table-light">
-                                                        <tr>
-                                                            <th>Año</th>
-                                                            <th class="text-end">Recursos Ordinarios</th>
-                                                            <th class="text-end">Recursos SGR</th>
-                                                            <th class="text-end">Total</th>
-                                                            <th class="text-center">% Ordinario</th>
-                                                            <th class="text-center">% SGR</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        @for (anio of
-                                                        analisis.analisisPresupuestoDetallado.presupuestoPorAnio; track
-                                                        anio.anio) {
-                                                        <tr class="table-row-clickeable"
-                                                            (click)="filtrarPorAnio(anio.anio)" role="button">
-                                                            <td>
-                                                                <i class="fas fa-filter me-2 text-muted small"></i>
-                                                                <strong>{{ anio.anio }}</strong>
-                                                            </td>
-                                                            <td class="text-end">{{ formatearMoneda(anio.ordinario) }}
-                                                            </td>
-                                                            <td class="text-end">{{ formatearMoneda(anio.sgr) }}</td>
-                                                            <td class="text-end"><strong>{{ formatearMoneda(anio.total)
-                                                                    }}</strong></td>
-                                                            <td class="text-center">
-                                                                <span class="badge bg-primary">{{
-                                                                    formatearPorcentaje(anio.total
-                                                                    > 0 ? (anio.ordinario / anio.total * 100) : 0)
-                                                                    }}</span>
-                                                            </td>
-                                                            <td class="text-center">
-                                                                <span class="badge bg-warning">{{
-                                                                    formatearPorcentaje(anio.total
-                                                                    > 0 ? (anio.sgr / anio.total * 100) : 0) }}</span>
-                                                            </td>
-                                                        </tr>
-                                                        }
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Presupuesto por Sector -->
-                                    <div class="row">
-                                        <div class="col-md-7">
-                                            <h6 class="mb-3">Top 8 Sectores por Presupuesto</h6>
+                                <!-- Top Sectores -->
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="chart-card">
+                                            <h6 class="chart-title">
+                                                <i class="fas fa-industry me-2 text-primary"></i>
+                                                Top 8 Sectores por Presupuesto
+                                            </h6>
                                             @if (chartPresupuestoPorSectorDetallado) {
                                             <div class="chart-container" style="height: 400px;">
                                                 <canvas baseChart [data]="chartPresupuestoPorSectorDetallado"
@@ -625,739 +531,502 @@
                                             </div>
                                             }
                                         </div>
-                                        <div class="col-md-5">
-                                            <h6 class="mb-3">Detalle por Sector (Top 10)</h6>
-                                            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                                                <table class="table table-sm table-hover mb-0">
-                                                    <thead class="table-light sticky-top">
-                                                        <tr>
-                                                            <th>Sector</th>
-                                                            <th class="text-end">Total</th>
-                                                            <th class="text-center" style="width: 80px;">% del Total
-                                                            </th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        @for (sector of
-                                                        analisis.analisisPresupuestoDetallado.presupuestoPorSector.slice(0,
-                                                        10); track sector.sector) {
-                                                        <tr>
-                                                            <td>
-                                                                <div class="text-truncate" style="max-width: 200px;"
-                                                                    [title]="sector.sector">
-                                                                    <strong>{{ truncarTexto(sector.sector, 25)
-                                                                        }}</strong>
-                                                                </div>
-                                                            </td>
-                                                            <td class="text-end">
-                                                                <span class="badge bg-secondary">{{
-                                                                    formatearMoneda(sector.total) }}</span>
-                                                            </td>
-                                                            <td>
-                                                                <div
-                                                                    class="d-flex align-items-center justify-content-center">
-                                                                    <small class="me-1">{{
-                                                                        formatearPorcentaje(sector.total /
-                                                                        ((analisis.analisisPresupuestoDetallado.presupuestoOrdinarioTotal
-                                                                        || 0) +
-                                                                        (analisis.analisisPresupuestoDetallado.presupuestoSGRTotal
-                                                                        || 0)) * 100) }}</small>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                        }
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- ODS Tab -->
-                                <div class="tab-pane fade" id="ods" role="tabpanel">
-                                    <h5 class="mb-4">
-                                        <i class="fas fa-globe me-2 text-primary"></i>
-                                        Análisis por Objetivos de Desarrollo Sostenible (ODS)
-                                    </h5>
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <h6 class="mb-3">Distribución de Metas por ODS</h6>
-                                            @if (chartODS) {
-                                            <div class="chart-container" style="height: 400px;">
-                                                <canvas baseChart [data]="chartODS" [type]="'doughnut'"
-                                                    [options]="doughnutOptions"></canvas>
-                                            </div>
-                                            }
-                                        </div>
-                                        <div class="col-md-6">
-                                            <h6 class="mb-3">Top 5 ODS por Presupuesto Asignado</h6>
-                                            @if (chartODSPresupuesto) {
-                                            <div class="chart-container" style="height: 400px;">
-                                                <canvas baseChart [data]="chartODSPresupuesto" [type]="'bar'"
-                                                    [options]="chartOptions"></canvas>
-                                            </div>
-                                            }
-                                        </div>
-                                    </div>
-                                    <div class="row mt-4">
-                                        <div class="col-12">
-                                            <h6 class="mb-3">Detalle por ODS</h6>
-                                            <div class="table-responsive">
-                                                <table class="table table-hover align-middle">
-                                                    <thead class="table-light">
-                                                        <tr>
-                                                            <th>ODS</th>
-                                                            <th class="text-center">Total Metas</th>
-                                                            <th class="text-center">Metas Cumplidas</th>
-                                                            <th class="text-center">% Cumplimiento</th>
-                                                            <th class="text-end">Presupuesto Total</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        @for (ods of analisis.analisisPorODS; track ods.codigoODS) {
-                                                        <tr class="table-row-clickeable"
-                                                            (click)="filtrarPorODS(ods.codigoODS)" role="button">
-                                                            <td>
-                                                                <strong>{{ ods.codigoODS }}.</strong> {{ ods.nombreODS
-                                                                }}
-                                                            </td>
-                                                            <td class="text-center">
-                                                                <span class="badge bg-secondary">{{ ods.totalMetas
-                                                                    }}</span>
-                                                            </td>
-                                                            <td class="text-center">
-                                                                <span class="badge bg-success">{{ ods.metasCumplidas
-                                                                    }}</span>
-                                                            </td>
-                                                            <td class="text-center">
-                                                                <div
-                                                                    class="d-flex align-items-center justify-content-center gap-2">
-                                                                    <div class="progress"
-                                                                        style="width: 80px; height: 8px;">
-                                                                        <div class="progress-bar"
-                                                                            [class.bg-success]="ods.porcentajeCumplimiento >= 70"
-                                                                            [class.bg-warning]="ods.porcentajeCumplimiento >= 40 && ods.porcentajeCumplimiento < 70"
-                                                                            [class.bg-danger]="ods.porcentajeCumplimiento < 40"
-                                                                            [style.width.%]="ods.porcentajeCumplimiento">
-                                                                        </div>
-                                                                    </div>
-                                                                    <small class="fw-bold">{{
-                                                                        formatearPorcentaje(ods.porcentajeCumplimiento)
-                                                                        }}</small>
-                                                                </div>
-                                                            </td>
-                                                            <td class="text-end">
-                                                                <strong>{{ formatearMoneda(ods.presupuestoTotal)
-                                                                    }}</strong>
-                                                            </td>
-                                                        </tr>
-                                                        }
-                                                        @if (!analisis.analisisPorODS || analisis.analisisPorODS.length
-                                                        === 0)
-                                                        {
-                                                        <tr>
-                                                            <td colspan="5" class="text-center text-muted py-4">
-                                                                <i class="fas fa-info-circle me-2"></i>
-                                                                No hay datos de ODS disponibles
-                                                            </td>
-                                                        </tr>
-                                                        }
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- SGR Tab -->
-                                <div class="tab-pane fade" id="sgr" role="tabpanel">
-                                    <h5 class="mb-4">
-                                        <i class="fas fa-coins me-2 text-primary"></i>
-                                        Iniciativas del Sistema General de Regalías (SGR)
-                                    </h5>
-
-                                    <!-- KPIs SGR -->
-                                    <div class="row mb-4 g-3">
-                                        <div class="col-md-3">
-                                            <div class="card shadow-sm border-0 h-100">
-                                                <div class="card-body">
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="bg-info bg-opacity-10 rounded-circle p-3 me-3">
-                                                            <i class="fas fa-list-check fa-2x text-info"></i>
-                                                        </div>
-                                                        <div>
-                                                            <h6 class="text-muted mb-0 small">Total Iniciativas</h6>
-                                                            <h2 class="mb-0">{{ analisis.analisisSGR.totalIniciativas ||
-                                                                0 }}
-                                                            </h2>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <div class="card shadow-sm border-0 h-100">
-                                                <div class="card-body">
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="bg-success bg-opacity-10 rounded-circle p-3 me-3">
-                                                            <i class="fas fa-money-bill-wave fa-2x text-success"></i>
-                                                        </div>
-                                                        <div>
-                                                            <h6 class="text-muted mb-0 small">Recursos SGR</h6>
-                                                            <h5 class="mb-0">{{
-                                                                formatearMoneda(analisis.analisisSGR.recursosSGRTotales
-                                                                || 0)
-                                                                }}</h5>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <div class="card shadow-sm border-0 h-100">
-                                                <div class="card-body">
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="bg-primary bg-opacity-10 rounded-circle p-3 me-3">
-                                                            <i class="fas fa-check-circle fa-2x text-primary"></i>
-                                                        </div>
-                                                        <div>
-                                                            <h6 class="text-muted mb-0 small">Con BPIN</h6>
-                                                            <h2 class="mb-0">{{ analisis.analisisSGR.iniciativasConBPIN
-                                                                || 0
-                                                                }}
-                                                            </h2>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <div class="card shadow-sm border-0 h-100">
-                                                <div class="card-body">
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="bg-warning bg-opacity-10 rounded-circle p-3 me-3">
-                                                            <i
-                                                                class="fas fa-exclamation-triangle fa-2x text-warning"></i>
-                                                        </div>
-                                                        <div>
-                                                            <h6 class="text-muted mb-0 small">Sin BPIN</h6>
-                                                            <h2 class="mb-0">{{ analisis.analisisSGR.iniciativasSinBPIN
-                                                                || 0
-                                                                }}
-                                                            </h2>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <h6 class="mb-3">Recursos SGR por Sector</h6>
-                                            @if (chartSGRPorSector) {
-                                            <div class="chart-container" style="height: 400px;">
-                                                <canvas baseChart [data]="chartSGRPorSector" [type]="'bar'"
-                                                    [options]="barHorizontalOptions"></canvas>
-                                            </div>
-                                            }
-                                        </div>
-                                        <div class="col-md-6">
-                                            <h6 class="mb-3">Detalle por Sector</h6>
-                                            <div class="table-responsive">
-                                                <table class="table table-sm table-hover">
-                                                    <thead class="table-light">
-                                                        <tr>
-                                                            <th>Sector</th>
-                                                            <th class="text-center">Iniciativas</th>
-                                                            <th class="text-end">Recursos SGR</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        @for (sector of analisis.analisisSGR.recursosSGRPorSector; track
-                                                        sector.sector) {
-                                                        <tr>
-                                                            <td><strong>{{ sector.sector }}</strong></td>
-                                                            <td class="text-center">
-                                                                <span class="badge bg-info">{{ sector.numeroIniciativas
-                                                                    }}</span>
-                                                            </td>
-                                                            <td class="text-end">
-                                                                <strong>{{ formatearMoneda(sector.totalRecursosSGR)
-                                                                    }}</strong>
-                                                            </td>
-                                                        </tr>
-                                                        }
-                                                        @if (!analisis.analisisSGR.recursosSGRPorSector ||
-                                                        analisis.analisisSGR.recursosSGRPorSector.length === 0) {
-                                                        <tr>
-                                                            <td colspan="3" class="text-center text-muted py-3">
-                                                                No hay iniciativas SGR registradas
-                                                            </td>
-                                                        </tr>
-                                                        }
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Indicadores de Resultado Tab -->
-                                <div class="tab-pane fade" id="indicadores-resultado" role="tabpanel">
-                                    <h5 class="mb-4">
-                                        <i class="fas fa-bullseye me-2 text-primary"></i>
-                                        Indicadores de Resultado - Alineación con PND
-                                    </h5>
-
-                                    <!-- KPIs Indicadores -->
-                                    <div class="row mb-4 g-3">
-                                        <div class="col-md-3">
-                                            <div class="card shadow-sm border-0 h-100">
-                                                <div class="card-body">
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="bg-primary bg-opacity-10 rounded-circle p-3 me-3">
-                                                            <i class="fas fa-list fa-2x text-primary"></i>
-                                                        </div>
-                                                        <div>
-                                                            <h6 class="text-muted mb-0 small">Total Indicadores</h6>
-                                                            <h2 class="mb-0">{{
-                                                                analisis.analisisIndicadoresResultado.totalIndicadores
-                                                                || 0 }}
-                                                            </h2>
-                                                        </div>
-                                                    </div>
-                                                    <small class="text-muted d-block mt-2">
-                                                        <i class="fas fa-info-circle me-1"></i>Indicadores de resultado
-                                                        del PDM
-                                                    </small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <div class="card shadow-sm border-0 h-100">
-                                                <div class="card-body">
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="bg-success bg-opacity-10 rounded-circle p-3 me-3">
-                                                            <i class="fas fa-check-circle fa-2x text-success"></i>
-                                                        </div>
-                                                        <div>
-                                                            <h6 class="text-muted mb-0 small">En PND</h6>
-                                                            <h2 class="mb-0">{{
-                                                                analisis.analisisIndicadoresResultado.indicadoresEnPND
-                                                                || 0 }}
-                                                            </h2>
-                                                        </div>
-                                                    </div>
-                                                    <small class="text-success d-block mt-2">
-                                                        <i class="fas fa-check me-1"></i>Alineados con Plan Nacional
-                                                    </small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <div class="card shadow-sm border-0 h-100">
-                                                <div class="card-body">
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="bg-warning bg-opacity-10 rounded-circle p-3 me-3">
-                                                            <i class="fas fa-times-circle fa-2x text-warning"></i>
-                                                        </div>
-                                                        <div>
-                                                            <h6 class="text-muted mb-0 small">Fuera de PND</h6>
-                                                            <h2 class="mb-0">{{
-                                                                analisis.analisisIndicadoresResultado.indicadoresFueraPND
-                                                                || 0
-                                                                }}</h2>
-                                                        </div>
-                                                    </div>
-                                                    <small class="text-warning d-block mt-2">
-                                                        <i class="fas fa-exclamation-triangle me-1"></i>Sin alineación
-                                                        nacional
-                                                    </small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <div class="card shadow-sm border-0 h-100 bg-info bg-opacity-10">
-                                                <div class="card-body">
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="bg-info bg-opacity-25 rounded-circle p-3 me-3">
-                                                            <i class="fas fa-percentage fa-2x text-info"></i>
-                                                        </div>
-                                                        <div>
-                                                            <h6 class="text-muted mb-0 small">% Alineación PND</h6>
-                                                            <h2 class="mb-0 text-info">{{
-                                                                formatearPorcentaje(analisis.analisisIndicadoresResultado.porcentajeAlineacionPND
-                                                                || 0) }}</h2>
-                                                        </div>
-                                                    </div>
-                                                    <div class="progress mt-2" style="height: 6px;">
-                                                        <div class="progress-bar bg-info"
-                                                            [style.width.%]="analisis.analisisIndicadoresResultado.porcentajeAlineacionPND || 0">
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Gráficos -->
-                                    <div class="row mb-4">
-                                        <div class="col-md-6">
-                                            <h6 class="mb-3">Alineación con el Plan Nacional de Desarrollo</h6>
-                                            @if (chartIndicadoresPND) {
-                                            <div class="chart-container" style="height: 300px;">
-                                                <canvas baseChart [data]="chartIndicadoresPND" [type]="'doughnut'"
-                                                    [options]="doughnutOptions"></canvas>
-                                            </div>
-                                            }
-                                        </div>
-                                        <div class="col-md-6">
-                                            <h6 class="mb-3">Indicadores por Línea Estratégica</h6>
-                                            @if (chartIndicadoresPorLinea) {
-                                            <div class="chart-container" style="height: 300px;">
-                                                <canvas baseChart [data]="chartIndicadoresPorLinea" [type]="'bar'"
-                                                    [options]="chartOptions"></canvas>
-                                            </div>
-                                            }
-                                        </div>
-                                    </div>
-
-                                    <!-- Tabla detallada por línea -->
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <h6 class="mb-3">Detalle por Línea Estratégica</h6>
-                                            <div class="table-responsive">
-                                                <table class="table table-sm table-hover">
-                                                    <thead class="table-light">
-                                                        <tr>
-                                                            <th>Línea Estratégica</th>
-                                                            <th class="text-center">Total Indicadores</th>
-                                                            <th class="text-center">En PND</th>
-                                                            <th class="text-center">% Alineación</th>
-                                                            <th class="text-end">Meta Cuatrienio</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        @for (linea of
-                                                        analisis.analisisIndicadoresResultado.indicadoresPorLinea; track
-                                                        linea.lineaEstrategica) {
-                                                        <tr class="table-row-clickeable"
-                                                            (click)="filtrarPorLinea(linea.lineaEstrategica)"
-                                                            role="button">
-                                                            <td>
-                                                                <i class="fas fa-filter me-2 text-muted small"></i>
-                                                                <strong>{{ linea.lineaEstrategica }}</strong>
-                                                            </td>
-                                                            <td class="text-center">
-                                                                <span class="badge bg-primary">{{ linea.totalIndicadores
-                                                                    }}</span>
-                                                            </td>
-                                                            <td class="text-center">
-                                                                <span class="badge bg-success">{{ linea.indicadoresEnPND
-                                                                    }}</span>
-                                                            </td>
-                                                            <td class="text-center">
-                                                                <span class="badge" [ngClass]="{
-                                                            'bg-success': (linea.indicadoresEnPND / linea.totalIndicadores * 100) >= 70,
-                                                            'bg-warning': (linea.indicadoresEnPND / linea.totalIndicadores * 100) >= 40 && (linea.indicadoresEnPND / linea.totalIndicadores * 100) < 70,
-                                                            'bg-danger': (linea.indicadoresEnPND / linea.totalIndicadores * 100) < 40
-                                                        }">
-                                                                    {{ formatearPorcentaje(linea.indicadoresEnPND /
-                                                                    linea.totalIndicadores * 100) }}
-                                                                </span>
-                                                            </td>
-                                                            <td class="text-end">
-                                                                <strong>{{
-                                                                    linea.metaCuatrienioTotal.toLocaleString('es-CO')
-                                                                    }}</strong>
-                                                            </td>
-                                                        </tr>
-                                                        }
-                                                        @if (!analisis.analisisIndicadoresResultado.indicadoresPorLinea
-                                                        ||
-                                                        analisis.analisisIndicadoresResultado.indicadoresPorLinea.length
-                                                        ===
-                                                        0) {
-                                                        <tr>
-                                                            <td colspan="5" class="text-center text-muted py-3">
-                                                                No hay indicadores de resultado registrados
-                                                            </td>
-                                                        </tr>
-                                                        }
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Transformaciones PND -->
-                                    @if (analisis.analisisIndicadoresResultado.transformacionesPND &&
-                                    analisis.analisisIndicadoresResultado.transformacionesPND.length > 0) {
-                                    <div class="row mt-4">
-                                        <div class="col-12">
-                                            <h6 class="mb-3">
-                                                <i class="fas fa-tags me-2 text-primary"></i>
-                                                Transformaciones del Plan Nacional de Desarrollo
-                                            </h6>
-                                            <div class="row g-3">
-                                                @for (trans of
-                                                analisis.analisisIndicadoresResultado.transformacionesPND; track
-                                                trans.transformacion) {
-                                                <div class="col-md-6 col-lg-4">
-                                                    <div class="card h-100 border-info border-opacity-25">
-                                                        <div
-                                                            class="card-body d-flex align-items-center justify-content-between p-3">
-                                                            <div class="flex-grow-1 me-2">
-                                                                <i class="fas fa-bookmark text-info me-2"></i>
-                                                                <strong class="text-info">{{ trans.transformacion
-                                                                    }}</strong>
-                                                            </div>
-                                                            <span class="badge bg-info rounded-pill fs-6">
-                                                                {{ trans.numeroIndicadores }}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                }
-                                            </div>
-                                        </div>
-                                    </div>
-                                    }
-                                </div>
-
-                                <!-- Avances por Secretaría Tab -->
-                                <div class="tab-pane fade" id="avances-secretaria" role="tabpanel">
-                                    <h6 class="mb-3">
-                                        <i class="fas fa-building me-2 text-primary"></i>
-                                        Resumen de Avances por Secretaría
-                                    </h6>
-                                    <div class="table-responsive">
-                                        <table class="table table-sm table-hover align-middle">
-                                            <thead class="table-light">
-                                                <tr>
-                                                    <th class="py-2">Secretaría</th>
-                                                    <th class="text-center py-2">Total</th>
-                                                    <th class="text-center py-2">2024</th>
-                                                    <th class="text-center py-2">2025</th>
-                                                    <th class="text-center py-2">2026</th>
-                                                    <th class="text-center py-2">2027</th>
-                                                    <th class="text-center py-2">Promedio</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @for (stat of estadisticasPorSecretaria; track stat.secretaria) {
-                                                <tr class="table-row-clickeable"
-                                                    (click)="filtrarPorSecretaria(stat.secretaria)" role="button">
-                                                    <td class="py-2">
-                                                        <small class="fw-bold">{{ stat.secretaria }}</small>
-                                                    </td>
-                                                    <td class="text-center py-2">
-                                                        <span class="badge bg-secondary">{{ stat.totalMetas }}</span>
-                                                    </td>
-                                                    <td class="text-center py-2">
-                                                        <div
-                                                            class="d-flex align-items-center justify-content-center gap-1">
-                                                            <div class="progress" style="width: 50px; height: 6px;">
-                                                                <div class="progress-bar"
-                                                                    [class.bg-success]="stat.avance2024 >= 70"
-                                                                    [class.bg-warning]="stat.avance2024 >= 40 && stat.avance2024 < 70"
-                                                                    [class.bg-danger]="stat.avance2024 < 40"
-                                                                    [style.width.%]="stat.avance2024">
-                                                                </div>
-                                                            </div>
-                                                            <small class="fw-bold">{{
-                                                                formatearPorcentaje(stat.avance2024)
-                                                                }}</small>
-                                                        </div>
-                                                    </td>
-                                                    <td class="text-center py-2">
-                                                        <div
-                                                            class="d-flex align-items-center justify-content-center gap-1">
-                                                            <div class="progress" style="width: 50px; height: 6px;">
-                                                                <div class="progress-bar"
-                                                                    [class.bg-success]="stat.avance2025 >= 70"
-                                                                    [class.bg-warning]="stat.avance2025 >= 40 && stat.avance2025 < 70"
-                                                                    [class.bg-danger]="stat.avance2025 < 40"
-                                                                    [style.width.%]="stat.avance2025">
-                                                                </div>
-                                                            </div>
-                                                            <small class="fw-bold">{{
-                                                                formatearPorcentaje(stat.avance2025)
-                                                                }}</small>
-                                                        </div>
-                                                    </td>
-                                                    <td class="text-center py-2">
-                                                        <div
-                                                            class="d-flex align-items-center justify-content-center gap-1">
-                                                            <div class="progress" style="width: 50px; height: 6px;">
-                                                                <div class="progress-bar"
-                                                                    [class.bg-success]="stat.avance2026 >= 70"
-                                                                    [class.bg-warning]="stat.avance2026 >= 40 && stat.avance2026 < 70"
-                                                                    [class.bg-danger]="stat.avance2026 < 40"
-                                                                    [style.width.%]="stat.avance2026">
-                                                                </div>
-                                                            </div>
-                                                            <small class="fw-bold">{{
-                                                                formatearPorcentaje(stat.avance2026)
-                                                                }}</small>
-                                                        </div>
-                                                    </td>
-                                                    <td class="text-center py-2">
-                                                        <div
-                                                            class="d-flex align-items-center justify-content-center gap-1">
-                                                            <div class="progress" style="width: 50px; height: 6px;">
-                                                                <div class="progress-bar"
-                                                                    [class.bg-success]="stat.avance2027 >= 70"
-                                                                    [class.bg-warning]="stat.avance2027 >= 40 && stat.avance2027 < 70"
-                                                                    [class.bg-danger]="stat.avance2027 < 40"
-                                                                    [style.width.%]="stat.avance2027">
-                                                                </div>
-                                                            </div>
-                                                            <small class="fw-bold">{{
-                                                                formatearPorcentaje(stat.avance2027)
-                                                                }}</small>
-                                                        </div>
-                                                    </td>
-                                                    <td class="text-center py-2">
-                                                        <span class="badge"
-                                                            [class.bg-success]="stat.avancePromedio >= 70"
-                                                            [class.bg-warning]="stat.avancePromedio >= 40 && stat.avancePromedio < 70"
-                                                            [class.bg-danger]="stat.avancePromedio < 40">
-                                                            {{ formatearPorcentaje(stat.avancePromedio) }}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                                }
-                                                @if (estadisticasPorSecretaria.length === 0) {
-                                                <tr>
-                                                    <td colspan="7" class="text-center text-muted py-3">
-                                                        <i class="fas fa-info-circle me-2"></i>
-                                                        No hay estadísticas disponibles
-                                                    </td>
-                                                </tr>
-                                                }
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-
-                                <!-- Avances por Línea Estratégica Tab -->
-                                <div class="tab-pane fade" id="avances-linea" role="tabpanel">
-                                    <h6 class="mb-3">
-                                        <i class="fas fa-project-diagram me-2 text-primary"></i>
-                                        Resumen de Avances por Línea Estratégica
-                                    </h6>
-                                    <div class="table-responsive">
-                                        <table class="table table-sm table-hover align-middle">
-                                            <thead class="table-light">
-                                                <tr>
-                                                    <th class="py-2">Línea Estratégica</th>
-                                                    <th class="text-center py-2">Total</th>
-                                                    <th class="text-center py-2">2024</th>
-                                                    <th class="text-center py-2">2025</th>
-                                                    <th class="text-center py-2">2026</th>
-                                                    <th class="text-center py-2">2027</th>
-                                                    <th class="text-center py-2">Promedio</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @for (stat of estadisticasPorLinea; track stat.lineaEstrategica) {
-                                                <tr class="table-row-clickeable"
-                                                    (click)="filtrarPorLinea(stat.lineaEstrategica)" role="button">
-                                                    <td class="py-2">
-                                                        <small class="fw-bold">{{ stat.lineaEstrategica }}</small>
-                                                    </td>
-                                                    <td class="text-center py-2">
-                                                        <span class="badge bg-secondary">{{ stat.totalMetas }}</span>
-                                                    </td>
-                                                    <td class="text-center py-2">
-                                                        <div
-                                                            class="d-flex align-items-center justify-content-center gap-1">
-                                                            <div class="progress" style="width: 50px; height: 6px;">
-                                                                <div class="progress-bar"
-                                                                    [class.bg-success]="stat.avance2024 >= 70"
-                                                                    [class.bg-warning]="stat.avance2024 >= 40 && stat.avance2024 < 70"
-                                                                    [class.bg-danger]="stat.avance2024 < 40"
-                                                                    [style.width.%]="stat.avance2024">
-                                                                </div>
-                                                            </div>
-                                                            <small class="fw-bold">{{
-                                                                formatearPorcentaje(stat.avance2024)
-                                                                }}</small>
-                                                        </div>
-                                                    </td>
-                                                    <td class="text-center py-2">
-                                                        <div
-                                                            class="d-flex align-items-center justify-content-center gap-1">
-                                                            <div class="progress" style="width: 50px; height: 6px;">
-                                                                <div class="progress-bar"
-                                                                    [class.bg-success]="stat.avance2025 >= 70"
-                                                                    [class.bg-warning]="stat.avance2025 >= 40 && stat.avance2025 < 70"
-                                                                    [class.bg-danger]="stat.avance2025 < 40"
-                                                                    [style.width.%]="stat.avance2025">
-                                                                </div>
-                                                            </div>
-                                                            <small class="fw-bold">{{
-                                                                formatearPorcentaje(stat.avance2025)
-                                                                }}</small>
-                                                        </div>
-                                                    </td>
-                                                    <td class="text-center py-2">
-                                                        <div
-                                                            class="d-flex align-items-center justify-content-center gap-1">
-                                                            <div class="progress" style="width: 50px; height: 6px;">
-                                                                <div class="progress-bar"
-                                                                    [class.bg-success]="stat.avance2026 >= 70"
-                                                                    [class.bg-warning]="stat.avance2026 >= 40 && stat.avance2026 < 70"
-                                                                    [class.bg-danger]="stat.avance2026 < 40"
-                                                                    [style.width.%]="stat.avance2026">
-                                                                </div>
-                                                            </div>
-                                                            <small class="fw-bold">{{
-                                                                formatearPorcentaje(stat.avance2026)
-                                                                }}</small>
-                                                        </div>
-                                                    </td>
-                                                    <td class="text-center py-2">
-                                                        <div
-                                                            class="d-flex align-items-center justify-content-center gap-1">
-                                                            <div class="progress" style="width: 50px; height: 6px;">
-                                                                <div class="progress-bar"
-                                                                    [class.bg-success]="stat.avance2027 >= 70"
-                                                                    [class.bg-warning]="stat.avance2027 >= 40 && stat.avance2027 < 70"
-                                                                    [class.bg-danger]="stat.avance2027 < 40"
-                                                                    [style.width.%]="stat.avance2027">
-                                                                </div>
-                                                            </div>
-                                                            <small class="fw-bold">{{
-                                                                formatearPorcentaje(stat.avance2027)
-                                                                }}</small>
-                                                        </div>
-                                                    </td>
-                                                    <td class="text-center py-2">
-                                                        <span class="badge"
-                                                            [class.bg-success]="stat.avancePromedio >= 70"
-                                                            [class.bg-warning]="stat.avancePromedio >= 40 && stat.avancePromedio < 70"
-                                                            [class.bg-danger]="stat.avancePromedio < 40">
-                                                            {{ formatearPorcentaje(stat.avancePromedio) }}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                                }
-                                                @if (estadisticasPorLinea.length === 0) {
-                                                <tr>
-                                                    <td colspan="7" class="text-center text-muted py-3">
-                                                        <i class="fas fa-info-circle me-2"></i>
-                                                        No hay estadísticas disponibles
-                                                    </td>
-                                                </tr>
-                                                }
-                                            </tbody>
-                                        </table>
                                     </div>
                                 </div>
                             </div>
+                            }
+
+                            <!-- ===== VISTA: ODS ===== -->
+                            @if (vistaAnalisis === 'ods') {
+                            <div class="pt-3">
+                                <h5 class="mb-4">
+                                    <i class="fas fa-globe me-2 text-primary"></i>
+                                    Objetivos de Desarrollo Sostenible (ODS)
+                                </h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6 class="mb-3">Distribución de Metas por ODS</h6>
+                                        @if (chartODS) {
+                                        <div class="chart-container" style="height: 400px;">
+                                            <canvas baseChart [data]="chartODS" [type]="'doughnut'"
+                                                [options]="doughnutOptions"></canvas>
+                                        </div>
+                                        }
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6 class="mb-3">Top 5 ODS por Presupuesto Asignado</h6>
+                                        @if (chartODSPresupuesto) {
+                                        <div class="chart-container" style="height: 400px;">
+                                            <canvas baseChart [data]="chartODSPresupuesto" [type]="'bar'"
+                                                [options]="chartOptions"></canvas>
+                                        </div>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="row mt-4">
+                                    <div class="col-12">
+                                        <h6 class="mb-3">Detalle por ODS</h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-hover align-middle">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>ODS</th>
+                                                        <th class="text-center">Total Metas</th>
+                                                        <th class="text-center">Metas Cumplidas</th>
+                                                        <th class="text-center">% Cumplimiento</th>
+                                                        <th class="text-end">Presupuesto Total</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @for (ods of analisis.analisisPorODS; track ods.codigoODS) {
+                                                    <tr class="table-row-clickeable"
+                                                        (click)="filtrarPorODS(ods.codigoODS)" role="button">
+                                                        <td>
+                                                            <strong>{{ ods.codigoODS }}.</strong> {{ ods.nombreODS
+                                                            }}
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <span class="badge bg-secondary">{{ ods.totalMetas
+                                                                }}</span>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <span class="badge bg-success">{{ ods.metasCumplidas
+                                                                }}</span>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <div
+                                                                class="d-flex align-items-center justify-content-center gap-2">
+                                                                <div class="progress"
+                                                                    style="width: 80px; height: 8px;">
+                                                                    <div class="progress-bar"
+                                                                        [class.bg-success]="ods.porcentajeCumplimiento >= 70"
+                                                                        [class.bg-warning]="ods.porcentajeCumplimiento >= 40 && ods.porcentajeCumplimiento < 70"
+                                                                        [class.bg-danger]="ods.porcentajeCumplimiento < 40"
+                                                                        [style.width.%]="ods.porcentajeCumplimiento">
+                                                                    </div>
+                                                                </div>
+                                                                <small class="fw-bold">{{
+                                                                    formatearPorcentaje(ods.porcentajeCumplimiento)
+                                                                    }}</small>
+                                                            </div>
+                                                        </td>
+                                                        <td class="text-end">
+                                                            <strong>{{ formatearMoneda(ods.presupuestoTotal)
+                                                                }}</strong>
+                                                        </td>
+                                                    </tr>
+                                                    }
+                                                    @if (!analisis.analisisPorODS || analisis.analisisPorODS.length
+                                                    === 0)
+                                                    {
+                                                    <tr>
+                                                        <td colspan="5" class="text-center text-muted py-4">
+                                                            <i class="fas fa-info-circle me-2"></i>
+                                                            No hay datos de ODS disponibles
+                                                        </td>
+                                                    </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            }
+
+                            <!-- ===== VISTA: SGR ===== -->
+                            @if (vistaAnalisis === 'sgr') {
+                            <div class="pt-3">
+                                <h5 class="mb-4">
+                                    <i class="fas fa-coins me-2 text-primary"></i>
+                                    Sistema General de Regalías
+                                </h5>
+                                
+                                <!-- KPIs SGR -->
+                                @if (analisis.analisisSGR) {
+                                <div class="row mb-4 g-3">
+                                    <div class="col-lg-3 col-md-6">
+                                        <div class="info-card">
+                                            <div class="info-icon-wrapper bg-warning">
+                                                <i class="fas fa-project-diagram"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <p class="info-label">Total Iniciativas</p>
+                                                <h5 class="info-value">{{ analisis.analisisSGR.totalIniciativas }}</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3 col-md-6">
+                                        <div class="info-card">
+                                            <div class="info-icon-wrapper bg-success">
+                                                <i class="fas fa-hand-holding-usd"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <p class="info-label">Recursos SGR</p>
+                                                <h5 class="info-value">{{ formatearMoneda(analisis.analisisSGR.recursosSGRTotales) }}</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3 col-md-6">
+                                        <div class="info-card">
+                                            <div class="info-icon-wrapper bg-primary">
+                                                <i class="fas fa-check-circle"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <p class="info-label">Con BPIN</p>
+                                                <h5 class="info-value">{{ analisis.analisisSGR.iniciativasConBPIN }}</h5>
+                                                <div class="info-meta">
+                                                    <span class="badge bg-primary-subtle text-primary">
+                                                        {{ formatearPorcentaje((analisis.analisisSGR.iniciativasConBPIN / analisis.analisisSGR.totalIniciativas) * 100) }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3 col-md-6">
+                                        <div class="info-card">
+                                            <div class="info-icon-wrapper bg-danger">
+                                                <i class="fas fa-times-circle"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <p class="info-label">Sin BPIN</p>
+                                                <h5 class="info-value">{{ analisis.analisisSGR.iniciativasSinBPIN }}</h5>
+                                                <div class="info-meta">
+                                                    <span class="badge bg-danger-subtle text-danger">
+                                                        {{ formatearPorcentaje((analisis.analisisSGR.iniciativasSinBPIN / analisis.analisisSGR.totalIniciativas) * 100) }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                }
+
+                                <!-- Gráfico SGR por Sector -->
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="chart-card">
+                                            <h6 class="chart-title">
+                                                <i class="fas fa-industry me-2 text-primary"></i>
+                                                Top 8 Sectores por Recursos SGR
+                                            </h6>
+                                            @if (chartSGRPorSector) {
+                                            <div class="chart-container" style="height: 400px;">
+                                                <canvas baseChart [data]="chartSGRPorSector"
+                                                    [type]="'bar'" [options]="chartOptions"></canvas>
+                                            </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            }
+
+                            <!-- ===== VISTA: INDICADORES ===== -->
+                            @if (vistaAnalisis === 'indicadores') {
+                            <div class="pt-3">
+                                <h5 class="mb-4">
+                                    <i class="fas fa-bullseye me-2 text-primary"></i>
+                                    Indicadores de Resultado
+                                </h5>
+                                
+                                <!-- KPIs Indicadores -->
+                                @if (analisis.analisisIndicadoresResultado) {
+                                <div class="row mb-4 g-3">
+                                    <div class="col-lg-3 col-md-6">
+                                        <div class="info-card">
+                                            <div class="info-icon-wrapper bg-primary">
+                                                <i class="fas fa-bullseye"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <p class="info-label">Total Indicadores</p>
+                                                <h5 class="info-value">{{ analisis.analisisIndicadoresResultado.totalIndicadores }}</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3 col-md-6">
+                                        <div class="info-card">
+                                            <div class="info-icon-wrapper bg-success">
+                                                <i class="fas fa-check-circle"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <p class="info-label">En PND</p>
+                                                <h5 class="info-value">{{ analisis.analisisIndicadoresResultado.indicadoresEnPND }}</h5>
+                                                <div class="info-meta">
+                                                    <span class="badge bg-success-subtle text-success">
+                                                        {{ formatearPorcentaje(analisis.analisisIndicadoresResultado.porcentajeAlineacionPND) }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3 col-md-6">
+                                        <div class="info-card">
+                                            <div class="info-icon-wrapper bg-secondary">
+                                                <i class="fas fa-times-circle"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <p class="info-label">Fuera de PND</p>
+                                                <h5 class="info-value">{{ analisis.analisisIndicadoresResultado.indicadoresFueraPND }}</h5>
+                                                <div class="info-meta">
+                                                    <span class="badge bg-secondary-subtle text-secondary">
+                                                        {{ formatearPorcentaje(100 - analisis.analisisIndicadoresResultado.porcentajeAlineacionPND) }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3 col-md-6">
+                                        <div class="info-card featured-card">
+                                            <div class="info-icon-wrapper bg-info">
+                                                <i class="fas fa-percentage"></i>
+                                            </div>
+                                            <div class="info-content">
+                                                <p class="info-label text-white">% Alineación PND</p>
+                                                <h5 class="info-value text-white fw-bold">{{ formatearPorcentaje(analisis.analisisIndicadoresResultado.porcentajeAlineacionPND) }}</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                }
+
+                                <!-- Gráficos -->
+                                <div class="row mb-4">
+                                    <div class="col-md-6">
+                                        <div class="chart-card">
+                                            <h6 class="chart-title">
+                                                <i class="fas fa-chart-pie me-2 text-primary"></i>
+                                                Alineación con PND
+                                            </h6>
+                                            @if (chartIndicadoresPND) {
+                                            <div class="chart-container" style="height: 300px;">
+                                                <canvas baseChart [data]="chartIndicadoresPND"
+                                                    [type]="'doughnut'" [options]="doughnutOptions"></canvas>
+                                            </div>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="chart-card">
+                                            <h6 class="chart-title">
+                                                <i class="fas fa-chart-bar me-2 text-primary"></i>
+                                                Indicadores por Línea Estratégica
+                                            </h6>
+                                            @if (chartIndicadoresPorLinea) {
+                                            <div class="chart-container" style="height: 300px;">
+                                                <canvas baseChart [data]="chartIndicadoresPorLinea"
+                                                    [type]="'bar'" [options]="chartOptions"></canvas>
+                                            </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            }
+
+                            <!-- ===== VISTA: SECRETARÍAS ===== -->
+                            @if (vistaAnalisis === 'secretarias') {
+                            <div class="pt-3">
+                                <h5 class="mb-4">
+                                    <i class="fas fa-building me-2 text-primary"></i>
+                                    Avances por Secretaría
+                                </h5>
+                                
+                                <!-- Tabla de Secretarías con Avances por Año -->
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="data-card">
+                                            <h6 class="card-title">
+                                                <i class="fas fa-table me-2 text-primary"></i>
+                                                Resumen de Metas por Secretaría
+                                            </h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-hover table-modern align-middle mb-0">
+                                                    <thead>
+                                                        <tr>
+                                                            <th><i class="fas fa-building me-2"></i>Secretaría</th>
+                                                            <th class="text-center">Total Metas</th>
+                                                            <th class="text-center">2024</th>
+                                                            <th class="text-center">2025</th>
+                                                            <th class="text-center">2026</th>
+                                                            <th class="text-center">2027</th>
+                                                            <th class="text-center">Promedio</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @for (secretaria of secretariasDisponibles; track secretaria) {
+                                                        <tr class="table-row-hover" (click)="filtrarPorSecretaria(secretaria)" role="button">
+                                                            <td>
+                                                                <i class="fas fa-filter me-2 text-muted"></i>
+                                                                <strong>{{ secretaria }}</strong>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <span class="badge-modern bg-primary">
+                                                                    {{ contarProductosPorSecretaria(secretaria) }}
+                                                                </span>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                                                    <div class="progress" style="width: 60px; height: 8px;">
+                                                                        <div class="progress-bar bg-success" role="progressbar"
+                                                                            [style.width.%]="calcularAvanceSecretariaPorAnio(secretaria, 2024)">
+                                                                        </div>
+                                                                    </div>
+                                                                    <small class="fw-bold">{{ calcularAvanceSecretariaPorAnio(secretaria, 2024) }}%</small>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                                                    <div class="progress" style="width: 60px; height: 8px;">
+                                                                        <div class="progress-bar bg-success" role="progressbar"
+                                                                            [style.width.%]="calcularAvanceSecretariaPorAnio(secretaria, 2025)">
+                                                                        </div>
+                                                                    </div>
+                                                                    <small class="fw-bold">{{ calcularAvanceSecretariaPorAnio(secretaria, 2025) }}%</small>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                                                    <div class="progress" style="width: 60px; height: 8px;">
+                                                                        <div class="progress-bar bg-success" role="progressbar"
+                                                                            [style.width.%]="calcularAvanceSecretariaPorAnio(secretaria, 2026)">
+                                                                        </div>
+                                                                    </div>
+                                                                    <small class="fw-bold">{{ calcularAvanceSecretariaPorAnio(secretaria, 2026) }}%</small>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                                                    <div class="progress" style="width: 60px; height: 8px;">
+                                                                        <div class="progress-bar bg-success" role="progressbar"
+                                                                            [style.width.%]="calcularAvanceSecretariaPorAnio(secretaria, 2027)">
+                                                                        </div>
+                                                                    </div>
+                                                                    <small class="fw-bold">{{ calcularAvanceSecretariaPorAnio(secretaria, 2027) }}%</small>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <span class="badge-modern bg-info">
+                                                                    {{ calcularPromedioAvanceSecretaria(secretaria) }}%
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            }
+
+                            <!-- ===== VISTA: LÍNEAS ===== -->
+                            @if (vistaAnalisis === 'lineas') {
+                            <div class="pt-3">
+                                <h5 class="mb-4">
+                                    <i class="fas fa-project-diagram me-2 text-primary"></i>
+                                    Avances por Línea Estratégica
+                                </h5>
+                                
+                                <!-- Tabla de Líneas Estratégicas con Avances por Año -->
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="data-card">
+                                            <h6 class="card-title">
+                                                <i class="fas fa-table me-2 text-primary"></i>
+                                                Resumen de Metas por Línea Estratégica
+                                            </h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-hover table-modern align-middle mb-0">
+                                                    <thead>
+                                                        <tr>
+                                                            <th><i class="fas fa-project-diagram me-2"></i>Línea Estratégica</th>
+                                                            <th class="text-center">Total Metas</th>
+                                                            <th class="text-center">2024</th>
+                                                            <th class="text-center">2025</th>
+                                                            <th class="text-center">2026</th>
+                                                            <th class="text-center">2027</th>
+                                                            <th class="text-center">Promedio</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @for (linea of lineasDisponibles; track linea) {
+                                                        <tr class="table-row-hover" (click)="filtrarPorLinea(linea)" role="button">
+                                                            <td>
+                                                                <i class="fas fa-filter me-2 text-muted"></i>
+                                                                <strong>{{ linea }}</strong>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <span class="badge-modern bg-primary">
+                                                                    {{ contarProductosPorLinea(linea) }}
+                                                                </span>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                                                    <div class="progress" style="width: 60px; height: 8px;">
+                                                                        <div class="progress-bar bg-success" role="progressbar"
+                                                                            [style.width.%]="calcularAvanceLineaPorAnio(linea, 2024)">
+                                                                        </div>
+                                                                    </div>
+                                                                    <small class="fw-bold">{{ calcularAvanceLineaPorAnio(linea, 2024) }}%</small>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                                                    <div class="progress" style="width: 60px; height: 8px;">
+                                                                        <div class="progress-bar bg-success" role="progressbar"
+                                                                            [style.width.%]="calcularAvanceLineaPorAnio(linea, 2025)">
+                                                                        </div>
+                                                                    </div>
+                                                                    <small class="fw-bold">{{ calcularAvanceLineaPorAnio(linea, 2025) }}%</small>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                                                    <div class="progress" style="width: 60px; height: 8px;">
+                                                                        <div class="progress-bar bg-success" role="progressbar"
+                                                                            [style.width.%]="calcularAvanceLineaPorAnio(linea, 2026)">
+                                                                        </div>
+                                                                    </div>
+                                                                    <small class="fw-bold">{{ calcularAvanceLineaPorAnio(linea, 2026) }}%</small>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                                                    <div class="progress" style="width: 60px; height: 8px;">
+                                                                        <div class="progress-bar bg-success" role="progressbar"
+                                                                            [style.width.%]="calcularAvanceLineaPorAnio(linea, 2027)">
+                                                                        </div>
+                                                                    </div>
+                                                                    <small class="fw-bold">{{ calcularAvanceLineaPorAnio(linea, 2027) }}%</small>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <span class="badge-modern bg-info">
+                                                                    {{ calcularPromedioAvanceLinea(linea) }}%
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            }
+                            @if (vistaAnalisis === 'lineas') {
+                            <div class="pt-3">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-project-diagram me-2 text-primary"></i>
+                                    Líneas Estratégicas
+                                </h5>
+                                <p class="text-muted">Vista en construcción: Avances por línea estratégica</p>
+                            </div>
+                            }
+
                         </div>
                     </div>
                 </div>
@@ -1826,41 +1495,78 @@
                         </div>
                     </div>
 
-                    <!-- Selector de Año Moderno -->
-                    <div class="year-selector-card mb-4">
-                        <div class="year-selector-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-calendar-alt me-2"></i>
-                                Selecciona el Año del Cuatrienio
+                    <!-- Selector de Año Compacto -->
+                    <div class="year-tabs-card-compact mb-3">
+                        <div class="year-tabs-header-compact">
+                            <i class="fas fa-calendar-alt me-2"></i>
+                            <span>Año del Cuatrienio</span>
+                        </div>
+                        <div class="year-tabs-container-compact">
+                            @for (anio of aniosDisponibles; track anio) {
+                            <button class="year-tab-compact" [class.active]="anioSeleccionado === anio"
+                                (click)="cambiarAnioSeleccionado(anio)">
+                                {{ anio }}
+                                @if (anioSeleccionado === anio) {
+                                <i class="fas fa-check"></i>
+                                }
+                            </button>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Card: Metas por Estado del Año -->
+                    <div class="year-status-card mb-4">
+                        <div class="year-status-header">
+                            <h6 class="mb-0 fw-bold">
+                                <i class="fas fa-chart-pie me-2"></i>
+                                Metas por Estado - Año {{ anioSeleccionado }}
                             </h6>
                         </div>
-                        <div class="year-selector-body">
-                            <div class="year-buttons-container">
-                                @for (anio of aniosDisponibles; track anio) {
-                                <div class="year-btn-wrapper" (click)="cambiarAnioSeleccionado(anio)">
-                                    <div class="year-btn" [class.active]="anioSeleccionado === anio">
-                                        <div class="year-icon-wrapper">
-                                            <i class="fas fa-calendar-day"></i>
-                                        </div>
-                                        <div class="year-info">
-                                            <span class="year-number">{{ anio }}</span>
-                                            <small class="year-label">
-                                                {{ anio === 2024 ? 'Año 1' : anio === 2025 ? 'Año 2' : anio === 2026 ? 'Año 3' : 'Año 4' }}
-                                            </small>
-                                        </div>
-                                        <div class="year-badges">
-                                                <span class="badge bg-success badge-sm">{{
-                                                    contarMetasPorEstado(EstadoMeta.CUMPLIDA, anio) }}</span>
-                                                <span class="badge bg-info badge-sm">{{
-                                                    contarMetasPorEstado(EstadoMeta.EN_PROGRESO, anio) }}</span>
-                                                <span class="badge bg-warning badge-sm">{{
-                                                    contarMetasPorEstado(EstadoMeta.PENDIENTE, anio) }}</span>
-                                                <span class="badge bg-secondary badge-sm">{{
-                                                    contarMetasPorEstado(EstadoMeta.POR_CUMPLIR, anio) }}</span>
-                                            </div>
-                                    </div>
+                        <div class="year-status-grid">
+                            <div class="status-item status-cumplida">
+                                <div class="status-icon">
+                                    <i class="fas fa-check-circle"></i>
                                 </div>
-                                }
+                                <div class="status-info">
+                                    <span class="status-count">{{ contarMetasPorEstado(EstadoMeta.CUMPLIDA, anioSeleccionado) }}</span>
+                                    <span class="status-label">Cumplidas</span>
+                                </div>
+                            </div>
+                            <div class="status-item status-progreso">
+                                <div class="status-icon">
+                                    <i class="fas fa-spinner"></i>
+                                </div>
+                                <div class="status-info">
+                                    <span class="status-count">{{ contarMetasPorEstado(EstadoMeta.EN_PROGRESO, anioSeleccionado) }}</span>
+                                    <span class="status-label">En Progreso</span>
+                                </div>
+                            </div>
+                            <div class="status-item status-por-cumplir">
+                                <div class="status-icon">
+                                    <i class="fas fa-hourglass-half"></i>
+                                </div>
+                                <div class="status-info">
+                                    <span class="status-count">{{ contarMetasPorEstado(EstadoMeta.POR_CUMPLIR, anioSeleccionado) }}</span>
+                                    <span class="status-label">Por Cumplir</span>
+                                </div>
+                            </div>
+                            <div class="status-item status-pendiente">
+                                <div class="status-icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="status-info">
+                                    <span class="status-count">{{ contarMetasPorEstado(EstadoMeta.PENDIENTE, anioSeleccionado) }}</span>
+                                    <span class="status-label">Pendientes</span>
+                                </div>
+                            </div>
+                            <div class="status-item status-sin-definir">
+                                <div class="status-icon">
+                                    <i class="fas fa-question-circle"></i>
+                                </div>
+                                <div class="status-info">
+                                    <span class="status-count">{{ contarMetasPorEstado(EstadoMeta.SIN_DEFINIR, anioSeleccionado) }}</span>
+                                    <span class="status-label">Sin Definir</span>
+                                </div>
                             </div>
                         </div>
                     </div>

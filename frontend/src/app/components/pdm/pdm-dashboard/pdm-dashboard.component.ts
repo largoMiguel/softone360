@@ -97,6 +97,9 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
 
     // Navegación interna del dashboard
     seccionActiva: 'resumen' | 'analisis' | 'presupuesto' | 'ods' = 'resumen';
+    
+    // Navegación secundaria en Análisis
+    vistaAnalisis: 'cumplimiento' | 'sectores' | 'presupuesto' | 'ods' | 'sgr' | 'indicadores' | 'secretarias' | 'lineas' = 'cumplimiento';
 
     // Variables para BPIN
     mostrandoModalBPIN = false;
@@ -2283,6 +2286,13 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
     }
 
     /**
+     * Cambia la vista dentro de Análisis
+     */
+    cambiarVistaAnalisis(vista: 'cumplimiento' | 'sectores' | 'presupuesto' | 'ods' | 'sgr' | 'indicadores' | 'secretarias' | 'lineas'): void {
+        this.vistaAnalisis = vista;
+    }
+
+    /**
      * Calcula el avance promedio de todos los productos
      */
     calcularAvancePromedio(): number {
@@ -2290,10 +2300,11 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
         
         const totalAvance = this.productos.reduce((sum, producto) => {
             const avance = this.obtenerAvanceDelAnio(producto, this.anioSeleccionado);
-            return sum + avance;
+            return sum + (isNaN(avance) ? 0 : avance);
         }, 0);
         
-        return Math.round(totalAvance / this.productos.length);
+        const promedio = totalAvance / this.productos.length;
+        return Math.round(isNaN(promedio) ? 0 : promedio);
     }
 
     /**
@@ -2345,5 +2356,83 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
         this.mostrandoModalBPIN = false;
         this.bpinData = null;
         this.bpinError = null;
+    }
+
+    /**
+     * Calcular avance de una secretaría en un año específico
+     */
+    calcularAvanceSecretariaPorAnio(secretaria: string, anio: number): number {
+        const productosSecretaria = this.productos.filter(p => p.secretariaAsignada === secretaria);
+        if (productosSecretaria.length === 0) return 0;
+
+        const totalAvance = productosSecretaria.reduce((sum, producto) => {
+            const avance = this.obtenerAvanceDelAnio(producto, anio);
+            return sum + (isNaN(avance) ? 0 : avance);
+        }, 0);
+
+        const promedio = totalAvance / productosSecretaria.length;
+        return Math.round(isNaN(promedio) ? 0 : promedio);
+    }
+
+    /**
+     * Calcular promedio de avance de una secretaría (todos los años)
+     */
+    calcularPromedioAvanceSecretaria(secretaria: string): number {
+        const avances = [
+            this.calcularAvanceSecretariaPorAnio(secretaria, 2024),
+            this.calcularAvanceSecretariaPorAnio(secretaria, 2025),
+            this.calcularAvanceSecretariaPorAnio(secretaria, 2026),
+            this.calcularAvanceSecretariaPorAnio(secretaria, 2027)
+        ];
+
+        const total = avances.reduce((sum, avance) => sum + avance, 0);
+        const promedio = total / avances.length;
+        return Math.round(isNaN(promedio) ? 0 : promedio);
+    }
+
+    /**
+     * Calcular avance de una línea estratégica en un año específico
+     */
+    calcularAvanceLineaPorAnio(linea: string, anio: number): number {
+        const productosLinea = this.productos.filter(p => p.lineaEstrategica === linea);
+        if (productosLinea.length === 0) return 0;
+
+        const totalAvance = productosLinea.reduce((sum, producto) => {
+            const avance = this.obtenerAvanceDelAnio(producto, anio);
+            return sum + (isNaN(avance) ? 0 : avance);
+        }, 0);
+
+        const promedio = totalAvance / productosLinea.length;
+        return Math.round(isNaN(promedio) ? 0 : promedio);
+    }
+
+    /**
+     * Calcular promedio de avance de una línea estratégica (todos los años)
+     */
+    calcularPromedioAvanceLinea(linea: string): number {
+        const avances = [
+            this.calcularAvanceLineaPorAnio(linea, 2024),
+            this.calcularAvanceLineaPorAnio(linea, 2025),
+            this.calcularAvanceLineaPorAnio(linea, 2026),
+            this.calcularAvanceLineaPorAnio(linea, 2027)
+        ];
+
+        const total = avances.reduce((sum, avance) => sum + avance, 0);
+        const promedio = total / avances.length;
+        return Math.round(isNaN(promedio) ? 0 : promedio);
+    }
+
+    /**
+     * Contar productos por secretaría
+     */
+    contarProductosPorSecretaria(secretaria: string): number {
+        return this.productos.filter(p => p.secretariaAsignada === secretaria).length;
+    }
+
+    /**
+     * Contar productos por línea estratégica
+     */
+    contarProductosPorLinea(linea: string): number {
+        return this.productos.filter(p => p.lineaEstrategica === linea).length;
     }
 }
