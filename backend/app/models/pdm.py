@@ -66,9 +66,7 @@ class PdmActividad(Base):
     responsable = Column(String(256), nullable=True)
     fecha_inicio = Column(DateTime, nullable=True)
     fecha_fin = Column(DateTime, nullable=True)
-    # Campos antiguos (compatibilidad)
-    porcentaje_avance = Column(Float, nullable=False, default=0.0)
-    # Nuevos campos para ejecutar por año
+    # Campos para ejecutar por año
     anio = Column(Integer, nullable=True)
     meta_ejecutar = Column(Float, nullable=False, default=0.0)
     valor_ejecutado = Column(Float, nullable=False, default=0.0)
@@ -83,10 +81,6 @@ class PdmActividad(Base):
         back_populates="actividad",
         cascade="all, delete-orphan",
         order_by="PdmActividadEjecucion.created_at.desc()"
-    )
-
-    __table_args__ = (
-        UniqueConstraint("entity_id", "codigo_indicador_producto", "nombre", name="uq_actividad_entity_codigo_nombre"),
     )
 
 

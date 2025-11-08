@@ -202,13 +202,23 @@ export class PlanesDashboardComponent implements OnInit, OnDestroy {
         ).length;
         this.stats.planesFinalizados = this.planes.filter(p => p.estado === EstadoPlan.FINALIZADO).length;
 
+        // ✅ Cálculo seguro del promedio de avance
         if (this.planes.length > 0) {
             const suma = this.planes.reduce((acc, p) => {
-                const avance = p.porcentaje_avance || 0;
-                return acc + (isNaN(avance) ? 0 : avance);
+                // ✅ Usar nullish coalescing y validar tipo
+                const avance = p.porcentaje_avance ?? 0;
+                const avanceNum = typeof avance === 'number' ? avance : parseFloat(String(avance || 0));
+                
+                // ✅ Validar que sea número y esté en rango válido
+                const avanceValido = isNaN(avanceNum) ? 0 : Math.max(0, Math.min(100, avanceNum));
+                
+                return acc + avanceValido;
             }, 0);
+            
             const promedio = suma / this.planes.length;
-            this.stats.promedioAvance = Math.round(isNaN(promedio) ? 0 : promedio);
+            
+            // ✅ Validar resultado final
+            this.stats.promedioAvance = isNaN(promedio) ? 0 : Math.round(promedio);
         } else {
             this.stats.promedioAvance = 0;
         }

@@ -398,104 +398,172 @@ async def create_actividad(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
-    entity = get_entity_or_404(db, slug)
-    ensure_user_can_manage_entity(current_user, entity)
-
-    from datetime import datetime as dt
-    from datetime import datetime
-
-    # Validaciones de negocio
-    if payload.fecha_inicio and not payload.fecha_fin:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Si diligencias fecha_inicio debes diligenciar fecha_fin")
-    if payload.fecha_fin and not payload.fecha_inicio:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Si diligencias fecha_fin debes diligenciar fecha_inicio")
-    if payload.fecha_inicio and payload.fecha_fin:
-        try:
-            d1 = datetime.fromisoformat(payload.fecha_inicio)
-            d2 = datetime.fromisoformat(payload.fecha_fin)
-            if d1 > d2:
-                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="La fecha de inicio no puede ser mayor a la fecha de fin")
-        except ValueError:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Formato de fecha inválido. Use ISO 8601 (YYYY-MM-DD)")
-    # Validar estado permitido
-    estados_permitidos = {"pendiente", "en_progreso", "completada", "cancelada"}
-    if payload.estado and payload.estado not in estados_permitidos:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Estado inválido para actividad")
-
-    # Validaciones de anio/meta
-    if payload.anio < 2000 or payload.anio > 2100:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Año de ejecución inválido")
-    if payload.meta_ejecutar < 0:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="La meta a ejecutar debe ser >= 0")
-    if payload.valor_ejecutado < 0:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="El valor ejecutado debe ser >= 0")
-
-    nueva_actividad = PdmActividad(
-        entity_id=entity.id,
-        codigo_indicador_producto=payload.codigo_indicador_producto,
-        nombre=payload.nombre,
-        descripcion=payload.descripcion,
-        responsable=(payload.responsable or None),
-        fecha_inicio=dt.fromisoformat(payload.fecha_inicio) if payload.fecha_inicio else None,
-        fecha_fin=dt.fromisoformat(payload.fecha_fin) if payload.fecha_fin else None,
-        estado=payload.estado,
-        anio=payload.anio,
-        meta_ejecutar=payload.meta_ejecutar,
-        valor_ejecutado=payload.valor_ejecutado,
-    )
-
-    db.add(nueva_actividad)
-    db.commit()
-    db.refresh(nueva_actividad)
-
-    # Crear alertas para secretarios asignados al producto
     try:
-        assignment = db.query(PdmMetaAssignment).filter(
-            PdmMetaAssignment.entity_id == entity.id,
-            PdmMetaAssignment.codigo_indicador_producto == payload.codigo_indicador_producto
-        ).first()
+        entity = get_entity_or_404(db, slug)
+        ensure_user_can_manage_entity(current_user, entity)
+
+        from datetime import datetime as dt
+        from datetime import datetime
+        from sqlalchemy.exc import SQLAlchemyError
+
+        # ✅ VALIDACIONES EXHAUSTIVAS DE CAMPOS REQUERIDOS
+        if not payload.nombre or len(payload.nombre.strip()) == 0:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="El nombre de la actividad es obligatorio"
+            )
         
-        if assignment and assignment.secretaria:
-            secretarios = db.query(User).filter(
-                User.role == UserRole.SECRETARIO,
-                User.entity_id == entity.id,
-                User.secretaria == assignment.secretaria
-            ).all()
+        if len(payload.nombre.strip()) > 512:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="El nombre no puede exceder 512 caracteres"
+            )
+
+        if not payload.codigo_indicador_producto or len(payload.codigo_indicador_producto.strip()) == 0:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="El código del indicador producto es obligatorio"
+            )
+
+        # ✅ Validaciones de fechas
+        if payload.fecha_inicio and not payload.fecha_fin:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, 
+                detail="Si diligencias fecha_inicio debes diligenciar fecha_fin"
+            )
+        if payload.fecha_fin and not payload.fecha_inicio:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, 
+                detail="Si diligencias fecha_fin debes diligenciar fecha_inicio"
+            )
+        if payload.fecha_inicio and payload.fecha_fin:
+            try:
+                d1 = datetime.fromisoformat(payload.fecha_inicio)
+                d2 = datetime.fromisoformat(payload.fecha_fin)
+                if d1 > d2:
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, 
+                        detail="La fecha de inicio no puede ser mayor a la fecha de fin"
+                    )
+            except ValueError as e:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, 
+                    detail=f"Formato de fecha inválido. Use ISO 8601 (YYYY-MM-DD): {str(e)}"
+                )
+
+        # ✅ Validar estado permitido
+        estados_permitidos = {"pendiente", "en_progreso", "completada", "cancelada"}
+        if payload.estado and payload.estado not in estados_permitidos:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, 
+                detail=f"Estado inválido. Debe ser uno de: {', '.join(estados_permitidos)}"
+            )
+
+        # ✅ Validaciones de rangos numéricos
+        if payload.anio < 2000 or payload.anio > 2100:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, 
+                detail="Año de ejecución inválido (debe estar entre 2000 y 2100)"
+            )
+        if payload.meta_ejecutar < 0:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, 
+                detail="La meta a ejecutar debe ser mayor o igual a 0"
+            )
+        if payload.valor_ejecutado < 0:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, 
+                detail="El valor ejecutado debe ser mayor o igual a 0"
+            )
+        
+        # ✅ Validar que valor_ejecutado no exceda meta_ejecutar
+        if payload.valor_ejecutado > payload.meta_ejecutar:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="El valor ejecutado no puede ser mayor a la meta a ejecutar"
+            )
+
+        nueva_actividad = PdmActividad(
+            entity_id=entity.id,
+            codigo_indicador_producto=payload.codigo_indicador_producto,
+            nombre=payload.nombre,
+            descripcion=payload.descripcion,
+            responsable=(payload.responsable or None),
+            fecha_inicio=dt.fromisoformat(payload.fecha_inicio) if payload.fecha_inicio else None,
+            fecha_fin=dt.fromisoformat(payload.fecha_fin) if payload.fecha_fin else None,
+            estado=payload.estado,
+            anio=payload.anio,
+            meta_ejecutar=payload.meta_ejecutar,
+            valor_ejecutado=payload.valor_ejecutado,
+        )
+
+        db.add(nueva_actividad)
+        db.commit()
+        db.refresh(nueva_actividad)
+
+        # Crear alertas para secretarios asignados al producto
+        try:
+            assignment = db.query(PdmMetaAssignment).filter(
+                PdmMetaAssignment.entity_id == entity.id,
+                PdmMetaAssignment.codigo_indicador_producto == payload.codigo_indicador_producto
+            ).first()
             
-            for secretario in secretarios:
-                db.add(Alert(
-                    entity_id=entity.id,
-                    recipient_user_id=secretario.id,
-                    type="PDM_NEW_ACTIVITY",
-                    title=f"Nueva actividad en PDM",
-                    message=f"Se creó la actividad '{nueva_actividad.nombre}' para el producto {payload.codigo_indicador_producto}",
-                    data=json.dumps({
-                        "codigo_indicador_producto": payload.codigo_indicador_producto,
-                        "actividad_id": nueva_actividad.id
-                    }),
-                ))
-            db.commit()
+            if assignment and assignment.secretaria:
+                secretarios = db.query(User).filter(
+                    User.role == UserRole.SECRETARIO,
+                    User.entity_id == entity.id,
+                    User.secretaria == assignment.secretaria
+                ).all()
+                
+                for secretario in secretarios:
+                    db.add(Alert(
+                        entity_id=entity.id,
+                        recipient_user_id=secretario.id,
+                        type="PDM_NEW_ACTIVITY",
+                        title=f"Nueva actividad en PDM",
+                        message=f"Se creó la actividad '{nueva_actividad.nombre}' para el producto {payload.codigo_indicador_producto}",
+                        data=json.dumps({
+                            "codigo_indicador_producto": payload.codigo_indicador_producto,
+                            "actividad_id": nueva_actividad.id
+                        }),
+                    ))
+                db.commit()
+        except Exception as e:
+            db.rollback()
+            # No interrumpir el flujo por alertas
+            print(f"Error creando alertas de nueva actividad: {e}")
+
+            return ActividadResponse(
+                id=nueva_actividad.id,
+                entity_id=nueva_actividad.entity_id,
+                codigo_indicador_producto=nueva_actividad.codigo_indicador_producto,
+                nombre=nueva_actividad.nombre,
+                descripcion=nueva_actividad.descripcion,
+                responsable=nueva_actividad.responsable,
+                fecha_inicio=nueva_actividad.fecha_inicio.isoformat() if nueva_actividad.fecha_inicio else None,
+                fecha_fin=nueva_actividad.fecha_fin.isoformat() if nueva_actividad.fecha_fin else None,
+                estado=nueva_actividad.estado,
+                anio=nueva_actividad.anio if nueva_actividad.anio is not None else 0,
+                meta_ejecutar=nueva_actividad.meta_ejecutar,
+                valor_ejecutado=nueva_actividad.valor_ejecutado,
+                created_at=nueva_actividad.created_at.isoformat() if nueva_actividad.created_at else '',
+                updated_at=nueva_actividad.updated_at.isoformat() if nueva_actividad.updated_at else '',
+            )
+    except HTTPException:
+        # Re-lanzar excepciones HTTP (validaciones)
+        raise
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error de base de datos al crear la actividad: {str(e)}"
+        )
     except Exception as e:
         db.rollback()
-        # No interrumpir el flujo por alertas
-        print(f"Error creando alertas de nueva actividad: {e}")
-
-    return ActividadResponse(
-        id=nueva_actividad.id,
-        entity_id=nueva_actividad.entity_id,
-        codigo_indicador_producto=nueva_actividad.codigo_indicador_producto,
-        nombre=nueva_actividad.nombre,
-        descripcion=nueva_actividad.descripcion,
-        responsable=nueva_actividad.responsable,
-        fecha_inicio=nueva_actividad.fecha_inicio.isoformat() if nueva_actividad.fecha_inicio else None,
-        fecha_fin=nueva_actividad.fecha_fin.isoformat() if nueva_actividad.fecha_fin else None,
-        estado=nueva_actividad.estado,
-        anio=nueva_actividad.anio if nueva_actividad.anio is not None else 0,
-        meta_ejecutar=nueva_actividad.meta_ejecutar,
-        valor_ejecutado=nueva_actividad.valor_ejecutado,
-        created_at=nueva_actividad.created_at.isoformat() if nueva_actividad.created_at else '',
-        updated_at=nueva_actividad.updated_at.isoformat() if nueva_actividad.updated_at else '',
-    )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error inesperado al crear la actividad: {str(e)}"
+        )
 
 
 @router.put("/{slug}/actividades/{actividad_id}", response_model=ActividadResponse)
