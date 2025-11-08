@@ -1114,6 +1114,30 @@ export class PdmDataService {
                 }
             }
 
+            // 🔥 CRÍTICO: Cargar asignaciones de secretarías desde el backend
+            try {
+                const assignmentsResp = await firstValueFrom(
+                    this.pdmBackend.getAssignments(entitySlug)
+                );
+                
+                const assignmentsMap = assignmentsResp.assignments || {};
+                console.log('🔥 Asignaciones cargadas en servicio:', assignmentsMap);
+                
+                // Aplicar asignaciones a cada producto
+                pdmData.planIndicativoProductos.forEach(producto => {
+                    const sec = assignmentsMap[producto.codigoIndicadorProducto];
+                    if (sec !== undefined && sec !== null) {
+                        producto.secretariaAsignada = sec;
+                        console.log(`  ✅ ${producto.codigoIndicadorProducto} → ${sec}`);
+                    } else {
+                        producto.secretariaAsignada = undefined;
+                    }
+                });
+            } catch (error) {
+                console.warn('⚠️ Error al cargar asignaciones desde backend:', error);
+                // Continuar sin asignaciones si falla
+            }
+
             return pdmData;
         } catch (error) {
             this.cargandoSubject.next(false);
@@ -1185,6 +1209,33 @@ export class PdmDataService {
 
             // 2. Procesar localmente
             const pdmData = await this.procesarArchivoExcel(file);
+
+            // 3. 🔥 CRÍTICO: Cargar asignaciones de secretarías desde el backend
+            try {
+                const assignmentsResp = await firstValueFrom(
+                    this.pdmBackend.getAssignments(entitySlug)
+                );
+                
+                const assignmentsMap = assignmentsResp.assignments || {};
+                console.log('🔥 Asignaciones cargadas después de subir Excel:', assignmentsMap);
+                
+                // Aplicar asignaciones a cada producto
+                pdmData.planIndicativoProductos.forEach(producto => {
+                    const sec = assignmentsMap[producto.codigoIndicadorProducto];
+                    if (sec !== undefined && sec !== null) {
+                        producto.secretariaAsignada = sec;
+                    } else {
+                        producto.secretariaAsignada = undefined;
+                    }
+                });
+
+                // Guardar datos actualizados en localStorage
+                localStorage.setItem('pdmData', JSON.stringify(pdmData));
+                this.pdmDataSubject.next(pdmData);
+            } catch (error) {
+                console.warn('⚠️ Error al cargar asignaciones después de subir Excel:', error);
+                // Continuar sin asignaciones si falla
+            }
 
             // Los datos ya se guardan en cache en procesarArchivoExcel
             return pdmData;
