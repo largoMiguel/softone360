@@ -1138,6 +1138,14 @@ export class PdmDataService {
                 // Continuar sin asignaciones si falla
             }
 
+            // 💾 GUARDAR en localStorage CON las asignaciones incluidas
+            localStorage.setItem('pdmData', JSON.stringify(pdmData));
+            console.log('💾 PDM Data guardado en localStorage con asignaciones');
+
+            // 📡 EMITIR los datos completos
+            this.pdmDataSubject.next(pdmData);
+            this.cargandoSubject.next(false);
+
             return pdmData;
         } catch (error) {
             this.cargandoSubject.next(false);
@@ -1229,15 +1237,18 @@ export class PdmDataService {
                     }
                 });
 
-                // Guardar datos actualizados en localStorage
+                // 💾 Guardar datos actualizados en localStorage
                 localStorage.setItem('pdmData', JSON.stringify(pdmData));
+                console.log('💾 PDM Data guardado en localStorage con asignaciones');
+
+                // 📡 EMITIR los datos completos
                 this.pdmDataSubject.next(pdmData);
             } catch (error) {
                 console.warn('⚠️ Error al cargar asignaciones después de subir Excel:', error);
                 // Continuar sin asignaciones si falla
             }
 
-            // Los datos ya se guardan en cache en procesarArchivoExcel
+            this.cargandoSubject.next(false);
             return pdmData;
         } catch (error) {
             this.cargandoSubject.next(false);

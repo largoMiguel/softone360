@@ -449,46 +449,23 @@ export class PdmDashboardComponent implements OnInit, OnDestroy {
                     this.lineasDisponibles = this.pdmService.obtenerLineasEstrategicasUnicas();
                     this.secretariasDisponibles = this.pdmService.obtenerSecretariasUnicas();
 
-                    // Cargar secretarías primero, luego asignaciones
+                    // 🎯 Las asignaciones YA VIENEN CARGADAS desde el servicio
+                    // NO necesitamos volver a cargarlas aquí
                     const slug = this.entityContext.currentEntity?.slug;
                     if (slug) {
                         this.cargarSecretarias();
+                    }
 
-                        // Esperar un momento para asegurar que secretarías estén cargadas
-                        setTimeout(() => {
-                            this.pdmBackend.getAssignments(slug).subscribe({
-                                next: (resp: { assignments: Record<string, string | null> }) => {
-                                    const map = resp.assignments || {};
-                                    console.log('📋 Asignaciones cargadas desde BD:', map);
-                                    this.pdmData!.planIndicativoProductos.forEach(p => {
-                                        const sec = map[p.codigoIndicadorProducto];
-                                        if (sec !== undefined && sec !== null) {
-                                            // Asignar el valor de secretaría si existe
-                                            p.secretariaAsignada = sec;
-                                        } else {
-                                            // Si es null o undefined, dejar sin asignar
-                                            p.secretariaAsignada = undefined;
-                                        }
-                                    });
-
-                                    // Aplicar filtro automático basado en el rol del usuario
-                                    this.aplicarFiltrosPorRol();
-
-                                    this.actualizarTabla();
-                                    // Luego de asignaciones, cargar avances por cada producto
-                                    this.cargarAvancesParaTodos(slug);
-                                },
-                                error: () => {
-                                    console.error('❌ Error al cargar asignaciones');
-                                    this.aplicarFiltrosPorRol();
-                                    this.actualizarTabla();
-                                }
-                            });
-                        }, 100);
-                    } else {
-                        // Si no hay slug, igual intentamos cargar tabla
-                        this.aplicarFiltrosPorRol();
-                        this.actualizarTabla();
+                    // Las asignaciones ya están en pdmData gracias al servicio
+                    console.log('✅ PDM Data recibido con asignaciones desde servicio');
+                    
+                    // Aplicar filtro automático basado en el rol del usuario
+                    this.aplicarFiltrosPorRol();
+                    this.actualizarTabla();
+                    
+                    // Cargar avances por cada producto
+                    if (slug) {
+                        this.cargarAvancesParaTodos(slug);
                     }
                 }
                 // No redirigir, mostrar mensaje de "No hay datos"
