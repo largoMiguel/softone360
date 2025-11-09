@@ -131,6 +131,10 @@ export interface ProductoPlanIndicativo {
     total_2027: number;
     
     bpin: string;
+    
+    // Responsable del producto (asignación manual)
+    responsable_user_id?: number | null;
+    responsable?: string;
 }
 
 export interface ProductoPlanIndicativoSGR {

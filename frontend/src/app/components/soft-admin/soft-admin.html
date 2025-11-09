@@ -359,13 +359,19 @@
                         </td>
                         <td>{{ user.created_at | date:'short' }}</td>
                         <td>
-                            <button class="btn btn-sm btn-primary" (click)="showEditUser(user)">
+                            <button *ngIf="canEditUser(user)" class="btn btn-sm btn-primary" (click)="showEditUser(user)">
                                 ✏️ Editar
                             </button>
                             <button class="btn btn-sm" [class.btn-warning]="user.is_active"
                                 [class.btn-secondary]="!user.is_active" (click)="toggleUserStatus(user)">
                                 {{ user.is_active ? 'Desactivar' : 'Activar' }}
                             </button>
+                            <button *ngIf="canDeleteUser(user)" class="btn btn-sm btn-danger" (click)="deleteUserConfirm(user)" title="Eliminar usuario">
+                                🗑️ Eliminar
+                            </button>
+                            <span *ngIf="!canEditUser(user)" class="text-muted small">
+                                (Solo SuperAdmin puede editar administradores)
+                            </span>
                         </td>
                     </tr>
                 </tbody>
@@ -374,9 +380,12 @@
 
         <div *ngIf="!loading && entityUsers.length === 0" class="empty-state">
             <p>No hay usuarios en esta entidad</p>
-            <button class="btn btn-primary" (click)="showCreateAdmin(selectedEntity!)">
+            <button *ngIf="currentUserRole === 'superadmin'" class="btn btn-primary" (click)="showCreateAdmin(selectedEntity!)">
                 Crear Primer Usuario
             </button>
+            <div *ngIf="currentUserRole !== 'superadmin'" class="alert alert-info">
+                <strong>⚠️ Información:</strong> Solo el SuperAdmin puede crear nuevos administradores.
+            </div>
         </div>
     </div>
 
@@ -442,6 +451,26 @@
                 </div>
             </div>
 
+            <!-- ✅ Módulos si es admin Y si el usuario actual es SuperAdmin -->
+            <div *ngIf="editUserForm.role === 'admin' && editingUserEntity && currentUserRole === 'superadmin'" class="form-group">
+                <label>Módulos Permitidos</label>
+                <small class="text-muted d-block mb-2">Selecciona los módulos activos en la entidad: {{ editingUserEntity.name }}</small>
+                <div class="checkbox-grid">
+                    <label *ngIf="editingUserEntity.enable_pqrs"><input type="checkbox" [(ngModel)]="editUserModules.enable_pqrs" name="edit_enable_pqrs"> PQRS</label>
+                    <label *ngIf="editingUserEntity.enable_users_admin"><input type="checkbox" [(ngModel)]="editUserModules.enable_users_admin" name="edit_enable_users_admin"> Administración de Usuarios</label>
+                    <label *ngIf="editingUserEntity.enable_planes_institucionales"><input type="checkbox" [(ngModel)]="editUserModules.enable_planes_institucionales" name="edit_enable_planes_institucionales"> Planes Institucionales</label>
+                    <label *ngIf="editingUserEntity.enable_pdm"><input type="checkbox" [(ngModel)]="editUserModules.enable_pdm" name="edit_enable_pdm"> Plan de Desarrollo Municipal</label>
+                    <label *ngIf="editingUserEntity.enable_contratacion"><input type="checkbox" [(ngModel)]="editUserModules.enable_contratacion" name="edit_enable_contratacion"> Contratación</label>
+                    <label *ngIf="editingUserEntity.enable_reports_pdf"><input type="checkbox" [(ngModel)]="editUserModules.enable_reports_pdf" name="edit_enable_reports_pdf"> Reportes PDF</label>
+                    <label *ngIf="editingUserEntity.enable_ai_reports"><input type="checkbox" [(ngModel)]="editUserModules.enable_ai_reports" name="edit_enable_ai_reports"> Análisis con IA</label>
+                </div>
+            </div>
+
+            <!-- ✅ Mensaje si no es SuperAdmin y está editando admin -->
+            <div *ngIf="editUserForm.role === 'admin' && currentUserRole !== 'superadmin'" class="alert alert-info">
+                <strong>⚠️ Información:</strong> Solo el SuperAdmin puede cambiar los módulos de los administradores. Para cambiar módulos, contacte al SuperAdmin.
+            </div>
+
             <div class="form-actions">
                 <button type="button" class="btn btn-secondary" (click)="cancelEditUser()">
                     Cancelar
@@ -502,6 +531,26 @@
                     <input type="password" id="confirmPassword" [(ngModel)]="confirmPassword" name="confirmPassword"
                         required class="form-control">
                 </div>
+            </div>
+
+            <!-- ✅ Módulos Permitidos - Solo SuperAdmin -->
+            <div *ngIf="selectedEntity && currentUserRole === 'superadmin'" class="form-group">
+                <label>Módulos Permitidos</label>
+                <small class="text-muted d-block mb-2">Se mostrarán solo los módulos activos en la entidad: {{ selectedEntity.name }}</small>
+                <div class="checkbox-grid">
+                    <label *ngIf="selectedEntity.enable_pqrs"><input type="checkbox" [(ngModel)]="newAdminModules.enable_pqrs" name="admin_enable_pqrs"> PQRS</label>
+                    <label *ngIf="selectedEntity.enable_users_admin"><input type="checkbox" [(ngModel)]="newAdminModules.enable_users_admin" name="admin_enable_users_admin"> Administración de Usuarios</label>
+                    <label *ngIf="selectedEntity.enable_planes_institucionales"><input type="checkbox" [(ngModel)]="newAdminModules.enable_planes_institucionales" name="admin_enable_planes_institucionales"> Planes Institucionales</label>
+                    <label *ngIf="selectedEntity.enable_pdm"><input type="checkbox" [(ngModel)]="newAdminModules.enable_pdm" name="admin_enable_pdm"> Plan de Desarrollo Municipal</label>
+                    <label *ngIf="selectedEntity.enable_contratacion"><input type="checkbox" [(ngModel)]="newAdminModules.enable_contratacion" name="admin_enable_contratacion"> Contratación</label>
+                    <label *ngIf="selectedEntity.enable_reports_pdf"><input type="checkbox" [(ngModel)]="newAdminModules.enable_reports_pdf" name="admin_enable_reports_pdf"> Reportes PDF</label>
+                    <label *ngIf="selectedEntity.enable_ai_reports"><input type="checkbox" [(ngModel)]="newAdminModules.enable_ai_reports" name="admin_enable_ai_reports"> Análisis con IA</label>
+                </div>
+            </div>
+
+            <!-- ✅ Mensaje si no es SuperAdmin -->
+            <div *ngIf="selectedEntity && currentUserRole !== 'superadmin'" class="alert alert-info">
+                <strong>ℹ️ Información:</strong> Los módulos del administrador serán asignados por el SuperAdmin. Los administradores no pueden tener módulos específicos.
             </div>
 
             <div class="form-actions">

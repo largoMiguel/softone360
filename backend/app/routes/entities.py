@@ -226,6 +226,7 @@ async def toggle_entity_status(
     """
     Activar/desactivar una entidad (solo superadmin).
     Al desactivar una entidad, sus usuarios no podrán iniciar sesión.
+    Al reactivar una entidad, también reactiva sus usuarios.
     """
     entity = db.query(Entity).filter(Entity.id == entity_id).first()
     if not entity:
@@ -241,6 +242,11 @@ async def toggle_entity_status(
     if not entity.is_active:
         db.query(User).filter(User.entity_id == entity_id).update(
             {"is_active": False}
+        )
+    else:
+        # Si se reactiva la entidad, también reactivar sus usuarios
+        db.query(User).filter(User.entity_id == entity_id).update(
+            {"is_active": True}
         )
     
     db.commit()
@@ -273,6 +279,7 @@ async def get_entity_users(
             "full_name": user.full_name,
             "role": user.role.value,
             "is_active": user.is_active,
+            "allowed_modules": user.allowed_modules or [],
             "created_at": user.created_at
         }
         for user in users

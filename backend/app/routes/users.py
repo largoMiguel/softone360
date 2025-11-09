@@ -141,21 +141,28 @@ async def create_user(
         # Superadmin puede crear cualquier tipo de usuario
         pass
     elif current_user.role == UserRole.ADMIN:
-        # Admin solo puede crear secretarios de su entidad
-        if user_data.role not in [UserRole.ADMIN, UserRole.SECRETARIO]:
+        # ✅ CORREGIDO: Admin SOLO puede crear Secretarios/Ciudadanos, NO otros Admins
+        if user_data.role in [UserRole.ADMIN, UserRole.SUPERADMIN]:
             raise HTTPException(
                 status_code=403, 
-                detail="Solo puedes crear administradores o secretarios"
+                detail="Solo puedes crear secretarios. Los administradores solo pueden ser creados por SuperAdmin."
             )
         # Forzar que el usuario pertenezca a su entidad
         user_data.entity_id = current_user.entity_id
     else:
+            raise HTTPException(
+                status_code=403, 
+                detail="No tienes permisos para crear usuarios"
+            )
+    
+    # ✅ VALIDACIÓN ESTRICTA DE MÓDULOS: Solo SUPERADMIN puede asignar módulos
+    if user_data.allowed_modules and current_user.role != UserRole.SUPERADMIN:
         raise HTTPException(
-            status_code=403, 
-            detail="No tienes permisos para crear usuarios"
+            status_code=403,
+            detail="Solo el SuperAdmin puede asignar módulos a usuarios"
         )
     
-    # Validar que la entidad existe si se especifica
+    # Validar que la entidad existe si se especifica    # Validar que la entidad existe si se especifica
     if user_data.entity_id:
         entity = db.query(Entity).filter(Entity.id == user_data.entity_id).first()
         if not entity:
@@ -168,12 +175,18 @@ async def create_user(
             valid_modules = []
             if entity.enable_pqrs:
                 valid_modules.append("pqrs")
+            if entity.enable_users_admin:
+                valid_modules.append("users_admin")
             if entity.enable_planes_institucionales:
                 valid_modules.append("planes_institucionales")
+            if entity.enable_pdm:
+                valid_modules.append("pdm")
             if entity.enable_contratacion:
                 valid_modules.append("contratacion")
-            if getattr(entity, 'enable_pdm', False):
-                valid_modules.append("pdm")
+            if entity.enable_reports_pdf:
+                valid_modules.append("reports_pdf")
+            if entity.enable_ai_reports:
+                valid_modules.append("ai_reports")
             
             # Verificar que todos los módulos solicitados están activos
             for module in user_data.allowed_modules:
@@ -270,6 +283,9 @@ async def update_user(
         # Debe pertenecer a su misma entidad
         if user.entity_id != current_user.entity_id:
             raise HTTPException(status_code=403, detail="No puedes actualizar usuarios de otra entidad")
+        # ADMIN NO puede editar a otros ADMINs ni SUPERADMINs
+        if user.role in [UserRole.ADMIN, UserRole.SUPERADMIN]:
+            raise HTTPException(status_code=403, detail="No puedes editar a otros administradores. Solo el SuperAdmin puede hacerlo.")
     elif current_user.id == user_id:
         pass  # puede actualizar su propio perfil
     else:
@@ -284,17 +300,31 @@ async def update_user(
     
     # Validar módulos permitidos si se actualizan
     if "allowed_modules" in update_data and user.entity_id:
+        # ✅ ESTRICTO: Solo SUPERADMIN puede cambiar módulos de CUALQUIER ADMIN (incluyendo a sí mismo)
+        # Si current_user es ADMIN y quiere cambiar módulos:
+        #   - Si es otro ADMIN → Error
+        #   - Si es él mismo pero es ADMIN → Error (NO puede cambiar sus propios módulos)
+        if current_user.role == UserRole.ADMIN:
+            # Un ADMIN nunca puede cambiar módulos, ni siquiera los suyos propios
+            raise HTTPException(status_code=403, detail="Solo el SuperAdmin puede cambiar módulos. Los administradores no pueden modificar módulos.")
+        
         entity = db.query(Entity).filter(Entity.id == user.entity_id).first()
         if entity:
             valid_modules = []
             if entity.enable_pqrs:
                 valid_modules.append("pqrs")
+            if entity.enable_users_admin:
+                valid_modules.append("users_admin")
             if entity.enable_planes_institucionales:
                 valid_modules.append("planes_institucionales")
+            if entity.enable_pdm:
+                valid_modules.append("pdm")
             if entity.enable_contratacion:
                 valid_modules.append("contratacion")
-            if getattr(entity, 'enable_pdm', False):
-                valid_modules.append("pdm")
+            if entity.enable_reports_pdf:
+                valid_modules.append("reports_pdf")
+            if entity.enable_ai_reports:
+                valid_modules.append("ai_reports")
             
             for module in update_data.get("allowed_modules", []):
                 if module not in valid_modules:
@@ -385,7 +415,7 @@ async def change_user_password(
     Cambiar la contraseña de un usuario de forma explícita.
     Permisos:
     - SUPERADMIN: puede cambiar la contraseña de cualquier usuario.
-    - ADMIN: solo de usuarios de su entidad.
+    - ADMIN: solo puede cambiar contraseña de Secretarios/Ciudadanos de su entidad (NO otros Admins)
     - El propio usuario puede cambiar su contraseña.
     """
     user = db.query(User).filter(User.id == user_id).first()
@@ -398,6 +428,9 @@ async def change_user_password(
     elif current_user.role == UserRole.ADMIN:
         if user.entity_id != current_user.entity_id:
             raise HTTPException(status_code=403, detail="No puedes cambiar la contraseña de usuarios de otra entidad")
+        # ✅ Admin NO puede cambiar contraseña de otros Admins
+        if user.role in [UserRole.ADMIN, UserRole.SUPERADMIN]:
+            raise HTTPException(status_code=403, detail="No puedes cambiar la contraseña de administradores. Solo SuperAdmin puede hacerlo.")
     elif current_user.id == user_id:
         pass
     else:
@@ -423,19 +456,30 @@ async def delete_user(
 ):
     """
     Eliminar un usuario.
-    Solo administradores pueden eliminar usuarios.
+    Permisos:
+    - SUPERADMIN: puede eliminar a cualquiera (excepto a sí mismo)
+    - ADMIN: puede eliminar usuarios de su entidad (excepto otros ADMIN o SUPERADMIN)
     """
-    # Verificar que el usuario actual sea administrador
-    if current_user.role != UserRole.ADMIN:
+    # Verificar que el usuario actual tenga permisos
+    if current_user.role not in [UserRole.SUPERADMIN, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="No tienes permisos para eliminar usuarios")
     
-    # No permitir que el admin se elimine a sí mismo
+    # No permitir que se elimine a sí mismo
     if current_user.id == user_id:
         raise HTTPException(status_code=400, detail="No puedes eliminarte a ti mismo")
     
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # Si es ADMIN, validar permisos
+    if current_user.role == UserRole.ADMIN:
+        # Debe pertenecer a su misma entidad
+        if user.entity_id != current_user.entity_id:
+            raise HTTPException(status_code=403, detail="No puedes eliminar usuarios de otra entidad")
+        # ADMIN NO puede eliminar a otros ADMIN o SUPERADMIN
+        if user.role in [UserRole.ADMIN, UserRole.SUPERADMIN]:
+            raise HTTPException(status_code=403, detail="No puedes eliminar administradores. Solo el SuperAdmin puede hacerlo.")
     
     db.delete(user)
     db.commit()
@@ -450,19 +494,30 @@ async def toggle_user_status(
 ):
     """
     Activar/desactivar un usuario.
-    Solo administradores pueden cambiar el estado de usuarios.
+    Permisos:
+    - SuperAdmin: puede cambiar estado de cualquiera (excepto sí mismo)
+    - Admin: puede cambiar estado de usuarios de su entidad (excepto otros Admins/SuperAdmins)
     """
-    # Verificar que el usuario actual sea administrador
-    if current_user.role != UserRole.ADMIN:
+    # Verificar que el usuario actual sea administrador o superadmin
+    if current_user.role not in [UserRole.ADMIN, UserRole.SUPERADMIN]:
         raise HTTPException(status_code=403, detail="No tienes permisos para cambiar el estado de usuarios")
     
-    # No permitir que el admin se desactive a sí mismo
+    # No permitir que se desactive a sí mismo
     if current_user.id == user_id:
         raise HTTPException(status_code=400, detail="No puedes cambiar tu propio estado")
     
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # ✅ Si es Admin, validar que puede cambiar estado de este usuario
+    if current_user.role == UserRole.ADMIN:
+        # Debe ser de la misma entidad
+        if user.entity_id != current_user.entity_id:
+            raise HTTPException(status_code=403, detail="No puedes cambiar el estado de usuarios de otra entidad")
+        # No puede cambiar estado de otros Admins o SuperAdmins
+        if user.role in [UserRole.ADMIN, UserRole.SUPERADMIN]:
+            raise HTTPException(status_code=403, detail="No puedes cambiar el estado de administradores. Solo SuperAdmin puede hacerlo.")
     
     # Cambiar el estado
     user.is_active = not user.is_active
@@ -481,20 +536,15 @@ async def update_user_modules(
 ):
     """
     Actualizar los módulos permitidos para un usuario.
-    Solo admins y superadmins pueden modificar los módulos.
+    ✅ SOLO SuperAdmin puede modificar módulos
     """
-    # Verificar permisos
-    if current_user.role not in [UserRole.ADMIN, UserRole.SUPERADMIN]:
-        raise HTTPException(status_code=403, detail="No tienes permisos para editar módulos de usuarios")
+    # ✅ ESTRICTO: Solo SuperAdmin puede modificar módulos
+    if current_user.role != UserRole.SUPERADMIN:
+        raise HTTPException(status_code=403, detail="Solo el SuperAdmin puede editar módulos de usuarios")
     
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    
-    # Admin solo puede editar usuarios de su entidad
-    if current_user.role == UserRole.ADMIN:
-        if user.entity_id != current_user.entity_id:
-            raise HTTPException(status_code=403, detail="No puedes editar usuarios de otra entidad")
     
     # Validar que los módulos están activos en la entidad
     if user.entity_id:
@@ -503,12 +553,18 @@ async def update_user_modules(
             valid_modules = []
             if entity.enable_pqrs:
                 valid_modules.append("pqrs")
+            if entity.enable_users_admin:
+                valid_modules.append("users_admin")
             if entity.enable_planes_institucionales:
                 valid_modules.append("planes_institucionales")
+            if entity.enable_pdm:
+                valid_modules.append("pdm")
             if entity.enable_contratacion:
                 valid_modules.append("contratacion")
-            if getattr(entity, 'enable_pdm', False):
-                valid_modules.append("pdm")
+            if entity.enable_reports_pdf:
+                valid_modules.append("reports_pdf")
+            if entity.enable_ai_reports:
+                valid_modules.append("ai_reports")
             
             for module in modules:
                 if module not in valid_modules:

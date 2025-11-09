@@ -31,10 +31,12 @@ export const moduleAccessGuard = (requiredModule: string): CanActivateFn => {
             return false;
         }
 
-        // ADMIN siempre tiene acceso
-        if (currentUser.role === 'admin' || currentUser.role === 'superadmin') {
+        // SUPERADMIN siempre tiene acceso a todo
+        if (currentUser.role === 'superadmin') {
             return true;
-        }        // Si el usuario no tiene allowed_modules definido (null o undefined),
+        }
+
+        // Si el usuario no tiene allowed_modules definido (null o undefined),
         // es un usuario legacy con acceso completo (comportamiento anterior)
         if (!currentUser.allowed_modules) {
             return true;
@@ -47,7 +49,7 @@ export const moduleAccessGuard = (requiredModule: string): CanActivateFn => {
             return false;
         }
 
-        // Verificar si el usuario tiene el módulo requerido
+        // Verificar si el usuario tiene el módulo requerido (aplica para admin y otros roles)
         const hasAccess = currentUser.allowed_modules.includes(requiredModule);
 
         if (!hasAccess) {

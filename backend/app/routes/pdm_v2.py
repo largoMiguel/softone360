@@ -494,7 +494,7 @@ async def asignar_responsable_producto(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Asigna un responsable a un producto del PDM"""
+    """Asigna un responsable a un producto del PDM y crea una alerta"""
     entity = get_entity_or_404(db, slug)
     ensure_user_can_manage_entity(current_user, entity)
     
@@ -523,10 +523,24 @@ async def asignar_responsable_producto(
     db.commit()
     db.refresh(producto)
     
+    # Crear alerta para el nuevo responsable
+    alerta = Alert(
+        entity_id=entity.id,
+        recipient_user_id=responsable_user_id,
+        type="PDM_PRODUCT_ASSIGNED",
+        title=f"Producto asignado: {producto.codigo_producto}",
+        message=f"Se te ha asignado el producto '{producto.indicador_producto_mga or producto.personalizacion_indicador}' para seguimiento en el PDM.",
+        data=f'{{"producto_codigo": "{producto.codigo_producto}", "slug": "{slug}"}}',
+        created_at=datetime.utcnow()
+    )
+    db.add(alerta)
+    db.commit()
+    
     return {
         "success": True,
         "message": f"Responsable asignado correctamente al producto {codigo_producto}",
         "producto_codigo": producto.codigo_producto,
         "responsable_id": producto.responsable_user_id,
-        "responsable_nombre": usuario.full_name or usuario.name
+        "responsable_nombre": usuario.full_name or usuario.name,
+        "alerta_creada": True
     }

@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Location } from '@angular/common';
 import { PdmService } from '../../services/pdm.service';
 import { AlertsService, Alert } from '../../services/alerts.service';
 import { AuthService } from '../../services/auth.service';
@@ -35,6 +36,10 @@ export class PdmComponent implements OnInit, OnDestroy {
     private fb = inject(FormBuilder);
     private alertsService = inject(AlertsService);
     private authService = inject(AuthService);
+    private location = inject(Location);
+
+    // Listener para navegación
+    private popstateListener: (() => void) | null = null;
 
     // Estados
     cargando = false;
@@ -104,7 +109,6 @@ export class PdmComponent implements OnInit, OnDestroy {
         if (!this.pdmData) return [];
         return [...new Set(this.pdmData.lineas_estrategicas.map(l => l.linea_estrategica))];
     }
-
     get sectores(): string[] {
         if (!this.pdmData) return [];
         return [...new Set(this.pdmData.productos_plan_indicativo.map(p => p.sector_mga))].filter(s => s);
@@ -112,6 +116,12 @@ export class PdmComponent implements OnInit, OnDestroy {
 
     get productosFiltrados(): ResumenProducto[] {
         let productos = this.resumenProductos;
+
+        // Si el usuario es SECRETARIO, solo mostrar sus productos asignados
+        const currentUser = this.authService.getCurrentUserValue();
+        if (currentUser && currentUser.role === 'secretario') {
+            productos = productos.filter(p => p.responsable_id === currentUser.id);
+        }
 
         // Filtrar productos con meta > 0 para el año seleccionado
         productos = productos.filter(p => {
@@ -144,6 +154,47 @@ export class PdmComponent implements OnInit, OnDestroy {
     ngOnInit(): void {
         this.verificarDatosBackend();
         this.cargarSecretarios();
+        
+        // Verificar si hay que abrir un producto desde una alerta
+        this.verificarProductoDesdeAlerta();
+        
+        // Interceptar el botón de retroceso del navegador
+        this.popstateListener = () => {
+            // Si estamos en una vista que no sea dashboard, usar nuestro método volver()
+            if (this.vistaActual !== 'dashboard') {
+                console.log('⬅️ Retroceso interceptado, usando navegación interna');
+                this.volver();
+            }
+        };
+        
+        window.addEventListener('popstate', this.popstateListener);
+    }
+
+    /**
+     * Verifica si hay que abrir un producto desde una alerta
+     */
+    private verificarProductoDesdeAlerta(): void {
+        const productoCodigo = sessionStorage.getItem('pdm_open_producto');
+        if (productoCodigo) {
+            sessionStorage.removeItem('pdm_open_producto');
+            
+            // Esperar a que se carguen los datos
+            const interval = setInterval(() => {
+                if (this.resumenProductos.length > 0 && !this.cargandoDesdeBackend) {
+                    clearInterval(interval);
+                    
+                    // Buscar el producto
+                    const producto = this.resumenProductos.find(p => p.codigo === productoCodigo);
+                    if (producto) {
+                        console.log('🎯 Abriendo producto desde alerta:', productoCodigo);
+                        this.navegarA('detalle', producto);
+                    }
+                }
+            }, 500);
+            
+            // Timeout de seguridad de 10 segundos
+            setTimeout(() => clearInterval(interval), 10000);
+        }
     }
 
     /**
@@ -151,6 +202,11 @@ export class PdmComponent implements OnInit, OnDestroy {
      */
     ngOnDestroy(): void {
         this.destruirGraficos();
+        
+        // Remover el listener de popstate
+        if (this.popstateListener) {
+            window.removeEventListener('popstate', this.popstateListener);
+        }
     }
 
     /**
@@ -305,7 +361,19 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Navega entre vistas
      */
     navegarA(vista: 'dashboard' | 'productos' | 'detalle' | 'analisis-producto', producto?: ResumenProducto) {
+        const vistaAnterior = this.vistaActual;
+        
         this.vistaActual = vista;
+        
+        // Agregar entrada al historial del navegador para poder retroceder correctamente
+        if (vistaAnterior !== vista) {
+            window.history.pushState(
+                { vista, productoCodigo: producto?.codigo },
+                '',
+                window.location.href
+            );
+        }
+        
         if (producto) {
             this.productoSeleccionado = producto;
             // Inicializar vista de actividades para el año actual

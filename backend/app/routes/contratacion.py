@@ -1,9 +1,19 @@
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Depends
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel
 from app.config.settings import settings
 import httpx
 from urllib.parse import urlencode
+from app.models.user import User
+from app.utils.auth import get_current_active_user
+from app.config.database import get_db
+from sqlalchemy.orm import Session
+from app.utils.rate_limiter import limiter, RATE_LIMITS
+from app.utils.cache_manager import cache_manager, CACHE_CONFIGS
+from app.utils.openai_logger import openai_logger, CostAnalyzer
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/contratacion", tags=["Contratación"])
 
@@ -12,12 +22,29 @@ DATOS_GOV_BASE_URL = "https://www.datos.gov.co/resource/jbjy-vk9h.json"
 
 
 @router.get("/proxy")
-async def proxy_datos_gov(query: Optional[str] = Query(None, alias="$query")):
+@limiter.limit(RATE_LIMITS["contratacion_proxy"])
+async def proxy_datos_gov(
+    query: Optional[str] = Query(None, alias="$query"),
+    current_user: User = Depends(get_current_active_user)
+):
     """
     Proxy para consultar el API de datos.gov.co (SECOP II).
     Evita problemas de CORS haciendo la petición desde el servidor.
+    ✅ Protecciones:
+    - Autenticación requerida
+    - Rate limiting: 100 req/hora
+    - Caching: 1 hora
     """
     try:
+        # Generar clave de caché
+        cache_key = f"datos_gov:{query}"
+        
+        # Intentar obtener del caché
+        cached_data = cache_manager.get(cache_key)
+        if cached_data:
+            logger.info(f"📦 Datos.gov proxy (cached) - Usuario: {current_user.email}")
+            return cached_data
+        
         params = {}
         if query:
             params["$query"] = query
@@ -32,20 +59,28 @@ async def proxy_datos_gov(query: Optional[str] = Query(None, alias="$query")):
             response = await client.get(url)
             response.raise_for_status()
             
-            # Retornar la respuesta JSON
-            return response.json()
+            data = response.json()
+            
+            # Cachear resultado (1 hora)
+            cache_manager.set(cache_key, data, ttl_seconds=3600)
+            
+            logger.info(f"✅ Datos.gov proxy (fresh) - Usuario: {current_user.email}")
+            return data
             
     except httpx.HTTPStatusError as e:
+        logger.error(f"❌ HTTP Error {e.response.status_code} - Usuario: {current_user.email}")
         raise HTTPException(
             status_code=e.response.status_code,
             detail=f"Error al consultar datos.gov.co: {e.response.text}"
         )
     except httpx.TimeoutException:
+        logger.error(f"❌ Timeout en datos.gov - Usuario: {current_user.email}")
         raise HTTPException(
             status_code=504,
             detail="Timeout al consultar datos.gov.co"
         )
     except Exception as e:
+        logger.error(f"❌ Error: {str(e)} - Usuario: {current_user.email}")
         raise HTTPException(
             status_code=500,
             detail=f"Error interno: {str(e)}"
@@ -78,9 +113,19 @@ class ResumenRequest(BaseModel):
 
 
 @router.post("/summary")
-async def resumen_con_ia(payload: ResumenRequest):
-    """Genera un resumen ejecutivo del módulo de contratación. Si hay OPENAI_API_KEY, usa IA; si no, devuelve un resumen heurístico.
-
+@limiter.limit(RATE_LIMITS["contratacion_summary"])
+async def resumen_con_ia(
+    payload: ResumenRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Genera un resumen ejecutivo del módulo de contratación.
+    ✅ Protecciones:
+    - Autenticación requerida
+    - Rate limiting: 20 req/hora (restrictivo por OpenAI API)
+    - Logging de costos de API
+    - Caching: 30 minutos
+    
     Body esperado:
     {
       entity_name, nit, periodo: {desde, hasta},
@@ -126,6 +171,7 @@ async def resumen_con_ia(payload: ResumenRequest):
 
     # Si no hay API Key, devolver el heurístico
     if not settings.openai_api_key:
+        logger.info(f"📋 Resumen sin IA - Usuario: {current_user.email}, Entidad: {payload.entity_name}")
         return {
             "configured": False,
             "summary": base_summary + " Nota: Para habilitar el resumen con IA, configure OPENAI_API_KEY en el backend."
@@ -157,10 +203,45 @@ async def resumen_con_ia(payload: ResumenRequest):
                 {"role": "user", "content": user_prompt}
             ],
         )
+        
         content = resp.choices[0].message.content if resp and resp.choices else base_summary
+        
+        # 📊 LOGGING DE COSTOS
+        if resp and resp.usage:
+            cost_data = CostAnalyzer.calculate_cost(
+                model="gpt-4o-mini",
+                prompt_tokens=resp.usage.prompt_tokens,
+                completion_tokens=resp.usage.completion_tokens
+            )
+            
+            openai_logger.log_api_call(
+                user_id=current_user.email,
+                entity_name=payload.entity_name,
+                model="gpt-4o-mini",
+                prompt_tokens=resp.usage.prompt_tokens,
+                completion_tokens=resp.usage.completion_tokens,
+                total_tokens=resp.usage.total_tokens,
+                cost_usd=cost_data["total_cost"],
+                status="success"
+            )
+            
+            logger.info(
+                f"💰 OpenAI API - Usuario: {current_user.email} | "
+                f"Tokens: {resp.usage.total_tokens} | "
+                f"Costo: ${cost_data['total_cost']:.6f}"
+            )
+        
         return {"configured": True, "summary": content or base_summary}
 
     except Exception as e:
+        # Registrar error
+        openai_logger.log_error(
+            user_id=current_user.email,
+            error_message=str(e),
+            error_type=type(e).__name__
+        )
+        logger.error(f"❌ OpenAI API Error - Usuario: {current_user.email} - {str(e)}")
+        
         # Si falla la IA, devolver el heurístico
         return {
             "configured": True,

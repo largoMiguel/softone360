@@ -409,7 +409,9 @@
                                     </span>
                                 </td>
                                 <td (click)="$event.stopPropagation()">
+                                    <!-- Dropdown de asignación solo para Admin -->
                                     <select 
+                                        *ngIf="isAdmin()"
                                         class="form-select form-select-sm" 
                                         [value]="producto.responsable_id || ''"
                                         (change)="asignarResponsable(producto, $event)"
@@ -420,7 +422,12 @@
                                             {{ secretario.full_name || secretario.name }} - {{ secretario.secretaria || 'Sin secretaría' }}
                                         </option>
                                     </select>
-                                    <small *ngIf="producto.responsable_nombre" class="text-muted d-block mt-1">
+                                    
+                                    <!-- Solo mostrar nombre si no es admin (secretario) -->
+                                    <small *ngIf="!isAdmin() && producto.responsable_nombre" class="text-muted d-block">
+                                        <i class="fas fa-user me-1"></i>{{ producto.responsable_nombre }}
+                                    </small>
+                                    <small *ngIf="producto.responsable_nombre && isAdmin()" class="text-muted d-block mt-1">
                                         <i class="fas fa-user me-1"></i>{{ producto.responsable_nombre }}
                                     </small>
                                     <small *ngIf="cargandoSecretarios" class="text-muted d-block mt-1">
@@ -531,7 +538,7 @@
                     <div class="card-header">
                         <div class="d-flex justify-content-between align-items-center">
                             <h5 class="mb-0"><i class="fas fa-tasks me-2"></i> Actividades y Seguimiento</h5>
-                            <button class="btn btn-sm btn-primary" (click)="abrirModalNuevaActividad()" *ngIf="resumenAnioActual && resumenAnioActual.meta_disponible > 0">
+                            <button class="btn btn-sm btn-primary" (click)="abrirModalNuevaActividad()" *ngIf="isAdmin() && resumenAnioActual && resumenAnioActual.meta_disponible > 0">
                                 <i class="fas fa-plus me-1"></i> Nueva Actividad
                             </button>
                         </div>
@@ -599,7 +606,7 @@
                             <div *ngIf="resumenAnioActual.actividades.length === 0" class="text-center py-4 text-muted">
                                 <i class="fas fa-inbox fa-3x mb-3"></i>
                                 <p>No hay actividades registradas para este año.</p>
-                                <button *ngIf="resumenAnioActual.meta_disponible > 0" class="btn btn-primary" (click)="abrirModalNuevaActividad()">
+                                <button *ngIf="isAdmin() && resumenAnioActual.meta_disponible > 0" class="btn btn-primary" (click)="abrirModalNuevaActividad()">
                                     <i class="fas fa-plus me-1"></i> Crear Primera Actividad
                                 </button>
                                 <div *ngIf="resumenAnioActual.meta_disponible === 0" class="alert alert-warning mt-3">
@@ -639,7 +646,7 @@
                                                 <button *ngIf="!actividad.evidencia" class="btn btn-sm btn-success me-1" (click)="abrirModalEvidencia(actividad)" title="Registrar Evidencia">
                                                     <i class="fas fa-camera"></i>
                                                 </button>
-                                                <button *ngIf="!actividad.evidencia" class="btn btn-sm btn-outline-primary me-1" (click)="abrirModalEditarActividad(actividad)" title="Editar">
+                                                <button *ngIf="isAdmin() && !actividad.evidencia" class="btn btn-sm btn-outline-primary me-1" (click)="abrirModalEditarActividad(actividad)" title="Editar">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
                                                 <button *ngIf="!actividad.evidencia || isAdmin()" class="btn btn-sm btn-outline-danger" (click)="eliminarActividad(actividad)" [title]="actividad.evidencia ? 'Eliminar (Admin - incluye evidencia)' : 'Eliminar'">
@@ -802,7 +809,7 @@
                         <div class="card-body">
                             <i class="fas fa-percentage fa-2x text-warning mb-2"></i>
                             <h6 class="text-muted small mb-1">% Avance</h6>
-                            <h4 class="mb-0">{{ productoSeleccionado.porcentaje_ejecucion?.toFixed(1) }}%</h4>
+                            <h4 class="mb-0">{{ productoSeleccionado.porcentaje_ejecucion.toFixed(1) }}%</h4>
                             <small class="text-muted">del cuatrienio</small>
                         </div>
                     </div>

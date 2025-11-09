@@ -137,8 +137,12 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
 
         // Redirigir según el tipo de alerta
         if (alert.type === 'PDM_PRODUCT_ASSIGNED' || alert.type === 'PDM_NEW_ACTIVITY') {
-            // Alerta de PDM - redirigir al dashboard PDM y emitir evento
-            await this.router.navigate([`/${slug}/pdm-dashboard`]);
+            // Alerta de PDM - redirigir al módulo PDM y luego abrir el producto
+            await this.router.navigate([`/${slug}/pdm`]);
+            // Guardar en sessionStorage que debe abrir un producto
+            if (data.producto_codigo) {
+                sessionStorage.setItem('pdm_open_producto', data.producto_codigo);
+            }
             setTimeout(() => this.alertsEvents.requestOpen(alert), 100);
         } else if (alert.type === 'PLAN_COMPONENT_ASSIGNED' || alert.type === 'PLAN_NEW_ACTIVITY') {
             // Alerta de Planes - redirigir al módulo de planes y emitir evento
@@ -176,7 +180,6 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
     userHasModule(moduleName: string): boolean {
         const u = this.auth.getCurrentUserValue();
         if (!u) return false;
-        if (this.isAdmin()) return true;
         if (!u.allowed_modules || u.allowed_modules.length === 0) return true; // legacy: acceso total
         return u.allowed_modules.includes(moduleName);
     }

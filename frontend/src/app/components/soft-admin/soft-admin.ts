@@ -24,6 +24,7 @@ export class SoftAdminComponent implements OnInit {
     // Vista actual
     currentView: 'entities' | 'create-entity' | 'edit-entity' | 'entity-users' | 'create-admin' | 'edit-user' = 'entities';
     editingUser: any = null;
+    editingUserEntity: EntityWithStats | null = null;  // Cachea la entidad del usuario siendo editado
     editUserForm: any = {
         username: '',
         full_name: '',
@@ -63,12 +64,36 @@ export class SoftAdminComponent implements OnInit {
         full_name: '',
         role: 'admin',
         entity_id: undefined,
-        password: ''
+        password: '',
+        allowed_modules: []
+    };
+
+    // Campos para módulos en crear admin
+    newAdminModules = {
+        enable_pqrs: false,
+        enable_users_admin: false,
+        enable_planes_institucionales: false,
+        enable_pdm: false,
+        enable_contratacion: false,
+        enable_reports_pdf: false,
+        enable_ai_reports: false
+    };
+
+    // Campos para módulos en editar usuario
+    editUserModules = {
+        enable_pqrs: false,
+        enable_users_admin: false,
+        enable_planes_institucionales: false,
+        enable_pdm: false,
+        enable_contratacion: false,
+        enable_reports_pdf: false,
+        enable_ai_reports: false
     };
 
     confirmPassword: string = '';
     confirmEditPassword: string = '';
     loading = false;
+    currentUserRole: string = '';
 
     constructor(
         private entityService: EntityService,
@@ -79,6 +104,8 @@ export class SoftAdminComponent implements OnInit {
     ) { }
 
     ngOnInit(): void {
+        const currentUser = this.authService.getCurrentUserValue();
+        this.currentUserRole = currentUser?.role || '';
         this.loadEntities();
     }
 
@@ -192,7 +219,15 @@ export class SoftAdminComponent implements OnInit {
     }
 
     showEditUser(user: any): void {
+        // Validar permisos
+        if (!this.canEditUser(user)) {
+            this.alertService.error('No tienes permisos para editar este usuario. Solo SuperAdmin puede editar administradores.');
+            return;
+        }
+
         this.editingUser = { ...user };
+        this.editingUserEntity = this.getEntityById(user.entity_id) || null;  // Cachea la entidad
+        
         this.editUserForm = {
             username: user.username,
             full_name: user.full_name,
@@ -201,6 +236,31 @@ export class SoftAdminComponent implements OnInit {
             entity_id: user.entity_id,
             password: ''
         };
+        
+        // Inicializar módulos del usuario si es admin
+        if (user.role === 'admin' && user.allowed_modules) {
+            this.editUserModules = {
+                enable_pqrs: user.allowed_modules.includes('pqrs'),
+                enable_users_admin: user.allowed_modules.includes('users_admin'),
+                enable_planes_institucionales: user.allowed_modules.includes('planes_institucionales'),
+                enable_pdm: user.allowed_modules.includes('pdm'),
+                enable_contratacion: user.allowed_modules.includes('contratacion'),
+                enable_reports_pdf: user.allowed_modules.includes('reports_pdf'),
+                enable_ai_reports: user.allowed_modules.includes('ai_reports')
+            };
+        } else {
+            // Reinicializar si no es admin o no tiene módulos
+            this.editUserModules = {
+                enable_pqrs: false,
+                enable_users_admin: false,
+                enable_planes_institucionales: false,
+                enable_pdm: false,
+                enable_contratacion: false,
+                enable_reports_pdf: false,
+                enable_ai_reports: false
+            };
+        }
+        
         this.confirmEditPassword = '';
         this.currentView = 'edit-user';
     }
@@ -211,6 +271,20 @@ export class SoftAdminComponent implements OnInit {
             this.alertService.warning('Usuario, nombre completo y email son obligatorios');
             return;
         }
+        
+        // Construir módulos si es admin Y si el usuario actual es SuperAdmin
+        // ✅ Los módulos SOLO pueden ser cambiados por SuperAdmin
+        let allowedModules: string[] = [];
+        if (this.currentUserRole === 'superadmin' && this.editUserForm.role === 'admin') {
+            if (this.editUserModules.enable_pqrs) allowedModules.push('pqrs');
+            if (this.editUserModules.enable_users_admin) allowedModules.push('users_admin');
+            if (this.editUserModules.enable_planes_institucionales) allowedModules.push('planes_institucionales');
+            if (this.editUserModules.enable_pdm) allowedModules.push('pdm');
+            if (this.editUserModules.enable_contratacion) allowedModules.push('contratacion');
+            if (this.editUserModules.enable_reports_pdf) allowedModules.push('reports_pdf');
+            if (this.editUserModules.enable_ai_reports) allowedModules.push('ai_reports');
+        }
+        
         const payload: any = {
             username: this.editUserForm.username,
             full_name: this.editUserForm.full_name,
@@ -218,6 +292,12 @@ export class SoftAdminComponent implements OnInit {
             role: this.editUserForm.role,
             entity_id: this.editUserForm.entity_id
         };
+        
+        // ✅ Solo incluir allowed_modules si el usuario actual es SuperAdmin
+        if (this.currentUserRole === 'superadmin') {
+            payload.allowed_modules = allowedModules;
+        }
+        
         const hasNewPassword = !!(this.editUserForm.password && this.editUserForm.password.length >= 6);
 
         // Si hay contraseña nueva, validar confirmación y cambiarla primero
@@ -272,16 +352,78 @@ export class SoftAdminComponent implements OnInit {
         this.editingUser = null;
     }
 
+    deleteUserConfirm(user: any): void {
+        // Validar permisos
+        if (!this.canDeleteUser(user)) {
+            this.alertService.error('No tienes permisos para eliminar este usuario. Solo SuperAdmin puede eliminar administradores.');
+            return;
+        }
+
+        if (confirm(`¿Está seguro de que desea eliminar al usuario ${user.username}? Esta acción no se puede deshacer.`)) {
+            this.deleteUser(user);
+        }
+    }
+
+    deleteUser(user: any): void {
+        this.loading = true;
+        this.userService.deleteUser(user.id).subscribe({
+            next: () => {
+                this.alertService.success('Usuario eliminado exitosamente');
+                if (this.selectedEntity) {
+                    this.viewEntityUsers(this.selectedEntity);
+                } else {
+                    this.loadEntities();
+                }
+                this.loading = false;
+            },
+            error: (error) => {
+                this.alertService.error('Error al eliminar usuario: ' + (error.error?.detail || ''));
+                this.loading = false;
+            }
+        });
+    }
+
     showCreateAdmin(entity: EntityWithStats): void {
         this.selectedEntity = entity;
         this.currentView = 'create-admin';
         this.resetAdminForm();
         this.newAdmin.entity_id = entity.id;
+        
+        // Inicializar módulos con los de la entidad
+        this.newAdminModules = {
+            enable_pqrs: entity.enable_pqrs ?? false,
+            enable_users_admin: entity.enable_users_admin ?? false,
+            enable_planes_institucionales: entity.enable_planes_institucionales ?? false,
+            enable_pdm: entity.enable_pdm ?? false,
+            enable_contratacion: entity.enable_contratacion ?? false,
+            enable_reports_pdf: entity.enable_reports_pdf ?? false,
+            enable_ai_reports: entity.enable_ai_reports ?? false
+        };
     }
 
     createAdmin(): void {
         if (!this.validateAdminForm()) {
             return;
+        }
+
+        // ✅ Mapear módulos seleccionados a allowed_modules SOLO si es SuperAdmin
+        const allowedModules: string[] = [];
+        if (this.currentUserRole === 'superadmin') {
+            if (this.newAdminModules.enable_pqrs) allowedModules.push('pqrs');
+            if (this.newAdminModules.enable_users_admin) allowedModules.push('users_admin');
+            if (this.newAdminModules.enable_planes_institucionales) allowedModules.push('planes_institucionales');
+            if (this.newAdminModules.enable_pdm) allowedModules.push('pdm');
+            if (this.newAdminModules.enable_contratacion) allowedModules.push('contratacion');
+            if (this.newAdminModules.enable_reports_pdf) allowedModules.push('reports_pdf');
+            if (this.newAdminModules.enable_ai_reports) allowedModules.push('ai_reports');
+        }
+
+        // ✅ Solo incluir allowed_modules si el usuario es SuperAdmin
+        if (this.currentUserRole === 'superadmin') {
+            this.newAdmin.allowed_modules = allowedModules;
+        } else {
+            // Admin no puede especificar módulos
+            this.newAdmin.allowed_modules = [];
         }
 
         this.loading = true;
@@ -427,7 +569,17 @@ export class SoftAdminComponent implements OnInit {
             full_name: '',
             role: 'admin',
             entity_id: this.selectedEntity?.id,
-            password: ''
+            password: '',
+            allowed_modules: []
+        };
+        this.newAdminModules = {
+            enable_pqrs: false,
+            enable_users_admin: false,
+            enable_planes_institucionales: false,
+            enable_pdm: false,
+            enable_contratacion: false,
+            enable_reports_pdf: false,
+            enable_ai_reports: false
         };
         this.confirmPassword = '';
     }
@@ -456,5 +608,36 @@ export class SoftAdminComponent implements OnInit {
         this.alertService.success('Sesión cerrada exitosamente');
         // No existe login global; enviamos al root para que el guard redirija a la entidad por defecto
         this.router.navigate(['/']);
+    }
+
+    getEntityById(entityId: number): EntityWithStats | undefined {
+        return this.entities.find(e => e.id === entityId);
+    }
+
+    /**
+     * Determina si el usuario actual puede editar a otro usuario
+     * - SuperAdmin puede editar a cualquiera
+     * - Admin solo puede editar Secretarios y Ciudadanos de su entidad
+     */
+    canEditUser(targetUser: any): boolean {
+        if (this.currentUserRole === 'superadmin') {
+            return true;
+        }
+        if (this.currentUserRole === 'admin') {
+            // Admin NO puede editar a otros Admins ni Superadmins
+            if (targetUser.role === 'admin' || targetUser.role === 'superadmin') {
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Determina si el usuario actual puede eliminar a otro usuario
+     * Misma lógica que canEditUser
+     */
+    canDeleteUser(targetUser: any): boolean {
+        return this.canEditUser(targetUser);
     }
 }

@@ -473,7 +473,9 @@ export class PdmService {
                 total_2027: producto.total_2027,
                 total_cuatrienio: totalCuatrienio,
                 porcentaje_ejecucion: porcentajeEjecucion,
-                detalle_completo: producto
+                detalle_completo: producto,
+                responsable_id: (producto as any).responsable_user_id || null,
+                responsable_nombre: (producto as any).responsable || undefined
             };
         });
         

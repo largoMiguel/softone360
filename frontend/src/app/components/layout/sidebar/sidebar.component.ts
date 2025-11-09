@@ -33,7 +33,6 @@ export class SidebarComponent {
     userHasModule(moduleName: string): boolean {
         const u = this.auth.getCurrentUserValue();
         if (!u) return false;
-        if (this.isAdmin()) return true;
         if (!u.allowed_modules || u.allowed_modules.length === 0) return true; // legacy: acceso total
         return u.allowed_modules.includes(moduleName);
     }
