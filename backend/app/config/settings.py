@@ -19,7 +19,8 @@ class Settings(BaseSettings):
     debug: bool = True
     
     # CORS - Múltiples orígenes separados por coma
-    allowed_origins: str = "http://localhost:4200,https://pqrs-frontend.onrender.com,https://softone-stratek.onrender.com"
+    # Incluye: localhost para desarrollo, Onrender (antiguo), y AWS S3 frontend (producción actual)
+    allowed_origins: str = "http://localhost:4200,https://pqrs-frontend.onrender.com,https://softone-stratek.onrender.com,http://softone360-frontend-useast1.s3-website-us-east-1.amazonaws.com"
 
     # Superadmin (para seed/control inicial)
     superadmin_username: str = "superadmin"
