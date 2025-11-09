@@ -1207,3 +1207,77 @@ async def get_database_status(db: Session = Depends(get_db)):
             "error": str(e),
             "traceback": traceback.format_exc()
         }
+
+
+@router.post("/migrations/fix-pdm-columns")
+async def fix_pdm_columns(
+    db: Session = Depends(get_db),
+    x_migration_key: Optional[str] = Header(None)
+):
+    """
+    Endpoint temporal para corregir columnas de pdm_actividades
+    Elimina codigo_indicador_producto y columnas obsoletas
+    """
+    if not x_migration_key or x_migration_key != settings.migration_secret_key:
+        raise HTTPException(status_code=403, detail="❌ Clave de migración inválida.")
+    
+    results = []
+    
+    try:
+        # Eliminar codigo_indicador_producto
+        if column_exists("pdm_actividades", "codigo_indicador_producto"):
+            log_msg("Eliminando columna codigo_indicador_producto...")
+            
+            # Eliminar constraints que incluyen esta columna
+            db.execute(text("""
+                ALTER TABLE pdm_actividades 
+                DROP CONSTRAINT IF EXISTS uq_actividad_entity_codigo_nombre CASCADE
+            """))
+            
+            # Eliminar la columna
+            db.execute(text("""
+                ALTER TABLE pdm_actividades 
+                DROP COLUMN IF EXISTS codigo_indicador_producto CASCADE
+            """))
+            
+            db.commit()
+            results.append("✅ Columna codigo_indicador_producto eliminada")
+        else:
+            results.append("✅ codigo_indicador_producto ya no existe")
+        
+        # Eliminar columnas obsoletas
+        for col in ["porcentaje_avance", "valor_ejecutado"]:
+            if column_exists("pdm_actividades", col):
+                log_msg(f"Eliminando columna obsoleta {col}...")
+                db.execute(text(f"ALTER TABLE pdm_actividades DROP COLUMN IF EXISTS {col} CASCADE"))
+                db.commit()
+                results.append(f"✅ Columna {col} eliminada")
+            else:
+                results.append(f"✅ {col} ya no existe")
+        
+        # Verificar estructura final
+        result = db.execute(text("""
+            SELECT column_name, data_type, is_nullable 
+            FROM information_schema.columns 
+            WHERE table_name = 'pdm_actividades' 
+            ORDER BY ordinal_position
+        """))
+        
+        columnas = [{"nombre": row.column_name, "tipo": row.data_type, "nullable": row.is_nullable} 
+                    for row in result]
+        
+        return {
+            "status": "success",
+            "timestamp": datetime.now().isoformat(),
+            "results": results,
+            "columnas_actuales": columnas
+        }
+        
+    except Exception as e:
+        db.rollback()
+        return {
+            "status": "error",
+            "timestamp": datetime.now().isoformat(),
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
