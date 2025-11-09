@@ -143,8 +143,8 @@ app.include_router(users.router, prefix="/api")
 app.include_router(planes.router, prefix="/api/planes", tags=["Planes Institucionales"])
 app.include_router(entities.router, prefix="/api", tags=["Entidades"])
 app.include_router(contratacion.router, prefix="/api", tags=["Contratación"])
-from app.routes import pdm as pdm_routes
-app.include_router(pdm_routes.router, prefix="/api", tags=["PDM"])
+from app.routes import pdm_v2 as pdm_v2_routes
+app.include_router(pdm_v2_routes.router, prefix="/api", tags=["PDM V2"])
 app.include_router(alerts.router, prefix="/api", tags=["Alerts"])
 app.include_router(secretarias.router, prefix="/api", tags=["Secretarías"])
 app.include_router(migrations.router, prefix="/api", tags=["Migrations"])

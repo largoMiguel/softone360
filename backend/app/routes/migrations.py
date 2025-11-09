@@ -1034,6 +1034,151 @@ def migrate_pdm(db: Session) -> List[str]:
 
 
 # ============================================================================
+# ENDPOINT PARA MIGRACIÓN RÁPIDA DE CONSECUTIVO
+# ============================================================================
+
+@router.post("/migrations/fix-pdm-actividades")
+async def fix_pdm_actividades_schema(
+    db: Session = Depends(get_db),
+    x_migration_key: Optional[str] = Header(None)
+):
+    """
+    Agrega la columna codigo_producto a la tabla pdm_actividades si no existe.
+    
+    Requiere header: X-Migration-Key
+    """
+    # Validar clave de seguridad
+    if not x_migration_key or x_migration_key != settings.migration_secret_key:
+        raise HTTPException(
+            status_code=403,
+            detail="❌ Clave de migración inválida. Usa X-Migration-Key header."
+        )
+    
+    results = []
+    errors = []
+    
+    try:
+        inspector = inspect(engine)
+        
+        # Verificar si la tabla existe
+        if 'pdm_actividades' not in inspector.get_table_names():
+            return {
+                "status": "skipped",
+                "message": "Tabla pdm_actividades no existe",
+                "results": ["⚠️  Tabla pdm_actividades no encontrada"],
+                "errors": None,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        
+        # Verificar si la columna ya existe
+        columns = {col['name']: col for col in inspector.get_columns('pdm_actividades')}
+        
+        if 'codigo_producto' in columns:
+            results.append("✅ La columna codigo_producto ya existe en pdm_actividades")
+        else:
+            # Agregar la columna
+            sql = "ALTER TABLE pdm_actividades ADD COLUMN codigo_producto VARCHAR(50)"
+            db.execute(text(sql))
+            db.commit()
+            results.append("✅ Columna codigo_producto agregada a pdm_actividades")
+        
+        # Agregar índice si no existe
+        try:
+            sql_index = "CREATE INDEX IF NOT EXISTS idx_pdm_actividades_codigo_producto ON pdm_actividades(codigo_producto)"
+            db.execute(text(sql_index))
+            db.commit()
+            results.append("✅ Índice idx_pdm_actividades_codigo_producto creado")
+        except Exception as e:
+            results.append(f"⚠️  Índice ya existe o error: {str(e)}")
+        
+        return {
+            "status": "completed" if not errors else "completed_with_errors",
+            "message": "Migración de pdm_actividades completada",
+            "results": results,
+            "errors": errors if errors else None,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error ejecutando migración: {str(e)}"
+        )
+
+
+@router.post("/migrations/fix-consecutivo")
+async def fix_consecutivo_varchar(
+    db: Session = Depends(get_db),
+    x_migration_key: Optional[str] = Header(None)
+):
+    """
+    Aumenta el tamaño del campo consecutivo de VARCHAR(10) a VARCHAR(50)
+    en las tablas pdm_indicadores_resultado, pdm_iniciativas_sgr, y pdm_productos.
+    
+    Requiere header: X-Migration-Key
+    """
+    # Validar clave de seguridad
+    if not x_migration_key or x_migration_key != settings.migration_secret_key:
+        raise HTTPException(
+            status_code=403,
+            detail="❌ Clave de migración inválida. Usa X-Migration-Key header."
+        )
+    
+    results = []
+    errors = []
+    
+    # Lista de tablas y columnas a modificar
+    tables_to_fix = [
+        "pdm_indicadores_resultado",
+        "pdm_iniciativas_sgr",
+        "pdm_productos"
+    ]
+    
+    try:
+        for table_name in tables_to_fix:
+            try:
+                # Verificar si la tabla existe
+                inspector = inspect(engine)
+                if table_name not in inspector.get_table_names():
+                    results.append(f"⚠️  Tabla {table_name} no existe, omitiendo")
+                    continue
+                
+                # Verificar si la columna existe
+                columns = {col['name']: col for col in inspector.get_columns(table_name)}
+                if 'consecutivo' not in columns:
+                    results.append(f"⚠️  Columna consecutivo no existe en {table_name}, omitiendo")
+                    continue
+                
+                # Ejecutar ALTER TABLE
+                sql = f"ALTER TABLE {table_name} ALTER COLUMN consecutivo TYPE VARCHAR(50)"
+                db.execute(text(sql))
+                db.commit()
+                results.append(f"✅ {table_name}.consecutivo aumentado a VARCHAR(50)")
+                
+            except Exception as e:
+                error_msg = f"❌ Error en {table_name}: {str(e)}"
+                errors.append(error_msg)
+                results.append(error_msg)
+                db.rollback()
+        
+        return {
+            "status": "completed" if not errors else "completed_with_errors",
+            "message": "Migración de consecutivo completada",
+            "results": results,
+            "errors": errors if errors else None,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error ejecutando migración: {str(e)}"
+        )
+
+
+# ============================================================================
 # ENDPOINT PRINCIPAL
 # ============================================================================
 

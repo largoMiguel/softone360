@@ -3,6 +3,15 @@ from typing import Optional, List
 from datetime import datetime
 from app.models.user import UserRole, UserType
 
+# Esquema de entidad (simplificado para incluir en User)
+class EntityBasic(BaseModel):
+    id: int
+    name: str
+    slug: str
+    
+    class Config:
+        from_attributes = True
+
 # Esquemas base
 class UserBase(BaseModel):
     username: str
@@ -36,6 +45,7 @@ class UserUpdate(BaseModel):
 
 class User(UserBase):
     id: int
+    entity: Optional[EntityBasic] = None  # Incluir datos básicos de la entidad
     created_at: datetime
     updated_at: Optional[datetime] = None
     

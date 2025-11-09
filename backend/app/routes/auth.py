@@ -19,7 +19,12 @@ router = APIRouter(prefix="/auth", tags=["Autenticación"])
 @router.post("/login", response_model=Token)
 async def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
     """Iniciar sesión"""
-    user = db.query(User).filter(User.username == user_credentials.username).first()
+    from sqlalchemy.orm import joinedload
+    
+    # Cargar usuario con su entidad (eager loading)
+    user = db.query(User).options(joinedload(User.entity)).filter(
+        User.username == user_credentials.username
+    ).first()
     
     if not user or not verify_password(user_credentials.password, user.hashed_password):
         raise HTTPException(

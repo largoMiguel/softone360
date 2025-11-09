@@ -794,23 +794,22 @@ def migrate_pdm(db: Session) -> List[str]:
                 CREATE TABLE pdm_actividades (
                     id SERIAL PRIMARY KEY,
                     entity_id INTEGER NOT NULL,
-                    codigo_indicador_producto VARCHAR(128) NOT NULL,
+                    codigo_producto VARCHAR(128) NOT NULL,
+                    anio INTEGER NOT NULL,
                     nombre VARCHAR(512) NOT NULL,
-                    descripcion VARCHAR(1024),
+                    descripcion TEXT,
                     responsable VARCHAR(256),
+                    responsable_user_id INTEGER,
                     fecha_inicio TIMESTAMP,
                     fecha_fin TIMESTAMP,
-                    porcentaje_avance DOUBLE PRECISION DEFAULT 0 NOT NULL,
-                    anio INTEGER,
                     meta_ejecutar DOUBLE PRECISION DEFAULT 0 NOT NULL,
-                    valor_ejecutado DOUBLE PRECISION DEFAULT 0 NOT NULL,
-                    estado VARCHAR(64) DEFAULT 'pendiente' NOT NULL,
+                    estado VARCHAR(64) DEFAULT 'PENDIENTE' NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     CONSTRAINT fk_pdm_actividad_entity FOREIGN KEY (entity_id) 
                         REFERENCES entities(id) ON DELETE CASCADE,
-                    CONSTRAINT uq_actividad_entity_codigo_nombre 
-                        UNIQUE (entity_id, codigo_indicador_producto, nombre)
+                    CONSTRAINT fk_pdm_actividad_user FOREIGN KEY (responsable_user_id)
+                        REFERENCES users(id) ON DELETE SET NULL
                 )
             """))
             db.commit()
@@ -821,30 +820,68 @@ def migrate_pdm(db: Session) -> List[str]:
     else:
         results.append("✓ Tabla pdm_actividades existe")
         
-        # Asegurar columnas
+        # CRÍTICO: Eliminar columna codigo_indicador_producto si existe
+        # Esta columna no está en el modelo actual y causa errores NOT NULL
+        if column_exists("pdm_actividades", "codigo_indicador_producto"):
+            log_msg("⚠ Eliminando columna obsoleta: codigo_indicador_producto")
+            try:
+                # Eliminar constraint UNIQUE que incluye esta columna
+                db.execute(text("""
+                    ALTER TABLE pdm_actividades 
+                    DROP CONSTRAINT IF EXISTS uq_actividad_entity_codigo_nombre CASCADE
+                """))
+                
+                # Eliminar la columna
+                db.execute(text("""
+                    ALTER TABLE pdm_actividades 
+                    DROP COLUMN IF EXISTS codigo_indicador_producto CASCADE
+                """))
+                
+                db.commit()
+                log_msg("✓ Columna codigo_indicador_producto eliminada exitosamente")
+                results.append("✓ Columna codigo_indicador_producto eliminada")
+            except Exception as e:
+                log_msg(f"❌ Error eliminando codigo_indicador_producto: {str(e)}", is_error=True)
+                db.rollback()
+        
+        # Asegurar columnas (SIN codigo_indicador_producto, CON responsable_user_id)
         columns = {
             "entity_id": "INTEGER NOT NULL",
-            "codigo_indicador_producto": "VARCHAR(128) NOT NULL",
+            "codigo_producto": "VARCHAR(128) NOT NULL",
+            "anio": "INTEGER NOT NULL",
             "nombre": "VARCHAR(512) NOT NULL",
-            "descripcion": "VARCHAR(1024)",
+            "descripcion": "TEXT",
             "responsable": "VARCHAR(256)",
+            "responsable_user_id": "INTEGER",
             "fecha_inicio": "TIMESTAMP",
             "fecha_fin": "TIMESTAMP",
-            "porcentaje_avance": "DOUBLE PRECISION DEFAULT 0 NOT NULL",
-            "anio": "INTEGER",
             "meta_ejecutar": "DOUBLE PRECISION DEFAULT 0 NOT NULL",
-            "valor_ejecutado": "DOUBLE PRECISION DEFAULT 0 NOT NULL",
-            "estado": "VARCHAR(64) DEFAULT 'pendiente' NOT NULL",
+            "estado": "VARCHAR(64) DEFAULT 'PENDIENTE' NOT NULL",
             "created_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
             "updated_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
         }
         
         for col, col_type in columns.items():
             ensure_column(db, "pdm_actividades", col, col_type)
+        
+        # Eliminar columnas obsoletas que ya no están en el modelo
+        obsolete_columns = ["porcentaje_avance", "valor_ejecutado"]
+        for col in obsolete_columns:
+            if column_exists("pdm_actividades", col):
+                try:
+                    log_msg(f"⚠ Eliminando columna obsoleta: {col}")
+                    db.execute(text(f"ALTER TABLE pdm_actividades DROP COLUMN IF EXISTS {col} CASCADE"))
+                    db.commit()
+                    log_msg(f"✓ Columna {col} eliminada")
+                except Exception as e:
+                    log_msg(f"❌ Error eliminando {col}: {str(e)}", is_error=True)
+                    db.rollback()
     
-    # Índices
+    # Índices (corregidos para el nuevo esquema)
     create_index_safe(db, "idx_pdm_actividad_entity", "pdm_actividades", "entity_id")
-    create_index_safe(db, "idx_pdm_actividad_codigo", "pdm_actividades", "codigo_indicador_producto")
+    create_index_safe(db, "idx_pdm_actividad_codigo_producto", "pdm_actividades", "codigo_producto")
+    create_index_safe(db, "idx_pdm_actividad_anio", "pdm_actividades", "anio")
+    create_index_safe(db, "idx_pdm_actividad_responsable_user", "pdm_actividades", "responsable_user_id")
     
     # ========== TABLA: pdm_actividades_ejecuciones ==========
     if not table_exists("pdm_actividades_ejecuciones"):
@@ -879,23 +916,23 @@ def migrate_pdm(db: Session) -> List[str]:
     create_index_safe(db, "idx_pdm_ejecucion_actividad", "pdm_actividades_ejecuciones", "actividad_id")
     create_index_safe(db, "idx_pdm_ejecucion_entity", "pdm_actividades_ejecuciones", "entity_id")
     
-    # ========== TABLA: pdm_actividades_evidencias ==========
+    # ========== TABLA: pdm_actividades_evidencias (VERSIÓN ACTUALIZADA) ==========
     if not table_exists("pdm_actividades_evidencias"):
         log_msg("Creando tabla pdm_actividades_evidencias...")
         try:
             db.execute(text("""
                 CREATE TABLE pdm_actividades_evidencias (
                     id SERIAL PRIMARY KEY,
-                    ejecucion_id INTEGER NOT NULL,
+                    actividad_id INTEGER NOT NULL UNIQUE,
                     entity_id INTEGER NOT NULL,
-                    nombre_imagen VARCHAR(512) NOT NULL,
-                    mime_type VARCHAR(128) NOT NULL,
-                    tamano INTEGER NOT NULL,
-                    contenido BYTEA NOT NULL,
+                    descripcion TEXT NOT NULL,
+                    url_evidencia VARCHAR(1024),
+                    imagenes JSON,
+                    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    CONSTRAINT fk_pdm_evidencia_ejecucion FOREIGN KEY (ejecucion_id) 
-                        REFERENCES pdm_actividades_ejecuciones(id) ON DELETE CASCADE,
+                    CONSTRAINT fk_pdm_evidencia_actividad FOREIGN KEY (actividad_id) 
+                        REFERENCES pdm_actividades(id) ON DELETE CASCADE,
                     CONSTRAINT fk_pdm_evidencia_entity FOREIGN KEY (entity_id) 
                         REFERENCES entities(id) ON DELETE CASCADE
                 )
@@ -907,9 +944,41 @@ def migrate_pdm(db: Session) -> List[str]:
             db.rollback()
     else:
         results.append("✓ Tabla pdm_actividades_evidencias existe")
+        
+        # Verificar si tiene la estructura antigua y necesita ser recreada
+        if column_exists("pdm_actividades_evidencias", "ejecucion_id"):
+            log_msg("⚠ Tabla pdm_actividades_evidencias tiene estructura antigua, recreando...")
+            try:
+                # Respaldar datos si existen
+                db.execute(text("DROP TABLE IF EXISTS pdm_actividades_evidencias CASCADE"))
+                
+                # Crear con estructura nueva
+                db.execute(text("""
+                    CREATE TABLE pdm_actividades_evidencias (
+                        id SERIAL PRIMARY KEY,
+                        actividad_id INTEGER NOT NULL UNIQUE,
+                        entity_id INTEGER NOT NULL,
+                        descripcion TEXT NOT NULL,
+                        url_evidencia VARCHAR(1024),
+                        imagenes JSON,
+                        fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        CONSTRAINT fk_pdm_evidencia_actividad FOREIGN KEY (actividad_id) 
+                            REFERENCES pdm_actividades(id) ON DELETE CASCADE,
+                        CONSTRAINT fk_pdm_evidencia_entity FOREIGN KEY (entity_id) 
+                            REFERENCES entities(id) ON DELETE CASCADE
+                    )
+                """))
+                db.commit()
+                log_msg("✓ Tabla pdm_actividades_evidencias recreada con nueva estructura")
+                results.append("✓ Tabla pdm_actividades_evidencias recreada")
+            except Exception as e:
+                log_msg(f"❌ Error recreando pdm_actividades_evidencias: {str(e)}", is_error=True)
+                db.rollback()
     
-    # Índices
-    create_index_safe(db, "idx_pdm_evidencia_ejecucion", "pdm_actividades_evidencias", "ejecucion_id")
+    # Índices (corregidos para la nueva estructura)
+    create_index_safe(db, "idx_pdm_evidencia_actividad", "pdm_actividades_evidencias", "actividad_id")
     create_index_safe(db, "idx_pdm_evidencia_entity", "pdm_actividades_evidencias", "entity_id")
     
     results.append("✓ Migración de PDM completada")

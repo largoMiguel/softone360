@@ -1,138 +1,185 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, Float, UniqueConstraint, ForeignKey, LargeBinary
+from sqlalchemy import Column, Integer, String, DateTime, Float, Text, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from app.config.database import Base
 
 
-class PdmArchivoExcel(Base):
-    __tablename__ = "pdm_archivos_excel"
+# ============================================
+# Tablas para almacenar datos del Excel PDM
+# ============================================
+
+class PdmLineaEstrategica(Base):
+    """Líneas Estratégicas del PDM"""
+    __tablename__ = "pdm_lineas_estrategicas"
 
     id = Column(Integer, primary_key=True, index=True)
     entity_id = Column(Integer, ForeignKey("entities.id", ondelete="CASCADE"), nullable=False, index=True)
-    nombre_archivo = Column(String(512), nullable=False)
-    contenido = Column(LargeBinary, nullable=False)  # Archivo Excel en binario
-    tamanio = Column(Integer, nullable=False)  # Tamaño en bytes
+    
+    codigo_dane = Column(String(20), nullable=True)
+    entidad_territorial = Column(String(256), nullable=True)
+    nombre_plan = Column(String(512), nullable=True)
+    consecutivo = Column(String(50), nullable=True)
+    linea_estrategica = Column(Text, nullable=False)
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    __table_args__ = (
-        UniqueConstraint("entity_id", name="uq_archivo_excel_entity"),
-    )
 
-
-class PdmMetaAssignment(Base):
-    __tablename__ = "pdm_meta_assignments"
+class PdmIndicadorResultado(Base):
+    """Indicadores de Resultado del PDM"""
+    __tablename__ = "pdm_indicadores_resultado"
 
     id = Column(Integer, primary_key=True, index=True)
     entity_id = Column(Integer, ForeignKey("entities.id", ondelete="CASCADE"), nullable=False, index=True)
-    codigo_indicador_producto = Column(String(128), nullable=False, index=True)
-    secretaria = Column(String(256), nullable=True)
-
+    
+    codigo_dane = Column(String(20), nullable=True)
+    entidad_territorial = Column(String(256), nullable=True)
+    nombre_plan = Column(String(512), nullable=True)
+    consecutivo = Column(String(50), nullable=True)
+    linea_estrategica = Column(Text, nullable=True)
+    indicador_resultado = Column(Text, nullable=False)
+    esta_pnd = Column(String(10), nullable=True)
+    meta_cuatrienio = Column(Float, nullable=True)
+    transformacion_pnd = Column(String(512), nullable=True)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    __table_args__ = (
-        UniqueConstraint("entity_id", "codigo_indicador_producto", name="uq_meta_assignment_entity_codigo"),
-    )
 
-
-class PdmAvance(Base):
-    __tablename__ = "pdm_avances"
+class PdmIniciativaSGR(Base):
+    """Iniciativas SGR del PDM"""
+    __tablename__ = "pdm_iniciativas_sgr"
 
     id = Column(Integer, primary_key=True, index=True)
     entity_id = Column(Integer, ForeignKey("entities.id", ondelete="CASCADE"), nullable=False, index=True)
-    codigo_indicador_producto = Column(String(128), nullable=False, index=True)
-    anio = Column(Integer, nullable=False)
-    valor_ejecutado = Column(Float, nullable=False, default=0.0)
-    comentario = Column(String(512), nullable=True)
-
+    
+    codigo_dane = Column(String(20), nullable=True)
+    entidad_territorial = Column(String(256), nullable=True)
+    nombre_plan = Column(String(512), nullable=True)
+    consecutivo = Column(String(50), nullable=True)
+    linea_estrategica = Column(Text, nullable=True)
+    tipo_iniciativa = Column(String(256), nullable=True)
+    sector_mga = Column(String(256), nullable=True)
+    iniciativa_sgr = Column(Text, nullable=False)
+    recursos_sgr_indicativos = Column(Float, nullable=True)
+    bpin = Column(String(50), nullable=True)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    __table_args__ = (
-        UniqueConstraint("entity_id", "codigo_indicador_producto", "anio", name="uq_avance_entity_codigo_anio"),
-    )
 
+class PdmProducto(Base):
+    """Productos del Plan Indicativo - Tabla principal con toda la info del Excel"""
+    __tablename__ = "pdm_productos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    entity_id = Column(Integer, ForeignKey("entities.id", ondelete="CASCADE"), nullable=False, index=True)
+    
+    # Identificadores
+    codigo_dane = Column(String(20), nullable=True)
+    entidad_territorial = Column(String(256), nullable=True)
+    nombre_plan = Column(String(512), nullable=True)
+    codigo_indicador_producto = Column(String(128), nullable=True)
+    codigo_producto = Column(String(128), nullable=False, index=True)
+    
+    # Estructura estratégica
+    linea_estrategica = Column(Text, nullable=True)
+    codigo_sector = Column(String(50), nullable=True)
+    sector_mga = Column(String(256), nullable=True)
+    codigo_programa = Column(String(50), nullable=True)
+    programa_mga = Column(String(512), nullable=True)
+    codigo_producto_mga = Column(String(50), nullable=True)
+    producto_mga = Column(Text, nullable=True)
+    codigo_indicador_producto_mga = Column(String(128), nullable=True)
+    indicador_producto_mga = Column(Text, nullable=True)
+    personalizacion_indicador = Column(Text, nullable=True)
+    unidad_medida = Column(String(128), nullable=True)
+    meta_cuatrienio = Column(Float, nullable=True)
+    principal = Column(String(10), nullable=True)
+    codigo_ods = Column(String(50), nullable=True)
+    ods = Column(String(256), nullable=True)
+    tipo_acumulacion = Column(String(128), nullable=True)
+    bpin = Column(String(50), nullable=True)
+    
+    # Programación por año
+    programacion_2024 = Column(Float, default=0)
+    programacion_2025 = Column(Float, default=0)
+    programacion_2026 = Column(Float, default=0)
+    programacion_2027 = Column(Float, default=0)
+    
+    # Presupuesto completo (JSON para simplificar)
+    presupuesto_2024 = Column(JSON, nullable=True)
+    presupuesto_2025 = Column(JSON, nullable=True)
+    presupuesto_2026 = Column(JSON, nullable=True)
+    presupuesto_2027 = Column(JSON, nullable=True)
+    
+    # Totales presupuestales
+    total_2024 = Column(Float, default=0)
+    total_2025 = Column(Float, default=0)
+    total_2026 = Column(Float, default=0)
+    total_2027 = Column(Float, default=0)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# ============================================
+# Tablas para gestión de actividades
+# ============================================
 
 class PdmActividad(Base):
+    """Actividades asociadas a productos por año"""
     __tablename__ = "pdm_actividades"
 
     id = Column(Integer, primary_key=True, index=True)
     entity_id = Column(Integer, ForeignKey("entities.id", ondelete="CASCADE"), nullable=False, index=True)
-    codigo_indicador_producto = Column(String(128), nullable=False, index=True)
+    codigo_producto = Column(String(128), nullable=False, index=True)
+    
+    # Año de la actividad
+    anio = Column(Integer, nullable=False, index=True)
+    
+    # Información de la actividad
     nombre = Column(String(512), nullable=False)
-    descripcion = Column(String(1024), nullable=True)
-    responsable = Column(String(256), nullable=True)
+    descripcion = Column(Text, nullable=True)
+    responsable = Column(String(256), nullable=True)  # Nombre del responsable (legacy)
+    responsable_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)  # Usuario responsable
     fecha_inicio = Column(DateTime, nullable=True)
     fecha_fin = Column(DateTime, nullable=True)
-    # Campos para ejecutar por año
-    anio = Column(Integer, nullable=True)
+    
+    # Meta que se va a ejecutar
     meta_ejecutar = Column(Float, nullable=False, default=0.0)
-    valor_ejecutado = Column(Float, nullable=False, default=0.0)
-    estado = Column(String(64), nullable=False, default='pendiente')  # pendiente, en_progreso, completada, cancelada
-
+    
+    # Estado: PENDIENTE, EN_PROGRESO, COMPLETADA, CANCELADA
+    estado = Column(String(64), nullable=False, default='PENDIENTE')
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # Relaciones (agregado: permite acceso a ejecuciones y cascada completa)
-    ejecuciones = relationship(
-        "PdmActividadEjecucion",
-        back_populates="actividad",
-        cascade="all, delete-orphan",
-        order_by="PdmActividadEjecucion.created_at.desc()"
-    )
-
-
-class PdmActividadEjecucion(Base):
-    """
-    Historial de ejecuciones de una actividad.
-    Cada registro representa un reporte de avance con sus evidencias.
-    """
-    __tablename__ = "pdm_actividades_ejecuciones"
-
-    id = Column(Integer, primary_key=True, index=True)
-    actividad_id = Column(Integer, ForeignKey("pdm_actividades.id", ondelete="CASCADE"), nullable=False, index=True)
-    entity_id = Column(Integer, ForeignKey("entities.id", ondelete="CASCADE"), nullable=False, index=True)
     
-    # Cantidad ejecutada en este reporte específico
-    valor_ejecutado_incremento = Column(Float, nullable=False, default=0.0)
+    # Relación con evidencia
+    evidencia = relationship("PdmActividadEvidencia", back_populates="actividad", uselist=False, cascade="all, delete-orphan")
     
-    # Descripción del avance
-    descripcion = Column(String(2048), nullable=True)
-    
-    # URL de evidencia externa (opcional)
-    url_evidencia = Column(String(512), nullable=True)
-    
-    # Usuario que registró el avance (opcional)
-    registrado_por = Column(String(256), nullable=True)
-
-    # Relaciones
-    actividad = relationship("PdmActividad", back_populates="ejecuciones")
-    evidencias = relationship("PdmActividadEvidencia", back_populates="ejecucion", cascade="all, delete-orphan")
-
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # Relación con usuario responsable
+    responsable_user = relationship("User", foreign_keys=[responsable_user_id])
 
 
 class PdmActividadEvidencia(Base):
-    """
-    Evidencias (imágenes) asociadas a una ejecución de actividad.
-    Cada ejecución puede tener hasta 4 imágenes.
-    """
+    """Evidencias de cumplimiento de actividades"""
     __tablename__ = "pdm_actividades_evidencias"
 
     id = Column(Integer, primary_key=True, index=True)
-    ejecucion_id = Column(Integer, ForeignKey("pdm_actividades_ejecuciones.id", ondelete="CASCADE"), nullable=False, index=True)
+    actividad_id = Column(Integer, ForeignKey("pdm_actividades.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
     entity_id = Column(Integer, ForeignKey("entities.id", ondelete="CASCADE"), nullable=False, index=True)
     
-    nombre_imagen = Column(String(256), nullable=False)
-
-    # Relación
-    ejecucion = relationship("PdmActividadEjecucion", back_populates="evidencias")
-    mime_type = Column(String(64), nullable=False)
-    tamano = Column(Integer, nullable=False)  # Tamaño en bytes
-    contenido = Column(LargeBinary, nullable=False)  # Imagen en binario
-
+    descripcion = Column(Text, nullable=False)
+    url_evidencia = Column(String(1024), nullable=True)
+    
+    # Imágenes en Base64 (JSON array)
+    imagenes = Column(JSON, nullable=True)  # Array de strings base64
+    
+    fecha_registro = Column(DateTime, default=datetime.utcnow)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relación inversa
+    actividad = relationship("PdmActividad", back_populates="evidencia")
