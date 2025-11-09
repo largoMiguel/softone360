@@ -108,47 +108,72 @@ async def upload_pdm_data(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Carga todos los datos del Excel PDM. Elimina datos previos."""
+    """Carga/actualiza todos los datos del Excel PDM. Actualiza existentes y agrega nuevos."""
     entity = get_entity_or_404(db, slug)
     ensure_user_can_manage_entity(current_user, entity)
     
-    # Eliminar datos previos
-    db.query(PdmLineaEstrategica).filter(PdmLineaEstrategica.entity_id == entity.id).delete()
-    db.query(PdmIndicadorResultado).filter(PdmIndicadorResultado.entity_id == entity.id).delete()
-    db.query(PdmIniciativaSGR).filter(PdmIniciativaSGR.entity_id == entity.id).delete()
-    db.query(PdmProducto).filter(PdmProducto.entity_id == entity.id).delete()
-    
-    # Insertar líneas estratégicas
+    # Upsert líneas estratégicas (actualizar o insertar)
     for item in data.lineas_estrategicas:
-        linea = PdmLineaEstrategica(
-            entity_id=entity.id,
-            **item.model_dump()
-        )
-        db.add(linea)
+        # Buscar si ya existe por linea_estrategica
+        existing = db.query(PdmLineaEstrategica).filter(
+            PdmLineaEstrategica.entity_id == entity.id,
+            PdmLineaEstrategica.linea_estrategica == item.linea_estrategica
+        ).first()
+        
+        if existing:
+            # Actualizar
+            for key, value in item.model_dump().items():
+                setattr(existing, key, value)
+        else:
+            # Insertar nuevo
+            linea = PdmLineaEstrategica(entity_id=entity.id, **item.model_dump())
+            db.add(linea)
     
-    # Insertar indicadores de resultado
+    # Upsert indicadores de resultado
     for item in data.indicadores_resultado:
-        indicador = PdmIndicadorResultado(
-            entity_id=entity.id,
-            **item.model_dump()
-        )
-        db.add(indicador)
+        existing = db.query(PdmIndicadorResultado).filter(
+            PdmIndicadorResultado.entity_id == entity.id,
+            PdmIndicadorResultado.codigo_indicador == item.codigo_indicador
+        ).first()
+        
+        if existing:
+            for key, value in item.model_dump().items():
+                setattr(existing, key, value)
+        else:
+            indicador = PdmIndicadorResultado(entity_id=entity.id, **item.model_dump())
+            db.add(indicador)
     
-    # Insertar iniciativas SGR
+    # Upsert iniciativas SGR
     for item in data.iniciativas_sgr:
-        iniciativa = PdmIniciativaSGR(
-            entity_id=entity.id,
-            **item.model_dump()
-        )
-        db.add(iniciativa)
+        existing = db.query(PdmIniciativaSGR).filter(
+            PdmIniciativaSGR.entity_id == entity.id,
+            PdmIniciativaSGR.codigo_iniciativa == item.codigo_iniciativa
+        ).first()
+        
+        if existing:
+            for key, value in item.model_dump().items():
+                setattr(existing, key, value)
+        else:
+            iniciativa = PdmIniciativaSGR(entity_id=entity.id, **item.model_dump())
+            db.add(iniciativa)
     
-    # Insertar productos
+    # Upsert productos (clave: codigo_producto)
     for item in data.productos_plan_indicativo:
-        producto = PdmProducto(
-            entity_id=entity.id,
-            **item.model_dump()
-        )
-        db.add(producto)
+        existing = db.query(PdmProducto).filter(
+            PdmProducto.entity_id == entity.id,
+            PdmProducto.codigo_producto == item.codigo_producto
+        ).first()
+        
+        if existing:
+            # Actualizar solo campos del Excel, preservar responsable y responsable_user_id
+            for key, value in item.model_dump().items():
+                # No sobrescribir los campos de responsable si ya están definidos
+                if key not in ['responsable', 'responsable_user_id']:
+                    setattr(existing, key, value)
+        else:
+            # Insertar nuevo producto
+            producto = PdmProducto(entity_id=entity.id, **item.model_dump())
+            db.add(producto)
     
     db.commit()
     
@@ -455,3 +480,53 @@ async def get_evidencia(
         raise HTTPException(status_code=404, detail="Evidencia no encontrada")
     
     return schemas.EvidenciaResponse.model_validate(evidencia)
+
+
+# ==============================================
+# Asignación de responsables a productos
+# ==============================================
+
+@router.patch("/{slug}/productos/{codigo_producto}/responsable")
+async def asignar_responsable_producto(
+    slug: str,
+    codigo_producto: str,
+    responsable_user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Asigna un responsable a un producto del PDM"""
+    entity = get_entity_or_404(db, slug)
+    ensure_user_can_manage_entity(current_user, entity)
+    
+    # Buscar el producto
+    producto = db.query(PdmProducto).filter(
+        PdmProducto.codigo_producto == codigo_producto,
+        PdmProducto.entity_id == entity.id
+    ).first()
+    
+    if not producto:
+        raise HTTPException(status_code=404, detail=f"Producto '{codigo_producto}' no encontrado")
+    
+    # Verificar que el usuario existe y pertenece a la entidad
+    usuario = db.query(User).filter(
+        User.id == responsable_user_id,
+        User.entity_id == entity.id
+    ).first()
+    
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado o no pertenece a esta entidad")
+    
+    # Asignar responsable
+    producto.responsable_user_id = responsable_user_id
+    producto.responsable = usuario.full_name or usuario.name  # Actualizar también el campo legacy
+    
+    db.commit()
+    db.refresh(producto)
+    
+    return {
+        "success": True,
+        "message": f"Responsable asignado correctamente al producto {codigo_producto}",
+        "producto_codigo": producto.codigo_producto,
+        "responsable_id": producto.responsable_user_id,
+        "responsable_nombre": usuario.full_name or usuario.name
+    }

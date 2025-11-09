@@ -1,0 +1,1475 @@
+<div class="pdm-container">
+    <!-- HEADER -->
+    <div class="page-header">
+        <div class="header-content">
+            <div class="header-info">
+                <h2 class="page-title">
+                    <i class="fas fa-file-excel"></i>
+                    <span *ngIf="!archivoExcelCargado">Plan de Desarrollo Municipal (PDM)</span>
+                    <span *ngIf="archivoExcelCargado && vistaActual === 'dashboard'">Seguimiento - PDM</span>
+                    <span *ngIf="archivoExcelCargado && vistaActual === 'productos'">Productos - PDM</span>
+                    <span *ngIf="archivoExcelCargado && vistaActual === 'detalle'">Detalle del Producto</span>
+                    <span *ngIf="archivoExcelCargado && vistaActual === 'analisis-producto'">Análisis Detallado del Producto</span>
+                    <span *ngIf="archivoExcelCargado && vistaActual === 'analytics'">Análisis y Dashboards - PDM</span>
+                </h2>
+                <p class="page-subtitle" *ngIf="!archivoExcelCargado">
+                    Cargue un archivo Excel con las 5 hojas del Plan de Desarrollo Municipal
+                </p>
+            </div>
+            <div class="header-actions">
+                <button *ngIf="archivoExcelCargado && vistaActual === 'dashboard'" class="btn btn-success me-2" (click)="verAnalytics()">
+                    <i class="fas fa-chart-pie"></i> Ver Análisis
+                </button>
+                <button *ngIf="archivoExcelCargado && vistaActual === 'detalle'" class="btn btn-primary me-2" (click)="abrirModalAnalisisProducto()">
+                    <i class="fas fa-chart-line"></i> Ver Análisis Detallado
+                </button>
+                <button *ngIf="vistaActual !== 'dashboard' && archivoExcelCargado" class="btn btn-outline-secondary me-2" (click)="volver()">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </button>
+                <button *ngIf="archivoExcelCargado && (vistaActual === 'dashboard' || vistaActual === 'detalle')" class="btn btn-outline-primary" (click)="cargarNuevoArchivo()">
+                    <i class="fas fa-upload"></i> Cargar Nuevo Archivo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOADING -->
+    <div *ngIf="cargando || cargandoDesdeBackend" class="loading-overlay">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+        </div>
+        <p class="mt-3 text-muted" *ngIf="cargando">Procesando archivo Excel...</p>
+        <p class="mt-3 text-muted" *ngIf="cargandoDesdeBackend">Cargando datos desde el servidor...</p>
+    </div>
+
+    <!-- VISTA: CARGA DE ARCHIVO -->
+    <div *ngIf="!archivoExcelCargado && !cargando && !cargandoDesdeBackend" class="vista-carga">
+        <div class="card upload-card">
+            <div class="card-body text-center p-5">
+                <div class="upload-icon mb-4">
+                    <i class="fas fa-cloud-upload-alt fa-5x text-primary"></i>
+                </div>
+                <h4 class="mb-3">Cargar Plan de Desarrollo Municipal</h4>
+                <p class="text-muted mb-4">
+                    Seleccione un archivo Excel (.xlsx o .xls) que contenga las siguientes hojas:
+                </p>
+                <ul class="list-unstyled text-start mb-4" style="max-width: 500px; margin: 0 auto;">
+                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Líneas Estratégicas</li>
+                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Indicadores de Resultado</li>
+                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Iniciativas SGR</li>
+                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Plan Indicativo - Productos</li>
+                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Plan Indicativo SGR - Productos</li>
+                </ul>
+                <label class="btn btn-primary btn-lg">
+                    <i class="fas fa-file-excel me-2"></i> Seleccionar Archivo Excel
+                    <input type="file" accept=".xlsx,.xls" (change)="onFileSelected($event)" style="display: none;">
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- VISTA: DASHBOARD -->
+    <div *ngIf="archivoExcelCargado && vistaActual === 'dashboard' && estadisticas" class="vista-dashboard">
+        <!-- Estadísticas Generales -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="stat-card card">
+                    <div class="card-body">
+                        <div class="stat-icon">
+                            <i class="fas fa-layer-group fa-2x text-primary"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 class="stat-value">{{ estadisticas.total_lineas_estrategicas }}</h3>
+                            <p class="stat-label">Líneas Estratégicas</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stat-card card">
+                    <div class="card-body">
+                        <div class="stat-icon">
+                            <i class="fas fa-box fa-2x text-info"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 class="stat-value">{{ estadisticas.total_productos }}</h3>
+                            <p class="stat-label">Productos</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stat-card card">
+                    <div class="card-body">
+                        <div class="stat-icon">
+                            <i class="fas fa-project-diagram fa-2x text-warning"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 class="stat-value">{{ estadisticas.total_iniciativas_sgr }}</h3>
+                            <p class="stat-label">Iniciativas SGR</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stat-card card">
+                    <div class="card-body">
+                        <div class="stat-icon">
+                            <i class="fas fa-dollar-sign fa-2x text-success"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 class="stat-value-small">{{ formatearMoneda(estadisticas.presupuesto_total) }}</h3>
+                            <p class="stat-label">Presupuesto Total</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Presupuesto por Año -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i> Presupuesto por Año (Cuatrienio)</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <div class="year-budget">
+                            <h6 class="text-muted mb-2">2024</h6>
+                            <h4 class="text-primary">{{ formatearMoneda(estadisticas.presupuestoPorAnio.anio2024) }}</h4>
+                            <div class="progress mt-2" style="height: 6px;">
+                                <div class="progress-bar bg-primary" [style.width.%]="(estadisticas.presupuestoPorAnio.anio2024 / estadisticas.presupuesto_total) * 100"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="year-budget">
+                            <h6 class="text-muted mb-2">2025</h6>
+                            <h4 class="text-info">{{ formatearMoneda(estadisticas.presupuestoPorAnio.anio2025) }}</h4>
+                            <div class="progress mt-2" style="height: 6px;">
+                                <div class="progress-bar bg-info" [style.width.%]="(estadisticas.presupuestoPorAnio.anio2025 / estadisticas.presupuesto_total) * 100"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="year-budget">
+                            <h6 class="text-muted mb-2">2026</h6>
+                            <h4 class="text-warning">{{ formatearMoneda(estadisticas.presupuestoPorAnio.anio2026) }}</h4>
+                            <div class="progress mt-2" style="height: 6px;">
+                                <div class="progress-bar bg-warning" [style.width.%]="(estadisticas.presupuestoPorAnio.anio2026 / estadisticas.presupuesto_total) * 100"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="year-budget">
+                            <h6 class="text-muted mb-2">2027</h6>
+                            <h4 class="text-success">{{ formatearMoneda(estadisticas.presupuestoPorAnio.anio2027) }}</h4>
+                            <div class="progress mt-2" style="height: 6px;">
+                                <div class="progress-bar bg-success" [style.width.%]="(estadisticas.presupuestoPorAnio.anio2027 / estadisticas.presupuesto_total) * 100"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Presupuesto por Línea Estratégica -->
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i> Presupuesto por Línea Estratégica</h5>
+                    </div>
+                    <div class="card-body">
+                        <div *ngFor="let item of estadisticas.presupuesto_por_linea" class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <small class="text-truncate" style="max-width: 60%;" [title]="item.linea">{{ item.linea }}</small>
+                                <small class="fw-bold">{{ formatearMoneda(item.total) }}</small>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-primary" 
+                                     [style.width.%]="(item.total / estadisticas.presupuesto_total) * 100"
+                                     [title]="((item.total / estadisticas.presupuesto_total) * 100).toFixed(1) + '%'">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Presupuesto por Sector -->
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i> Presupuesto por Sector</h5>
+                    </div>
+                    <div class="card-body">
+                        <div *ngFor="let item of estadisticas.presupuesto_por_sector.slice(0, 10)" class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <small class="text-truncate" style="max-width: 60%;" [title]="item.sector">{{ item.sector }}</small>
+                                <small class="fw-bold">{{ formatearMoneda(item.total) }}</small>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-success" 
+                                     [style.width.%]="(item.total / estadisticas.presupuesto_total) * 100"
+                                     [title]="((item.total / estadisticas.presupuesto_total) * 100).toFixed(1) + '%'">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botón para ver productos -->
+        <div class="text-center mb-4">
+            <button class="btn btn-primary btn-lg" (click)="navegarA('productos')">
+                <i class="fas fa-list me-2"></i> Ver Todos los Productos
+            </button>
+        </div>
+    </div>
+
+    <!-- VISTA: PRODUCTOS -->
+    <div *ngIf="archivoExcelCargado && vistaActual === 'productos'" class="vista-productos">
+        <!-- Selector de Año -->
+        <div class="card mb-4 bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i> Año de Seguimiento</h5>
+                    <div class="btn-group" role="group">
+                        <button *ngFor="let anio of aniosDisponibles" 
+                                type="button" 
+                                class="btn"
+                                [class.btn-light]="filtroAnio === anio"
+                                [class.btn-outline-light]="filtroAnio !== anio"
+                                (click)="filtroAnio = anio">
+                            {{ anio }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard de Estadísticas por Estado (Solo productos con meta > 0 para el año seleccionado) -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="stat-card card border-warning">
+                    <div class="card-body">
+                        <div class="stat-icon">
+                            <i class="fas fa-clock fa-2x text-warning"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 class="stat-value">{{ getEstadisticasPorEstado().pendiente }}</h3>
+                            <p class="stat-label">Pendientes</p>
+                            <small class="text-muted">Sin avance en {{ filtroAnio }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stat-card card border-info">
+                    <div class="card-body">
+                        <div class="stat-icon">
+                            <i class="fas fa-spinner fa-2x text-info"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 class="stat-value">{{ getEstadisticasPorEstado().en_progreso }}</h3>
+                            <p class="stat-label">En Progreso</p>
+                            <small class="text-muted">Con actividades en {{ filtroAnio }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stat-card card border-success">
+                    <div class="card-body">
+                        <div class="stat-icon">
+                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 class="stat-value">{{ getEstadisticasPorEstado().completado }}</h3>
+                            <p class="stat-label">Completados</p>
+                            <small class="text-muted">100% de avance en {{ filtroAnio }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stat-card card border-secondary">
+                    <div class="card-body">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-plus fa-2x text-secondary"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 class="stat-value">{{ getEstadisticasPorEstado().por_ejecutar }}</h3>
+                            <p class="stat-label">Por Ejecutar</p>
+                            <small class="text-muted">Programados para {{ filtroAnio }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label"><i class="fas fa-filter me-1"></i> Línea Estratégica</label>
+                        <select class="form-select" [(ngModel)]="filtroLinea">
+                            <option value="">Todas las líneas</option>
+                            <option *ngFor="let linea of lineasEstrategicas" [value]="linea">{{ linea }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label"><i class="fas fa-filter me-1"></i> Sector</label>
+                        <select class="form-select" [(ngModel)]="filtroSector">
+                            <option value="">Todos los sectores</option>
+                            <option *ngFor="let sector of sectores" [value]="sector">{{ sector }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label"><i class="fas fa-search me-1"></i> Buscar Producto</label>
+                        <input type="text" class="form-control" [(ngModel)]="filtroBusqueda" placeholder="Buscar por código o nombre...">
+                    </div>
+                </div>
+                <div class="mt-3 d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Mostrando {{ productosFiltrados.length }} de {{ resumenProductos.length }} productos para el año <strong>{{ filtroAnio }}</strong>
+                    </small>
+                    <button class="btn btn-sm btn-outline-secondary" (click)="limpiarFiltros()">
+                        <i class="fas fa-times me-1"></i> Limpiar Filtros
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de Productos -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-box me-2"></i> Productos del Plan Indicativo - Año {{ filtroAnio }}
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 productos-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 100px;">Código</th>
+                                <th>Producto</th>
+                                <th style="width: 120px;">Meta Cuatrienio</th>
+                                <th style="width: 130px;">Meta {{ filtroAnio }}</th>
+                                <th style="width: 140px;">Presupuesto</th>
+                                <th style="width: 140px;">Avance</th>
+                                <th style="width: 120px;">Estado</th>
+                                <th style="width: 200px;">Responsable</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngIf="productosFiltrados.length === 0">
+                                <td colspan="8" class="text-center py-4">
+                                    <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+                                    <p class="text-muted">No se encontraron productos con los filtros seleccionados</p>
+                                </td>
+                            </tr>
+                            <tr *ngFor="let producto of productosFiltrados" class="cursor-pointer" (click)="navegarA('detalle', producto)">
+                                <td><span class="badge bg-secondary">{{ producto.codigo }}</span></td>
+                                <td>
+                                    <div class="producto-info">
+                                        <strong>{{ producto.producto }}</strong>
+                                        <small class="d-block text-muted">{{ producto.sector }}</small>
+                                        <small class="d-block text-muted">{{ producto.linea_estrategica }}</small>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <strong>{{ formatearNumero(producto.meta_cuatrienio) }}</strong>
+                                    <small class="d-block text-muted">{{ producto.unidad_medida }}</small>
+                                </td>
+                                <td class="text-center">
+                                    <strong>{{ formatearNumero(getMetaAnio(producto, filtroAnio)) }}</strong>
+                                    <small class="d-block text-muted">{{ producto.unidad_medida }}</small>
+                                </td>
+                                <td class="text-end">
+                                    <strong class="text-success">{{ formatearMoneda(getPresupuestoAnio(producto, filtroAnio)) }}</strong>
+                                </td>
+                                <td class="text-center">
+                                    <div class="progress" style="height: 24px;">
+                                        <div [class]="'progress-bar ' + getColorProgreso(getAvanceAnio(producto, filtroAnio))" 
+                                             [style.width.%]="getAvanceAnio(producto, filtroAnio)"
+                                             role="progressbar">
+                                            <strong>{{ getAvanceAnio(producto, filtroAnio).toFixed(1) }}%</strong>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge" [class]="'bg-' + getColorEstadoProducto(getEstadoProductoAnio(producto, filtroAnio))">
+                                        {{ getTextoEstadoProducto(getEstadoProductoAnio(producto, filtroAnio)) }}
+                                    </span>
+                                </td>
+                                <td (click)="$event.stopPropagation()">
+                                    <select 
+                                        class="form-select form-select-sm" 
+                                        [value]="producto.responsable_id || ''"
+                                        (change)="asignarResponsable(producto, $event)"
+                                        [disabled]="cargandoSecretarios">
+                                        <option value="">Asignar responsable...</option>
+                                        <option *ngFor="let secretario of secretarios" 
+                                                [value]="secretario.id">
+                                            {{ secretario.full_name || secretario.name }} - {{ secretario.secretaria || 'Sin secretaría' }}
+                                        </option>
+                                    </select>
+                                    <small *ngIf="producto.responsable_nombre" class="text-muted d-block mt-1">
+                                        <i class="fas fa-user me-1"></i>{{ producto.responsable_nombre }}
+                                    </small>
+                                    <small *ngIf="cargandoSecretarios" class="text-muted d-block mt-1">
+                                        <i class="fas fa-spinner fa-spin"></i> Cargando...
+                                    </small>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VISTA: DETALLE PRODUCTO -->
+    <div *ngIf="archivoExcelCargado && vistaActual === 'detalle' && productoSeleccionado" class="vista-detalle">
+        <div class="row">
+            <!-- Información Principal -->
+            <div class="col-lg-8 mb-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i> Información del Producto</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="text-muted small">Código Producto</label>
+                                <p class="fw-bold">{{ productoSeleccionado.codigo }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="text-muted small">Unidad de Medida</label>
+                                <p class="fw-bold">{{ productoSeleccionado.unidad_medida }}</p>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="text-muted small">Producto / Indicador</label>
+                            <p class="fw-bold">{{ productoSeleccionado.producto }}</p>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="text-muted small">Línea Estratégica</label>
+                                <p>{{ productoSeleccionado.linea_estrategica }}</p>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="text-muted small">Sector MGA</label>
+                                <p>{{ productoSeleccionado.sector }}</p>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="text-muted small">Programa MGA</label>
+                                <p>{{ productoSeleccionado.programa_mga || 'N/A' }}</p>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="text-muted small">ODS</label>
+                                <p><span class="badge bg-info">{{ productoSeleccionado.ods || 'N/A' }}</span></p>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="text-muted small">Tipo de Acumulación</label>
+                                <p>{{ productoSeleccionado.tipo_acumulacion || 'N/A' }}</p>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="text-muted small">BPIN</label>
+                                <p *ngIf="productoSeleccionado.bpin && productoSeleccionado.bpin.trim() !== ''">
+                                    <a href="javascript:void(0)" (click)="abrirModalBPIN(productoSeleccionado.bpin)" class="text-primary fw-bold">
+                                        <i class="fas fa-external-link-alt me-1"></i>{{ productoSeleccionado.bpin }}
+                                    </a>
+                                </p>
+                                <p *ngIf="!productoSeleccionado.bpin || productoSeleccionado.bpin.trim() === ''">N/A</p>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="text-muted small">Meta Cuatrienio</label>
+                                <h4 class="text-primary">{{ formatearNumero(productoSeleccionado.meta_cuatrienio) }}</h4>
+                                <small class="text-muted">{{ productoSeleccionado.unidad_medida }}</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="text-muted small">Metas Programadas</label>
+                                <h4 class="text-info">{{ formatearNumero(productoSeleccionado.programacion_2024 + productoSeleccionado.programacion_2025 + productoSeleccionado.programacion_2026 + productoSeleccionado.programacion_2027) }}</h4>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="text-muted small">% de Avance</label>
+                                <h4 [class]="'text-' + (productoSeleccionado.porcentaje_ejecucion >= 75 ? 'success' : productoSeleccionado.porcentaje_ejecucion >= 50 ? 'warning' : 'danger')">
+                                    {{ productoSeleccionado.porcentaje_ejecucion.toFixed(1) }}%
+                                </h4>
+                            </div>
+                        </div>
+
+                        <div class="progress mb-3" style="height: 25px;">
+                            <div [class]="'progress-bar ' + getColorProgreso(productoSeleccionado.porcentaje_ejecucion)" 
+                                 [style.width.%]="productoSeleccionado.porcentaje_ejecucion"
+                                 role="progressbar">
+                                <strong>{{ productoSeleccionado.porcentaje_ejecucion.toFixed(1) }}%</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gestión de Actividades por Año -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-tasks me-2"></i> Actividades y Seguimiento</h5>
+                            <button class="btn btn-sm btn-primary" (click)="abrirModalNuevaActividad()" *ngIf="resumenAnioActual && resumenAnioActual.meta_disponible > 0">
+                                <i class="fas fa-plus me-1"></i> Nueva Actividad
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Tabs de Años -->
+                        <ul class="nav nav-tabs mb-3">
+                            <li class="nav-item">
+                                <a class="nav-link" [class.active]="anioSeleccionado === 2024" (click)="seleccionarAnio(2024)" style="cursor: pointer;">
+                                    2024
+                                    <span *ngIf="avanceProducto" class="badge bg-primary ms-1">{{ avanceProducto.avance_por_anio[2024].porcentaje_avance.toFixed(0) }}%</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" [class.active]="anioSeleccionado === 2025" (click)="seleccionarAnio(2025)" style="cursor: pointer;">
+                                    2025
+                                    <span *ngIf="avanceProducto" class="badge bg-info ms-1">{{ avanceProducto.avance_por_anio[2025].porcentaje_avance.toFixed(0) }}%</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" [class.active]="anioSeleccionado === 2026" (click)="seleccionarAnio(2026)" style="cursor: pointer;">
+                                    2026
+                                    <span *ngIf="avanceProducto" class="badge bg-warning ms-1">{{ avanceProducto.avance_por_anio[2026].porcentaje_avance.toFixed(0) }}%</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" [class.active]="anioSeleccionado === 2027" (click)="seleccionarAnio(2027)" style="cursor: pointer;">
+                                    2027
+                                    <span *ngIf="avanceProducto" class="badge bg-success ms-1">{{ avanceProducto.avance_por_anio[2027].porcentaje_avance.toFixed(0) }}%</span>
+                                </a>
+                            </li>
+                        </ul>
+
+                        <!-- Resumen del Año Seleccionado -->
+                        <div *ngIf="resumenAnioActual" class="alert alert-info mb-3">
+                            <div class="row text-center">
+                                <div class="col-md-3">
+                                    <strong>Meta Programada</strong>
+                                    <p class="mb-0">{{ formatearNumero(resumenAnioActual.meta_programada) }} {{ productoSeleccionado.unidad_medida }}</p>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>Meta Asignada</strong>
+                                    <p class="mb-0">{{ formatearNumero(resumenAnioActual.meta_asignada) }} {{ productoSeleccionado.unidad_medida }}</p>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>Meta Disponible</strong>
+                                    <p class="mb-0" [class.text-danger]="resumenAnioActual.meta_disponible === 0">
+                                        {{ formatearNumero(resumenAnioActual.meta_disponible) }} {{ productoSeleccionado.unidad_medida }}
+                                    </p>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>Avance del Año</strong>
+                                    <p class="mb-0">
+                                        {{ resumenAnioActual.actividades_completadas }} / {{ resumenAnioActual.total_actividades }} actividades
+                                        <span class="badge" [class]="'bg-' + getColorProgreso(resumenAnioActual.porcentaje_avance) + ' ms-1'">
+                                            {{ resumenAnioActual.porcentaje_avance.toFixed(1) }}%
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Lista de Actividades -->
+                        <div *ngIf="resumenAnioActual">
+                            <div *ngIf="resumenAnioActual.actividades.length === 0" class="text-center py-4 text-muted">
+                                <i class="fas fa-inbox fa-3x mb-3"></i>
+                                <p>No hay actividades registradas para este año.</p>
+                                <button *ngIf="resumenAnioActual.meta_disponible > 0" class="btn btn-primary" (click)="abrirModalNuevaActividad()">
+                                    <i class="fas fa-plus me-1"></i> Crear Primera Actividad
+                                </button>
+                                <div *ngIf="resumenAnioActual.meta_disponible === 0" class="alert alert-warning mt-3">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    No hay meta disponible para crear actividades en este año.
+                                </div>
+                            </div>
+
+                            <div *ngIf="resumenAnioActual.actividades.length > 0" class="actividades-list">
+                                <div *ngFor="let actividad of resumenAnioActual.actividades" class="card mb-3 actividad-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1">
+                                                    {{ actividad.nombre }}
+                                                    <span class="badge ms-2" [class]="'bg-' + getColorEstado(actividad.estado)">
+                                                        {{ getTextoEstado(actividad.estado) }}
+                                                    </span>
+                                                    <span *ngIf="actividad.evidencia" class="badge bg-success ms-1">
+                                                        <i class="fas fa-check-circle me-1"></i> Con Evidencia
+                                                    </span>
+                                                </h6>
+                                                <p class="text-muted small mb-2">{{ actividad.descripcion }}</p>
+                                                <div class="row small">
+                                                    <div class="col-md-4">
+                                                        <i class="fas fa-user me-1"></i> <strong>Responsable:</strong> {{ actividad.responsable }}
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <i class="fas fa-calendar me-1"></i> <strong>Fechas:</strong> {{ actividad.fecha_inicio | date:'dd/MM/yyyy' }} - {{ actividad.fecha_fin | date:'dd/MM/yyyy' }}
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <i class="fas fa-target me-1"></i> <strong>Meta:</strong> {{ formatearNumero(actividad.meta_ejecutar) }} {{ productoSeleccionado.unidad_medida }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="ms-3">
+                                                <button *ngIf="!actividad.evidencia" class="btn btn-sm btn-success me-1" (click)="abrirModalEvidencia(actividad)" title="Registrar Evidencia">
+                                                    <i class="fas fa-camera"></i>
+                                                </button>
+                                                <button *ngIf="!actividad.evidencia" class="btn btn-sm btn-outline-primary me-1" (click)="abrirModalEditarActividad(actividad)" title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button *ngIf="!actividad.evidencia || isAdmin()" class="btn btn-sm btn-outline-danger" (click)="eliminarActividad(actividad)" [title]="actividad.evidencia ? 'Eliminar (Admin - incluye evidencia)' : 'Eliminar'">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Mostrar Evidencia si existe -->
+                                        <div *ngIf="actividad.evidencia" class="mt-3 p-3 bg-light rounded">
+                                            <h6 class="text-success"><i class="fas fa-check-circle me-1"></i> Evidencia de Cumplimiento</h6>
+                                            <p class="mb-2"><strong>Descripción:</strong> {{ actividad.evidencia.descripcion }}</p>
+                                            <p class="mb-2 small text-muted">
+                                                <i class="fas fa-clock me-1"></i> Registrado el {{ actividad.evidencia.fecha_registro | date:'dd/MM/yyyy HH:mm' }}
+                                            </p>
+                                            <div *ngIf="actividad.evidencia.url_evidencia" class="mb-2">
+                                                <a [href]="actividad.evidencia.url_evidencia" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-external-link-alt me-1"></i> Ver Evidencia Externa
+                                                </a>
+                                            </div>
+                                            <div *ngIf="actividad.evidencia.imagenes && actividad.evidencia.imagenes.length > 0" class="row">
+                                                <div *ngFor="let imagen of actividad.evidencia.imagenes" class="col-md-3 mb-2">
+                                                    <img [src]="imagen" class="img-thumbnail" style="cursor: pointer;" (click)="verImagenGrande(imagen)">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información Adicional -->
+            <div class="col-lg-4 mb-4">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i> Resumen Presupuestal</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="budget-summary-item">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Presupuesto Total</span>
+                                <strong class="text-success">{{ formatearMoneda(productoSeleccionado.total_cuatrienio) }}</strong>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="budget-summary-item mb-2">
+                            <div class="d-flex justify-content-between">
+                                <small class="text-muted">2024</small>
+                                <small>{{ formatearMoneda(productoSeleccionado.total_2024) }}</small>
+                            </div>
+                            <div class="progress mt-1" style="height: 4px;">
+                                <div class="progress-bar bg-primary" [style.width.%]="(productoSeleccionado.total_2024 / productoSeleccionado.total_cuatrienio) * 100"></div>
+                            </div>
+                        </div>
+                        <div class="budget-summary-item mb-2">
+                            <div class="d-flex justify-content-between">
+                                <small class="text-muted">2025</small>
+                                <small>{{ formatearMoneda(productoSeleccionado.total_2025) }}</small>
+                            </div>
+                            <div class="progress mt-1" style="height: 4px;">
+                                <div class="progress-bar bg-info" [style.width.%]="(productoSeleccionado.total_2025 / productoSeleccionado.total_cuatrienio) * 100"></div>
+                            </div>
+                        </div>
+                        <div class="budget-summary-item mb-2">
+                            <div class="d-flex justify-content-between">
+                                <small class="text-muted">2026</small>
+                                <small>{{ formatearMoneda(productoSeleccionado.total_2026) }}</small>
+                            </div>
+                            <div class="progress mt-1" style="height: 4px;">
+                                <div class="progress-bar bg-warning" [style.width.%]="(productoSeleccionado.total_2026 / productoSeleccionado.total_cuatrienio) * 100"></div>
+                            </div>
+                        </div>
+                        <div class="budget-summary-item">
+                            <div class="d-flex justify-content-between">
+                                <small class="text-muted">2027</small>
+                                <small>{{ formatearMoneda(productoSeleccionado.total_2027) }}</small>
+                            </div>
+                            <div class="progress mt-1" style="height: 4px;">
+                                <div class="progress-bar bg-success" [style.width.%]="(productoSeleccionado.total_2027 / productoSeleccionado.total_cuatrienio) * 100"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i> Información Adicional</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="text-muted small">Programa MGA</label>
+                            <p class="small">{{ productoSeleccionado.detalle_completo.programa_mga }}</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="text-muted small">ODS</label>
+                            <p class="small">{{ productoSeleccionado.detalle_completo.ods }}</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="text-muted small">Tipo de Acumulación</label>
+                            <p class="small">{{ productoSeleccionado.detalle_completo.tipo_acumulacion }}</p>
+                        </div>
+                        <div *ngIf="productoSeleccionado.detalle_completo.bpin">
+                            <label class="text-muted small">BPIN</label>
+                            <p class="small">{{ productoSeleccionado.detalle_completo.bpin }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VISTA: ANÁLISIS DETALLADO DEL PRODUCTO -->
+    <div *ngIf="archivoExcelCargado && vistaActual === 'analisis-producto' && productoSeleccionado" class="vista-analisis-producto">
+        <div class="container-fluid">
+            <!-- Encabezado del Producto -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h4 class="mb-2">{{ productoSeleccionado.codigo }}</h4>
+                    <p class="text-muted mb-0">{{ productoSeleccionado.producto }}</p>
+                </div>
+            </div>
+
+            <!-- Estadísticas Generales -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-bullseye fa-2x text-primary mb-2"></i>
+                            <h6 class="text-muted small mb-1">Meta Cuatrienio</h6>
+                            <h4 class="mb-0">{{ formatearNumero(productoSeleccionado.meta_cuatrienio || 0) }}</h4>
+                            <small class="text-muted">{{ productoSeleccionado.unidad_medida }}</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-chart-line fa-2x text-info mb-2"></i>
+                            <h6 class="text-muted small mb-1">Meta Programada</h6>
+                            <h4 class="mb-0">{{ formatearNumero((productoSeleccionado.programacion_2024 || 0) + (productoSeleccionado.programacion_2025 || 0) + (productoSeleccionado.programacion_2026 || 0) + (productoSeleccionado.programacion_2027 || 0)) }}</h4>
+                            <small class="text-muted">{{ productoSeleccionado.unidad_medida }}</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                            <h6 class="text-muted small mb-1">Meta Ejecutada</h6>
+                            <h4 class="mb-0">{{ formatearNumero(obtenerMetaEjecutadaTotal()) }}</h4>
+                            <small class="text-muted">{{ productoSeleccionado.unidad_medida }}</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-percentage fa-2x text-warning mb-2"></i>
+                            <h6 class="text-muted small mb-1">% Avance</h6>
+                            <h4 class="mb-0">{{ productoSeleccionado.porcentaje_ejecucion?.toFixed(1) }}%</h4>
+                            <small class="text-muted">del cuatrienio</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráficos -->
+            <div class="row">
+                <!-- Gráfico de Progreso por Año -->
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Progreso por Año</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="chartProgresoAnual"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráfico de Meta vs Ejecutado -->
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-chart-area me-2"></i>Meta vs Ejecutado por Año</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="chartMetaEjecutado"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráfico de Presupuesto Acumulado -->
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-dollar-sign me-2"></i>Presupuesto por Año</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="chartPresupuestoAnual"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla de Resumen Anual -->
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-table me-2"></i>Resumen Anual</h6>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Año</th>
+                                        <th class="text-end">Programado</th>
+                                        <th class="text-end">Ejecutado</th>
+                                        <th class="text-end">%</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let anio of [2024, 2025, 2026, 2027]">
+                                        <td><strong>{{ anio }}</strong></td>
+                                        <td class="text-end">{{ formatearNumero(obtenerMetaProgramada(anio)) }}</td>
+                                        <td class="text-end">{{ formatearNumero(obtenerMetaEjecutada(anio)) }}</td>
+                                        <td class="text-end">
+                                            <span [class]="'badge ' + (obtenerPorcentajeAnio(anio) >= 75 ? 'bg-success' : obtenerPorcentajeAnio(anio) >= 50 ? 'bg-warning' : 'bg-danger')">
+                                                {{ obtenerPorcentajeAnio(anio).toFixed(1) }}%
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CREAR/EDITAR ACTIVIDAD -->
+    <div *ngIf="mostrarModalActividad" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-tasks me-2"></i>
+                        {{ actividadEnEdicion ? 'Editar Actividad' : 'Nueva Actividad' }} - Año {{ anioSeleccionado }}
+                    </h5>
+                    <button type="button" class="btn-close" (click)="cerrarModalActividad()"></button>
+                </div>
+                <form [formGroup]="formularioActividad" (ngSubmit)="guardarActividad()">
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <strong>Meta Disponible:</strong> {{ formatearNumero(resumenAnioActual?.meta_disponible || 0) }} {{ productoSeleccionado?.unidad_medida }}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Nombre de la Actividad <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" formControlName="nombre" placeholder="Ej: Capacitación en gestión de proyectos">
+                                <div *ngIf="formularioActividad.get('nombre')?.invalid && formularioActividad.get('nombre')?.touched" class="text-danger small">
+                                    Mínimo 5 caracteres
+                                </div>
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Descripción <span class="text-danger">*</span></label>
+                                <textarea class="form-control" formControlName="descripcion" rows="3" placeholder="Describa detalladamente la actividad"></textarea>
+                                <div *ngIf="formularioActividad.get('descripcion')?.invalid && formularioActividad.get('descripcion')?.touched" class="text-danger small">
+                                    Mínimo 10 caracteres
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Responsable <span class="text-danger">*</span></label>
+                                <select 
+                                    class="form-select" 
+                                    formControlName="responsable_user_id"
+                                    (change)="onResponsableChange($event)"
+                                    [disabled]="cargandoSecretarios || (formularioActividad.get('responsable_user_id')?.disabled || false)">
+                                    <option value="">Seleccione un secretario...</option>
+                                    <option *ngFor="let secretario of secretarios" [value]="secretario.id">
+                                        {{ secretario.full_name }} - {{ secretario.secretaria || 'Sin secretaría' }}
+                                    </option>
+                                </select>
+                                <small class="text-muted" *ngIf="cargandoSecretarios">
+                                    <i class="fas fa-spinner fa-spin"></i> Cargando secretarios...
+                                </small>
+                                <small class="text-info d-block mt-1" *ngIf="!actividadEnEdicion && formularioActividad.get('responsable_user_id')?.disabled">
+                                    <i class="fas fa-info-circle"></i> Responsable asignado al producto
+                                </small>
+                                <div *ngIf="formularioActividad.get('responsable')?.invalid && formularioActividad.get('responsable')?.touched" class="text-danger small">
+                                    Debe seleccionar un responsable
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Estado <span class="text-danger">*</span></label>
+                                <select class="form-select" formControlName="estado">
+                                    <option value="PENDIENTE">Pendiente</option>
+                                    <option value="EN_PROGRESO">En Progreso</option>
+                                    <option value="CANCELADA">Cancelada</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Fecha Inicio <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" formControlName="fecha_inicio">
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Fecha Fin <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" formControlName="fecha_fin">
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Meta a Ejecutar <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" formControlName="meta_ejecutar" step="0.01" [placeholder]="'Max: ' + (resumenAnioActual?.meta_disponible || 0)">
+                                <small class="text-muted">{{ productoSeleccionado?.unidad_medida }}</small>
+                                <div *ngIf="formularioActividad.get('meta_ejecutar')?.invalid && formularioActividad.get('meta_ejecutar')?.touched" class="text-danger small">
+                                    Valor inválido o excede la meta disponible
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" (click)="cerrarModalActividad()">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" [disabled]="!formularioActividad.valid">
+                            <i class="fas fa-save me-1"></i> {{ actividadEnEdicion ? 'Actualizar' : 'Crear' }} Actividad
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- VISTA: ANÁLISIS Y DASHBOARDS -->
+    <div *ngIf="archivoExcelCargado && vistaActual === 'analytics' && dashboardAnalytics" class="vista-analytics">
+        <!-- Resumen General -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center shadow-sm">
+                    <div class="card-body">
+                        <h6 class="text-muted">Total Productos</h6>
+                        <h2 class="text-primary">{{ dashboardAnalytics.resumen_general.total_productos }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center shadow-sm">
+                    <div class="card-body">
+                        <h6 class="text-muted">Avance Global</h6>
+                        <h2 class="text-success">{{ dashboardAnalytics.resumen_general.porcentaje_avance_global.toFixed(1) }}%</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center shadow-sm">
+                    <div class="card-body">
+                        <h6 class="text-muted">Presupuesto Total</h6>
+                        <h2 class="text-info">{{ formatearMoneda(dashboardAnalytics.resumen_general.presupuesto_total) }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center shadow-sm">
+                    <div class="card-body">
+                        <h6 class="text-muted">Sin Actividades</h6>
+                        <h2 class="text-warning">{{ dashboardAnalytics.resumen_general.productos_sin_actividades }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRÁFICOS ESTADÍSTICOS -->
+        <div class="row mb-4">
+            <!-- Gráfico de Torta - Distribución por Estado -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Distribución por Estado</h5>
+                    </div>
+                    <div class="card-body">
+                        <div style="position: relative; height: 350px;">
+                            <canvas id="chartEstados"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico de Barras - Top Sectores -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Top 10 Sectores</h5>
+                    </div>
+                    <div class="card-body">
+                        <div style="position: relative; height: 350px;">
+                            <canvas id="chartSectores"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <!-- Gráfico de Barras - Metas Totales vs Ejecutadas por Año -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Metas Totales vs Ejecutadas por Año</h5>
+                    </div>
+                    <div class="card-body">
+                        <div style="position: relative; height: 400px;">
+                            <canvas id="chartMetasEjecutadas"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico de Barras - Presupuesto por Año -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Presupuesto por Año</h5>
+                    </div>
+                    <div class="card-body">
+                        <div style="position: relative; height: 400px;">
+                            <canvas id="chartPresupuestoPorAnio"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABLAS DETALLADAS -->
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Información Detallada:</strong> A continuación se presentan las tablas con información detallada por cada categoría de análisis.
+        </div>
+
+        <!-- Análisis por Estado -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-table me-2"></i>Detalle por Estado</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Estado</th>
+                                        <th class="text-center">Cantidad</th>
+                                        <th class="text-center">Porcentaje</th>
+                                        <th>Visual</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let item of dashboardAnalytics.por_estado">
+                                        <td>
+                                            <span class="badge" [style.background-color]="item.color">{{ item.estado }}</span>
+                                        </td>
+                                        <td class="text-center">{{ item.cantidad }}</td>
+                                        <td class="text-center">{{ item.porcentaje.toFixed(1) }}%</td>
+                                        <td>
+                                            <div class="progress" style="height: 25px;">
+                                                <div class="progress-bar" [style.width.%]="item.porcentaje" [style.background-color]="item.color">
+                                                    {{ item.porcentaje.toFixed(0) }}%
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Análisis por Línea Estratégica -->
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-table me-2"></i>Detalle por Línea Estratégica</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                            <table class="table table-sm table-hover">
+                                <thead class="sticky-top bg-white">
+                                    <tr>
+                                        <th>Línea</th>
+                                        <th class="text-center">Productos</th>
+                                        <th class="text-center">Cumplimiento</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let item of dashboardAnalytics.por_linea_estrategica">
+                                        <td><small>{{ item.linea }}</small></td>
+                                        <td class="text-center">{{ item.total_productos }}</td>
+                                        <td class="text-center">
+                                            <span class="badge" [class.bg-success]="item.porcentaje_cumplimiento >= 75"
+                                                  [class.bg-warning]="item.porcentaje_cumplimiento >= 50 && item.porcentaje_cumplimiento < 75"
+                                                  [class.bg-danger]="item.porcentaje_cumplimiento < 50">
+                                                {{ item.porcentaje_cumplimiento.toFixed(0) }}%
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Análisis por Sector -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-table me-2"></i>Detalle de Análisis por Sector MGA</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Sector</th>
+                                        <th class="text-center">Total</th>
+                                        <th class="text-center">Completados</th>
+                                        <th class="text-center">En Progreso</th>
+                                        <th class="text-center">Pendientes</th>
+                                        <th class="text-center">% Avance</th>
+                                        <th class="text-end">Presupuesto</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let item of dashboardAnalytics.por_sector">
+                                        <td><strong>{{ item.sector }}</strong></td>
+                                        <td class="text-center">{{ item.total_productos }}</td>
+                                        <td class="text-center"><span class="badge bg-success">{{ item.productos_completados }}</span></td>
+                                        <td class="text-center"><span class="badge bg-info">{{ item.productos_en_progreso }}</span></td>
+                                        <td class="text-center"><span class="badge bg-warning">{{ item.productos_pendientes }}</span></td>
+                                        <td class="text-center">
+                                            <div class="progress" style="height: 20px; min-width: 80px;">
+                                                <div class="progress-bar" [class]="'bg-' + (item.porcentaje_avance >= 75 ? 'success' : item.porcentaje_avance >= 50 ? 'warning' : 'danger')"
+                                                     [style.width.%]="item.porcentaje_avance">
+                                                    {{ item.porcentaje_avance.toFixed(0) }}%
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-end">{{ formatearMoneda(item.presupuesto_total) }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRÁFICOS ODS Y SECTORES -->
+        <div class="row mb-4">
+            <!-- Gráfico de Dona - ODS -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Top 10 ODS</h5>
+                    </div>
+                    <div class="card-body">
+                        <div style="position: relative; height: 400px;">
+                            <canvas id="chartODS"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico de Barras Horizontales - Sectores Avance -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Top 8 Sectores - Avance</h5>
+                    </div>
+                    <div class="card-body">
+                        <div style="position: relative; height: 400px;">
+                            <canvas id="chartSectoresDetalle"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Análisis por ODS (Tabla Detallada) -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="fas fa-table me-2"></i>Detalle por ODS</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                            <table class="table table-sm table-hover">
+                                <thead class="sticky-top bg-white">
+                                    <tr>
+                                        <th>ODS</th>
+                                        <th class="text-center">Productos</th>
+                                        <th class="text-center">Avance %</th>
+                                        <th class="text-end">Presupuesto</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let item of dashboardAnalytics.por_ods">
+                                        <td><small>{{ item.ods }}</small></td>
+                                        <td class="text-center">{{ item.total_productos }}</td>
+                                        <td class="text-center">{{ item.porcentaje_avance_promedio.toFixed(1) }}%</td>
+                                        <td class="text-end"><small>{{ formatearMoneda(item.presupuesto_asignado) }}</small></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Análisis Presupuestal por Año -->
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0"><i class="fas fa-dollar-sign me-2"></i>Análisis Presupuestal por Año</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th class="text-white bg-secondary">Año</th>
+                                        <th class="text-end text-white bg-secondary">Programado</th>
+                                        <th class="text-end text-white bg-secondary">Con Actividades</th>
+                                        <th class="text-center text-white bg-secondary">% Asignación</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let item of dashboardAnalytics.analisis_presupuestal">
+                                        <td><strong>{{ item.anio }}</strong></td>
+                                        <td class="text-end">{{ formatearMoneda(item.presupuesto_programado) }}</td>
+                                        <td class="text-end">{{ formatearMoneda(item.presupuesto_asignado_actividades) }}</td>
+                                        <td class="text-center">
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar bg-primary" [style.width.%]="item.porcentaje_asignacion">
+                                                    {{ item.porcentaje_asignacion.toFixed(0) }}%
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: REGISTRAR EVIDENCIA -->
+    <div *ngIf="mostrarModalEvidencia" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-camera me-2"></i>
+                        Registrar Evidencia de Cumplimiento
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" (click)="cerrarModalEvidencia()"></button>
+                </div>
+                <form [formGroup]="formularioEvidencia" (ngSubmit)="guardarEvidencia()">
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <strong>Actividad:</strong> {{ actividadParaEvidencia?.nombre }}
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Descripción de la Evidencia <span class="text-danger">*</span></label>
+                            <textarea class="form-control" formControlName="descripcion" rows="4" placeholder="Describa la evidencia del cumplimiento de la actividad"></textarea>
+                            <div *ngIf="formularioEvidencia.get('descripcion')?.invalid && formularioEvidencia.get('descripcion')?.touched" class="text-danger small">
+                                Mínimo 10 caracteres
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">URL de Evidencia Externa (Opcional)</label>
+                            <input type="url" class="form-control" formControlName="url_evidencia" placeholder="https://ejemplo.com/evidencia">
+                            <small class="text-muted">Puede proporcionar un enlace a documentos en la nube, videos, etc.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Imágenes (Máximo 4, 2MB cada una)</label>
+                            <input type="file" class="form-control" accept="image/*" multiple (change)="onImagenesSeleccionadas($event)">
+                            <small class="text-muted">Puede cargar hasta 4 imágenes de máximo 2MB cada una</small>
+                        </div>
+
+                        <div *ngIf="formularioEvidencia.get('imagenes')?.value?.length > 0" class="mb-3">
+                            <label class="form-label">Vista Previa de Imágenes</label>
+                            <div class="row">
+                                <div *ngFor="let imagen of formularioEvidencia.get('imagenes')?.value" class="col-md-3 mb-2">
+                                    <img [src]="imagen" class="img-thumbnail" style="max-height: 150px; object-fit: cover;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mensaje de error si no hay URL ni imágenes -->
+                        <div *ngIf="formularioEvidencia.errors?.['evidenciaRequerida'] && formularioEvidencia.touched" class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            Debe proporcionar al menos una URL de evidencia o cargar una imagen
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" (click)="cerrarModalEvidencia()">Cancelar</button>
+                        <button type="submit" class="btn btn-success" [disabled]="!formularioEvidencia.valid">
+                            <i class="fas fa-check me-1"></i> Registrar Evidencia
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: INFORMACIÓN BPIN -->
+    <div *ngIf="mostrarModalBPIN" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-project-diagram me-2"></i>
+                        Información del Proyecto BPIN
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" (click)="cerrarModalBPIN()"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Loading -->
+                    <div *ngIf="cargandoBPIN" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                        <p class="mt-3 text-muted">Consultando datos del proyecto...</p>
+                    </div>
+
+                    <!-- No encontrado -->
+                    <div *ngIf="!cargandoBPIN && !proyectoBPIN" class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        No se encontró información para este código BPIN en la base de datos de datos.gov.co
+                    </div>
+
+                    <!-- Información del proyecto -->
+                    <div *ngIf="!cargandoBPIN && proyectoBPIN">
+                        <div class="mb-3">
+                            <label class="text-muted small">Código BPIN</label>
+                            <h5 class="text-primary">{{ proyectoBPIN.bpin }}</h5>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="text-muted small">Nombre del Proyecto</label>
+                            <p class="fw-bold">{{ proyectoBPIN.nombreproyecto }}</p>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="text-muted small">Objetivo General</label>
+                            <p>{{ proyectoBPIN.objetivogeneral }}</p>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="text-muted small">Estado del Proyecto</label>
+                                <p>
+                                    <span class="badge" [class.bg-success]="proyectoBPIN.estadoproyecto === 'VIABLE'" 
+                                          [class.bg-warning]="proyectoBPIN.estadoproyecto === 'EN ESTUDIO'"
+                                          [class.bg-info]="proyectoBPIN.estadoproyecto === 'ACTIVO'">
+                                        {{ proyectoBPIN.estadoproyecto }}
+                                    </span>
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="text-muted small">Horizonte</label>
+                                <p>{{ proyectoBPIN.horizonte }}</p>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="text-muted small">Sector</label>
+                                <p>{{ proyectoBPIN.sector }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="text-muted small">Entidad Responsable</label>
+                                <p>{{ proyectoBPIN.entidadresponsable }}</p>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="text-muted small">Valor Total del Proyecto</label>
+                                <h5 class="text-success">{{ formatearMoneda(proyectoBPIN.valortotalproyecto) }}</h5>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="text-muted small">Valor Vigente</label>
+                                <h5 class="text-info">{{ formatearMoneda(proyectoBPIN.valorvigenteproyecto) }}</h5>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <div class="text-muted small">
+                            <i class="fas fa-database me-1"></i>
+                            Datos obtenidos de: <a href="https://www.datos.gov.co/Hacienda-y-Cr-dito-P-blico/BANCO-DE-PROGRAMAS-Y-PROYECTOS/cf9k-55fw" target="_blank">datos.gov.co</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" (click)="cerrarModalBPIN()">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Análisis Detallado del Producto -->
+</div>

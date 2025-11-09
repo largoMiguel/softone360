@@ -25,11 +25,18 @@ export class AuthInterceptor implements HttpInterceptor {
         }
 
         if (token) {
+            // No establecer Content-Type para FormData (el navegador lo hace automáticamente con boundary)
+            const headers: any = {
+                Authorization: `Bearer ${token}`
+            };
+            
+            // Solo agregar Content-Type si no es FormData
+            if (!(req.body instanceof FormData)) {
+                headers['Content-Type'] = 'application/json';
+            }
+            
             const authReq = req.clone({
-                setHeaders: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
+                setHeaders: headers
             });
 
             return next.handle(authReq).pipe(

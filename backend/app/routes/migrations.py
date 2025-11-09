@@ -1474,3 +1474,328 @@ async def fix_pdm_columns(
             "error": str(e),
             "traceback": traceback.format_exc()
         }
+
+
+@router.post("/migrations/fix-pdm-evidencias")
+async def fix_pdm_evidencias(
+    db: Session = Depends(get_db),
+    x_migration_key: Optional[str] = Header(None)
+):
+    """
+    Endpoint para corregir la tabla pdm_actividades_evidencias
+    Agrega la columna actividad_id y actualiza la estructura
+    """
+    if not x_migration_key or x_migration_key != settings.migration_secret_key:
+        raise HTTPException(status_code=403, detail="❌ Clave de migración inválida.")
+    
+    results = []
+    
+    try:
+        # 1. Verificar estructura actual
+        if not table_exists("pdm_actividades_evidencias"):
+            results.append("⚠️ Tabla pdm_actividades_evidencias no existe")
+            return {
+                "status": "skipped",
+                "timestamp": datetime.now().isoformat(),
+                "results": results
+            }
+        
+        # 2. Eliminar columnas obsoletas si existen
+        obsolete_columns = [
+            "ejecucion_id", "nombre_imagen", "mime_type", "tamano", "contenido"
+        ]
+        
+        for col in obsolete_columns:
+            if column_exists("pdm_actividades_evidencias", col):
+                log_msg(f"Eliminando columna obsoleta {col}...")
+                db.execute(text(f"""
+                    ALTER TABLE pdm_actividades_evidencias 
+                    DROP COLUMN IF EXISTS {col} CASCADE
+                """))
+                db.commit()
+                results.append(f"✅ Columna obsoleta {col} eliminada")
+        
+        # 3. Agregar actividad_id si no existe
+        if not column_exists("pdm_actividades_evidencias", "actividad_id"):
+            log_msg("Agregando columna actividad_id...")
+            db.execute(text("""
+                ALTER TABLE pdm_actividades_evidencias 
+                ADD COLUMN actividad_id INTEGER
+            """))
+            db.commit()
+            results.append("✅ Columna actividad_id agregada")
+        else:
+            results.append("✅ Columna actividad_id ya existe")
+        
+        # 4. Asegurar columnas requeridas (primero como nullable)
+        nullable_columns = {
+            "actividad_id": "INTEGER",
+            "entity_id": "INTEGER",
+            "descripcion": "TEXT",
+            "url_evidencia": "VARCHAR(1024)",
+            "imagenes": "JSON",
+            "fecha_registro": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            "created_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            "updated_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+        }
+        
+        for col, col_type in nullable_columns.items():
+            if not column_exists("pdm_actividades_evidencias", col):
+                log_msg(f"Agregando columna {col}...")
+                db.execute(text(f"""
+                    ALTER TABLE pdm_actividades_evidencias 
+                    ADD COLUMN IF NOT EXISTS {col} {col_type}
+                """))
+                db.commit()
+                results.append(f"✅ Columna {col} agregada")
+        
+        # 4.1 Rellenar valores por defecto para columnas que tienen NULL
+        log_msg("Rellenando valores por defecto...")
+        
+        # Rellenar descripcion con texto por defecto
+        db.execute(text("""
+            UPDATE pdm_actividades_evidencias 
+            SET descripcion = 'Evidencia registrada' 
+            WHERE descripcion IS NULL
+        """))
+        
+        # Rellenar entity_id desde la actividad si es posible
+        db.execute(text("""
+            UPDATE pdm_actividades_evidencias e
+            SET entity_id = a.entity_id
+            FROM pdm_actividades a
+            WHERE e.actividad_id = a.id
+            AND e.entity_id IS NULL
+        """))
+        
+        # Rellenar fecha_registro si es NULL
+        db.execute(text("""
+            UPDATE pdm_actividades_evidencias 
+            SET fecha_registro = created_at 
+            WHERE fecha_registro IS NULL AND created_at IS NOT NULL
+        """))
+        
+        db.commit()
+        results.append("✅ Valores por defecto aplicados")
+        
+        # 4.2 Aplicar NOT NULL solo si no hay NULLs
+        for col in ["entity_id", "descripcion"]:
+            nulls = db.execute(text(f"""
+                SELECT COUNT(*) FROM pdm_actividades_evidencias 
+                WHERE {col} IS NULL
+            """)).scalar()
+            
+            if nulls == 0:
+                db.execute(text(f"""
+                    ALTER TABLE pdm_actividades_evidencias 
+                    ALTER COLUMN {col} SET NOT NULL
+                """))
+                db.commit()
+                results.append(f"✅ NOT NULL aplicado a {col}")
+            else:
+                results.append(f"⚠️ {col} tiene {nulls} valores NULL, no se aplica NOT NULL")
+        
+        # 5. Agregar constraints y foreign keys
+        log_msg("Configurando constraints...")
+        
+        # Eliminar constraints existentes si hay
+        db.execute(text("""
+            ALTER TABLE pdm_actividades_evidencias 
+            DROP CONSTRAINT IF EXISTS fk_evidencia_actividad CASCADE
+        """))
+        
+        db.execute(text("""
+            ALTER TABLE pdm_actividades_evidencias 
+            DROP CONSTRAINT IF EXISTS fk_evidencia_entity CASCADE
+        """))
+        
+        db.execute(text("""
+            ALTER TABLE pdm_actividades_evidencias 
+            DROP CONSTRAINT IF EXISTS uq_evidencia_actividad CASCADE
+        """))
+        
+        # Agregar foreign key para actividad_id
+        db.execute(text("""
+            ALTER TABLE pdm_actividades_evidencias 
+            ADD CONSTRAINT fk_evidencia_actividad 
+            FOREIGN KEY (actividad_id) 
+            REFERENCES pdm_actividades(id) 
+            ON DELETE CASCADE
+        """))
+        
+        # Agregar foreign key para entity_id
+        db.execute(text("""
+            ALTER TABLE pdm_actividades_evidencias 
+            ADD CONSTRAINT fk_evidencia_entity 
+            FOREIGN KEY (entity_id) 
+            REFERENCES entities(id) 
+            ON DELETE CASCADE
+        """))
+        
+        # Agregar unique constraint para actividad_id
+        db.execute(text("""
+            ALTER TABLE pdm_actividades_evidencias 
+            ADD CONSTRAINT uq_evidencia_actividad 
+            UNIQUE (actividad_id)
+        """))
+        
+        db.commit()
+        results.append("✅ Constraints y foreign keys configurados")
+        
+        # 6. Crear índices
+        log_msg("Creando índices...")
+        create_index_safe(db, "idx_pdm_evidencias_actividad", "pdm_actividades_evidencias", "actividad_id")
+        create_index_safe(db, "idx_pdm_evidencias_entity", "pdm_actividades_evidencias", "entity_id")
+        results.append("✅ Índices creados")
+        
+        # 7. Verificar estructura final
+        result = db.execute(text("""
+            SELECT column_name, data_type, is_nullable 
+            FROM information_schema.columns 
+            WHERE table_name = 'pdm_actividades_evidencias' 
+            ORDER BY ordinal_position
+        """))
+        
+        columnas = [{"nombre": row.column_name, "tipo": row.data_type, "nullable": row.is_nullable} 
+                    for row in result]
+        
+        return {
+            "status": "success",
+            "timestamp": datetime.now().isoformat(),
+            "results": results,
+            "columnas_actuales": columnas
+        }
+        
+    except Exception as e:
+        db.rollback()
+        return {
+            "status": "error",
+            "timestamp": datetime.now().isoformat(),
+            "error": str(e),
+            "results": results,
+            "traceback": traceback.format_exc()
+        }
+
+
+@router.post("/migrations/add-responsable-productos")
+async def add_responsable_productos(
+    db: Session = Depends(get_db),
+    x_migration_key: Optional[str] = Header(None)
+):
+    """
+    Migración: Agregar columnas responsable y responsable_user_id a pdm_productos
+    
+    Añade:
+    - responsable (VARCHAR 256) - Nombre legacy del responsable
+    - responsable_user_id (INTEGER FK) - Referencia a users.id
+    
+    Uso:
+      curl -X POST http://softone-backend-useast1.eba-epvnmbmk.us-east-1.elasticbeanstalk.com/api/migrations/add-responsable-productos \
+           -H "X-Migration-Key: change-me-in-production-migration-key-2024"
+    """
+    if not x_migration_key or x_migration_key != settings.migration_secret_key:
+        raise HTTPException(status_code=403, detail="❌ Clave de migración inválida.")
+    
+    results = []
+    
+    try:
+        log_msg("🚀 Iniciando migración: add_responsable_pdm_productos")
+        
+        # Paso 1: Agregar columna responsable (texto legacy)
+        if not column_exists("pdm_productos", "responsable"):
+            log_msg("Agregando columna responsable...")
+            db.execute(text("""
+                ALTER TABLE pdm_productos 
+                ADD COLUMN responsable VARCHAR(256)
+            """))
+            db.commit()
+            results.append("✅ Columna 'responsable' agregada")
+        else:
+            results.append("✅ Columna 'responsable' ya existe")
+        
+        # Paso 2: Agregar columna responsable_user_id (FK a users)
+        if not column_exists("pdm_productos", "responsable_user_id"):
+            log_msg("Agregando columna responsable_user_id...")
+            db.execute(text("""
+                ALTER TABLE pdm_productos 
+                ADD COLUMN responsable_user_id INTEGER
+            """))
+            db.commit()
+            results.append("✅ Columna 'responsable_user_id' agregada")
+        else:
+            results.append("✅ Columna 'responsable_user_id' ya existe")
+        
+        # Paso 3: Crear índice para mejor rendimiento
+        log_msg("Creando índice idx_pdm_productos_responsable_user_id...")
+        db.execute(text("""
+            CREATE INDEX IF NOT EXISTS idx_pdm_productos_responsable_user_id 
+            ON pdm_productos(responsable_user_id)
+        """))
+        db.commit()
+        results.append("✅ Índice creado")
+        
+        # Paso 4: Verificar si el constraint FK ya existe
+        constraint_check = db.execute(text("""
+            SELECT constraint_name 
+            FROM information_schema.table_constraints 
+            WHERE table_name = 'pdm_productos' 
+            AND constraint_name = 'fk_pdm_productos_responsable_user'
+        """)).fetchone()
+        
+        if not constraint_check:
+            log_msg("Agregando constraint de foreign key...")
+            db.execute(text("""
+                ALTER TABLE pdm_productos 
+                ADD CONSTRAINT fk_pdm_productos_responsable_user 
+                FOREIGN KEY (responsable_user_id) 
+                REFERENCES users(id) 
+                ON DELETE SET NULL
+            """))
+            db.commit()
+            results.append("✅ Foreign key constraint agregada")
+        else:
+            results.append("✅ Foreign key constraint ya existe")
+        
+        # Verificar estructura final
+        log_msg("Verificando estructura final...")
+        result = db.execute(text("""
+            SELECT 
+                column_name, 
+                data_type, 
+                is_nullable,
+                character_maximum_length
+            FROM information_schema.columns 
+            WHERE table_name = 'pdm_productos' 
+            AND column_name IN ('responsable', 'responsable_user_id')
+            ORDER BY column_name
+        """))
+        
+        columnas = []
+        for row in result:
+            columnas.append({
+                "nombre": row.column_name,
+                "tipo": row.data_type,
+                "nullable": row.is_nullable,
+                "max_length": row.character_maximum_length
+            })
+        
+        log_msg("✅ Migración completada exitosamente")
+        
+        return {
+            "status": "success",
+            "timestamp": datetime.now().isoformat(),
+            "message": "Columnas de responsable agregadas a pdm_productos",
+            "results": results,
+            "columnas_agregadas": columnas
+        }
+        
+    except Exception as e:
+        db.rollback()
+        error_msg = f"❌ Error en migración: {str(e)}"
+        log_msg(error_msg, is_error=True)
+        return {
+            "status": "error",
+            "timestamp": datetime.now().isoformat(),
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }

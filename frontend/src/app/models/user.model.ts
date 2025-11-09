@@ -1,3 +1,9 @@
+export interface EntityBasic {
+    id: number;
+    name: string;
+    slug: string;
+}
+
 export interface User {
     id: number;
     username: string;
@@ -6,6 +12,7 @@ export interface User {
     role: 'superadmin' | 'admin' | 'secretario' | 'ciudadano';
     is_active?: boolean;
     entity_id?: number;  // ID de la entidad a la que pertenece
+    entity?: EntityBasic;  // Datos básicos de la entidad (incluye slug)
     user_type?: 'secretario' | 'contratista' | null;  // Tipo de usuario (para secretarios/contratistas)
     allowed_modules?: string[];  // Módulos permitidos: ["pqrs", "planes_institucionales", "contratacion"]
     secretaria?: string;

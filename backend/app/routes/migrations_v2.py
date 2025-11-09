@@ -1281,3 +1281,127 @@ async def fix_pdm_columns(
             "error": str(e),
             "traceback": traceback.format_exc()
         }
+
+
+@router.post("/migrations/add-responsable-productos")
+async def add_responsable_productos(
+    db: Session = Depends(get_db),
+    x_migration_key: Optional[str] = Header(None)
+):
+    """
+    Migración: Agregar columnas responsable y responsable_user_id a pdm_productos
+    
+    Añade:
+    - responsable (VARCHAR 256) - Nombre legacy del responsable
+    - responsable_user_id (INTEGER FK) - Referencia a users.id
+    
+    Uso:
+      curl -X POST https://softone-backend-useast1.eba-epvnmbmk.us-east-1.elasticbeanstalk.com/api/migrations/add-responsable-productos \
+           -H "X-Migration-Key: tu-clave-secreta"
+    """
+    if not x_migration_key or x_migration_key != settings.migration_secret_key:
+        raise HTTPException(status_code=403, detail="❌ Clave de migración inválida.")
+    
+    results = []
+    
+    try:
+        log_msg("🚀 Iniciando migración: add_responsable_pdm_productos")
+        
+        # Paso 1: Agregar columna responsable (texto legacy)
+        if not column_exists("pdm_productos", "responsable"):
+            log_msg("Agregando columna responsable...")
+            db.execute(text("""
+                ALTER TABLE pdm_productos 
+                ADD COLUMN responsable VARCHAR(256)
+            """))
+            db.commit()
+            results.append("✅ Columna 'responsable' agregada")
+        else:
+            results.append("✅ Columna 'responsable' ya existe")
+        
+        # Paso 2: Agregar columna responsable_user_id (FK a users)
+        if not column_exists("pdm_productos", "responsable_user_id"):
+            log_msg("Agregando columna responsable_user_id...")
+            db.execute(text("""
+                ALTER TABLE pdm_productos 
+                ADD COLUMN responsable_user_id INTEGER
+            """))
+            db.commit()
+            results.append("✅ Columna 'responsable_user_id' agregada")
+        else:
+            results.append("✅ Columna 'responsable_user_id' ya existe")
+        
+        # Paso 3: Crear índice para mejor rendimiento
+        log_msg("Creando índice idx_pdm_productos_responsable_user_id...")
+        db.execute(text("""
+            CREATE INDEX IF NOT EXISTS idx_pdm_productos_responsable_user_id 
+            ON pdm_productos(responsable_user_id)
+        """))
+        db.commit()
+        results.append("✅ Índice creado")
+        
+        # Paso 4: Verificar si el constraint FK ya existe
+        constraint_check = db.execute(text("""
+            SELECT constraint_name 
+            FROM information_schema.table_constraints 
+            WHERE table_name = 'pdm_productos' 
+            AND constraint_name = 'fk_pdm_productos_responsable_user'
+        """)).fetchone()
+        
+        if not constraint_check:
+            log_msg("Agregando constraint de foreign key...")
+            db.execute(text("""
+                ALTER TABLE pdm_productos 
+                ADD CONSTRAINT fk_pdm_productos_responsable_user 
+                FOREIGN KEY (responsable_user_id) 
+                REFERENCES users(id) 
+                ON DELETE SET NULL
+            """))
+            db.commit()
+            results.append("✅ Foreign key constraint agregada")
+        else:
+            results.append("✅ Foreign key constraint ya existe")
+        
+        # Verificar estructura final
+        log_msg("Verificando estructura final...")
+        result = db.execute(text("""
+            SELECT 
+                column_name, 
+                data_type, 
+                is_nullable,
+                character_maximum_length
+            FROM information_schema.columns 
+            WHERE table_name = 'pdm_productos' 
+            AND column_name IN ('responsable', 'responsable_user_id')
+            ORDER BY column_name
+        """))
+        
+        columnas = []
+        for row in result:
+            columnas.append({
+                "nombre": row.column_name,
+                "tipo": row.data_type,
+                "nullable": row.is_nullable,
+                "max_length": row.character_maximum_length
+            })
+        
+        log_msg("✅ Migración completada exitosamente")
+        
+        return {
+            "status": "success",
+            "timestamp": datetime.now().isoformat(),
+            "message": "Columnas de responsable agregadas a pdm_productos",
+            "results": results,
+            "columnas_agregadas": columnas
+        }
+        
+    except Exception as e:
+        db.rollback()
+        error_msg = f"❌ Error en migración: {str(e)}"
+        log_msg(error_msg, is_error=True)
+        return {
+            "status": "error",
+            "timestamp": datetime.now().isoformat(),
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }

@@ -58,6 +58,8 @@ class ProductoPlanIndicativoBase(BaseModel):
 class ProductoResponse(ProductoPlanIndicativoBase):
     id: int
     entity_id: int
+    responsable_user_id: Optional[int] = None
+    responsable: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

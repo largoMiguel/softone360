@@ -101,6 +101,10 @@ class PdmProducto(Base):
     tipo_acumulacion = Column(String(128), nullable=True)
     bpin = Column(String(50), nullable=True)
     
+    # Responsable del producto
+    responsable = Column(String(256), nullable=True)  # Nombre del responsable (legacy)
+    responsable_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)  # Usuario responsable
+    
     # Programación por año
     programacion_2024 = Column(Float, default=0)
     programacion_2025 = Column(Float, default=0)
@@ -121,6 +125,9 @@ class PdmProducto(Base):
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relación con usuario responsable
+    responsable_user = relationship("User", foreign_keys=[responsable_user_id])
 
 
 # ============================================
