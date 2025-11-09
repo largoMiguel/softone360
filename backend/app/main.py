@@ -85,13 +85,19 @@ app = FastAPI(
 # Nota: se removieron prints de CORS para un arranque limpio
 
 # Configurar CORS dinámicamente según entorno
+# NOTA CRÍTICA: En AWS S3, el browser hace preflight requests (OPTIONS)
+# Deben ser permitidas EXPLÍCITAMENTE
+cors_origins_list = settings.cors_origins
+print(f"\n✅ CORS Origins permitidos: {cors_origins_list}\n")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,  # URLs permitidas desde settings
+    allow_origins=cors_origins_list,  # URLs permitidas desde settings
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["*"],  # Incluye OPTIONS para preflight
     allow_headers=["*"],
-    expose_headers=["*"]
+    expose_headers=["*"],
+    max_age=3600  # Cache preflight por 1 hora
 )
 
 # Comprimir respuestas grandes para optimizar ancho de banda
@@ -104,7 +110,7 @@ import traceback
 
 @app.middleware("http")
 async def catch_exceptions_middleware(request: Request, call_next):
-    """Middleware para capturar todas las excepciones y enviar headers CORS"""
+    """Middleware para capturar todas las excepciones"""
     try:
         response = await call_next(request)
         return response
@@ -115,25 +121,13 @@ async def catch_exceptions_middleware(request: Request, call_next):
         print(f"   Error: {str(e)}")
         print(f"   Traceback:\n{traceback.format_exc()}")
         
-        # Crear respuesta con CORS headers
-        origin = request.headers.get("origin")
-        if origin in settings.cors_origins or "*" in settings.cors_origins:
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "detail": "Error interno del servidor",
-                    "error": str(e) if settings.debug else "Internal server error"
-                },
-                headers={
-                    "Access-Control-Allow-Origin": origin or "*",
-                    "Access-Control-Allow-Credentials": "true",
-                    "Access-Control-Allow-Methods": "*",
-                    "Access-Control-Allow-Headers": "*",
-                }
-            )
+        # Retornar error simple - CORSMiddleware ya manejó los headers
         return JSONResponse(
             status_code=500,
-            content={"detail": "Error interno del servidor"}
+            content={
+                "detail": "Error interno del servidor",
+                "error": str(e) if settings.debug else "Internal server error"
+            }
         )
 
 # Incluir routers
