@@ -233,10 +233,11 @@ async def delete_entity(
     
     try:
         # Paso 1: Importar todos los modelos AL INICIO (antes de cualquier query)
+        # ✅ NUEVO: Importar TODOS los modelos al inicio
         print("\n📦 Importando modelos...")
         from app.models.secretaria import Secretaria
         from app.models.pqrs import PQRS
-        from app.models.plan import Plan
+        from app.models.plan import PlanInstitucional
         from app.models.alert import Alert
         try:
             from app.models.pdm import (
@@ -273,7 +274,7 @@ async def delete_entity(
         counts["usuarios"] = db.query(User).filter(User.entity_id == entity_id).count()
         counts["secretarias"] = db.query(Secretaria).filter(Secretaria.entity_id == entity_id).count()
         counts["pqrs"] = db.query(PQRS).filter(PQRS.entity_id == entity_id).count()
-        counts["planes"] = db.query(Plan).filter(Plan.entity_id == entity_id).count()
+        counts["planes"] = db.query(PlanInstitucional).filter(PlanInstitucional.entity_id == entity_id).count()
         counts["alertas"] = db.query(Alert).filter(Alert.entity_id == entity_id).count()
         
         if pdm_imported:
@@ -325,7 +326,7 @@ async def delete_entity(
         db.query(Alert).filter(Alert.entity_id == entity_id).delete(synchronize_session=False)
         
         print("  9️⃣  Eliminando Planes Institucionales...")
-        db.query(Plan).filter(Plan.entity_id == entity_id).delete(synchronize_session=False)
+        db.query(PlanInstitucional).filter(PlanInstitucional.entity_id == entity_id).delete(synchronize_session=False)
         
         print("  🔟 Eliminando Secretarías...")
         db.query(Secretaria).filter(Secretaria.entity_id == entity_id).delete(synchronize_session=False)
