@@ -7,7 +7,7 @@
             </div>
             <ng-template #defaultLogo>
                 <div class="logo-container">
-                    <img src="assets/logos/logo_completo.png" alt="SoftOne360 Gestión Completa, Visión Total"
+                    <img src="assets/logos/logo_completo.png" alt="SoftOne360 Gestión Estratégica, Visión Total"
                         class="hero-logo">
                 </div>
             </ng-template>
@@ -16,7 +16,7 @@
                 <ng-container *ngIf="(currentEntity$ | async) as entity; else defaultSubtitle">
                     {{ entity.name }}
                 </ng-container>
-                <ng-template #defaultSubtitle> SoftOne360 - Gestión Completa, Visión Total </ng-template>
+                <ng-template #defaultSubtitle> SoftOne360 - Gestión Estratégica, Visión Total </ng-template>
             </h2>
             <p class="hero-description">
                 Bienvenido al sistema de Peticiones, Quejas, Reclamos y Sugerencias.
