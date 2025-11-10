@@ -12,7 +12,6 @@ import { Subscription, filter, combineLatest } from 'rxjs';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { AiReportService, ContratacionSummaryPayload } from '../../services/ai-report.service';
-import { ContratacionAnalyzer, ContratoAlerta, KPIsExtendidos } from '../../utils/contratacion-analyzer';
 
 Chart.register(...registerables);
 
@@ -45,11 +44,6 @@ export class ContratacionComponent implements OnInit, OnDestroy {
     // Contratos vencidos
     contratosVencidos: ProcesoContratacion[] = [];
     mostrarContratosVencidos = false;
-
-    // Alertas avanzadas
-    alertas: ContratoAlerta[] = [];
-    mostrarAlertas = false;
-    filtroAlertas: 'todas' | 'vencido' | 'proximo_vencimiento' | 'ejecucion_retrasada' = 'todas';
 
     // Filtros UI - Por defecto desde 1 de enero 2025
     filtro: FiltroContratacion = {
@@ -213,12 +207,8 @@ export class ContratacionComponent implements OnInit, OnDestroy {
         this.errorMsg = '';
         this.contratacionService.fetchProcesos(this.filtro).subscribe({
             next: (rows) => {
-                // Aplicar deduplicación
-                this.procesos = ContratacionAnalyzer.deduplicarContratos(rows);
-                if (this.procesos.length < rows.length) {
-                    console.log(`[Contratación] Deduplicados: ${rows.length} → ${this.procesos.length}`);
-                }
-                if (this.procesos.length === 0) {
+                this.procesos = rows;
+                if (rows.length === 0) {
                     this.errorMsg = `No se encontraron datos de contratación para el NIT "${this.filtro.entidad}" en el rango de fechas seleccionado. Verifica que el NIT de la entidad esté configurado correctamente en el super admin.`;
                 }
                 this.applyLocalFilters();
@@ -268,11 +258,11 @@ export class ContratacionComponent implements OnInit, OnDestroy {
         }
         if (cf.publicacionDesde) {
             const d = new Date(cf.publicacionDesde);
-            data = data.filter(p => !p.fecha_de_firma || new Date(p.fecha_de_firma) >= d);
+            data = data.filter(p => !p.fecha_de_inicio_del_contrato || new Date(p.fecha_de_inicio_del_contrato) >= d);
         }
         if (cf.publicacionHasta) {
             const d = new Date(cf.publicacionHasta);
-            data = data.filter(p => !p.fecha_de_firma || new Date(p.fecha_de_firma) <= d);
+            data = data.filter(p => !p.fecha_de_inicio_del_contrato || new Date(p.fecha_de_inicio_del_contrato) <= d);
         }
         if (cf.ultimaDesde) {
             const d = new Date(cf.ultimaDesde);
@@ -292,7 +282,6 @@ export class ContratacionComponent implements OnInit, OnDestroy {
         this.computeKPIs();
         this.updateCharts();
         this.detectarContratosVencidos();
-        this.generarAlertas();
     }
 
     // Datos paginados para la vista
@@ -382,22 +371,6 @@ export class ContratacionComponent implements OnInit, OnDestroy {
         return contrato.duraci_n_del_contrato;
     }
 
-    generarAlertas(): void {
-        this.alertas = ContratacionAnalyzer.generarAlertas(this.procesosFiltrados);
-        console.log(`[Contratación] Alertas generadas: ${this.alertas.length}`);
-        if (this.alertas.length > 0) {
-            console.log('[Contratación] Primeras alertas:');
-            this.alertas.slice(0, 3).forEach(a => console.log(`  - ${a.tipo}: ${a.mensaje}`));
-        }
-    }
-
-    obtenerAlertasFiltradas(): ContratoAlerta[] {
-        if (this.filtroAlertas === 'todas') {
-            return this.alertas;
-        }
-        return this.alertas.filter(a => a.tipo === this.filtroAlertas);
-    }
-
     computeKPIs(): void {
         const total = this.procesosFiltrados.length;
         const ejecutados = this.procesosFiltrados.filter(p => this.isContratado(p));
@@ -405,29 +378,12 @@ export class ContratacionComponent implements OnInit, OnDestroy {
         const sumaPagada = this.procesosFiltrados.reduce((acc, p) => acc + this.toNumber(p.valor_pagado), 0);
         const promedioPrecio = this.avg(this.procesosFiltrados.map(p => this.toNumber(p.valor_del_contrato)));
 
-        // KPIs extendidos usando el analizador
-        const kpisExtendidos = ContratacionAnalyzer.calcularKPIsExtendidos(this.procesosFiltrados);
-
         this.kpis = {
             totalProcesos: total,
             totalAdjudicados: ejecutados.length,
             tasaAdjudicacion: total ? ejecutados.length / total : 0,
             sumaAdjudicado: sumaPagada,
-            promedioPrecioBase: promedioPrecio,
-            // KPIs extendidos
-            totalContratosPorAño: kpisExtendidos.totalContratosPorAño,
-            totalContratosPorMes: kpisExtendidos.totalContratosPorMes,
-            modalidadesMasUsadas: kpisExtendidos.modalidadesMasUsadas,
-            proveedoresMasFrecuentes: kpisExtendidos.proveedoresMasFrecuentes,
-            distribucionEstados: kpisExtendidos.distribucionEstados,
-            tiempoEjecucionPromedio: kpisExtendidos.tiempoEjecucionPromedio,
-            tiempoEjecucionRango: kpisExtendidos.tiempoEjecucionRango,
-            contratosRetrasados: kpisExtendidos.contratosRetrasados,
-            porcentajeRetrasados: kpisExtendidos.porcentajeRetrasados,
-            contratosVencidos: kpisExtendidos.contratosVencidos,
-            porcentajeVencidos: kpisExtendidos.porcentajeVencidos,
-            contratosProximoVencimiento: kpisExtendidos.contratosProximoVencimiento,
-            porcentajeProximoVencimiento: kpisExtendidos.porcentajeProximoVencimiento
+            promedioPrecioBase: promedioPrecio
         };
     }
 
@@ -455,13 +411,13 @@ export class ContratacionComponent implements OnInit, OnDestroy {
             }]
         };
 
-        // Timeline por mes (conteo por fecha de firma)
-        const byMonth = this.groupCount(this.procesosFiltrados.map(p => this.toMonth(p.fecha_de_firma)));
+        // Timeline por mes (conteo por fecha de inicio del contrato)
+        const byMonth = this.groupCount(this.procesosFiltrados.map(p => this.toMonth(p.fecha_de_inicio_del_contrato)));
         const labels = Object.keys(byMonth).sort();
         this.timelineChartData = {
             labels,
             datasets: [{
-                label: 'Contratos Firmados',
+                label: 'Contratos Iniciados',
                 data: labels.map(l => byMonth[l] || 0),
                 borderColor: '#216ba8',
                 backgroundColor: 'rgba(33, 107, 168, 0.1)',
@@ -606,31 +562,36 @@ export class ContratacionComponent implements OnInit, OnDestroy {
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '');
 
-        // Estados liquidados (azul info)
-        if (estado === 'liquidado') return 'bg-info';
+        // Mapa de estados con colores específicos
+        const estadoColorMap: Record<string, string> = {
+            // Activos (Verde)
+            'en ejecucion': 'bg-success',      // Verde
+            'celebrado': 'bg-success',          // Verde
+            'aprobado': 'bg-success',           // Verde
+            'modificado': 'bg-info',            // Azul
 
-        // Estados cerrados/terminados (gris secundario)
-        if (estado === 'cerrado' || estado === 'terminado') return 'bg-secondary';
+            // Finalizados (Azul/Gris)
+            'liquidado': 'bg-primary',          // Azul oscuro
+            'terminado': 'bg-info',             // Azul claro
+            'cerrado': 'bg-secondary',          // Gris
 
-        // Estados activos en ejecución (verde success)
-        if (estado === 'en ejecucion' ||
-            estado === 'aprobado' ||
-            estado === 'modificado' ||
-            estado === 'celebrado' ||
-            estado === 'activo') return 'bg-success';
+            // Problemáticos (Rojo)
+            'cancelado': 'bg-danger',           // Rojo
+            'suspendido': 'bg-warning',         // Amarillo
+            'anulado': 'bg-danger',             // Rojo
 
-        // Estados problemáticos (rojo danger)
-        if (estado === 'cancelado' ||
-            estado === 'suspendido' ||
-            estado === 'anulado') return 'bg-danger';
+            // En proceso (Amarillo)
+            'borrador': 'bg-warning',           // Amarillo
+            'pendiente': 'bg-warning',          // Amarillo
+            'proceso': 'bg-warning',            // Amarillo
+            'convocado': 'bg-info',             // Azul
 
-        // Estados en borrador/pendiente (amarillo warning)
-        if (estado === 'borrador' ||
-            estado === 'pendiente' ||
-            estado === 'proceso') return 'bg-warning';
+            // Adjudicación
+            'adjudicado': 'bg-success',         // Verde
+            'activo': 'bg-success'              // Verde
+        };
 
-        // Por defecto (gris)
-        return 'bg-secondary';
+        return estadoColorMap[estado] || 'bg-secondary'; // Por defecto gris
     }
 
     // Texto a mostrar para estado (mapear 'terminado' -> 'Liquidado')
@@ -679,9 +640,9 @@ export class ContratacionComponent implements OnInit, OnDestroy {
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     }
 
-    // Obtener mes de la fecha de firma para el timeline
+    // Obtener mes de la fecha de inicio del contrato para el timeline
     getMesFirma(p: ProcesoContratacion): string {
-        return this.toMonth(p.fecha_de_firma);
+        return this.toMonth(p.fecha_de_inicio_del_contrato);
     }
 
     // Acciones UI
@@ -1028,7 +989,7 @@ export class ContratacionComponent implements OnInit, OnDestroy {
 
         // Tabla (resumen top 20 por tamaño)
         const headers = [
-            'Referencia', 'Estado', 'Modalidad', 'Tipo', 'Valor contrato', 'Valor pagado', 'Proveedor', 'Fecha firma', 'Fecha fin'
+            'Referencia', 'Estado', 'Modalidad', 'Tipo', 'Valor contrato', 'Valor pagado', 'Proveedor', 'Fecha inicio', 'Fecha fin'
         ];
         const body = this.procesosFiltrados.slice(0, 20).map(p => [
             p.referencia_del_contrato || '-',
@@ -1038,7 +999,7 @@ export class ContratacionComponent implements OnInit, OnDestroy {
             `$ ${this.toNumber(p.valor_del_contrato).toLocaleString('es-CO')}`,
             `$ ${this.toNumber(p.valor_pagado).toLocaleString('es-CO')}`,
             p.proveedor_adjudicado || '-',
-            p.fecha_de_firma ? new Date(p.fecha_de_firma).toLocaleDateString('es-CO') : '-',
+            p.fecha_de_inicio_del_contrato ? new Date(p.fecha_de_inicio_del_contrato).toLocaleDateString('es-CO') : '-',
             p.fecha_de_fin_del_contrato ? new Date(p.fecha_de_fin_del_contrato).toLocaleDateString('es-CO') : '-',
         ]);
 

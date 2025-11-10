@@ -64,8 +64,8 @@
 
                                 <div class="d-flex flex-wrap gap-3 mb-2 align-items-center">
                                     <div>
-                                        <div class="text-muted small">Fecha firma</div>
-                                        <div>{{ contrato.fecha_de_firma | date:'dd/MM/yyyy' }}</div>
+                                        <div class="text-muted small">Fecha inicio</div>
+                                        <div>{{ contrato.fecha_de_inicio_del_contrato | date:'dd/MM/yyyy' }}</div>
                                     </div>
                                     <div>
                                         <div class="text-muted small">Fecha fin</div>
@@ -569,7 +569,7 @@
                     <div class="card-dates">
                         <div class="date-item">
                             <i class="far fa-calendar"></i>
-                            <span>{{ p.fecha_de_firma | date:'dd/MM/yyyy' }}</span>
+                            <span>{{ p.fecha_de_inicio_del_contrato | date:'dd/MM/yyyy' }}</span>
                         </div>
                         <div class="date-separator">→</div>
                         <div class="date-item">
@@ -666,10 +666,10 @@
                         </div>
                         <div class="modal-section">
                             <div class="modal-field">
-                                <span class="label">Fecha firma</span>
-                                <span class="value">{{ selectedProceso.fecha_de_firma | date:'dd/MM/yyyy' }}</span>
+                                <span class="label">Fecha inicio</span>
+                                <span class="value">{{ selectedProceso.fecha_de_inicio_del_contrato | date:'dd/MM/yyyy' }}</span>
                             </div>
-                            <div class="modal-field">
+                            <div class="detail-row">
                                 <span class="label">Fecha fin</span>
                                 <span class="value">{{ selectedProceso.fecha_de_fin_del_contrato | date:'dd/MM/yyyy'
                                     }}</span>

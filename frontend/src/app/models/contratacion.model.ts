@@ -85,21 +85,4 @@ export interface KPIsContratacion {
     tasaAdjudicacion: number; // 0..1
     sumaAdjudicado: number; // COP
     promedioPrecioBase: number; // COP
-
-    // KPIs de ejecución y tiempos
-    totalContratosPorAño?: Record<string, number>;
-    totalContratosPorMes?: Record<string, number>;
-    modalidadesMasUsadas?: Array<{ modalidad: string; cantidad: number; porcentaje: number }>;
-    proveedoresMasFrecuentes?: Array<{ proveedor: string; cantidad: number; valorTotal: number }>;
-    distribucionEstados?: Record<string, number>;
-    tiempoEjecucionPromedio?: number; // en días
-    tiempoEjecucionRango?: { min: number; max: number }; // en días
-
-    // KPIs de ejecución retrasada y vencimientos
-    contratosRetrasados?: number;
-    porcentajeRetrasados?: number;
-    contratosVencidos?: number;
-    porcentajeVencidos?: number;
-    contratosProximoVencimiento?: number;
-    porcentajeProximoVencimiento?: number;
 }
