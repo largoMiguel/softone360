@@ -20,6 +20,8 @@ import {
     ProyectoBPIN
 } from '../../models/pdm.model';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
+import { forkJoin, of } from 'rxjs';
+import { catchError, tap } from 'rxjs/operators';
 
 // Registrar los componentes de Chart.js
 Chart.register(...registerables);
@@ -471,6 +473,7 @@ export class PdmComponent implements OnInit, OnDestroy {
 
     /**
      * Recarga la lista de productos con datos frescos del backend
+     * IMPORTANTE: Ahora también sincroniza actividades de todos los productos
      */
     private recargarProductos(): void {
         console.log('📦 Recargando lista de productos...');
@@ -484,17 +487,60 @@ export class PdmComponent implements OnInit, OnDestroy {
         this.cargandoDesdeBackend = true;
         this.pdmService.cargarDatosPDMDesdeBackend().subscribe({
             next: (data) => {
-                console.log('✅ Lista de productos recargada');
+                console.log('✅ Datos base de productos recargados');
                 this.pdmData = data;
                 this.resumenProductos = this.pdmService.generarResumenProductos(data);
                 this.estadisticas = this.pdmService.calcularEstadisticas(data);
                 this.productoSeleccionado = null;
                 this.limpiarFiltros();
+                
+                // ✅ CRÍTICO: Cargar actividades de TODOS los productos
+                this.cargarActividadesTodosProductos();
+                
                 this.cargandoDesdeBackend = false;
             },
             error: (error) => {
                 console.warn('⚠️ Error al recargar productos:', error);
                 this.cargandoDesdeBackend = false;
+            }
+        });
+    }
+
+    /**
+     * Carga actividades de todos los productos en paralelo
+     * Sincroniza automáticamente en el servicio
+     */
+    private cargarActividadesTodosProductos(): void {
+        if (!this.resumenProductos.length) {
+            console.log('ℹ️ No hay productos para cargar actividades');
+            return;
+        }
+        
+        console.log(`📦 Iniciando carga de actividades para ${this.resumenProductos.length} productos...`);
+        
+        // Crear peticiones en paralelo para todos los productos
+        const peticiones = this.resumenProductos.map(producto =>
+            this.pdmService.cargarActividadesDesdeBackend(producto.codigo)
+                .pipe(
+                    tap(actividades => {
+                        console.log(`  ✅ ${producto.codigo}: ${actividades.length} actividades`);
+                        // Sincronizar en el servicio
+                        this.pdmService.sincronizarActividadesProducto(producto.codigo, actividades);
+                    }),
+                    catchError(error => {
+                        console.warn(`  ⚠️ ${producto.codigo}: Error -`, error.status);
+                        return of([]); // Continuar con productos siguientes
+                    })
+                )
+        );
+        
+        // Ejecutar todas en paralelo
+        forkJoin(peticiones).subscribe({
+            next: () => {
+                console.log('✅ ✅ Todas las actividades sincronizadas - Vista de productos lista');
+            },
+            error: (error) => {
+                console.error('❌ Error en forkJoin de actividades:', error);
             }
         });
     }
@@ -518,6 +564,7 @@ export class PdmComponent implements OnInit, OnDestroy {
 
     /**
      * Recarga los datos según los filtros aplicados
+     * Incluye sincronización de actividades
      */
     private recargarSegunFiltros(): void {
         console.log('🔄 Recargando datos según filtros aplicados...');
@@ -534,9 +581,30 @@ export class PdmComponent implements OnInit, OnDestroy {
                 this.pdmData = data;
                 this.resumenProductos = this.pdmService.generarResumenProductos(data);
                 this.estadisticas = this.pdmService.calcularEstadisticas(data);
-                this.cargandoDesdeBackend = false;
                 
-                // Los getters (productosFiltrados) ya aplicarán los filtros automáticamente
+                // ✅ Cargar actividades de productos que coincidan con filtros
+                const productosFiltrados = this.productosFiltrados;
+                if (productosFiltrados.length > 0) {
+                    console.log(`📦 Sincronizando actividades de ${productosFiltrados.length} productos filtrados...`);
+                    
+                    const peticiones = productosFiltrados.map(producto =>
+                        this.pdmService.cargarActividadesDesdeBackend(producto.codigo)
+                            .pipe(
+                                tap(actividades => {
+                                    this.pdmService.sincronizarActividadesProducto(producto.codigo, actividades);
+                                }),
+                                catchError(error => of([]))
+                            )
+                    );
+                    
+                    forkJoin(peticiones).subscribe(() => {
+                        console.log('✅ Actividades sincronizadas para productos filtrados');
+                        this.cargandoDesdeBackend = false;
+                    });
+                } else {
+                    this.cargandoDesdeBackend = false;
+                }
+                
                 console.log(`📦 ${this.productosFiltrados.length} productos después de filtros`);
             },
             error: (error) => {
@@ -1537,46 +1605,57 @@ export class PdmComponent implements OnInit, OnDestroy {
 
     /**
      * Navega a la vista de analytics y recarga datos del backend
+     * CRÍTICO: Ahora también sincroniza actividades antes de generar gráficos
      */
     verAnalytics(): void {
         console.log('📊 Abriendo analytics, recargando datos del servidor...');
         
-        // ✅ NUEVO: Recargar datos del backend antes de generar analytics
-        if (this.datosEnBackend) {
-            this.cargandoDesdeBackend = true;
-            this.pdmService.cargarDatosPDMDesdeBackend().subscribe({
-                next: (data) => {
-                    console.log('✅ Datos recargados del backend para analytics');
-                    this.pdmData = data;
-                    this.resumenProductos = this.pdmService.generarResumenProductos(data);
-                    this.estadisticas = this.pdmService.calcularEstadisticas(data);
-                    this.cargandoDesdeBackend = false;
-                    
-                    // Generar analytics con datos frescos
+        // ✅ CRÍTICO: Mostrar indicador de carga
+        this.vistaActual = 'analytics';
+        this.cargandoDesdeBackend = true;
+        
+        if (!this.datosEnBackend) {
+            // Sin datos en backend, usar lo que hay en memoria
+            console.log('ℹ️ No hay datos en backend, usando datos en caché');
+            this.generarAnalytics();
+            this.cargandoDesdeBackend = false;
+            setTimeout(() => this.crearGraficos(), 100);
+            return;
+        }
+        
+        // Cargar datos base
+        this.pdmService.cargarDatosPDMDesdeBackend().subscribe({
+            next: (data) => {
+                console.log('✅ Datos base cargados para analytics');
+                this.pdmData = data;
+                this.resumenProductos = this.pdmService.generarResumenProductos(data);
+                this.estadisticas = this.pdmService.calcularEstadisticas(data);
+                
+                // ✅ PASO CRÍTICO: Cargar actividades de TODOS los productos
+                console.log('📦 Cargando actividades para cálculos de analytics...');
+                this.cargarActividadesTodosProductos();
+                
+                // Generar analytics después de un tiempo para permitir sincronización
+                setTimeout(() => {
+                    console.log('✅ Generando gráficos con datos sincronizados...');
                     this.generarAnalytics();
-                    this.vistaActual = 'analytics';
-                    
-                    // Esperar a que el DOM se actualice para crear los charts
                     setTimeout(() => {
                         this.crearGraficos();
-                    }, 100);
-                },
-                error: (error) => {
-                    console.warn('⚠️ Error al recargar datos para analytics:', error);
-                    this.cargandoDesdeBackend = false;
-                    
-                    // Continuar con datos en caché
-                    this.generarAnalytics();
-                    this.vistaActual = 'analytics';
-                    setTimeout(() => this.crearGraficos(), 100);
-                }
-            });
-        } else {
-            // Sin datos en backend, usar lo que hay en memoria
-            this.generarAnalytics();
-            this.vistaActual = 'analytics';
-            setTimeout(() => this.crearGraficos(), 100);
-        }
+                        this.cargandoDesdeBackend = false;
+                        this.showToast('Datos de análisis cargados correctamente', 'success');
+                    }, 200);
+                }, 1500); // Esperar 1.5 segundos para sincronización
+            },
+            error: (error) => {
+                console.warn('⚠️ Error al recargar datos para analytics:', error);
+                this.cargandoDesdeBackend = false;
+                
+                // Continuar con datos en caché
+                this.generarAnalytics();
+                setTimeout(() => this.crearGraficos(), 100);
+                this.showToast('Se muestran datos en caché (sin conexión)', 'info');
+            }
+        });
     }
 
     /**
