@@ -18,11 +18,11 @@ import { defaultEntityGuard } from './guards/default-entity.guard';
 import { moduleAccessGuard } from './guards/module-access.guard';
 
 export const routes: Routes = [
+    // Ruta pública de showcase del sistema (sin autenticación ni entidad) - DEBE IR PRIMERO
+    { path: 'showcase', component: ShowcaseComponent },
+
     // Ruta raíz: redirige a la primera entidad activa
     { path: '', canActivate: [defaultEntityGuard], children: [] },
-
-    // Ruta pública de showcase del sistema (sin autenticación ni entidad)
-    { path: 'showcase', component: ShowcaseComponent },
 
     // Ruta de super administración (global, no depende de entidad)
     { path: 'soft-admin', component: SoftAdminComponent, canActivate: [superAdminGuard] },
