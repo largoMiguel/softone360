@@ -8,95 +8,194 @@
         </div>
     </div>
 
-    <!-- Alertas de Contratos Vencidos -->
-    <div class="alert alert-danger d-flex align-items-start mb-4" role="alert" *ngIf="contratosVencidos.length > 0">
-        <i class="fas fa-exclamation-triangle me-3 fs-4"></i>
-        <div class="flex-grow-1">
-            <h6 class="alert-heading mb-2">
-                <strong>¡Atención!</strong> Contratos con Plazo de Ejecución Cumplido
-            </h6>
-            <p class="mb-2">
-                Se detectaron {{ contratosVencidos.length }} contrato(s) adjudicado(s) cuyo plazo de ejecución ya ha
-                vencido.
-                Estos contratos requieren revisión y posible liquidación.
-            </p>
-            <button class="btn btn-sm btn-outline-danger"
-                (click)="mostrarContratosVencidos = !mostrarContratosVencidos">
-                <i class="fas" [class.fa-chevron-down]="!mostrarContratosVencidos"
-                    [class.fa-chevron-up]="mostrarContratosVencidos"></i>
-                {{ mostrarContratosVencidos ? 'Ocultar' : 'Ver' }} Detalles
-            </button>
+    <!-- Alertas de Contratos -->
+    <div class="row g-3 mb-4" *ngIf="contratosVencidos.length > 0 || contratosRetrasados.length > 0">
+        <!-- Alerta: Contratos Vencidos -->
+        <div class="col-12" *ngIf="contratosVencidos.length > 0">
+            <div class="alert alert-danger d-flex align-items-start mb-0" role="alert">
+                <i class="fas fa-exclamation-circle me-3 fs-5"></i>
+                <div class="flex-grow-1">
+                    <h6 class="alert-heading mb-2">
+                        <strong>⚠️ Contratos Vencidos</strong>
+                    </h6>
+                    <p class="mb-2">
+                        Se detectaron <strong>{{ contratosVencidos.length }}</strong> contrato(s) cuyo plazo de ejecución ya ha vencido.
+                        Requieren inmediata revisión y liquidación.
+                    </p>
+                    <button class="btn btn-sm btn-outline-danger"
+                        (click)="mostrarContratosVencidos = !mostrarContratosVencidos">
+                        <i class="fas" [class.fa-chevron-down]="!mostrarContratosVencidos"
+                            [class.fa-chevron-up]="mostrarContratosVencidos"></i>
+                        {{ mostrarContratosVencidos ? 'Ocultar' : 'Ver' }} Detalles
+                    </button>
 
-            <div class="mt-3" *ngIf="mostrarContratosVencidos">
-                <div class="row g-2">
-                    <div class="col-12 col-md-6 col-lg-4"
-                        *ngFor="let contrato of contratosVencidos; trackBy: trackByContrato">
-                        <div class="contract-card card shadow-sm border-danger" role="button" tabindex="0"
-                            (click)="openModal(contrato)" (keydown.enter)="openModal(contrato)">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <div>
-                                        <div class="text-muted small">Referencia</div>
-                                        <div class="fw-bold">{{ contrato.referencia_del_contrato || 'N/D' }}</div>
+                    <div class="mt-3" *ngIf="mostrarContratosVencidos">
+                        <div class="row g-2">
+                            <div class="col-12 col-md-6 col-lg-4"
+                                *ngFor="let contrato of contratosVencidos; trackBy: trackByContrato">
+                                <div class="contract-card card shadow-sm border-danger" role="button" tabindex="0"
+                                    (click)="openModal(contrato)" (keydown.enter)="openModal(contrato)">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div>
+                                                <div class="text-muted small">Referencia</div>
+                                                <div class="fw-bold">{{ contrato.referencia_del_contrato || 'N/D' }}</div>
+                                            </div>
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-exclamation-triangle me-1"></i>{{
+                                                calcularDiasVencidos(contrato) }} días
+                                            </span>
+                                        </div>
+
+                                        <div class="d-flex flex-wrap gap-3 mb-2">
+                                            <div>
+                                                <div class="text-muted small">Valor contrato</div>
+                                                <div class="fw-bold">$ {{ toNumber(contrato.valor_del_contrato) | number:'1.0-0'
+                                                    }}</div>
+                                            </div>
+                                            <div>
+                                                <div class="text-muted small">Duración</div>
+                                                <div class="fw-bold text-danger">{{ formatearDuracion(contrato) }}</div>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <div class="text-muted small">Proveedor</div>
+                                            <div>{{ contrato.proveedor_adjudicado || '-' }}</div>
+                                        </div>
+
+                                        <div class="d-flex flex-wrap gap-3 mb-2 align-items-center">
+                                            <div>
+                                                <div class="text-muted small">Fecha inicio</div>
+                                                <div>{{ contrato.fecha_de_inicio_del_contrato | date:'dd/MM/yyyy' }}</div>
+                                            </div>
+                                            <div>
+                                                <div class="text-muted small">Fecha fin</div>
+                                                <div class="text-danger fw-bold">{{ contrato.fecha_de_fin_del_contrato | date:'dd/MM/yyyy' }}</div>
+                                            </div>
+                                            <span class="badge" [ngClass]="getEstadoBadgeClass(contrato)" ms-auto>{{ getEstadoDisplay(contrato) }}</span>
+                                        </div>
+
+                                        <div class="text-muted small">Objeto</div>
+                                        <div class="text-truncate-2" [title]="contrato.objeto_del_contrato">{{
+                                            contrato.objeto_del_contrato || 'N/D' }}</div>
                                     </div>
-                                    <span class="badge bg-danger">
-                                        <i class="fas fa-exclamation-triangle me-1"></i>{{
-                                        calcularDiasVencidos(contrato) }} días
-                                    </span>
+
+                                    <div class="d-none">
+                                        <div class="row g-2 small">
+                                            <div class="col-6"><strong>Estado:</strong> <span class="badge"
+                                                    [ngClass]="getEstadoBadgeClass(contrato)">{{ getEstadoDisplay(contrato)
+                                                    }}</span></div>
+                                            <div class="col-6"><strong>Modalidad:</strong> {{ contrato.modalidad_de_contratacion
+                                                || 'N/D' }}</div>
+                                            <div class="col-6"><strong>Tipo:</strong> {{ contrato.tipo_de_contrato || 'N/D' }}
+                                            </div>
+                                            <div class="col-6"><strong>Supervisor:</strong> {{ contrato.nombre_supervisor ||
+                                                'N/D' }}</div>
+                                            <div class="col-6"><strong>Actualización:</strong> {{ contrato.ultima_actualizacion
+                                                | date:'dd/MM/yyyy' }}</div>
+                                            <div class="col-6"><strong>Liquidación:</strong> {{ contrato.liquidaci_n ||
+                                                'Pendiente' }}</div>
+                                        </div>
+                                        <div class="d-flex justify-content-end gap-2 mt-2"></div>
+                                    </div>
                                 </div>
-
-                                <div class="d-flex flex-wrap gap-3 mb-2">
-                                    <div>
-                                        <div class="text-muted small">Valor contrato</div>
-                                        <div class="fw-bold">$ {{ toNumber(contrato.valor_del_contrato) | number:'1.0-0'
-                                            }}</div>
-                                    </div>
-                                    <div>
-                                        <div class="text-muted small">Duración</div>
-                                        <div class="fw-bold text-danger">{{ formatearDuracion(contrato) }}</div>
-                                    </div>
-                                </div>
-
-                                <div class="mb-2">
-                                    <div class="text-muted small">Proveedor</div>
-                                    <div>{{ contrato.proveedor_adjudicado || '-' }}</div>
-                                </div>
-
-                                <div class="d-flex flex-wrap gap-3 mb-2 align-items-center">
-                                    <div>
-                                        <div class="text-muted small">Fecha inicio</div>
-                                        <div>{{ contrato.fecha_de_inicio_del_contrato | date:'dd/MM/yyyy' }}</div>
-                                    </div>
-                                    <div>
-                                        <div class="text-muted small">Fecha fin</div>
-                                        <div class="text-danger fw-bold">{{ contrato.fecha_de_fin_del_contrato |
-                                            date:'dd/MM/yyyy' }}</div>
-                                    </div>
-                                    <span class="badge bg-secondary ms-auto">{{ getEstadoDisplay(contrato) }}</span>
-                                </div>
-
-                                <div class="text-muted small">Objeto</div>
-                                <div class="text-truncate-2" [title]="contrato.objeto_del_contrato">{{
-                                    contrato.objeto_del_contrato || 'N/D' }}</div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                            <div class="d-none">
-                                <div class="row g-2 small">
-                                    <div class="col-6"><strong>Estado:</strong> <span class="badge"
-                                            [ngClass]="getEstadoBadgeClass(contrato)">{{ getEstadoDisplay(contrato)
-                                            }}</span></div>
-                                    <div class="col-6"><strong>Modalidad:</strong> {{ contrato.modalidad_de_contratacion
-                                        || 'N/D' }}</div>
-                                    <div class="col-6"><strong>Tipo:</strong> {{ contrato.tipo_de_contrato || 'N/D' }}
+        <!-- Alerta: Contratos con Ejecución Retrasada -->
+        <div class="col-12" *ngIf="contratosRetrasados.length > 0">
+            <div class="alert alert-warning d-flex align-items-start mb-0" role="alert">
+                <i class="fas fa-clock me-3 fs-5"></i>
+                <div class="flex-grow-1">
+                    <h6 class="alert-heading mb-2">
+                        <strong>⏱️ Contratos con Ejecución Retrasada</strong>
+                    </h6>
+                    <p class="mb-2">
+                        Se detectaron <strong>{{ contratosRetrasados.length }}</strong> contrato(s) en ejecución avanzada (>75%)
+                        con fecha de vencimiento próxima. Requieren seguimiento intensivo.
+                    </p>
+                    <button class="btn btn-sm btn-outline-warning"
+                        (click)="mostrarContratosRetrasados = !mostrarContratosRetrasados">
+                        <i class="fas" [class.fa-chevron-down]="!mostrarContratosRetrasados"
+                            [class.fa-chevron-up]="mostrarContratosRetrasados"></i>
+                        {{ mostrarContratosRetrasados ? 'Ocultar' : 'Ver' }} Detalles
+                    </button>
+
+                    <div class="mt-3" *ngIf="mostrarContratosRetrasados">
+                        <div class="row g-2">
+                            <div class="col-12 col-md-6 col-lg-4"
+                                *ngFor="let contrato of contratosRetrasados; trackBy: trackByContrato">
+                                <div class="contract-card card shadow-sm border-warning" role="button" tabindex="0"
+                                    (click)="openModal(contrato)" (keydown.enter)="openModal(contrato)">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div>
+                                                <div class="text-muted small">Referencia</div>
+                                                <div class="fw-bold">{{ contrato.referencia_del_contrato || 'N/D' }}</div>
+                                            </div>
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-hourglass-half me-1"></i>Próximo a vencer
+                                            </span>
+                                        </div>
+
+                                        <div class="d-flex flex-wrap gap-3 mb-2">
+                                            <div>
+                                                <div class="text-muted small">Valor contrato</div>
+                                                <div class="fw-bold">$ {{ toNumber(contrato.valor_del_contrato) | number:'1.0-0'
+                                                    }}</div>
+                                            </div>
+                                            <div>
+                                                <div class="text-muted small">Duración</div>
+                                                <div class="fw-bold">{{ formatearDuracion(contrato) }}</div>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <div class="text-muted small">Proveedor</div>
+                                            <div>{{ contrato.proveedor_adjudicado || '-' }}</div>
+                                        </div>
+
+                                        <div class="d-flex flex-wrap gap-3 mb-2 align-items-center">
+                                            <div>
+                                                <div class="text-muted small">Fecha inicio</div>
+                                                <div>{{ contrato.fecha_de_inicio_del_contrato | date:'dd/MM/yyyy' }}</div>
+                                            </div>
+                                            <div>
+                                                <div class="text-muted small">Fecha fin</div>
+                                                <div class="text-warning fw-bold">{{ contrato.fecha_de_fin_del_contrato | date:'dd/MM/yyyy' }}</div>
+                                            </div>
+                                            <span class="badge" [ngClass]="getEstadoBadgeClass(contrato)" ms-auto>{{ getEstadoDisplay(contrato) }}</span>
+                                        </div>
+
+                                        <div class="text-muted small">Objeto</div>
+                                        <div class="text-truncate-2" [title]="contrato.objeto_del_contrato">{{
+                                            contrato.objeto_del_contrato || 'N/D' }}</div>
                                     </div>
-                                    <div class="col-6"><strong>Supervisor:</strong> {{ contrato.nombre_supervisor ||
-                                        'N/D' }}</div>
-                                    <div class="col-6"><strong>Actualización:</strong> {{ contrato.ultima_actualizacion
-                                        | date:'dd/MM/yyyy' }}</div>
-                                    <div class="col-6"><strong>Liquidación:</strong> {{ contrato.liquidaci_n ||
-                                        'Pendiente' }}</div>
+
+                                    <div class="d-none">
+                                        <div class="row g-2 small">
+                                            <div class="col-6"><strong>Estado:</strong> <span class="badge"
+                                                    [ngClass]="getEstadoBadgeClass(contrato)">{{ getEstadoDisplay(contrato)
+                                                    }}</span></div>
+                                            <div class="col-6"><strong>Modalidad:</strong> {{ contrato.modalidad_de_contratacion
+                                                || 'N/D' }}</div>
+                                            <div class="col-6"><strong>Tipo:</strong> {{ contrato.tipo_de_contrato || 'N/D' }}
+                                            </div>
+                                            <div class="col-6"><strong>Supervisor:</strong> {{ contrato.nombre_supervisor ||
+                                                'N/D' }}</div>
+                                            <div class="col-6"><strong>Actualización:</strong> {{ contrato.ultima_actualizacion
+                                                | date:'dd/MM/yyyy' }}</div>
+                                            <div class="col-6"><strong>Liquidación:</strong> {{ contrato.liquidaci_n ||
+                                                'Pendiente' }}</div>
+                                        </div>
+                                        <div class="d-flex justify-content-end gap-2 mt-2"></div>
+                                    </div>
                                 </div>
-                                <div class="d-flex justify-content-end gap-2 mt-2"></div>
                             </div>
                         </div>
                     </div>
@@ -671,8 +770,7 @@
                             </div>
                             <div class="detail-row">
                                 <span class="label">Fecha fin</span>
-                                <span class="value">{{ selectedProceso.fecha_de_fin_del_contrato | date:'dd/MM/yyyy'
-                                    }}</span>
+                                <span class="value">{{ selectedProceso.fecha_de_fin_del_contrato | date:'dd/MM/yyyy' }}</span>
                             </div>
                             <div class="modal-field">
                                 <span class="label">Duración</span>

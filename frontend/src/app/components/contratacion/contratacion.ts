@@ -43,7 +43,9 @@ export class ContratacionComponent implements OnInit, OnDestroy {
 
     // Contratos vencidos
     contratosVencidos: ProcesoContratacion[] = [];
+    contratosRetrasados: ProcesoContratacion[] = [];
     mostrarContratosVencidos = false;
+    mostrarContratosRetrasados = false;
 
     // Filtros UI - Por defecto desde 1 de enero 2025
     filtro: FiltroContratacion = {
@@ -352,7 +354,44 @@ export class ContratacionComponent implements OnInit, OnDestroy {
             return fechaFin < hoy;
         });
 
-        console.log(`[Contratación] Contratos vencidos detectados: ${this.contratosVencidos.length}`);
+        // Detectar contratos con ejecución retrasada
+        // Retrasados: están en ejecución pero la fecha fin es próxima (próximos 15 días)
+        const fechaEn15Dias = new Date(hoy);
+        fechaEn15Dias.setDate(fechaEn15Dias.getDate() + 15);
+
+        this.contratosRetrasados = this.procesosFiltrados.filter(p => {
+            // Solo contratos en ejecución con fecha de finalización
+            if (!p.fecha_de_inicio_del_contrato || !p.fecha_de_fin_del_contrato) return false;
+
+            const estado = (p.estado_contrato ?? '')
+                .toString()
+                .trim()
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '');
+
+            // Solo contratos activos
+            const estadosActivos = ['en ejecucion', 'celebrado', 'aprobado', 'modificado', 'activo'];
+            if (!estadosActivos.includes(estado)) return false;
+
+            const fechaInicio = new Date(p.fecha_de_inicio_del_contrato);
+            const fechaFin = new Date(p.fecha_de_fin_del_contrato);
+            fechaInicio.setHours(0, 0, 0, 0);
+            fechaFin.setHours(0, 0, 0, 0);
+
+            // Calcular días transcurridos
+            const diasTranscurridos = Math.floor((hoy.getTime() - fechaInicio.getTime()) / (1000 * 60 * 60 * 24));
+            const duracionTotal = Math.floor((fechaFin.getTime() - fechaInicio.getTime()) / (1000 * 60 * 60 * 24));
+
+            // Está retrasado si: 
+            // 1. Ya pasó 75% de la duración (ejecución avanzada)
+            // 2. Y la fecha fin está próxima (dentro de 15 días)
+            const porcentajeEjecucion = (diasTranscurridos / duracionTotal) * 100;
+            return porcentajeEjecucion > 75 && fechaFin <= fechaEn15Dias && fechaFin > hoy;
+        });
+
+        console.log(`[Contratación] Contratos vencidos: ${this.contratosVencidos.length}`);
+        console.log(`[Contratación] Contratos con ejecución retrasada: ${this.contratosRetrasados.length}`);
     }
 
     calcularDiasVencidos(contrato: ProcesoContratacion): number {
