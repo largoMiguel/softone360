@@ -194,185 +194,161 @@ async def delete_entity(
     current_user: User = Depends(require_superadmin)
 ):
     """
-    ✅ SOLUCIÓN DEFINITIVA - DELETE ENTITY
-    Elimina entidad y TODOS sus datos relacionados en orden correcto.
+    ✅✅✅ SOLUCIÓN DEFINITIVA - ELIMINAR EN ORDEN CORRECTO
     
     Estrategia:
-    1. Verificar entidad existe
-    2. Contar registros ANTES de eliminar (auditoría)
-    3. Eliminar en orden respetando FK constraints
-    4. Commit único al final
-    5. Manejo robusto de errores con rollback
+    1. Verificar entidad
+    2. Contar registros
+    3. Eliminar en orden respetando FKs:
+       - Primero: Alertas (FK a users y entity)
+       - Segundo: PQRS, Planes, Secretarias, PDM (FK directo a entity)
+       - Tercero: Usuarios (después de alertas)
+       - Cuarto: Entity
     """
     print(f"\n{'='*70}")
-    print(f"🔍 INICIANDO ELIMINACIÓN DE ENTIDAD ID: {entity_id}")
+    print(f"🔍 DELETE ENTITY - ID: {entity_id}")
     print(f"{'='*70}")
     
-    # Paso 0: Verificar que la entidad existe
+    entity_name = "DESCONOCIDA"
+    entity_code = "DESCONOCIDA"
+    counts = {}
+    
     try:
+        # Paso 1: Verificar entidad
+        print("✅ Verificando entidad...")
         entity = db.query(Entity).filter(Entity.id == entity_id).first()
         if not entity:
-            print(f"❌ Entidad no encontrada: {entity_id}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Entidad con ID {entity_id} no encontrada"
+                detail=f"Entidad ID {entity_id} no encontrada"
             )
         
         entity_name = entity.name
         entity_code = entity.code
-        print(f"✅ Entidad encontrada: {entity_name} ({entity_code})")
+        print(f"   ✓ Entidad: {entity_name} ({entity_code})")
         
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ Error al buscar entidad: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al buscar entidad: {str(e)}"
-        )
-    
-    try:
-        # Paso 1: Importar todos los modelos AL INICIO (antes de cualquier query)
-        # ✅ NUEVO: Importar TODOS los modelos al inicio
-        print("\n📦 Importando modelos...")
+        # Paso 2: Importar modelos
+        print("\n✅ Importando modelos...")
         from app.models.secretaria import Secretaria
         from app.models.pqrs import PQRS
         from app.models.plan import PlanInstitucional
         from app.models.alert import Alert
-        try:
-            from app.models.pdm import (
-                PdmProducto, 
-                PdmActividad, 
-                PdmActividadEvidencia,
-                PdmLineaEstrategica,
-                PdmIndicadorResultado,
-                PdmIniciativaSGR
-            )
-            pdm_imported = True
-        except ImportError as ie:
-            print(f"⚠️  PDM models no disponibles: {ie}")
-            pdm_imported = False
+        from app.models.pdm import (
+            PdmProducto, 
+            PdmActividad, 
+            PdmActividadEvidencia,
+            PdmLineaEstrategica,
+            PdmIndicadorResultado,
+            PdmIniciativaSGR,
+            PdmArchivoExcel
+        )
         
-        print("✅ Modelos importados exitosamente")
-        
-        # Paso 2: Contar registros ANTES de eliminar
-        print("\n📊 Contando registros relacionados...")
+        # Paso 3: Contar registros ANTES de eliminar
+        print("\n✅ Auditoría de datos...")
         counts = {
-            "usuarios": 0,
-            "secretarias": 0,
-            "pqrs": 0,
-            "planes": 0,
-            "pdm_productos": 0,
-            "pdm_actividades": 0,
-            "pdm_evidencias": 0,
-            "pdm_lineas": 0,
-            "pdm_indicadores": 0,
-            "pdm_iniciativas": 0,
-            "alertas": 0
+            "alertas": db.query(Alert).filter(Alert.entity_id == entity_id).count(),
+            "usuarios": db.query(User).filter(User.entity_id == entity_id).count(),
+            "secretarias": db.query(Secretaria).filter(Secretaria.entity_id == entity_id).count(),
+            "pqrs": db.query(PQRS).filter(PQRS.entity_id == entity_id).count(),
+            "planes": db.query(PlanInstitucional).filter(PlanInstitucional.entity_id == entity_id).count(),
+            "pdm_archivos": db.query(PdmArchivoExcel).filter(PdmArchivoExcel.entity_id == entity_id).count(),
+            "pdm_productos": db.query(PdmProducto).filter(PdmProducto.entity_id == entity_id).count(),
+            "pdm_actividades": db.query(PdmActividad).filter(PdmActividad.entity_id == entity_id).count(),
+            "pdm_evidencias": db.query(PdmActividadEvidencia).filter(PdmActividadEvidencia.entity_id == entity_id).count(),
+            "pdm_lineas": db.query(PdmLineaEstrategica).filter(PdmLineaEstrategica.entity_id == entity_id).count(),
+            "pdm_indicadores": db.query(PdmIndicadorResultado).filter(PdmIndicadorResultado.entity_id == entity_id).count(),
+            "pdm_iniciativas": db.query(PdmIniciativaSGR).filter(PdmIniciativaSGR.entity_id == entity_id).count()
         }
         
-        counts["usuarios"] = db.query(User).filter(User.entity_id == entity_id).count()
-        counts["secretarias"] = db.query(Secretaria).filter(Secretaria.entity_id == entity_id).count()
-        counts["pqrs"] = db.query(PQRS).filter(PQRS.entity_id == entity_id).count()
-        counts["planes"] = db.query(PlanInstitucional).filter(PlanInstitucional.entity_id == entity_id).count()
-        counts["alertas"] = db.query(Alert).filter(Alert.entity_id == entity_id).count()
-        
-        if pdm_imported:
-            counts["pdm_productos"] = db.query(PdmProducto).filter(PdmProducto.entity_id == entity_id).count()
-            counts["pdm_actividades"] = db.query(PdmActividad).filter(PdmActividad.entity_id == entity_id).count()
-            counts["pdm_evidencias"] = db.query(PdmActividadEvidencia).join(
-                PdmActividad, 
-                PdmActividadEvidencia.pdm_actividad_id == PdmActividad.id
-            ).filter(PdmActividad.entity_id == entity_id).count()
-            counts["pdm_lineas"] = db.query(PdmLineaEstrategica).filter(PdmLineaEstrategica.entity_id == entity_id).count()
-            counts["pdm_indicadores"] = db.query(PdmIndicadorResultado).filter(PdmIndicadorResultado.entity_id == entity_id).count()
-            counts["pdm_iniciativas"] = db.query(PdmIniciativaSGR).filter(PdmIniciativaSGR.entity_id == entity_id).count()
-        
         total = sum(counts.values())
-        print(f"📋 Registros a eliminar: {total}")
-        for key, val in counts.items():
-            if val > 0:
-                print(f"   ✓ {key}: {val}")
+        print(f"   ✓ Total a eliminar: {total} registros")
+        for k, v in counts.items():
+            if v > 0:
+                print(f"      - {k}: {v}")
         
-        # Paso 3: Eliminar en orden (respetando FK constraints)
-        print("\n🗑️  ELIMINANDO REGISTROS EN ORDEN (respetando constraints)...")
+        # Paso 4: ELIMINAR EN ORDEN (respetando FK constraints)
+        print("\n✅ Eliminando en orden correcto...")
         
-        if pdm_imported:
-            print("  1️⃣  Eliminando PDM Evidencias...")
-            db.query(PdmActividadEvidencia).join(
-                PdmActividad,
-                PdmActividadEvidencia.pdm_actividad_id == PdmActividad.id
-            ).filter(PdmActividad.entity_id == entity_id).delete(synchronize_session=False)
-            
-            print("  2️⃣  Eliminando PDM Actividades...")
-            db.query(PdmActividad).filter(PdmActividad.entity_id == entity_id).delete(synchronize_session=False)
-            
-            print("  3️⃣  Eliminando PDM Productos...")
-            db.query(PdmProducto).filter(PdmProducto.entity_id == entity_id).delete(synchronize_session=False)
-            
-            print("  4️⃣  Eliminando PDM Líneas Estratégicas...")
-            db.query(PdmLineaEstrategica).filter(PdmLineaEstrategica.entity_id == entity_id).delete(synchronize_session=False)
-            
-            print("  5️⃣  Eliminando PDM Indicadores de Resultado...")
-            db.query(PdmIndicadorResultado).filter(PdmIndicadorResultado.entity_id == entity_id).delete(synchronize_session=False)
-            
-            print("  6️⃣  Eliminando PDM Iniciativas SGR...")
-            db.query(PdmIniciativaSGR).filter(PdmIniciativaSGR.entity_id == entity_id).delete(synchronize_session=False)
-        
-        print("  7️⃣  Eliminando PQRS...")
-        db.query(PQRS).filter(PQRS.entity_id == entity_id).delete(synchronize_session=False)
-        
-        print("  8️⃣  Eliminando Alertas...")
+        # CRÍTICO: Alertas primero porque tiene FK a users
+        print("  1. Alertas (tienen FK a users)...")
         db.query(Alert).filter(Alert.entity_id == entity_id).delete(synchronize_session=False)
         
-        print("  9️⃣  Eliminando Planes Institucionales...")
+        # Ahora alertas_recipient_user (cualquier otra alerta de otro lado)
+        # Necesitamos eliminar alerts donde recipient_user_id sea usuario de esta entidad
+        user_ids = db.query(User.id).filter(User.entity_id == entity_id).all()
+        user_ids = [uid[0] for uid in user_ids]
+        if user_ids:
+            print(f"     - Eliminando alertas donde recipient_user_id es de esta entidad...")
+            db.query(Alert).filter(Alert.recipient_user_id.in_(user_ids)).delete(synchronize_session=False)
+        
+        # PQRS, Planes, Archivos Excel PDM (FK directo a entity, sin dependencias internas)
+        print("  2. PQRS...")
+        db.query(PQRS).filter(PQRS.entity_id == entity_id).delete(synchronize_session=False)
+        
+        print("  3. Planes Institucionales...")
         db.query(PlanInstitucional).filter(PlanInstitucional.entity_id == entity_id).delete(synchronize_session=False)
         
-        print("  🔟 Eliminando Secretarías...")
+        print("  4. Archivos Excel PDM...")
+        db.query(PdmArchivoExcel).filter(PdmArchivoExcel.entity_id == entity_id).delete(synchronize_session=False)
+        
+        print("  5. Secretarías...")
         db.query(Secretaria).filter(Secretaria.entity_id == entity_id).delete(synchronize_session=False)
         
-        print("  1️⃣1️⃣  Eliminando Usuarios...")
+        # PDM en orden de dependencias (evidencias -> actividades -> productos, etc.)
+        print("  6. PDM Evidencias...")
+        db.query(PdmActividadEvidencia).filter(PdmActividadEvidencia.entity_id == entity_id).delete(synchronize_session=False)
+        
+        print("  7. PDM Actividades...")
+        db.query(PdmActividad).filter(PdmActividad.entity_id == entity_id).delete(synchronize_session=False)
+        
+        print("  8. PDM Productos...")
+        db.query(PdmProducto).filter(PdmProducto.entity_id == entity_id).delete(synchronize_session=False)
+        
+        print("  9. PDM Líneas Estratégicas...")
+        db.query(PdmLineaEstrategica).filter(PdmLineaEstrategica.entity_id == entity_id).delete(synchronize_session=False)
+        
+        print("  10. PDM Indicadores...")
+        db.query(PdmIndicadorResultado).filter(PdmIndicadorResultado.entity_id == entity_id).delete(synchronize_session=False)
+        
+        print("  11. PDM Iniciativas SGR...")
+        db.query(PdmIniciativaSGR).filter(PdmIniciativaSGR.entity_id == entity_id).delete(synchronize_session=False)
+        
+        # USUARIOS (después de que no hay FK apuntando a ellos)
+        print("  12. Usuarios...")
         db.query(User).filter(User.entity_id == entity_id).delete(synchronize_session=False)
         
-        # Paso 4: Eliminar la entidad misma
-        print("  1️⃣2️⃣  Eliminando Entidad...")
+        # FINALMENTE: Entidad
+        print("  13. Entidad...")
         db.delete(entity)
         
-        # Paso 5: Commit ÚNICO de todos los cambios
-        print("\n💾 GUARDANDO CAMBIOS EN BASE DE DATOS...")
+        # COMMIT ÚNICO
+        print("\n💾 Guardando cambios...")
         db.commit()
         
-        print(f"✅ ENTIDAD '{entity_name}' ELIMINADA EXITOSAMENTE")
+        print(f"✅ ¡ÉXITO! Entidad '{entity_name}' eliminada completamente")
         print(f"{'='*70}\n")
         
         return {
             "status": "success",
-            "message": f"Entidad '{entity_name}' y TODOS sus datos eliminados exitosamente",
+            "message": f"Entidad '{entity_name}' eliminada con éxito",
             "entity_name": entity_name,
             "entity_code": entity_code,
             "deleted_summary": counts
         }
         
-    except HTTPException:
-        # Re-lanzar excepciones HTTP sin cambios
+    except HTTPException as he:
         db.rollback()
+        print(f"\n❌ HTTPException: {he.detail}\n")
         raise
-    
+        
     except Exception as e:
-        # Capturar CUALQUIER otro error y hacer rollback
         db.rollback()
-        
-        import traceback
-        error_details = traceback.format_exc()
-        print(f"\n❌ ERROR CRÍTICO AL ELIMINAR ENTIDAD:")
-        print(f"   Tipo: {type(e).__name__}")
-        print(f"   Mensaje: {str(e)}")
-        print(f"   Traceback:\n{error_details}")
-        print(f"{'='*70}\n")
-        
+        error_type = type(e).__name__
+        error_msg = str(e)
+        print(f"\n❌ ERROR: {error_type}: {error_msg}\n")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al eliminar entidad '{entity_name}': {type(e).__name__}: {str(e)}"
+            detail=f"Error eliminando '{entity_name}': {error_type}: {error_msg}"
         )
 
 

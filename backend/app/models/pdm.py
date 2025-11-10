@@ -188,5 +188,19 @@ class PdmActividadEvidencia(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relación inversa
+    # Relación inversa con actividad
     actividad = relationship("PdmActividad", back_populates="evidencia")
+
+
+class PdmArchivoExcel(Base):
+    """Tabla para almacenar archivos Excel generados para PDM"""
+    __tablename__ = "pdm_archivos_excel"
+
+    id = Column(Integer, primary_key=True, index=True)
+    entity_id = Column(Integer, ForeignKey("entities.id", ondelete="CASCADE"), nullable=False, index=True)
+    nombre_archivo = Column(String(512), nullable=False)
+    contenido = Column(String, nullable=False)  # LargeBinary as String
+    tamanio = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
