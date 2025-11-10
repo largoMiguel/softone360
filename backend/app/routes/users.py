@@ -298,8 +298,14 @@ async def update_user(
     if "password" in update_data:
         update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
     
+    # ✅ FIX: Permitir cambio de entity_id incluso si viene como None (para "Sin entidad")
+    # Validar cambio de entidad para ADMIN ANTES de procesarlo
+    if current_user.role == UserRole.ADMIN and "entity_id" in update_data:
+        if update_data["entity_id"] is not None and update_data["entity_id"] != current_user.entity_id:
+            raise HTTPException(status_code=403, detail="No puedes mover usuarios a otra entidad")
+    
     # Validar módulos permitidos si se actualizan
-    if "allowed_modules" in update_data and user.entity_id:
+    if "allowed_modules" in update_data and update_data.get("entity_id"):
         # ✅ ESTRICTO: Solo SUPERADMIN puede cambiar módulos de CUALQUIER ADMIN (incluyendo a sí mismo)
         # Si current_user es ADMIN y quiere cambiar módulos:
         #   - Si es otro ADMIN → Error
@@ -356,11 +362,6 @@ async def update_user(
         # Restringir a ADMIN para no promover a SUPERADMIN
         if current_user.role == UserRole.ADMIN and update_data["role"] == UserRole.SUPERADMIN:
             raise HTTPException(status_code=403, detail="No puedes asignar rol SUPERADMIN")
-
-    # Restringir cambio de entidad para ADMIN
-    if current_user.role == UserRole.ADMIN and "entity_id" in update_data:
-        if update_data["entity_id"] != current_user.entity_id:
-            raise HTTPException(status_code=403, detail="No puedes mover usuarios a otra entidad")
 
     # Normalizar user_type si viene en la actualización
     if "user_type" in update_data:

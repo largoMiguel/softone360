@@ -226,7 +226,6 @@ export class SoftAdminComponent implements OnInit {
         }
 
         this.editingUser = { ...user };
-        this.editingUserEntity = this.getEntityById(user.entity_id) || null;  // Cachea la entidad
         
         this.editUserForm = {
             username: user.username,
@@ -262,7 +261,31 @@ export class SoftAdminComponent implements OnInit {
         }
         
         this.confirmEditPassword = '';
+        
+        // ✅ SOLUCIÓN DEFINITIVA v3: Cambiar a vista PRIMERO, luego cargar entidad si es necesario
         this.currentView = 'edit-user';
+        
+        // Solo intentar cargar la entidad si el usuario tiene entity_id válido
+        if (user.entity_id) {
+            // Ahora intentar obtener la entidad del cache local
+            this.editingUserEntity = this.getEntityById(user.entity_id) || null;
+            
+            // Si la entidad no está en el cache local, cargarla del backend
+            if (!this.editingUserEntity) {
+                this.entityService.getEntity(user.entity_id).subscribe({
+                    next: (entity) => {
+                        this.editingUserEntity = entity as EntityWithStats;
+                    },
+                    error: (error) => {
+                        console.error('Error cargando entidad:', error);
+                        this.editingUserEntity = null;  // Marcar como sin entidad
+                    }
+                });
+            }
+        } else {
+            // Usuario sin entidad asignada
+            this.editingUserEntity = null;
+        }
     }
 
     updateUser(): void {
@@ -311,8 +334,17 @@ export class SoftAdminComponent implements OnInit {
         this.loading = true;
 
         const doProfileUpdate = () => this.userService.updateUser(this.editingUser.id, payload).subscribe({
-            next: () => {
+            next: (updatedUser) => {
                 this.alertService.success('Usuario actualizado exitosamente');
+                
+                // ✅ Si el usuario actualizado es el usuario actualmente logueado, actualizar el localStorage
+                const currentUser = this.authService.getCurrentUserValue();
+                if (currentUser && currentUser.id === updatedUser.id) {
+                    // Actualizar el usuario en localStorage y en el AuthService
+                    localStorage.setItem('user', JSON.stringify(updatedUser));
+                    this.authService['currentUserSubject'].next(updatedUser);
+                }
+                
                 if (this.selectedEntity) {
                     this.viewEntityUsers(this.selectedEntity);
                 } else {

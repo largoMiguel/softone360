@@ -6,7 +6,7 @@
 
     <div class="menu px-3 py-2">
         <!-- Dashboard Group -->
-        <div class="menu-group">
+        <div class="menu-group" *ngIf="canAccessPqrs()">
             <div class="menu-title">
                 <i class="fas fa-tachometer-alt me-2"></i>GESTIÓN DE PQRS
             </div>

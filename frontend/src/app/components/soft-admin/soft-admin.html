@@ -452,19 +452,34 @@
             </div>
 
             <!-- ✅ Módulos si es admin Y si el usuario actual es SuperAdmin -->
-            <div *ngIf="editUserForm.role === 'admin' && editingUserEntity && currentUserRole === 'superadmin'" class="form-group">
-                <label>Módulos Permitidos</label>
-                <small class="text-muted d-block mb-2">Selecciona los módulos activos en la entidad: {{ editingUserEntity.name }}</small>
-                <div class="checkbox-grid">
-                    <label *ngIf="editingUserEntity.enable_pqrs"><input type="checkbox" [(ngModel)]="editUserModules.enable_pqrs" name="edit_enable_pqrs"> PQRS</label>
-                    <label *ngIf="editingUserEntity.enable_users_admin"><input type="checkbox" [(ngModel)]="editUserModules.enable_users_admin" name="edit_enable_users_admin"> Administración de Usuarios</label>
-                    <label *ngIf="editingUserEntity.enable_planes_institucionales"><input type="checkbox" [(ngModel)]="editUserModules.enable_planes_institucionales" name="edit_enable_planes_institucionales"> Planes Institucionales</label>
-                    <label *ngIf="editingUserEntity.enable_pdm"><input type="checkbox" [(ngModel)]="editUserModules.enable_pdm" name="edit_enable_pdm"> Plan de Desarrollo Municipal</label>
-                    <label *ngIf="editingUserEntity.enable_contratacion"><input type="checkbox" [(ngModel)]="editUserModules.enable_contratacion" name="edit_enable_contratacion"> Contratación</label>
-                    <label *ngIf="editingUserEntity.enable_reports_pdf"><input type="checkbox" [(ngModel)]="editUserModules.enable_reports_pdf" name="edit_enable_reports_pdf"> Reportes PDF</label>
-                    <label *ngIf="editingUserEntity.enable_ai_reports"><input type="checkbox" [(ngModel)]="editUserModules.enable_ai_reports" name="edit_enable_ai_reports"> Análisis con IA</label>
+            <ng-container *ngIf="editUserForm.role === 'admin' && currentUserRole === 'superadmin'">
+                <!-- Mostrar módulos si la entidad está cargada -->
+                <div *ngIf="editingUserEntity" class="form-group">
+                    <label>Módulos Permitidos</label>
+                    <small class="text-muted d-block mb-2">Selecciona los módulos activos en la entidad: <strong>{{ editingUserEntity.name }}</strong></small>
+                    <div class="checkbox-grid">
+                        <label *ngIf="editingUserEntity.enable_pqrs"><input type="checkbox" [(ngModel)]="editUserModules.enable_pqrs" name="edit_enable_pqrs"> PQRS</label>
+                        <label *ngIf="editingUserEntity.enable_users_admin"><input type="checkbox" [(ngModel)]="editUserModules.enable_users_admin" name="edit_enable_users_admin"> Administración de Usuarios</label>
+                        <label *ngIf="editingUserEntity.enable_planes_institucionales"><input type="checkbox" [(ngModel)]="editUserModules.enable_planes_institucionales" name="edit_enable_planes_institucionales"> Planes Institucionales</label>
+                        <label *ngIf="editingUserEntity.enable_pdm"><input type="checkbox" [(ngModel)]="editUserModules.enable_pdm" name="edit_enable_pdm"> Plan de Desarrollo Municipal</label>
+                        <label *ngIf="editingUserEntity.enable_contratacion"><input type="checkbox" [(ngModel)]="editUserModules.enable_contratacion" name="edit_enable_contratacion"> Contratación</label>
+                        <label *ngIf="editingUserEntity.enable_reports_pdf"><input type="checkbox" [(ngModel)]="editUserModules.enable_reports_pdf" name="edit_enable_reports_pdf"> Reportes PDF</label>
+                        <label *ngIf="editingUserEntity.enable_ai_reports"><input type="checkbox" [(ngModel)]="editUserModules.enable_ai_reports" name="edit_enable_ai_reports"> Análisis con IA</label>
+                    </div>
                 </div>
-            </div>
+
+                <!-- Mostrar mensaje si está cargando la entidad -->
+                <div *ngIf="editingUserEntity === null && editingUser?.entity_id" class="form-group">
+                    <label>Módulos Permitidos</label>
+                    <p class="text-muted small">⏳ Cargando información de la entidad...</p>
+                </div>
+
+                <!-- Mostrar mensaje si el usuario NO tiene entidad asignada -->
+                <div *ngIf="editingUserEntity === null && !editingUser?.entity_id" class="form-group">
+                    <label>Módulos Permitidos</label>
+                    <p class="text-muted small">⚠️ Este usuario no tiene entidad asignada. No se pueden asignar módulos.</p>
+                </div>
+            </ng-container>
 
             <!-- ✅ Mensaje si no es SuperAdmin y está editando admin -->
             <div *ngIf="editUserForm.role === 'admin' && currentUserRole !== 'superadmin'" class="alert alert-info">

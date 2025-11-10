@@ -279,6 +279,7 @@ async def get_entity_users(
             "full_name": user.full_name,
             "role": user.role.value,
             "is_active": user.is_active,
+            "entity_id": user.entity_id,  # ✅ Agregar entity_id
             "allowed_modules": user.allowed_modules or [],
             "created_at": user.created_at
         }
