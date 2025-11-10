@@ -7,6 +7,7 @@ import hashlib
 from typing import Optional, Any, Callable
 from functools import wraps
 import logging
+import os
 from datetime import timedelta
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,9 @@ class CacheManager:
             port: Puerto de Redis
             db: Base de datos Redis a usar
         """
+        self.connected = False
+        is_production = os.getenv("ENVIRONMENT") in ["production", "prod"] or os.getenv("AWS_EXECUTION_ENV")
+        
         try:
             self.redis_client = redis.Redis(
                 host=host,
@@ -36,7 +40,10 @@ class CacheManager:
             logger.info("✅ Conexión exitosa a Redis")
             self.connected = True
         except Exception as e:
-            logger.warning(f"⚠️ No se pudo conectar a Redis: {str(e)}. Cache deshabilitado.")
+            # Solo mostrar warning en producción; en local es normal que Redis no esté corriendo
+            log_level = "warning" if is_production else "debug"
+            log_func = logger.warning if is_production else logger.debug
+            log_func(f"{'⚠️' if is_production else '💡'} Cache Redis no disponible: {str(e)}. {'En producción, esto puede afectar performance.' if is_production else 'Cache deshabilitado en desarrollo local.'}")
             self.connected = False
     
     def get(self, key: str) -> Optional[Any]:
