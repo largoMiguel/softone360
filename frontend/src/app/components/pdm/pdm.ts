@@ -386,7 +386,7 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Navega entre vistas
+     * Navega entre vistas y recarga datos según la vista
      */
     navegarA(vista: 'dashboard' | 'productos' | 'detalle' | 'analisis-producto', producto?: ResumenProducto) {
         const vistaAnterior = this.vistaActual;
@@ -402,13 +402,24 @@ export class PdmComponent implements OnInit, OnDestroy {
             );
         }
         
-        if (producto) {
+        // ✅ NUEVO: Recargar datos según la vista
+        if (vista === 'dashboard') {
+            console.log('📊 Navegando a dashboard, recargando datos...');
+            this.recargarDashboard();
+        } else if (vista === 'productos') {
+            console.log('📦 Navegando a productos, recargando lista...');
+            this.recargarProductos();
+        } else if (vista === 'detalle' && producto) {
+            console.log('📋 Navegando a detalle del producto:', producto.codigo);
             this.productoSeleccionado = producto;
             // Inicializar vista de actividades para el año actual
             const anioActual = new Date().getFullYear();
             this.anioSeleccionado = [2024, 2025, 2026, 2027].includes(anioActual) ? anioActual : 2024;
             // Cargar actividades desde backend al abrir el detalle del producto
             this.actualizarResumenActividades(true);
+        } else if (vista === 'analisis-producto') {
+            console.log('📈 Navegando a análisis del producto');
+            this.recargarAnalisisProducto();
         }
     }
 
@@ -429,12 +440,147 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Limpia los filtros
+     * Recarga el dashboard con datos frescos del backend
+     */
+    private recargarDashboard(): void {
+        console.log('📈 Recargando dashboard con datos frescos...');
+        
+        if (!this.datosEnBackend) {
+            console.log('ℹ️ No hay datos en backend, mostrando dashboard en blanco');
+            return;
+        }
+        
+        this.cargandoDesdeBackend = true;
+        this.pdmService.cargarDatosPDMDesdeBackend().subscribe({
+            next: (data) => {
+                console.log('✅ Dashboard recargado con datos frescos');
+                this.pdmData = data;
+                this.resumenProductos = this.pdmService.generarResumenProductos(data);
+                this.estadisticas = this.pdmService.calcularEstadisticas(data);
+                this.productoSeleccionado = null;
+                this.cargandoDesdeBackend = false;
+                this.showToast('Datos actualizados desde el servidor', 'success');
+            },
+            error: (error) => {
+                console.warn('⚠️ Error al recargar dashboard:', error);
+                this.cargandoDesdeBackend = false;
+                this.showToast('Error al actualizar datos', 'error');
+            }
+        });
+    }
+
+    /**
+     * Recarga la lista de productos con datos frescos del backend
+     */
+    private recargarProductos(): void {
+        console.log('📦 Recargando lista de productos...');
+        
+        if (!this.datosEnBackend) {
+            console.log('ℹ️ No hay datos en backend');
+            this.productoSeleccionado = null;
+            return;
+        }
+        
+        this.cargandoDesdeBackend = true;
+        this.pdmService.cargarDatosPDMDesdeBackend().subscribe({
+            next: (data) => {
+                console.log('✅ Lista de productos recargada');
+                this.pdmData = data;
+                this.resumenProductos = this.pdmService.generarResumenProductos(data);
+                this.estadisticas = this.pdmService.calcularEstadisticas(data);
+                this.productoSeleccionado = null;
+                this.limpiarFiltros();
+                this.cargandoDesdeBackend = false;
+            },
+            error: (error) => {
+                console.warn('⚠️ Error al recargar productos:', error);
+                this.cargandoDesdeBackend = false;
+            }
+        });
+    }
+
+    /**
+     * Recarga el análisis del producto actual
+     */
+    private recargarAnalisisProducto(): void {
+        console.log('📊 Recargando análisis del producto...');
+        
+        if (!this.productoSeleccionado) {
+            console.warn('⚠️ No hay producto seleccionado');
+            return;
+        }
+        
+        // Crear gráficos con datos actuales
+        setTimeout(() => {
+            this.crearGraficosAnalisisProducto();
+        }, 100);
+    }
+
+    /**
+     * Recarga los datos según los filtros aplicados
+     */
+    private recargarSegunFiltros(): void {
+        console.log('🔄 Recargando datos según filtros aplicados...');
+        
+        if (!this.datosEnBackend) {
+            console.log('ℹ️ No hay datos en backend para recargar');
+            return;
+        }
+        
+        this.cargandoDesdeBackend = true;
+        this.pdmService.cargarDatosPDMDesdeBackend().subscribe({
+            next: (data) => {
+                console.log('✅ Datos recargados según filtros');
+                this.pdmData = data;
+                this.resumenProductos = this.pdmService.generarResumenProductos(data);
+                this.estadisticas = this.pdmService.calcularEstadisticas(data);
+                this.cargandoDesdeBackend = false;
+                
+                // Los getters (productosFiltrados) ya aplicarán los filtros automáticamente
+                console.log(`📦 ${this.productosFiltrados.length} productos después de filtros`);
+            },
+            error: (error) => {
+                console.warn('⚠️ Error al recargar según filtros:', error);
+                this.cargandoDesdeBackend = false;
+            }
+        });
+    }
+
+    /**
+     * Limpia los filtros y recarga datos del backend
      */
     limpiarFiltros() {
+        console.log('🔄 Limpiando filtros y recargando datos...');
         this.filtroLinea = '';
         this.filtroSector = '';
         this.filtroBusqueda = '';
+        
+        // ✅ NUEVO: Recargar datos al limpiar filtros
+        this.recargarSegunFiltros();
+    }
+
+    /**
+     * Se ejecuta cuando cambia el filtro de línea estratégica
+     */
+    onCambioFiltroLinea() {
+        console.log('🔄 Filtro de línea cambió a:', this.filtroLinea);
+        this.recargarSegunFiltros();
+    }
+
+    /**
+     * Se ejecuta cuando cambia el filtro de sector
+     */
+    onCambioFiltroSector() {
+        console.log('🔄 Filtro de sector cambió a:', this.filtroSector);
+        this.recargarSegunFiltros();
+    }
+
+    /**
+     * Se ejecuta cuando cambia el filtro de búsqueda
+     */
+    onCambioFiltroBusqueda() {
+        console.log('🔄 Filtro de búsqueda cambió a:', this.filtroBusqueda);
+        this.recargarSegunFiltros();
     }
 
     /**
@@ -592,11 +738,21 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Cambia el año seleccionado
+     * Cambia el año seleccionado y recarga datos del backend
      */
     seleccionarAnio(anio: number) {
+        console.log(`📅 Cambio de año: ${this.anioSeleccionado} → ${anio}`);
         this.anioSeleccionado = anio;
-        this.actualizarResumenActividades();
+        
+        // ✅ MEJORADO: Recargar actividades y actualizar estadísticas
+        this.actualizarResumenActividades(true);
+        
+        // Si estamos en analytics, regenerar con datos del nuevo año
+        if (this.vistaActual === 'analytics') {
+            console.log('📊 Regenerando analytics para el año:', anio);
+            this.generarAnalytics();
+            setTimeout(() => this.crearGraficos(), 100);
+        }
     }
 
     /**
@@ -1380,16 +1536,47 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Navega a la vista de analytics
+     * Navega a la vista de analytics y recarga datos del backend
      */
     verAnalytics(): void {
-        this.generarAnalytics();
-        this.vistaActual = 'analytics';
+        console.log('📊 Abriendo analytics, recargando datos del servidor...');
         
-        // Esperar a que el DOM se actualice para crear los charts
-        setTimeout(() => {
-            this.crearGraficos();
-        }, 100);
+        // ✅ NUEVO: Recargar datos del backend antes de generar analytics
+        if (this.datosEnBackend) {
+            this.cargandoDesdeBackend = true;
+            this.pdmService.cargarDatosPDMDesdeBackend().subscribe({
+                next: (data) => {
+                    console.log('✅ Datos recargados del backend para analytics');
+                    this.pdmData = data;
+                    this.resumenProductos = this.pdmService.generarResumenProductos(data);
+                    this.estadisticas = this.pdmService.calcularEstadisticas(data);
+                    this.cargandoDesdeBackend = false;
+                    
+                    // Generar analytics con datos frescos
+                    this.generarAnalytics();
+                    this.vistaActual = 'analytics';
+                    
+                    // Esperar a que el DOM se actualice para crear los charts
+                    setTimeout(() => {
+                        this.crearGraficos();
+                    }, 100);
+                },
+                error: (error) => {
+                    console.warn('⚠️ Error al recargar datos para analytics:', error);
+                    this.cargandoDesdeBackend = false;
+                    
+                    // Continuar con datos en caché
+                    this.generarAnalytics();
+                    this.vistaActual = 'analytics';
+                    setTimeout(() => this.crearGraficos(), 100);
+                }
+            });
+        } else {
+            // Sin datos en backend, usar lo que hay en memoria
+            this.generarAnalytics();
+            this.vistaActual = 'analytics';
+            setTimeout(() => this.crearGraficos(), 100);
+        }
     }
 
     /**
