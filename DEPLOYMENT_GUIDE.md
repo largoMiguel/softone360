@@ -1,6 +1,6 @@
 # 🚀 Guía de Despliegue - Softone360
 
-**Última actualización:** 7 de noviembre de 2025  
+**Última actualización:** 10 de noviembre de 2025  
 **Región AWS:** us-east-1 (N. Virginia)  
 **Entorno:** Producción
 
@@ -197,19 +197,84 @@ npx http-server dist/pqrs-frontend/browser -p 8080
 
 ## 🗄️ Base de Datos
 
-### Conexión
+### Conexión Directa (Local)
+
+**Credenciales:**
+- **Host:** `softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com`
+- **Puerto:** `5432`
+- **Usuario:** `dbadmin`
+- **Contraseña:** `TuPassSeguro123!`
+- **Base de datos:** `postgres`
+
+**Opción 1: PostgreSQL Client (psql)**
 ```bash
-# Variables de entorno en EB
-DATABASE_URL=postgresql://softone_user:PASSWORD@softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com:5432/softone_db
+# Configurar variable de entorno para contraseña
+export PGPASSWORD='TuPassSeguro123!'
+
+# Conectar a la base de datos
+psql -h softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com \
+     -U dbadmin \
+     -d postgres \
+     -p 5432
+
+# O usar URL de conexión completa (escapar caracteres especiales)
+psql "postgresql://dbadmin:TuPassSeguro123\!@softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com:5432/postgres"
 ```
 
-### Conexión Manual (desde backend)
+**Opción 2: DBeaver / pgAdmin / TablePlus**
+```
+Host: softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com
+Port: 5432
+Database: postgres
+Username: dbadmin
+Password: TuPassSeguro123!
+SSL: Prefer (opcional)
+```
+
+**Consultas de ejemplo:**
+```sql
+-- Listar tablas
+\dt
+
+-- Ver entidades
+SELECT id, name, code, nit FROM entities;
+
+-- Contar usuarios por entidad
+SELECT e.name, COUNT(u.id) as total_users 
+FROM entities e 
+LEFT JOIN users u ON u.entity_id = e.id 
+GROUP BY e.id, e.name;
+
+-- Ver datos PDM
+SELECT COUNT(*) FROM pdm_productos;
+SELECT COUNT(*) FROM pdm_actividades;
+```
+
+**Security Group configurado:**
+- IP autorizada: `190.0.241.218/32`
+- Security Group ID: `sg-0028de7003bcbc156`
+
+**⚠️ Nota de seguridad:** Si tu IP pública cambia, deberás actualizar el Security Group:
+```bash
+# Obtener tu IP actual
+MY_IP=$(curl -s https://api.ipify.org)
+
+# Actualizar Security Group
+aws ec2 authorize-security-group-ingress \
+  --group-id sg-0028de7003bcbc156 \
+  --protocol tcp \
+  --port 5432 \
+  --cidr $MY_IP/32
+```
+
+### Conexión desde Backend (Elastic Beanstalk)
 ```bash
 cd backend
 eb ssh softone-backend-useast1
 
 # Dentro de la instancia
-psql $DATABASE_URL
+export PGPASSWORD='TuPassSeguro123!'
+psql -h softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com -U dbadmin -d postgres
 ```
 
 ### Backups
@@ -341,14 +406,46 @@ aws rds describe-db-instances --db-instance-identifier softone-db \
 # 2. Si está "stopped", iniciar
 aws rds start-db-instance --db-instance-identifier softone-db
 
-# 3. Verificar security group (debe permitir 5432 desde EB)
-aws rds describe-db-instances --db-instance-identifier softone-db \
-  --query 'DBInstances[0].VpcSecurityGroups'
+# 3. Verificar security group (debe permitir 5432 desde EB y tu IP)
+aws ec2 describe-security-groups --group-ids sg-0028de7003bcbc156 \
+  --query 'SecurityGroups[0].IpPermissions'
 
-# 4. Test de conexión desde backend
+# 4. Verificar tu IP actual
+curl -s https://api.ipify.org
+
+# 5. Agregar tu IP si cambió
+MY_IP=$(curl -s https://api.ipify.org)
+aws ec2 authorize-security-group-ingress \
+  --group-id sg-0028de7003bcbc156 \
+  --protocol tcp \
+  --port 5432 \
+  --cidr $MY_IP/32
+
+# 6. Test de conexión con timeout
+timeout 5 bash -c "cat < /dev/null > /dev/tcp/softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com/5432" \
+  && echo "✅ Puerto 5432 accesible" \
+  || echo "❌ No se puede conectar al puerto 5432"
+
+# 7. Test desde backend
 cd backend
 eb ssh softone-backend-useast1
 nc -zv softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com 5432
+```
+
+### Eliminar acceso desde IP específica
+
+Si necesitas revocar acceso desde una IP:
+```bash
+# Listar reglas actuales
+aws ec2 describe-security-groups --group-ids sg-0028de7003bcbc156 \
+  --query 'SecurityGroups[0].IpPermissions[?FromPort==`5432`]'
+
+# Revocar acceso desde IP específica
+aws ec2 revoke-security-group-ingress \
+  --group-id sg-0028de7003bcbc156 \
+  --protocol tcp \
+  --port 5432 \
+  --cidr 190.0.241.218/32
 ```
 
 ### Error 500 en endpoint específico
