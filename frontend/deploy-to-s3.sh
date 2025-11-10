@@ -17,11 +17,31 @@ if [ ! -d "$DISTRIBUTION_PATH" ]; then
     exit 1
 fi
 
-# 3. Sincronizar con S3
+# 3. Sincronizar con S3 (excluir _redirects que es solo para Netlify)
 echo "☁️  Subiendo archivos a S3..."
 cd $DISTRIBUTION_PATH
-aws s3 sync . s3://$BUCKET_NAME/ --delete --cache-control "public,max-age=31536000,immutable" --exclude "*.html"
-aws s3 cp . s3://$BUCKET_NAME/ --exclude "*" --include "*.html" --cache-control "no-cache" --recursive
+
+# Subir assets inmutables (cache forever)
+aws s3 sync . s3://$BUCKET_NAME/ \
+  --delete \
+  --cache-control "public,max-age=31536000,immutable" \
+  --exclude "*.html" \
+  --exclude "_redirects" \
+  --exclude "config.json"
+
+# Subir HTML files (no cache - siempre obtener la versión más fresca)
+aws s3 cp . s3://$BUCKET_NAME/ \
+  --exclude "*" \
+  --include "*.html" \
+  --cache-control "no-cache" \
+  --recursive
+
+# Remover _redirects si existe (no needed en S3, es para Netlify)
+aws s3 rm s3://$BUCKET_NAME/_redirects || true
 
 echo "✅ Despliegue completado!"
 echo "🌐 URL: http://$BUCKET_NAME.s3-website-us-east-1.amazonaws.com"
+echo ""
+echo "ℹ️  SPA Routing está habilitado:"
+echo "   - Error Document: index.html"
+echo "   - Todos los 404s redirigen a index.html para SPA routing"
