@@ -194,8 +194,16 @@ async def delete_entity(
     current_user: User = Depends(require_superadmin)
 ):
     """
-    Eliminar una entidad (solo superadmin).
-    Nota: Eliminará en cascada todos los usuarios asociados.
+    Eliminar una entidad y TODOS sus datos relacionados (solo superadmin).
+    
+    Elimina en cascada:
+    - ✅ Usuarios de la entidad
+    - ✅ Secretarías de la entidad
+    - ✅ PQRS de la entidad
+    - ✅ Planes institucionales de la entidad
+    - ✅ PDM (productos, actividades, indicadores)
+    - ✅ Alertas relacionadas
+    - ✅ Y todos los registros relacionados
     """
     entity = db.query(Entity).filter(Entity.id == entity_id).first()
     if not entity:
@@ -204,17 +212,49 @@ async def delete_entity(
             detail="Entidad no encontrada"
         )
     
-    # Contar usuarios asociados
+    # Contar registros que se van a eliminar (para el reporte)
+    from app.models.user import User
+    from app.models.secretaria import Secretaria
+    from app.models.pqrs import PQRS
+    from app.models.plan import Plan
+    from app.models.pdm import PdmProductos, PdmActividades
+    from app.models.alert import Alert
+    
     user_count = db.query(User).filter(User.entity_id == entity_id).count()
+    secretaria_count = db.query(Secretaria).filter(Secretaria.entity_id == entity_id).count()
+    pqrs_count = db.query(PQRS).filter(PQRS.entity_id == entity_id).count()
+    plan_count = db.query(Plan).filter(Plan.entity_id == entity_id).count()
+    pdm_products_count = db.query(PdmProductos).filter(PdmProductos.entity_id == entity_id).count()
+    pdm_activities_count = db.query(PdmActividades).filter(PdmActividades.entity_id == entity_id).count()
+    alert_count = db.query(Alert).filter(Alert.entity_id == entity_id).count()
     
-    db.delete(entity)
-    db.commit()
-    
-    return {
-        "message": "Entidad eliminada exitosamente",
-        "entity_name": entity.name,
-        "users_deleted": user_count
-    }
+    try:
+        # Eliminar entidad (CASCADE borra usuarios, secretarias, PQRS, planes, PDM, alertas)
+        db.delete(entity)
+        db.commit()
+        
+        return {
+            "message": f"Entidad '{entity.name}' y TODOS sus datos eliminados exitosamente",
+            "entity_name": entity.name,
+            "entity_code": entity.code,
+            "deleted_summary": {
+                "usuarios": user_count,
+                "secretarias": secretaria_count,
+                "pqrs": pqrs_count,
+                "planes_institucionales": plan_count,
+                "pdm_productos": pdm_products_count,
+                "pdm_actividades": pdm_activities_count,
+                "alertas": alert_count,
+                "total_registros": (user_count + secretaria_count + pqrs_count + plan_count + 
+                                   pdm_products_count + pdm_activities_count + alert_count)
+            }
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al eliminar entidad: {str(e)}"
+        )
 
 
 @router.patch("/{entity_id}/toggle-status", response_model=EntityResponse)

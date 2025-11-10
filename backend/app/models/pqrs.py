@@ -125,8 +125,8 @@ class PQRS(Base):
     created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     assigned_to_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     
-    # Relación con entidad
-    entity_id = Column(Integer, ForeignKey("entities.id"), nullable=False)
+    # Relación con entidad (CASCADE: elimina PQRS cuando se elimina entidad)
+    entity_id = Column(Integer, ForeignKey("entities.id", ondelete="CASCADE"), nullable=False)
     
     # Respuesta
     respuesta = Column(Text, nullable=True)

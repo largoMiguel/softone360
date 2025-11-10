@@ -8,8 +8,8 @@ class Alert(Base):
     __tablename__ = "alerts"
 
     id = Column(Integer, primary_key=True, index=True)
-    entity_id = Column(Integer, ForeignKey("entities.id"), nullable=True, index=True)
-    recipient_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    entity_id = Column(Integer, ForeignKey("entities.id", ondelete="CASCADE"), nullable=True, index=True)
+    recipient_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
     type = Column(String(64), nullable=False)  # NEW_PQRS, PQRS_ASSIGNED, etc.
     title = Column(String(256), nullable=False)
     message = Column(String(1024), nullable=True)
