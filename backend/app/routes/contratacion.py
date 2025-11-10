@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query, HTTPException, Depends
+from fastapi import APIRouter, Query, HTTPException, Depends, Request
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel
 from app.config.settings import settings
@@ -24,6 +24,7 @@ DATOS_GOV_BASE_URL = "https://www.datos.gov.co/resource/jbjy-vk9h.json"
 @router.get("/proxy")
 @limiter.limit(RATE_LIMITS["contratacion_proxy"])
 async def proxy_datos_gov(
+    request: Request,
     query: Optional[str] = Query(None, alias="$query"),
     current_user: User = Depends(get_current_active_user)
 ):
@@ -115,6 +116,7 @@ class ResumenRequest(BaseModel):
 @router.post("/summary")
 @limiter.limit(RATE_LIMITS["contratacion_summary"])
 async def resumen_con_ia(
+    request: Request,
     payload: ResumenRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)

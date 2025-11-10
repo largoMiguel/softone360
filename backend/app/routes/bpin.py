@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 import httpx
 from typing import Dict, Any, Optional
 from app.models.user import User
@@ -16,6 +16,7 @@ DATOS_GOV_CO_API = "https://www.datos.gov.co/resource/cf9k-55fw.json"
 @router.get("/{bpin}")
 @limiter.limit(RATE_LIMITS["bpin_details"])
 async def get_bpin_details(
+    request: Request,
     bpin: str,
     current_user: User = Depends(get_current_active_user)
 ) -> Optional[Dict[str, Any]]:
