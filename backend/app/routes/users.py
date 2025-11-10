@@ -155,12 +155,15 @@ async def create_user(
                 detail="No tienes permisos para crear usuarios"
             )
     
-    # ✅ VALIDACIÓN ESTRICTA DE MÓDULOS: Solo SUPERADMIN puede asignar módulos
-    if user_data.allowed_modules and current_user.role != UserRole.SUPERADMIN:
-        raise HTTPException(
-            status_code=403,
-            detail="Solo el SuperAdmin puede asignar módulos a usuarios"
-        )
+    # ✅ VALIDACIÓN DE MÓDULOS: SUPERADMIN puede asignar a cualquiera, ADMIN solo a secretarios/ciudadanos de su entidad
+    if user_data.allowed_modules:
+        if current_user.role == UserRole.ADMIN:
+            # ADMIN solo puede asignar módulos a SECRETARIO/CIUDADANO (no a ADMIN/SUPERADMIN)
+            if user_data.role in [UserRole.ADMIN, UserRole.SUPERADMIN]:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Solo SuperAdmin puede asignar módulos a administradores"
+                )
     
     # Validar que la entidad existe si se especifica    # Validar que la entidad existe si se especifica
     if user_data.entity_id:
@@ -306,13 +309,12 @@ async def update_user(
     
     # Validar módulos permitidos si se actualizan
     if "allowed_modules" in update_data and update_data.get("entity_id"):
-        # ✅ ESTRICTO: Solo SUPERADMIN puede cambiar módulos de CUALQUIER ADMIN (incluyendo a sí mismo)
-        # Si current_user es ADMIN y quiere cambiar módulos:
-        #   - Si es otro ADMIN → Error
-        #   - Si es él mismo pero es ADMIN → Error (NO puede cambiar sus propios módulos)
+        # ✅ SUPERADMIN: puede cambiar módulos a cualquiera
+        # ✅ ADMIN: puede cambiar módulos solo a SECRETARIO/CIUDADANO de su entidad (no a ADMIN/SUPERADMIN)
         if current_user.role == UserRole.ADMIN:
-            # Un ADMIN nunca puede cambiar módulos, ni siquiera los suyos propios
-            raise HTTPException(status_code=403, detail="Solo el SuperAdmin puede cambiar módulos. Los administradores no pueden modificar módulos.")
+            # Un ADMIN NO puede cambiar módulos de otros ADMIN o SUPERADMIN
+            if user.role in [UserRole.ADMIN, UserRole.SUPERADMIN]:
+                raise HTTPException(status_code=403, detail="Solo el SuperAdmin puede cambiar módulos de administradores.")
         
         entity = db.query(Entity).filter(Entity.id == user.entity_id).first()
         if entity:
@@ -537,15 +539,25 @@ async def update_user_modules(
 ):
     """
     Actualizar los módulos permitidos para un usuario.
-    ✅ SOLO SuperAdmin puede modificar módulos
+    ✅ SUPERADMIN: puede modificar módulos de cualquiera
+    ✅ ADMIN: puede modificar módulos solo de SECRETARIO/CIUDADANO de su entidad (NO de ADMIN/SUPERADMIN)
     """
-    # ✅ ESTRICTO: Solo SuperAdmin puede modificar módulos
-    if current_user.role != UserRole.SUPERADMIN:
-        raise HTTPException(status_code=403, detail="Solo el SuperAdmin puede editar módulos de usuarios")
+    # Validar permisos básicos
+    if current_user.role not in [UserRole.SUPERADMIN, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="No tienes permisos para editar módulos de usuarios")
     
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # Si es ADMIN, validar que puede editar módulos de este usuario
+    if current_user.role == UserRole.ADMIN:
+        # Debe ser de la misma entidad
+        if user.entity_id != current_user.entity_id:
+            raise HTTPException(status_code=403, detail="No puedes editar módulos de usuarios de otra entidad")
+        # No puede editar módulos de otros ADMIN o SUPERADMIN
+        if user.role in [UserRole.ADMIN, UserRole.SUPERADMIN]:
+            raise HTTPException(status_code=403, detail="Solo SuperAdmin puede editar módulos de administradores")
     
     # Validar que los módulos están activos en la entidad
     if user.entity_id:
