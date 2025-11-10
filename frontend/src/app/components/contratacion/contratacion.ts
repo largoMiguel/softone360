@@ -12,6 +12,7 @@ import { Subscription, filter, combineLatest } from 'rxjs';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { AiReportService, ContratacionSummaryPayload } from '../../services/ai-report.service';
+import { ContratacionAnalyzer, ContratoAlerta, KPIsExtendidos } from '../../utils/contratacion-analyzer';
 
 Chart.register(...registerables);
 
@@ -44,6 +45,11 @@ export class ContratacionComponent implements OnInit, OnDestroy {
     // Contratos vencidos
     contratosVencidos: ProcesoContratacion[] = [];
     mostrarContratosVencidos = false;
+
+    // Alertas avanzadas
+    alertas: ContratoAlerta[] = [];
+    mostrarAlertas = false;
+    filtroAlertas: 'todas' | 'vencido' | 'proximo_vencimiento' | 'ejecucion_retrasada' = 'todas';
 
     // Filtros UI - Por defecto desde 1 de enero 2025
     filtro: FiltroContratacion = {
@@ -207,8 +213,12 @@ export class ContratacionComponent implements OnInit, OnDestroy {
         this.errorMsg = '';
         this.contratacionService.fetchProcesos(this.filtro).subscribe({
             next: (rows) => {
-                this.procesos = rows;
-                if (rows.length === 0) {
+                // Aplicar deduplicación
+                this.procesos = ContratacionAnalyzer.deduplicarContratos(rows);
+                if (this.procesos.length < rows.length) {
+                    console.log(`[Contratación] Deduplicados: ${rows.length} → ${this.procesos.length}`);
+                }
+                if (this.procesos.length === 0) {
                     this.errorMsg = `No se encontraron datos de contratación para el NIT "${this.filtro.entidad}" en el rango de fechas seleccionado. Verifica que el NIT de la entidad esté configurado correctamente en el super admin.`;
                 }
                 this.applyLocalFilters();
@@ -282,6 +292,7 @@ export class ContratacionComponent implements OnInit, OnDestroy {
         this.computeKPIs();
         this.updateCharts();
         this.detectarContratosVencidos();
+        this.generarAlertas();
     }
 
     // Datos paginados para la vista
@@ -371,6 +382,22 @@ export class ContratacionComponent implements OnInit, OnDestroy {
         return contrato.duraci_n_del_contrato;
     }
 
+    generarAlertas(): void {
+        this.alertas = ContratacionAnalyzer.generarAlertas(this.procesosFiltrados);
+        console.log(`[Contratación] Alertas generadas: ${this.alertas.length}`);
+        if (this.alertas.length > 0) {
+            console.log('[Contratación] Primeras alertas:');
+            this.alertas.slice(0, 3).forEach(a => console.log(`  - ${a.tipo}: ${a.mensaje}`));
+        }
+    }
+
+    obtenerAlertasFiltradas(): ContratoAlerta[] {
+        if (this.filtroAlertas === 'todas') {
+            return this.alertas;
+        }
+        return this.alertas.filter(a => a.tipo === this.filtroAlertas);
+    }
+
     computeKPIs(): void {
         const total = this.procesosFiltrados.length;
         const ejecutados = this.procesosFiltrados.filter(p => this.isContratado(p));
@@ -378,12 +405,29 @@ export class ContratacionComponent implements OnInit, OnDestroy {
         const sumaPagada = this.procesosFiltrados.reduce((acc, p) => acc + this.toNumber(p.valor_pagado), 0);
         const promedioPrecio = this.avg(this.procesosFiltrados.map(p => this.toNumber(p.valor_del_contrato)));
 
+        // KPIs extendidos usando el analizador
+        const kpisExtendidos = ContratacionAnalyzer.calcularKPIsExtendidos(this.procesosFiltrados);
+
         this.kpis = {
             totalProcesos: total,
             totalAdjudicados: ejecutados.length,
             tasaAdjudicacion: total ? ejecutados.length / total : 0,
             sumaAdjudicado: sumaPagada,
-            promedioPrecioBase: promedioPrecio
+            promedioPrecioBase: promedioPrecio,
+            // KPIs extendidos
+            totalContratosPorAño: kpisExtendidos.totalContratosPorAño,
+            totalContratosPorMes: kpisExtendidos.totalContratosPorMes,
+            modalidadesMasUsadas: kpisExtendidos.modalidadesMasUsadas,
+            proveedoresMasFrecuentes: kpisExtendidos.proveedoresMasFrecuentes,
+            distribucionEstados: kpisExtendidos.distribucionEstados,
+            tiempoEjecucionPromedio: kpisExtendidos.tiempoEjecucionPromedio,
+            tiempoEjecucionRango: kpisExtendidos.tiempoEjecucionRango,
+            contratosRetrasados: kpisExtendidos.contratosRetrasados,
+            porcentajeRetrasados: kpisExtendidos.porcentajeRetrasados,
+            contratosVencidos: kpisExtendidos.contratosVencidos,
+            porcentajeVencidos: kpisExtendidos.porcentajeVencidos,
+            contratosProximoVencimiento: kpisExtendidos.contratosProximoVencimiento,
+            porcentajeProximoVencimiento: kpisExtendidos.porcentajeProximoVencimiento
         };
     }
 
