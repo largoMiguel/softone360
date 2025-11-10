@@ -462,6 +462,8 @@ async def delete_user(
     Permisos:
     - SUPERADMIN: puede eliminar a cualquiera (excepto a sí mismo)
     - ADMIN: puede eliminar usuarios de su entidad (excepto otros ADMIN o SUPERADMIN)
+    
+    ⚠️ Limpia referencias de clave foránea antes de eliminar.
     """
     # Verificar que el usuario actual tenga permisos
     if current_user.role not in [UserRole.SUPERADMIN, UserRole.ADMIN]:
@@ -484,8 +486,24 @@ async def delete_user(
         if user.role in [UserRole.ADMIN, UserRole.SUPERADMIN]:
             raise HTTPException(status_code=403, detail="No puedes eliminar administradores. Solo el SuperAdmin puede hacerlo.")
     
-    db.delete(user)
-    db.commit()
+    # ✅ Limpiar referencias de clave foránea antes de eliminar
+    try:
+        # Eliminar alertas donde este usuario es destinatario
+        from app.models.alert import Alert
+        db.query(Alert).filter(Alert.recipient_id == user_id).delete()
+        
+        # Eliminar otros registros relacionados si existen
+        # (agregar más según el esquema)
+        
+        # Finalmente eliminar el usuario
+        db.delete(user)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail=f"No se puede eliminar el usuario. Hay registros relacionados: {str(e)}"
+        )
     
     return {"message": "Usuario eliminado exitosamente"}
 
