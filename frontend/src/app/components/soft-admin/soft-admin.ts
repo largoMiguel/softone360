@@ -636,10 +636,16 @@ export class SoftAdminComponent implements OnInit {
     }
 
     logout(): void {
+        console.log('🔐 Iniciando logout desde soft-admin...');
         this.authService.logout();
         this.alertService.success('Sesión cerrada exitosamente');
-        // No existe login global; enviamos al root para que el guard redirija a la entidad por defecto
-        this.router.navigate(['/']);
+        
+        setTimeout(() => {
+            this.router.navigate(['/']).then(() => {
+                console.log('✅ Logout completado. Recargando página...');
+                window.location.reload();
+            });
+        }, 100);
     }
 
     getEntityById(entityId: number): EntityWithStats | undefined {

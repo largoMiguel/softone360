@@ -34,19 +34,65 @@ def get_entity_or_404(db: Session, slug: str) -> Entity:
     """Obtiene una entidad por slug o retorna 404"""
     entity = db.query(Entity).filter(Entity.slug == slug).first()
     if not entity:
+        print(f"❌ Entidad no encontrada con slug: {slug}")
         raise HTTPException(status_code=404, detail=f"Entidad '{slug}' no encontrada")
+    print(f"✅ Entidad encontrada: {slug} (id={entity.id}, nombre={entity.name})")
     return entity
 
 
 def ensure_user_can_manage_entity(user: User, entity: Entity):
-    """Verifica que el usuario pueda gestionar la entidad"""
+    """Verifica que el usuario pueda gestionar la entidad
+    
+    Soporta múltiples formas de validación:
+    1. Si el usuario es SUPERADMIN, acceso completo
+    2. Si user.entity_id coincide con entity.id
+    3. Si user.entity está cargada y coincide
+    
+    IMPORTANTE: Si entity_id es NULL (legacy data), fallback a relación entity.
+    Si la relación entity no está cargada (lazy proxy), acepta basándose en que
+    probablemente sea el mismo usuario varias veces.
+    """
+    print(f"\n🔐 VALIDACIÓN DE PERMISOS:")
+    print(f"   Usuario: {user.username} (id={user.id}, role={user.role})")
+    print(f"   entity_id: {user.entity_id}")
+    print(f"   entity type: {type(user.entity)}")
+    print(f"   entity is None: {user.entity is None}")
+    if user.entity:
+        print(f"   entity.id: {user.entity.id}, entity.slug: {user.entity.slug}")
+    print(f"   Target entity: {entity.slug} (id={entity.id})")
+    
+    # SUPERADMIN siempre tiene acceso
     if user.role == "SUPERADMIN":
+        print(f"✅ SUPERADMIN - Acceso permitido\n")
         return
-    if user.entity_id != entity.id:
-        raise HTTPException(
-            status_code=403,
-            detail="No tiene permisos para gestionar esta entidad"
-        )
+    
+    # Validación 1: Si entity_id está definido y coincide
+    if user.entity_id is not None:
+        if user.entity_id == entity.id:
+            print(f"✅ entity_id coincide ({user.entity_id} == {entity.id}) - Acceso permitido\n")
+            return
+        else:
+            print(f"❌ entity_id NO coincide ({user.entity_id} != {entity.id})\n")
+            raise HTTPException(
+                status_code=403,
+                detail="No tiene permisos para gestionar esta entidad"
+            )
+    
+    # Validación 2 (Fallback): Si entity_id es NULL pero entity está cargada
+    if user.entity is not None:
+        try:
+            if user.entity.id == entity.id or (hasattr(user.entity, 'slug') and user.entity.slug == entity.slug):
+                print(f"✅ entity relationship coincide - Acceso permitido\n")
+                return
+        except Exception as e:
+            print(f"⚠️ Error al acceder a user.entity: {e}")
+    
+    # Si nada coincide, denegar acceso
+    print(f"❌ ACCESO DENEGADO - No se puede validar permisos (entity_id={user.entity_id}, entity={user.entity})\n")
+    raise HTTPException(
+        status_code=403,
+        detail="No tiene permisos para gestionar esta entidad"
+    )
 
 
 # ==============================================
@@ -133,7 +179,7 @@ async def upload_pdm_data(
     for item in data.indicadores_resultado:
         existing = db.query(PdmIndicadorResultado).filter(
             PdmIndicadorResultado.entity_id == entity.id,
-            PdmIndicadorResultado.codigo_indicador == item.codigo_indicador
+            PdmIndicadorResultado.indicador_resultado == item.indicador_resultado
         ).first()
         
         if existing:
@@ -147,7 +193,7 @@ async def upload_pdm_data(
     for item in data.iniciativas_sgr:
         existing = db.query(PdmIniciativaSGR).filter(
             PdmIniciativaSGR.entity_id == entity.id,
-            PdmIniciativaSGR.codigo_iniciativa == item.codigo_iniciativa
+            PdmIniciativaSGR.iniciativa_sgr == item.iniciativa_sgr
         ).first()
         
         if existing:

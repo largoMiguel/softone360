@@ -256,8 +256,22 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
     }
 
     logout() {
+        console.log('🔐 Iniciando logout...');
         this.auth.logout();
-        const slug = this.router.url.replace(/^\//, '').split('/')[0];
-        this.router.navigate(slug ? ['/', slug, 'login'] : ['/']);
+        
+        // Esperar un pequeño tiempo para que se complete la limpieza
+        setTimeout(() => {
+            const slug = this.router.url.replace(/^\//, '').split('/')[0];
+            const loginUrl = slug ? `/${slug}/login` : '/';
+            
+            console.log('🔄 Navegando a:', loginUrl);
+            
+            // Usar navigate y luego hacer un hard refresh para reinicializar todos los servicios
+            this.router.navigate([loginUrl]).then(() => {
+                console.log('✅ Logout completado. Recargando página para reinicializar servicios...');
+                // Hard refresh para limpiar toda la memoria de los servicios
+                window.location.reload();
+            });
+        }, 100);
     }
 }

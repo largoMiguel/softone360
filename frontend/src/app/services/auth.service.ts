@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, BehaviorSubject, tap } from 'rxjs';
 import { User, LoginRequest, LoginResponse, CreateUserRequest } from '../models/user.model';
@@ -42,10 +42,21 @@ export class AuthService {
     }
 
     logout(): void {
-        // console.log('Cerrando sesión...');
+        console.log('🔄 Cerrando sesión y limpiando caché...');
+        
+        // 1. Limpiar token y usuario del localStorage
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        localStorage.removeItem('pdm_actividades'); // PDM cache
+        localStorage.removeItem('entity_context'); // Entity context
+        
+        // 2. Limpiar el BehaviorSubject del usuario actual
         this.currentUserSubject.next(null);
+        
+        // 3. Limpiar sessionStorage también (por si hay datos ahí)
+        sessionStorage.clear();
+        
+        console.log('✅ Sesión y caché limpiados completamente');
     }
 
     getCurrentUser(): Observable<User> {

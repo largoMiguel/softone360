@@ -79,6 +79,31 @@ export class PdmService {
     }
 
     /**
+     * Espera a que el entitySlug esté disponible (timeout de 5 segundos)
+     * Retorna true si está disponible, false si timeout
+     */
+    private async waitForEntitySlug(): Promise<boolean> {
+        let attempts = 0;
+        const maxAttempts = 50; // 5 segundos (50 * 100ms)
+        
+        while (!this.entitySlug && attempts < maxAttempts) {
+            this.refreshEntitySlug();
+            if (this.entitySlug) {
+                console.log('✅ Entity slug disponible después de', attempts * 100, 'ms');
+                return true;
+            }
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+        
+        if (!this.entitySlug) {
+            console.error('❌ Entity slug no disponible después de', maxAttempts * 100, 'ms');
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * Establece manualmente el entitySlug (útil si se necesita cambiar dinámicamente)
      */
     public setEntitySlug(slug: string): void {
@@ -558,6 +583,17 @@ export class PdmService {
         } catch (error) {
             console.error('Error al guardar actividades en localStorage:', error);
         }
+    }
+
+    /**
+     * Limpia todo el caché de PDM (se llama al logout)
+     */
+    resetPdmCache(): void {
+        console.log('🔄 Limpiando caché de PDM...');
+        this.actividadesSubject.next([]);
+        this.entitySlug = '';
+        localStorage.removeItem(this.STORAGE_KEY);
+        console.log('✅ Caché de PDM limpiado');
     }
 
     /**
@@ -1185,12 +1221,21 @@ export class PdmService {
      */
     verificarEstadoPDM(): Observable<any> {
         if (!this.entitySlug) {
+            console.warn('⚠️ Entity slug no disponible aún, refrescando...');
+            this.refreshEntitySlug();
+        }
+        
+        if (!this.entitySlug) {
+            console.error('❌ No es posible obtener entity slug para verificar estado PDM');
             return of({ tiene_datos: false, total_productos: 0 });
         }
         
         return this.http.get(`${this.API_URL}/${this.entitySlug}/status`).pipe(
             catchError(error => {
                 console.error('Error al verificar estado PDM:', error);
+                if (error.status === 403) {
+                    console.error('❌ Error 403: Permisos insuficientes. Verifica que el entity_slug sea correcto:', this.entitySlug);
+                }
                 return of({ tiene_datos: false, total_productos: 0 });
             })
         );
@@ -1201,12 +1246,23 @@ export class PdmService {
      */
     cargarDatosPDMDesdeBackend(): Observable<PDMData> {
         if (!this.entitySlug) {
+            console.warn('⚠️ Entity slug no disponible, refrescando...');
+            this.refreshEntitySlug();
+        }
+        
+        if (!this.entitySlug) {
+            console.error('❌ No es posible cargar datos sin entity slug');
             throw new Error('No hay slug de entidad disponible');
         }
+        
+        console.log('📥 Cargando datos PDM desde:', `${this.API_URL}/${this.entitySlug}/data`);
         
         return this.http.get<PDMData>(`${this.API_URL}/${this.entitySlug}/data`).pipe(
             catchError(error => {
                 console.error('Error al cargar datos PDM:', error);
+                if (error.status === 403) {
+                    console.error('❌ Error 403: Permisos insuficientes. Entity slug:', this.entitySlug);
+                }
                 throw error;
             })
         );
@@ -1229,8 +1285,14 @@ export class PdmService {
         console.log('📤 Enviando datos al backend...', 'Slug:', this.entitySlug);
         
         return this.http.post(`${this.API_URL}/${this.entitySlug}/upload`, data).pipe(
+            tap(() => {
+                console.log('✅ Datos guardados exitosamente en backend');
+            }),
             catchError(error => {
                 console.error('Error al guardar datos PDM:', error);
+                if (error.status === 403) {
+                    console.error('❌ Error 403: Permisos insuficientes. Entity slug:', this.entitySlug);
+                }
                 return of({ success: false, error: error.message });
             })
         );
@@ -1241,6 +1303,12 @@ export class PdmService {
      */
     cargarActividadesDesdeBackend(codigoProducto: string, anio?: number): Observable<ActividadPDM[]> {
         if (!this.entitySlug) {
+            console.warn('⚠️ Entity slug no disponible, refrescando...');
+            this.refreshEntitySlug();
+        }
+        
+        if (!this.entitySlug) {
+            console.error('❌ No es posible cargar actividades sin entity slug');
             return of([]);
         }
         
@@ -1249,9 +1317,14 @@ export class PdmService {
             url += `?anio=${anio}`;
         }
         
+        console.log('📥 Cargando actividades desde:', url);
+        
         return this.http.get<ActividadPDM[]>(url).pipe(
             catchError(error => {
                 console.error('Error al cargar actividades:', error);
+                if (error.status === 403) {
+                    console.error('❌ Error 403: Permisos insuficientes. Entity slug:', this.entitySlug);
+                }
                 return of([]);
             })
         );

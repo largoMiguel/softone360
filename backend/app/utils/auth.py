@@ -87,12 +87,25 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
 
 def get_current_user(db: Session = Depends(get_db), token_data: TokenData = Depends(verify_token)):
     """Obtener usuario actual desde el token"""
-    user = db.query(User).filter(User.username == token_data.username).first()
+    from sqlalchemy.orm import joinedload
+    
+    # Eager load la entidad para evitar lazy loading issues
+    print(f"🔍 get_current_user: buscando usuario {token_data.username}")
+    user = db.query(User).options(joinedload(User.entity)).filter(User.username == token_data.username).first()
+    
     if user is None:
+        print(f"❌ Usuario no encontrado: {token_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Usuario no encontrado"
         )
+    
+    print(f"✅ Usuario encontrado: {user.username}")
+    print(f"   entity_id: {user.entity_id}")
+    print(f"   entity loaded: {user.entity is not None}")
+    if user.entity:
+        print(f"   entity.id: {user.entity.id}, entity.slug: {user.entity.slug}")
+    
     return user
 
 def get_current_active_user(current_user: User = Depends(get_current_user)):

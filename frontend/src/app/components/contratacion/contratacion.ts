@@ -25,6 +25,12 @@ Chart.register(...registerables);
 export class ContratacionComponent implements OnInit, OnDestroy {
     @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
 
+    // ============ VISTAS (como en PDM) ============
+    vistaActual: 'dashboard' | 'lista' | 'detalle' = 'dashboard';
+
+    // Hacer disponibles métodos Object en el template
+    Object = Object;
+
     procesos: ProcesoContratacion[] = [];
     procesosFiltrados: ProcesoContratacion[] = [];
     // Paginación
@@ -102,6 +108,12 @@ export class ContratacionComponent implements OnInit, OnDestroy {
         promedioPrecioBase: 0
     };
 
+    // KPIs adicionales
+    tiempoPromedioEjecucion: number = 0;
+    distribucionEstados: Record<string, number> = {};
+    contratosVencidosCount: number = 0;
+    contratosProximosAVencer: number = 0;
+
     // Charts
     doughnutChartType: ChartType = 'doughnut';
     barChartType: ChartType = 'bar';
@@ -118,6 +130,7 @@ export class ContratacionComponent implements OnInit, OnDestroy {
     timelineChartData: ChartData<'line'> = { labels: [], datasets: [] };
     proveedoresChartData: ChartData<'bar'> = { labels: [], datasets: [] };
     tiposContratoChartData: ChartData<'doughnut'> = { labels: [], datasets: [] };
+    valorTimelineChartData: ChartData<'line'> = { labels: [], datasets: [] };
     proveedoresChartOptions: ChartConfiguration['options'] = {
         responsive: true,
         maintainAspectRatio: false,
@@ -196,6 +209,41 @@ export class ContratacionComponent implements OnInit, OnDestroy {
         this.showModal = false;
         this.selectedProceso = null;
         document.body.style.overflow = '';
+    }
+
+    // ============ NAVEGACIÓN ENTRE VISTAS (como en PDM) ============
+    /**
+     * Navega a una vista diferente
+     */
+    navegarA(vista: 'dashboard' | 'lista' | 'detalle', contrato?: ProcesoContratacion): void {
+        if (vista === 'detalle' && contrato) {
+            // Abrir modal en lugar de cambiar vista
+            this.openModal(contrato);
+        } else {
+            this.vistaActual = vista;
+            
+            if (contrato) {
+                this.selectedProceso = contrato;
+                // Agregar entrada al historial del navegador
+                window.history.pushState(
+                    { vista, contratoReferencia: contrato.referencia_del_proceso },
+                    '',
+                    window.location.href
+                );
+            }
+        }
+    }
+
+    /**
+     * Vuelve a la vista anterior
+     */
+    volver(): void {
+        if (this.vistaActual === 'detalle') {
+            this.vistaActual = 'lista';
+            this.selectedProceso = null;
+        } else if (this.vistaActual === 'lista') {
+            this.vistaActual = 'dashboard';
+        }
     }
 
     // Accesibilidad: cerrar con tecla ESC
@@ -424,6 +472,29 @@ export class ContratacionComponent implements OnInit, OnDestroy {
             sumaAdjudicado: sumaPagada,
             promedioPrecioBase: promedioPrecio
         };
+
+        // Calcular tiempos de ejecución promedio
+        const tiemposEjecucion: number[] = [];
+        this.procesosFiltrados.forEach(p => {
+            if (p.fecha_de_inicio_del_contrato && p.fecha_de_fin_del_contrato) {
+                const inicio = new Date(p.fecha_de_inicio_del_contrato);
+                const fin = new Date(p.fecha_de_fin_del_contrato);
+                const dias = Math.floor((fin.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24));
+                if (dias > 0) tiemposEjecucion.push(dias);
+            }
+        });
+        this.tiempoPromedioEjecucion = tiemposEjecucion.length > 0 
+            ? Math.round(this.avg(tiemposEjecucion)) 
+            : 0;
+
+        // Distribución de estados
+        this.distribucionEstados = this.groupCount(
+            this.procesosFiltrados.map(p => p.estado_contrato || 'SIN ESTADO')
+        );
+
+        // Contratos vencidos y próximos a vencer
+        this.contratosVencidosCount = this.contratosVencidos.length;
+        this.contratosProximosAVencer = this.contratosRetrasados.length;
     }
 
     updateCharts(): void {
@@ -471,7 +542,36 @@ export class ContratacionComponent implements OnInit, OnDestroy {
         // Tipos de contrato
         this.computeTiposContratoChart();
 
+        // Evolución del valor contratado por mes
+        this.computeValorTimelineChart();
+
         if (this.chart) this.chart.update();
+    }
+
+    private computeValorTimelineChart(): void {
+        // Agrupar valor por mes
+        const valorPorMes = new Map<string, number>();
+        this.procesosFiltrados.forEach(p => {
+            const mes = this.toMonth(p.fecha_de_inicio_del_contrato);
+            const valor = this.toNumber(p.valor_del_contrato);
+            valorPorMes.set(mes, (valorPorMes.get(mes) || 0) + valor);
+        });
+
+        const labels = Array.from(valorPorMes.keys()).sort();
+        const data = labels.map(mes => valorPorMes.get(mes) || 0);
+
+        this.valorTimelineChartData = {
+            labels,
+            datasets: [{
+                label: 'Valor Total Contratado (COP)',
+                data,
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                fill: true,
+                tension: 0.3,
+                yAxisID: 'y'
+            }]
+        };
     }
 
     private computeTiposContratoChart(): void {
@@ -592,9 +692,19 @@ export class ContratacionComponent implements OnInit, OnDestroy {
     }
 
     // Clase visual para estado
-    getEstadoBadgeClass(p: ProcesoContratacion): string {
+    getEstadoBadgeClass(p: ProcesoContratacion | string | undefined): string {
         // Normalizar estado: minúsculas sin acentos
-        const estado = (p.estado_contrato ?? '')
+        let estado: string;
+        
+        if (!p) {
+            estado = '';
+        } else if (typeof p === 'string') {
+            estado = p;
+        } else {
+            estado = p.estado_contrato ?? '';
+        }
+        
+        estado = estado
             .toString()
             .trim()
             .toLowerCase()
@@ -753,8 +863,15 @@ export class ContratacionComponent implements OnInit, OnDestroy {
 
     // Métodos de navegación
     logout(): void {
+        console.log('🔐 Iniciando logout desde contratacion...');
         this.authService.logout();
-        this.router.navigate([`/${this.entityContext.currentEntity?.slug}/login`]);
+        
+        setTimeout(() => {
+            this.router.navigate([`/${this.entityContext.currentEntity?.slug}/login`]).then(() => {
+                console.log('✅ Logout completado. Recargando página...');
+                window.location.reload();
+            });
+        }, 100);
     }
 
     get entity() {
@@ -865,6 +982,44 @@ export class ContratacionComponent implements OnInit, OnDestroy {
                         { label: 'Promedio por contrato', value: `$ ${(this.kpis.sumaAdjudicado / Math.max(this.kpis.totalAdjudicados, 1)).toLocaleString('es-CO', { maximumFractionDigits: 0 })}` },
                         { label: 'Contratos adjudicados', value: this.kpis.totalAdjudicados }
                     ]
+                };
+            case 'tiempoPromedio':
+                return {
+                    title: 'Tiempo de Ejecución',
+                    items: [
+                        { label: 'Tiempo promedio', value: `${this.tiempoPromedioEjecucion} días` },
+                        { label: 'Equivalente a', value: `${(this.tiempoPromedioEjecucion / 30).toFixed(1)} meses` },
+                        { label: 'Contratos analizados', value: this.procesosFiltrados.length }
+                    ]
+                };
+            case 'vencidos':
+                return {
+                    title: 'Contratos Vencidos',
+                    items: [
+                        { label: 'Vencidos (sin liquidar)', value: this.contratosVencidosCount },
+                        { label: '% del total', value: `${this.kpis.totalProcesos > 0 ? ((this.contratosVencidosCount / this.kpis.totalProcesos) * 100).toFixed(1) : 0}%` },
+                        { label: 'Requieren acción', value: 'Inmediata' }
+                    ]
+                };
+            case 'proximos':
+                return {
+                    title: 'Próximos a Vencer',
+                    items: [
+                        { label: 'Próximos a vencer', value: this.contratosProximosAVencer },
+                        { label: '% del total', value: `${this.kpis.totalProcesos > 0 ? ((this.contratosProximosAVencer / this.kpis.totalProcesos) * 100).toFixed(1) : 0}%` },
+                        { label: 'Requieren seguimiento', value: 'Intensivo' }
+                    ]
+                };
+            case 'estados':
+                const estadosArray = Object.entries(this.distribucionEstados)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 3);
+                return {
+                    title: 'Distribución de Estados',
+                    items: estadosArray.map(([estado, cantidad]) => ({
+                        label: estado,
+                        value: `${cantidad} (${((cantidad / this.procesosFiltrados.length) * 100).toFixed(1)}%)`
+                    }))
                 };
             default:
                 return null;

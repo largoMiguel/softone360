@@ -263,11 +263,18 @@ export class PortalCiudadanoComponent implements OnInit {
     }
 
     logout() {
+        console.log('🔐 Iniciando logout desde portal-ciudadano...');
         this.authService.logout();
         this.isLoggedIn = false;
         this.currentUser = null;
         this.misPqrs = [];
-        this.router.navigate(['/']);
+        
+        setTimeout(() => {
+            this.router.navigate(['/']).then(() => {
+                console.log('✅ Logout completado. Recargando página...');
+                window.location.reload();
+            });
+        }, 100);
     }
 
     volverAInicio() {

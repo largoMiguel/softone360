@@ -1,104 +1,104 @@
 <div class="contratacion-container">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h3 class="mb-1"><i class="fas fa-file-contract me-2 text-primary"></i>Contratos Públicos</h3>
-            <p class="text-muted mb-0 small">Gestión y seguimiento de contratos públicos - {{
-                entityContext.currentEntity?.name || 'Entidad' }}</p>
+    <!-- HEADER con navegación de vistas -->
+    <div class="page-header">
+        <div class="header-content">
+            <div class="header-info">
+                <h2 class="page-title">
+                    <i class="fas fa-handshake"></i>
+                    <span *ngIf="vistaActual === 'dashboard'">Análisis de Contratación</span>
+                    <span *ngIf="vistaActual === 'lista'">Listado de Contratos</span>
+                    <span *ngIf="vistaActual === 'detalle'">Detalle del Contrato</span>
+                </h2>
+            </div>
+            <div class="header-actions">
+                <button *ngIf="vistaActual === 'dashboard'" class="btn btn-success me-2" (click)="navegarA('lista')">
+                    <i class="fas fa-list"></i> Ver Contratos
+                </button>
+                <button *ngIf="vistaActual !== 'dashboard'" class="btn btn-outline-secondary me-2" (click)="volver()">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </button>
+            </div>
         </div>
+        <p class="page-subtitle" *ngIf="vistaActual === 'dashboard'">
+            KPIs, alertas y análisis de los procesos de contratación
+        </p>
     </div>
 
-    <!-- Alertas de Contratos -->
-    <div class="row g-3 mb-4" *ngIf="contratosVencidos.length > 0 || contratosRetrasados.length > 0">
-        <!-- Alerta: Contratos Vencidos -->
-        <div class="col-12" *ngIf="contratosVencidos.length > 0">
-            <div class="alert alert-danger d-flex align-items-start mb-0" role="alert">
-                <i class="fas fa-exclamation-circle me-3 fs-5"></i>
-                <div class="flex-grow-1">
-                    <h6 class="alert-heading mb-2">
-                        <strong>⚠️ Contratos Vencidos</strong>
-                    </h6>
-                    <p class="mb-2">
-                        Se detectaron <strong>{{ contratosVencidos.length }}</strong> contrato(s) cuyo plazo de ejecución ya ha vencido.
-                        Requieren inmediata revisión y liquidación.
-                    </p>
-                    <button class="btn btn-sm btn-outline-danger"
-                        (click)="mostrarContratosVencidos = !mostrarContratosVencidos">
-                        <i class="fas" [class.fa-chevron-down]="!mostrarContratosVencidos"
-                            [class.fa-chevron-up]="mostrarContratosVencidos"></i>
-                        {{ mostrarContratosVencidos ? 'Ocultar' : 'Ver' }} Detalles
+    <!-- LOADING -->
+    <div *ngIf="loading" class="loading-overlay">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+        </div>
+        <p class="mt-3 text-muted">Cargando datos de contratación...</p>
+    </div>
+
+    <!-- VISTA: DASHBOARD -->
+    <div *ngIf="vistaActual === 'dashboard' && !loading" class="vista-dashboard">
+        <!-- Alertas -->
+        <div class="row g-3 mb-4">
+            <!-- Alerta Contratos Vencidos -->
+            <div class="col-12" *ngIf="contratosVencidos.length > 0">
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-exclamation-circle me-3" style="font-size: 1.5rem;"></i>
+                        <div>
+                            <h5 class="alert-heading mb-1">⚠️ Contratos Vencidos</h5>
+                            <p class="mb-0 small">Tienes {{ contratosVencidos.length }} contrato(s) vencido(s)</p>
+                        </div>
+                        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger mt-2" (click)="mostrarContratosVencidos = !mostrarContratosVencidos">
+                        <i class="fas fa-chevron-down me-1"></i> {{ mostrarContratosVencidos ? 'Ocultar' : 'Ver Detalles' }}
                     </button>
-
-                    <div class="mt-3" *ngIf="mostrarContratosVencidos">
-                        <div class="row g-2">
-                            <div class="col-12 col-md-6 col-lg-4"
-                                *ngFor="let contrato of contratosVencidos; trackBy: trackByContrato">
-                                <div class="contract-card card shadow-sm border-danger" role="button" tabindex="0"
-                                    (click)="openModal(contrato)" (keydown.enter)="openModal(contrato)">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between align-items-start mb-2">
-                                            <div>
-                                                <div class="text-muted small">Referencia</div>
-                                                <div class="fw-bold">{{ contrato.referencia_del_contrato || 'N/D' }}</div>
-                                            </div>
-                                            <span class="badge bg-danger">
-                                                <i class="fas fa-exclamation-triangle me-1"></i>{{
-                                                calcularDiasVencidos(contrato) }} días
-                                            </span>
+                    <div class="row g-2 mt-3" *ngIf="mostrarContratosVencidos">
+                        <div class="col-md-6 mb-2" *ngFor="let c of contratosVencidos">
+                            <div class="card p-3 border-danger">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1">{{ c.referencia_del_proceso }}</h6>
+                                        <small class="text-muted">{{ c.proveedor_adjudicado }}</small>
+                                        <div class="mt-2">
+                                            <span class="badge" [ngClass]="'bg-' + getEstadoBadgeClass(c.estado_contrato)">{{ c.estado_contrato }}</span>
                                         </div>
-
-                                        <div class="d-flex flex-wrap gap-3 mb-2">
-                                            <div>
-                                                <div class="text-muted small">Valor contrato</div>
-                                                <div class="fw-bold">$ {{ toNumber(contrato.valor_del_contrato) | number:'1.0-0'
-                                                    }}</div>
-                                            </div>
-                                            <div>
-                                                <div class="text-muted small">Duración</div>
-                                                <div class="fw-bold text-danger">{{ formatearDuracion(contrato) }}</div>
-                                            </div>
-                                        </div>
-
-                                        <div class="mb-2">
-                                            <div class="text-muted small">Proveedor</div>
-                                            <div>{{ contrato.proveedor_adjudicado || '-' }}</div>
-                                        </div>
-
-                                        <div class="d-flex flex-wrap gap-3 mb-2 align-items-center">
-                                            <div>
-                                                <div class="text-muted small">Fecha inicio</div>
-                                                <div>{{ contrato.fecha_de_inicio_del_contrato | date:'dd/MM/yyyy' }}</div>
-                                            </div>
-                                            <div>
-                                                <div class="text-muted small">Fecha fin</div>
-                                                <div class="text-danger fw-bold">{{ contrato.fecha_de_fin_del_contrato | date:'dd/MM/yyyy' }}</div>
-                                            </div>
-                                            <span class="badge" [ngClass]="getEstadoBadgeClass(contrato)" ms-auto>{{ getEstadoDisplay(contrato) }}</span>
-                                        </div>
-
-                                        <div class="text-muted small">Objeto</div>
-                                        <div class="text-truncate-2" [title]="contrato.objeto_del_contrato">{{
-                                            contrato.objeto_del_contrato || 'N/D' }}</div>
                                     </div>
+                                    <button class="btn btn-sm btn-outline-primary" (click)="navegarA('detalle', c)">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                                    <div class="d-none">
-                                        <div class="row g-2 small">
-                                            <div class="col-6"><strong>Estado:</strong> <span class="badge"
-                                                    [ngClass]="getEstadoBadgeClass(contrato)">{{ getEstadoDisplay(contrato)
-                                                    }}</span></div>
-                                            <div class="col-6"><strong>Modalidad:</strong> {{ contrato.modalidad_de_contratacion
-                                                || 'N/D' }}</div>
-                                            <div class="col-6"><strong>Tipo:</strong> {{ contrato.tipo_de_contrato || 'N/D' }}
-                                            </div>
-                                            <div class="col-6"><strong>Supervisor:</strong> {{ contrato.nombre_supervisor ||
-                                                'N/D' }}</div>
-                                            <div class="col-6"><strong>Actualización:</strong> {{ contrato.ultima_actualizacion
-                                                | date:'dd/MM/yyyy' }}</div>
-                                            <div class="col-6"><strong>Liquidación:</strong> {{ contrato.liquidaci_n ||
-                                                'Pendiente' }}</div>
+            <!-- Alerta Contratos Retrasados -->
+            <div class="col-12" *ngIf="contratosRetrasados.length > 0">
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-clock me-3" style="font-size: 1.5rem;"></i>
+                        <div>
+                            <h5 class="alert-heading mb-1">⏱️ Contratos en Riesgo</h5>
+                            <p class="mb-0 small">Tienes {{ contratosRetrasados.length }} contrato(s) con ejecución retrasada (>75% ejecutado, <15 días para vencer)</p>
+                        </div>
+                        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                    </div>
+                    <button class="btn btn-sm btn-outline-warning mt-2" (click)="mostrarContratosRetrasados = !mostrarContratosRetrasados">
+                        <i class="fas fa-chevron-down me-1"></i> {{ mostrarContratosRetrasados ? 'Ocultar' : 'Ver Detalles' }}
+                    </button>
+                    <div class="row g-2 mt-3" *ngIf="mostrarContratosRetrasados">
+                        <div class="col-md-6 mb-2" *ngFor="let c of contratosRetrasados">
+                            <div class="card p-3 border-warning">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1">{{ c.referencia_del_proceso }}</h6>
+                                        <small class="text-muted">{{ c.proveedor_adjudicado }}</small>
+                                        <div class="mt-2">
+                                            <span class="badge bg-warning text-dark">Seguimiento Intensivo</span>
                                         </div>
-                                        <div class="d-flex justify-content-end gap-2 mt-2"></div>
                                     </div>
+                                    <button class="btn btn-sm btn-outline-primary" (click)="navegarA('detalle', c)">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -107,477 +107,428 @@
             </div>
         </div>
 
-        <!-- Alerta: Contratos con Ejecución Retrasada -->
-        <div class="col-12" *ngIf="contratosRetrasados.length > 0">
-            <div class="alert alert-warning d-flex align-items-start mb-0" role="alert">
-                <i class="fas fa-clock me-3 fs-5"></i>
-                <div class="flex-grow-1">
-                    <h6 class="alert-heading mb-2">
-                        <strong>⏱️ Contratos con Ejecución Retrasada</strong>
-                    </h6>
-                    <p class="mb-2">
-                        Se detectaron <strong>{{ contratosRetrasados.length }}</strong> contrato(s) en ejecución avanzada (>75%)
-                        con fecha de vencimiento próxima. Requieren seguimiento intensivo.
-                    </p>
-                    <button class="btn btn-sm btn-outline-warning"
-                        (click)="mostrarContratosRetrasados = !mostrarContratosRetrasados">
-                        <i class="fas" [class.fa-chevron-down]="!mostrarContratosRetrasados"
-                            [class.fa-chevron-up]="mostrarContratosRetrasados"></i>
-                        {{ mostrarContratosRetrasados ? 'Ocultar' : 'Ver' }} Detalles
-                    </button>
+        <!-- KPIs -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="kpi-card kpi-primary clickeable" (click)="selectedKpi = 'totalProcesos'; kpiDetailVisible = !kpiDetailVisible" [class.active]="selectedKpi === 'totalProcesos'">
+                    <div class="kpi-icon"><i class="fas fa-file-contract"></i></div>
+                    <div class="kpi-info">
+                        <div class="kpi-value">{{ kpis.totalProcesos }}</div>
+                        <div class="kpi-label">Total Procesos</div>
+                    </div>
+                    <i class="fas fa-chevron-right kpi-arrow"></i>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="kpi-card kpi-success clickeable" (click)="selectedKpi = 'adjudicados'; kpiDetailVisible = !kpiDetailVisible" [class.active]="selectedKpi === 'adjudicados'">
+                    <div class="kpi-icon"><i class="fas fa-check-circle"></i></div>
+                    <div class="kpi-info">
+                        <div class="kpi-value">{{ kpis.totalAdjudicados }}</div>
+                        <div class="kpi-label">Adjudicados</div>
+                    </div>
+                    <i class="fas fa-chevron-right kpi-arrow"></i>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="kpi-card kpi-info clickeable" (click)="selectedKpi = 'tasa'; kpiDetailVisible = !kpiDetailVisible" [class.active]="selectedKpi === 'tasa'">
+                    <div class="kpi-icon"><i class="fas fa-percentage"></i></div>
+                    <div class="kpi-info">
+                        <div class="kpi-value">{{ (kpis.tasaAdjudicacion | number:'1.1-1') }}%</div>
+                        <div class="kpi-label">Tasa Adjudicación</div>
+                    </div>
+                    <i class="fas fa-chevron-right kpi-arrow"></i>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="kpi-card kpi-warning clickeable" (click)="selectedKpi = 'monto'; kpiDetailVisible = !kpiDetailVisible" [class.active]="selectedKpi === 'monto'">
+                    <div class="kpi-icon"><i class="fas fa-money-bill-wave"></i></div>
+                    <div class="kpi-info">
+                        <div class="kpi-value">$ {{ (kpis.sumaAdjudicado | number:'1.0-0') }}</div>
+                        <div class="kpi-label">Monto Adjudicado</div>
+                    </div>
+                    <i class="fas fa-chevron-right kpi-arrow"></i>
+                </div>
+            </div>
+        </div>
 
-                    <div class="mt-3" *ngIf="mostrarContratosRetrasados">
-                        <div class="row g-2">
-                            <div class="col-12 col-md-6 col-lg-4"
-                                *ngFor="let contrato of contratosRetrasados; trackBy: trackByContrato">
-                                <div class="contract-card card shadow-sm border-warning" role="button" tabindex="0"
-                                    (click)="openModal(contrato)" (keydown.enter)="openModal(contrato)">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between align-items-start mb-2">
-                                            <div>
-                                                <div class="text-muted small">Referencia</div>
-                                                <div class="fw-bold">{{ contrato.referencia_del_contrato || 'N/D' }}</div>
-                                            </div>
-                                            <span class="badge bg-warning">
-                                                <i class="fas fa-hourglass-half me-1"></i>Próximo a vencer
-                                            </span>
-                                        </div>
+        <!-- KPIs adicionales -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="kpi-card clickeable" (click)="selectedKpi = 'tiempoPromedio'; kpiDetailVisible = !kpiDetailVisible" [class.active]="selectedKpi === 'tiempoPromedio'">
+                    <div class="kpi-icon" style="background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);"><i class="fas fa-hourglass-half"></i></div>
+                    <div class="kpi-info">
+                        <div class="kpi-value">{{ tiempoPromedioEjecucion }} días</div>
+                        <div class="kpi-label">Tiempo Promedio Ejecución</div>
+                    </div>
+                    <i class="fas fa-chevron-right kpi-arrow"></i>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="kpi-card kpi-danger clickeable" (click)="selectedKpi = 'vencidos'; kpiDetailVisible = !kpiDetailVisible" [class.active]="selectedKpi === 'vencidos'">
+                    <div class="kpi-icon" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);"><i class="fas fa-times-circle"></i></div>
+                    <div class="kpi-info">
+                        <div class="kpi-value">{{ contratosVencidosCount }}</div>
+                        <div class="kpi-label">Contratos Vencidos</div>
+                    </div>
+                    <i class="fas fa-chevron-right kpi-arrow"></i>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="kpi-card clickeable" (click)="selectedKpi = 'proximos'; kpiDetailVisible = !kpiDetailVisible" [class.active]="selectedKpi === 'proximos'">
+                    <div class="kpi-icon" style="background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); color: #212529;"><i class="fas fa-bell"></i></div>
+                    <div class="kpi-info">
+                        <div class="kpi-value">{{ contratosProximosAVencer }}</div>
+                        <div class="kpi-label">Próximos a Vencer</div>
+                    </div>
+                    <i class="fas fa-chevron-right kpi-arrow"></i>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="kpi-card clickeable" (click)="selectedKpi = 'estados'; kpiDetailVisible = !kpiDetailVisible" [class.active]="selectedKpi === 'estados'">
+                    <div class="kpi-icon" style="background: linear-gradient(135deg, #17a2b8 0%, #128293 100%);"><i class="fas fa-list"></i></div>
+                    <div class="kpi-info">
+                        <div class="kpi-value">{{ Object.keys(distribucionEstados).length }}</div>
+                        <div class="kpi-label">Estados Únicos</div>
+                    </div>
+                    <i class="fas fa-chevron-right kpi-arrow"></i>
+                </div>
+            </div>
+        </div>
 
-                                        <div class="d-flex flex-wrap gap-3 mb-2">
-                                            <div>
-                                                <div class="text-muted small">Valor contrato</div>
-                                                <div class="fw-bold">$ {{ toNumber(contrato.valor_del_contrato) | number:'1.0-0'
-                                                    }}</div>
-                                            </div>
-                                            <div>
-                                                <div class="text-muted small">Duración</div>
-                                                <div class="fw-bold">{{ formatearDuracion(contrato) }}</div>
-                                            </div>
-                                        </div>
+        <!-- Panel de Detalle KPI -->
+        <div *ngIf="kpiDetailVisible && selectedKpi" class="card mb-4 detail-kpi-panel">
+            <div class="card-header">
+                <h5 class="mb-0">Detalle: {{ selectedKpi | uppercase }}</h5>
+            </div>
+            <div class="card-body" [ngSwitch]="selectedKpi">
+                <div *ngSwitchCase="'totalProcesos'">
+                    <p>Total de procesos de contratación registrados en el período.</p>
+                    <h3 class="text-primary">{{ kpis.totalProcesos }}</h3>
+                </div>
+                <div *ngSwitchCase="'adjudicados'">
+                    <p>Procesos finalizados y adjudicados.</p>
+                    <h3 class="text-success">{{ kpis.totalAdjudicados }}</h3>
+                </div>
+                <div *ngSwitchCase="'tasa'">
+                    <p>Porcentaje de procesos que llegaron a adjudicación.</p>
+                    <h3 class="text-info">{{ (kpis.tasaAdjudicacion | number:'1.1-1') }}%</h3>
+                </div>
+                <div *ngSwitchCase="'monto'">
+                    <p>Valor total de los contratos adjudicados.</p>
+                    <h3 class="text-warning">$ {{ (kpis.sumaAdjudicado | number:'1.0-0') }}</h3>
+                </div>
+                <div *ngSwitchCase="'tiempoPromedio'">
+                    <p>Duración promedio de los contratos en ejecución.</p>
+                    <h3 class="text-secondary">{{ tiempoPromedioEjecucion }} días</h3>
+                </div>
+                <div *ngSwitchCase="'vencidos'">
+                    <p>Contratos que han superado su fecha de vencimiento.</p>
+                    <h3 class="text-danger">{{ contratosVencidosCount }}</h3>
+                </div>
+                <div *ngSwitchCase="'proximos'">
+                    <p>Contratos próximos a vencer en los próximos 15 días.</p>
+                    <h3 class="text-warning">{{ contratosProximosAVencer }}</h3>
+                </div>
+                <div *ngSwitchCase="'estados'">
+                    <p>Cantidad de estados diferentes en los contratos.</p>
+                    <div class="mt-3">
+                        <div *ngFor="let entry of Object.entries(distribucionEstados)" class="mb-2">
+                            <span class="badge" [ngClass]="'bg-' + getEstadoBadgeClass(entry[0])">{{ entry[0] }}: {{ entry[1] }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                                        <div class="mb-2">
-                                            <div class="text-muted small">Proveedor</div>
-                                            <div>{{ contrato.proveedor_adjudicado || '-' }}</div>
-                                        </div>
+        <!-- Gráficas -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card chart-card">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Por Estado</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="chart-estados" baseChart [data]="estadosChartData" [type]="doughnutChartType"
+                                [options]="chartOptions"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card chart-card">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Modalidades</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="chart-modalidades" baseChart [data]="modalidadesChartData" [type]="barChartType"
+                                [options]="chartOptions"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card chart-card">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Timeline</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="chart-timeline" baseChart [data]="timelineChartData" [type]="lineChartType"
+                                [options]="chartOptions"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                                        <div class="d-flex flex-wrap gap-3 mb-2 align-items-center">
-                                            <div>
-                                                <div class="text-muted small">Fecha inicio</div>
-                                                <div>{{ contrato.fecha_de_inicio_del_contrato | date:'dd/MM/yyyy' }}</div>
-                                            </div>
-                                            <div>
-                                                <div class="text-muted small">Fecha fin</div>
-                                                <div class="text-warning fw-bold">{{ contrato.fecha_de_fin_del_contrato | date:'dd/MM/yyyy' }}</div>
-                                            </div>
-                                            <span class="badge" [ngClass]="getEstadoBadgeClass(contrato)" ms-auto>{{ getEstadoDisplay(contrato) }}</span>
-                                        </div>
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="card chart-card shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Tipos de Contrato</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="chart-tipos" baseChart [data]="tiposContratoChartData" [type]="doughnutChartType"
+                                [options]="chartOptions"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card chart-card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Evolución del Valor Contratado</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="chart-valor-timeline" baseChart [data]="valorTimelineChartData" [type]="lineChartType"
+                                [options]="chartOptions"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                                        <div class="text-muted small">Objeto</div>
-                                        <div class="text-truncate-2" [title]="contrato.objeto_del_contrato">{{
-                                            contrato.objeto_del_contrato || 'N/D' }}</div>
-                                    </div>
+        <div class="row g-3 mb-4">
+            <div class="col-12">
+                <div class="card chart-card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0"><i class="fas fa-handshake me-2"></i>Top Proveedores por Valor Contratado</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" style="height: 320px;">
+                            <canvas id="chart-proveedores" baseChart [data]="proveedoresChartData" [type]="barChartType"
+                                [options]="proveedoresChartOptions"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                                    <div class="d-none">
-                                        <div class="row g-2 small">
-                                            <div class="col-6"><strong>Estado:</strong> <span class="badge"
-                                                    [ngClass]="getEstadoBadgeClass(contrato)">{{ getEstadoDisplay(contrato)
-                                                    }}</span></div>
-                                            <div class="col-6"><strong>Modalidad:</strong> {{ contrato.modalidad_de_contratacion
-                                                || 'N/D' }}</div>
-                                            <div class="col-6"><strong>Tipo:</strong> {{ contrato.tipo_de_contrato || 'N/D' }}
-                                            </div>
-                                            <div class="col-6"><strong>Supervisor:</strong> {{ contrato.nombre_supervisor ||
-                                                'N/D' }}</div>
-                                            <div class="col-6"><strong>Actualización:</strong> {{ contrato.ultima_actualizacion
-                                                | date:'dd/MM/yyyy' }}</div>
-                                            <div class="col-6"><strong>Liquidación:</strong> {{ contrato.liquidaci_n ||
-                                                'Pendiente' }}</div>
-                                        </div>
-                                        <div class="d-flex justify-content-end gap-2 mt-2"></div>
-                                    </div>
+    <!-- VISTA: LISTA DE CONTRATOS -->
+    <div *ngIf="vistaActual === 'lista' && !loading" class="vista-lista">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="fas fa-th-large me-2 text-primary"></i>Contratos ({{ procesosFiltrados.length }})</h6>
+            </div>
+            <div class="card-body">
+                <!-- Barra de filtros compacta -->
+                <div class="filters-toolbar mb-3">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-12 col-md-3">
+                            <label class="form-label mb-1">Referencia</label>
+                            <input type="text" class="form-control form-control-sm" placeholder="Buscar..."
+                                [(ngModel)]="columnFilters.referencia" (ngModelChange)="applyLocalFilters()">
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <label class="form-label mb-1">Estado</label>
+                            <select class="form-select form-select-sm" [(ngModel)]="columnFilters.estado"
+                                (change)="applyLocalFilters()">
+                                <option value="">Todos</option>
+                                <option *ngFor="let e of estadosResumen" [value]="e">{{ e }}</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <label class="form-label mb-1">Modalidad</label>
+                            <select class="form-select form-select-sm" [(ngModel)]="columnFilters.modalidad"
+                                (change)="applyLocalFilters()">
+                                <option value="">Todas</option>
+                                <option *ngFor="let m of modalidades" [value]="m">{{ m }}</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <label class="form-label mb-1">Tipo</label>
+                            <select class="form-select form-select-sm" [(ngModel)]="columnFilters.tipo"
+                                (change)="applyLocalFilters()">
+                                <option value="">Todos</option>
+                                <option *ngFor="let t of tiposContrato" [value]="t">{{ t }}</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label mb-1">Proveedor</label>
+                            <input type="text" class="form-control form-control-sm" placeholder="Nombre o NIT"
+                                [(ngModel)]="columnFilters.proveedor" (ngModelChange)="applyLocalFilters()">
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label mb-1">Valor min</label>
+                            <input type="number" min="0" class="form-control form-control-sm" placeholder="0"
+                                [(ngModel)]="columnFilters.precioMin" (ngModelChange)="applyLocalFilters()">
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label mb-1">Valor max</label>
+                            <input type="number" min="0" class="form-control form-control-sm" placeholder="∞"
+                                [(ngModel)]="columnFilters.precioMax" (ngModelChange)="applyLocalFilters()">
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label mb-1">Firma desde</label>
+                            <input type="date" class="form-control form-control-sm"
+                                [(ngModel)]="columnFilters.publicacionDesde" (change)="applyLocalFilters()">
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label mb-1">Firma hasta</label>
+                            <input type="date" class="form-control form-control-sm"
+                                [(ngModel)]="columnFilters.publicacionHasta" (change)="applyLocalFilters()">
+                        </div>
+                        <div class="col-12 col-md-2 text-md-end">
+                            <button class="btn btn-sm btn-outline-secondary mt-3 mt-md-0" (click)="clearColumnFilters()"
+                                    title="Limpiar filtros">
+                                <i class="fas fa-broom me-1"></i>Limpiar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controles de paginación superiores -->
+                <div class="pagination-bar d-flex align-items-center justify-content-between flex-wrap mb-3">
+                    <div class="text-muted small mb-2 mb-md-0">
+                        Mostrando
+                        <strong>{{ (pageIndex - 1) * pageSize + (paginatedProcesos.length ? 1 : 0) }}</strong>
+                        –
+                        <strong>{{ (pageIndex - 1) * pageSize + paginatedProcesos.length }}</strong>
+                        de
+                        <strong>{{ procesosFiltrados.length }}</strong>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="form-label mb-0 me-2 small text-muted">Por página</label>
+                        <select class="form-select form-select-sm" [(ngModel)]="pageSize"
+                            (ngModelChange)="onPageSizeChange($event)">
+                            <option *ngFor="let s of pageSizes" [ngValue]="s">{{ s }}</option>
+                        </select>
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Paginación">
+                            <button class="btn btn-outline-secondary" (click)="prevPage()"
+                                [disabled]="pageIndex === 1">«</button>
+                            <button *ngFor="let p of getPageNumbers()" class="btn" [class.btn-primary]="p === pageIndex"
+                                [class.btn-outline-secondary]="p !== pageIndex" (click)="goToPage(p)">{{ p }}</button>
+                            <button class="btn btn-outline-secondary" (click)="nextPage()"
+                                [disabled]="pageIndex === totalPages">»</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grid de tarjetas modernas -->
+                <div class="contracts-grid">
+                    <div class="contract-card-modern" *ngFor="let p of paginatedProcesos; trackBy: trackByContrato"
+                        role="button" tabindex="0" (click)="navegarA('detalle', p)" (keydown.enter)="navegarA('detalle', p)"
+                        (keydown.space)="navegarA('detalle', p)">
+
+                        <!-- Header de la card -->
+                        <div class="card-header-modern">
+                            <div class="card-reference">
+                                <i class="fas fa-file-contract"></i>
+                                <span class="ref-code">{{ p.referencia_del_contrato || 'N/D' }}</span>
+                            </div>
+                            <span class="badge status-badge" [ngClass]="getEstadoBadgeClass(p)">
+                                <span class="badge-dot"></span>
+                                {{ getEstadoDisplay(p) }}
+                            </span>
+                        </div>
+
+                        <!-- Valores principales -->
+                        <div class="card-values">
+                            <div class="value-item primary">
+                                <div class="value-icon">
+                                    <i class="fas fa-dollar-sign"></i>
+                                </div>
+                                <div class="value-content">
+                                    <span class="value-label">Valor Contrato</span>
+                                    <span class="value-amount">$ {{ toNumber(p.valor_del_contrato) | number:'1.0-0' }}</span>
+                                </div>
+                            </div>
+                            <div class="value-item success">
+                                <div class="value-icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="value-content">
+                                    <span class="value-label">Pagado</span>
+                                    <span class="value-amount">$ {{ toNumber(p.valor_pagado) | number:'1.0-0' }}</span>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Acciones Principales -->
-    <div class="card mb-4 shadow-sm">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h5 class="mb-1"><i class="fas fa-filter me-2 text-primary"></i>Filtros y Acciones</h5>
-                    <small class="text-muted">Configure los parámetros de consulta y gestione los datos</small>
-                </div>
-                <div>
-                    <button class="btn btn-outline-secondary btn-sm me-2" (click)="limpiar()">
-                        <i class="fas fa-eraser me-1"></i>Limpiar
-                    </button>
-                    <button class="btn btn-success btn-sm me-2" (click)="exportCSV()"
-                        [disabled]="loading || !procesosFiltrados.length">
-                        <i class="fas fa-file-csv me-1"></i>Exportar CSV
-                    </button>
-                    <button class="btn btn-primary btn-sm me-2" (click)="abrirModalInforme()"
-                        *ngIf="entity?.enable_reports_pdf"
-                        [disabled]="loading || !procesosFiltrados.length || generatingPdf">
-                        <i class="fas fa-file-pdf me-1" [class.fa-spin]="generatingPdf"></i>
-                        Generar Informe
-                    </button>
-                    <button class="btn btn-primary btn-sm" (click)="buscar()" [disabled]="loading">
-                        <i class="fas fa-sync-alt me-1" [class.fa-spin]="loading"></i>Consultar
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+                        <!-- Barra de progreso -->
+                        <div class="progress-bar-container" *ngIf="toNumber(p.valor_del_contrato) > 0">
+                            <div class="progress-bar">
+                                <div class="progress-fill"
+                                    [style.width.%]="(toNumber(p.valor_pagado) / toNumber(p.valor_del_contrato)) * 100">
+                                </div>
+                            </div>
+                            <span class="progress-label">
+                                {{ ((toNumber(p.valor_pagado) / toNumber(p.valor_del_contrato)) * 100) | number:'1.0-1' }}%
+                                ejecutado
+                            </span>
+                        </div>
 
+                        <!-- Información del proveedor -->
+                        <div class="card-provider">
+                            <i class="fas fa-building"></i>
+                            <span class="provider-name">{{ p.proveedor_adjudicado || 'Sin proveedor' }}</span>
+                            <span *ngIf="p.es_pyme === 'Si'" class="pyme-badge">PYME</span>
+                        </div>
 
+                        <!-- Chips meta -->
+                        <div class="meta-chips">
+                            <span class="chip">
+                                <i class="fas fa-user-tie"></i>
+                                <span class="chip-text" [title]="p.nombre_supervisor || 'N/D'">{{ (p.nombre_supervisor || 'N/D') | slice:0:24 }}<ng-container
+                                        *ngIf="(p.nombre_supervisor || '').length > 24">…</ng-container></span>
+                            </span>
+                            <span class="chip">
+                                <i class="far fa-clock"></i>
+                                <span class="chip-text">{{ p.ultima_actualizacion | date:'dd/MM/yyyy' }}</span>
+                            </span>
+                        </div>
 
-    <!-- Filtros -->
-    <div class="card mb-4 shadow-sm">
-        <div class="card-header bg-white">
-            <h6 class="mb-0"><i class="fas fa-sliders-h me-2 text-primary"></i>Filtros de Búsqueda</h6>
-        </div>
-        <div class="card-body">
-            <div class="row g-3">
-                <!-- Fechas -->
-                <div class="col-md-2">
-                    <label class="form-label"><i class="far fa-calendar-alt me-1"></i>Desde</label>
-                    <input type="date" class="form-control" [(ngModel)]="filtro.fechaDesde">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label"><i class="far fa-calendar-alt me-1"></i>Hasta</label>
-                    <input type="date" class="form-control" [(ngModel)]="filtro.fechaHasta">
-                </div>
-
-                <!-- Modalidad y Tipo -->
-                <div class="col-md-3">
-                    <label class="form-label"><i class="fas fa-tag me-1"></i>Modalidad</label>
-                    <select class="form-select" [(ngModel)]="filtro.modalidad">
-                        <option value="">Todas las modalidades</option>
-                        <option *ngFor="let m of modalidades" [value]="m">{{ m }}</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label"><i class="fas fa-file-contract me-1"></i>Tipo de Contrato</label>
-                    <select class="form-select" [(ngModel)]="filtro.tipoContrato">
-                        <option value="">Todos los tipos</option>
-                        <option *ngFor="let t of tiposContrato" [value]="t">{{ t }}</option>
-                    </select>
-                </div>
-
-                <!-- Estado y Adjudicado -->
-                <div class="col-md-2">
-                    <label class="form-label"><i class="fas fa-info-circle me-1"></i>Estado</label>
-                    <select class="form-select" [(ngModel)]="filtro.estado">
-                        <option value="">Todos</option>
-                        <option *ngFor="let e of estadosResumen" [value]="e">{{ e }}</option>
-                    </select>
-                </div>
-
-                <!-- Segunda fila -->
-                <div class="col-md-2">
-                    <label class="form-label"><i class="fas fa-check-circle me-1"></i>Adjudicado</label>
-                    <select class="form-select" [(ngModel)]="filtro.adjudicado">
-                        <option value="">Todos</option>
-                        <option value="SI">Sí</option>
-                        <option value="NO">No</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label"><i class="fas fa-dollar-sign me-1"></i>Precio mínimo</label>
-                    <input type="number" class="form-control" [(ngModel)]="filtro.precioMin" placeholder="0">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label"><i class="fas fa-dollar-sign me-1"></i>Precio máximo</label>
-                    <input type="number" class="form-control" [(ngModel)]="filtro.precioMax" placeholder="Sin límite">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label"><i class="fas fa-search me-1"></i>Buscar en descripción o
-                        referencia</label>
-                    <input type="text" class="form-control" [(ngModel)]="filtro.texto"
-                        placeholder="Ingrese términos de búsqueda...">
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- KPIs Clickeables -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="kpi-card kpi-primary shadow-sm clickeable" (click)="toggleKpiDetail('procesos')"
-                [class.active]="selectedKpi === 'procesos'">
-                <div class="kpi-icon"><i class="fas fa-file-contract"></i></div>
-                <div class="kpi-info">
-                    <div class="kpi-value">{{ kpis.totalProcesos }}</div>
-                    <div class="kpi-label">Total Contratos</div>
-                </div>
-                <i class="fas fa-chevron-right kpi-arrow"></i>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="kpi-card kpi-success shadow-sm clickeable" (click)="toggleKpiDetail('adjudicados')"
-                [class.active]="selectedKpi === 'adjudicados'">
-                <div class="kpi-icon"><i class="fas fa-check-circle"></i></div>
-                <div class="kpi-info">
-                    <div class="kpi-value">{{ kpis.totalAdjudicados }}</div>
-                    <div class="kpi-label">En Ejecución</div>
-                </div>
-                <i class="fas fa-chevron-right kpi-arrow"></i>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="kpi-card kpi-info shadow-sm clickeable" (click)="toggleKpiDetail('tasa')"
-                [class.active]="selectedKpi === 'tasa'">
-                <div class="kpi-icon"><i class="fas fa-percentage"></i></div>
-                <div class="kpi-info">
-                    <div class="kpi-value">{{ (kpis.tasaAdjudicacion * 100) | number:'1.0-1' }}%</div>
-                    <div class="kpi-label">% Ejecución</div>
-                </div>
-                <i class="fas fa-chevron-right kpi-arrow"></i>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="kpi-card kpi-warning shadow-sm clickeable" (click)="toggleKpiDetail('monto')"
-                [class.active]="selectedKpi === 'monto'">
-                <div class="kpi-icon"><i class="fas fa-money-bill-wave"></i></div>
-                <div class="kpi-info">
-                    <div class="kpi-value">$ {{ kpis.sumaAdjudicado | number:'1.0-0' }}</div>
-                    <div class="kpi-label">Total Pagado</div>
-                </div>
-                <i class="fas fa-chevron-right kpi-arrow"></i>
-            </div>
-        </div>
-    </div>
-
-    <!-- Panel de Detalle del KPI -->
-    <div class="card mb-4 shadow-sm" *ngIf="kpiDetailVisible && getKpiDetail()">
-        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>{{ getKpiDetail().title }}</h6>
-            <button class="btn btn-sm btn-light" (click)="kpiDetailVisible = false">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-4" *ngFor="let item of getKpiDetail().items">
-                    <div class="detail-item">
-                        <div class="detail-label text-muted">{{ item.label }}</div>
-                        <div class="detail-value text-primary fw-bold fs-4">{{ item.value }}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Gráficas -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="card chart-card">
-                <div class="card-header bg-primary text-white">
-                    <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Por Estado</h6>
-                </div>
-                <div class="card-body">
-                    <div class="chart-container">
-                        <canvas id="chart-estados" baseChart [data]="estadosChartData" [type]="doughnutChartType"
-                            [options]="chartOptions"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card chart-card">
-                <div class="card-header bg-primary text-white">
-                    <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Modalidades</h6>
-                </div>
-                <div class="card-body">
-                    <div class="chart-container">
-                        <canvas id="chart-modalidades" baseChart [data]="modalidadesChartData" [type]="barChartType"
-                            [options]="chartOptions"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card chart-card">
-                <div class="card-header bg-primary text-white">
-                    <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Timeline de contratos firmados</h6>
-                </div>
-                <div class="card-body">
-                    <div class="chart-container">
-                        <canvas id="chart-timeline" baseChart [data]="timelineChartData" [type]="lineChartType"
-                            [options]="chartOptions"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Segunda fila de gráficas - Análisis adicional -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-6">
-            <div class="card chart-card shadow-sm">
-                <div class="card-header bg-info text-white">
-                    <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Distribución por Tipo de Contrato</h6>
-                </div>
-                <div class="card-body">
-                    <div class="chart-container">
-                        <canvas id="chart-tipos" baseChart [data]="tiposContratoChartData" [type]="doughnutChartType"
-                            [options]="chartOptions"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-header bg-secondary text-white">
-                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Estadísticas Generales</h6>
-                </div>
-                <div class="card-body">
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <i class="fas fa-calendar-alt text-primary"></i>
-                            <div>
-                                <div class="stat-value">{{ modalidades.length }}</div>
-                                <div class="stat-label">Modalidades Diferentes</div>
+                        <!-- Fechas -->
+                        <div class="card-dates">
+                            <div class="date-item">
+                                <i class="far fa-calendar"></i>
+                                <span>{{ p.fecha_de_inicio_del_contrato | date:'dd/MM/yyyy' }}</span>
+                            </div>
+                            <div class="date-separator">→</div>
+                            <div class="date-item">
+                                <i class="far fa-calendar-check"></i>
+                                <span>{{ p.fecha_de_fin_del_contrato | date:'dd/MM/yyyy' }}</span>
                             </div>
                         </div>
-                        <div class="stat-item">
-                            <i class="fas fa-file-alt text-success"></i>
-                            <div>
-                                <div class="stat-value">{{ tiposContrato.length }}</div>
-                                <div class="stat-label">Tipos de Contrato</div>
-                            </div>
+
+                        <!-- Objeto del contrato -->
+                        <div class="card-description">
+                            <p class="description-text">{{ p.objeto_del_contrato || 'Sin descripción' }}</p>
                         </div>
-                        <div class="stat-item">
-                            <i class="fas fa-list-check text-info"></i>
-                            <div>
-                                <div class="stat-value">{{ estadosResumen.length }}</div>
-                                <div class="stat-label">Estados Registrados</div>
-                            </div>
-                        </div>
-                        <div class="stat-item">
-                            <i class="fas fa-money-bill-wave text-warning"></i>
-                            <div>
-                                <div class="stat-value">$ {{ (kpis.promedioPrecioBase | number:'1.0-0') }}</div>
-                                <div class="stat-label">Promedio Precio Base</div>
-                            </div>
+
+                        <!-- Indicador de abrir modal -->
+                        <div class="expand-indicator">
+                            <i class="fas fa-up-right-from-square"></i>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="row g-3 mb-4">
-        <div class="col-12">
-            <div class="card chart-card shadow-sm">
-                <div class="card-header bg-success text-white">
-                    <h6 class="mb-0"><i class="fas fa-handshake me-2"></i>Top Proveedores por Valor
-                        Contratado</h6>
-                </div>
-                <div class="card-body">
-                    <div class="chart-container" style="height: 320px;">
-                        <canvas id="chart-proveedores" baseChart [data]="proveedoresChartData" [type]="barChartType"
-                            [options]="proveedoresChartOptions"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Listado en tarjetas -->
-    <div class="card">
-        <div class="card-header bg-white">
-            <h6 class="mb-0"><i class="fas fa-th-large me-2 text-primary"></i>Contratos ({{ procesosFiltrados.length }})
-            </h6>
-        </div>
-        <div class="card-body">
-            <!-- Barra de filtros compacta -->
-            <div class="filters-toolbar mb-3">
-                <div class="row g-2 align-items-end">
-                    <div class="col-12 col-md-3">
-                        <label class="form-label mb-1">Referencia</label>
-                        <input type="text" class="form-control form-control-sm" placeholder="Buscar..."
-                            [(ngModel)]="columnFilters.referencia" (ngModelChange)="onColumnFilterChange()">
-                    </div>
-                    <div class="col-6 col-md-2">
-                        <label class="form-label mb-1">Estado</label>
-                        <select class="form-select form-select-sm" [(ngModel)]="columnFilters.estado"
-                            (change)="onColumnFilterChange()">
-                            <option value="">Todos</option>
-                            <option *ngFor="let e of estadosResumen" [value]="e">{{ e }}</option>
-                        </select>
-                    </div>
-                    <div class="col-6 col-md-2">
-                        <label class="form-label mb-1">Modalidad</label>
-                        <select class="form-select form-select-sm" [(ngModel)]="columnFilters.modalidad"
-                            (change)="onColumnFilterChange()">
-                            <option value="">Todas</option>
-                            <option *ngFor="let m of modalidades" [value]="m">{{ m }}</option>
-                        </select>
-                    </div>
-                    <div class="col-6 col-md-2">
-                        <label class="form-label mb-1">Tipo</label>
-                        <select class="form-select form-select-sm" [(ngModel)]="columnFilters.tipo"
-                            (change)="onColumnFilterChange()">
-                            <option value="">Todos</option>
-                            <option *ngFor="let t of tiposContrato" [value]="t">{{ t }}</option>
-                        </select>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <label class="form-label mb-1">Proveedor</label>
-                        <input type="text" class="form-control form-control-sm" placeholder="Nombre o NIT"
-                            [(ngModel)]="columnFilters.proveedor" (ngModelChange)="onColumnFilterChange()">
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <label class="form-label mb-1">Valor min</label>
-                        <input type="number" min="0" class="form-control form-control-sm" placeholder="0"
-                            [(ngModel)]="columnFilters.precioMin" (ngModelChange)="onColumnFilterChange()">
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <label class="form-label mb-1">Valor max</label>
-                        <input type="number" min="0" class="form-control form-control-sm" placeholder="∞"
-                            [(ngModel)]="columnFilters.precioMax" (ngModelChange)="onColumnFilterChange()">
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <label class="form-label mb-1">Firma desde</label>
-                        <input type="date" class="form-control form-control-sm"
-                            [(ngModel)]="columnFilters.publicacionDesde" (change)="onColumnFilterChange()">
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <label class="form-label mb-1">Firma hasta</label>
-                        <input type="date" class="form-control form-control-sm"
-                            [(ngModel)]="columnFilters.publicacionHasta" (change)="onColumnFilterChange()">
-                    </div>
-                    <div class="col-12 col-md-2 text-md-end">
-                        <button class="btn btn-sm btn-outline-secondary mt-3 mt-md-0" (click)="clearColumnFilters()"
-                            title="Limpiar filtros">
-                            <i class="fas fa-broom me-1"></i>Limpiar
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Controles de paginación superiores -->
-            <div class="pagination-bar d-flex align-items-center justify-content-between flex-wrap mb-3">
-                <div class="text-muted small mb-2 mb-md-0">
-                    Mostrando
-                    <strong>{{ (pageIndex - 1) * pageSize + (paginatedProcesos.length ? 1 : 0) }}</strong>
-                    –
-                    <strong>{{ (pageIndex - 1) * pageSize + paginatedProcesos.length }}</strong>
-                    de
-                    <strong>{{ procesosFiltrados.length }}</strong>
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                    <label class="form-label mb-0 me-2 small text-muted">Por página</label>
-                    <select class="form-select form-select-sm" [(ngModel)]="pageSize"
-                        (ngModelChange)="onPageSizeChange($event)">
-                        <option *ngFor="let s of pageSizes" [ngValue]="s">{{ s }}</option>
-                    </select>
+                <!-- Controles de paginación inferiores -->
+                <div class="pagination-bar d-flex align-items-center justify-content-between flex-wrap mt-3">
                     <div class="btn-group btn-group-sm" role="group" aria-label="Paginación">
                         <button class="btn btn-outline-secondary" (click)="prevPage()"
                             [disabled]="pageIndex === 1">«</button>
@@ -588,334 +539,151 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- Grid de tarjetas modernas -->
-            <div class="contracts-grid">
-                <div class="contract-card-modern" *ngFor="let p of paginatedProcesos; trackBy: trackByContrato"
-                    role="button" tabindex="0" (click)="openModal(p)" (keydown.enter)="openModal(p)"
-                    (keydown.space)="openModal(p)">
+    <!-- VISTA: DETALLE DEL CONTRATO -->
+    <div *ngIf="vistaActual === 'detalle' && selectedProceso && !loading" class="vista-detalle">
+        <!-- Modal overlay de fondo -->
+    </div>
 
-                    <!-- Header de la card -->
-                    <div class="card-header-modern">
-                        <div class="card-reference">
-                            <i class="fas fa-file-contract"></i>
-                            <span class="ref-code">{{ p.referencia_del_contrato || 'N/D' }}</span>
-                        </div>
-                        <span class="badge status-badge" [ngClass]="getEstadoBadgeClass(p)">
-                            <span class="badge-dot"></span>
-                            {{ getEstadoDisplay(p) }}
-                        </span>
-                    </div>
-
-                    <!-- Valores principales -->
-                    <div class="card-values">
-                        <div class="value-item primary">
-                            <div class="value-icon">
-                                <i class="fas fa-dollar-sign"></i>
-                            </div>
-                            <div class="value-content">
-                                <span class="value-label">Valor Contrato</span>
-                                <span class="value-amount">$ {{ toNumber(p.valor_del_contrato) | number:'1.0-0'
-                                    }}</span>
-                            </div>
-                        </div>
-                        <div class="value-item success">
-                            <div class="value-icon">
-                                <i class="fas fa-check-circle"></i>
-                            </div>
-                            <div class="value-content">
-                                <span class="value-label">Pagado</span>
-                                <span class="value-amount">$ {{ toNumber(p.valor_pagado) | number:'1.0-0' }}</span>
-                            </div>
+    <!-- Modal de Detalle Minimalista -->
+    <div class="modal-overlay" *ngIf="showModal && selectedProceso" (click)="closeModal()">
+        <div class="modal-wrapper" (click)="$event.stopPropagation()">
+            <div class="modal-content-custom">
+                <div class="modal-header-custom">
+                    <div class="modal-title-section">
+                        <i class="fas fa-file-contract"></i>
+                        <div>
+                            <span class="modal-title">{{ selectedProceso.referencia_del_contrato || 'N/D' }}</span>
+                            <span class="badge status-badge" [ngClass]="getEstadoBadgeClass(selectedProceso!)">
+                                <span class="badge-dot"></span>
+                                {{ getEstadoDisplay(selectedProceso!) }}
+                            </span>
                         </div>
                     </div>
-
-                    <!-- Barra de progreso -->
-                    <div class="progress-bar-container" *ngIf="toNumber(p.valor_del_contrato) > 0">
-                        <div class="progress-bar">
-                            <div class="progress-fill"
-                                [style.width.%]="(toNumber(p.valor_pagado) / toNumber(p.valor_del_contrato)) * 100">
-                            </div>
+                    <button class="close-btn" (click)="closeModal()" aria-label="Cerrar">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="modal-section">
+                        <div class="modal-field">
+                            <span class="label">Proveedor</span>
+                            <span class="value">{{ selectedProceso.proveedor_adjudicado || 'N/D' }}</span>
                         </div>
-                        <span class="progress-label">
-                            {{ ((toNumber(p.valor_pagado) / toNumber(p.valor_del_contrato)) * 100) | number:'1.0-1' }}%
-                            ejecutado
-                        </span>
-                    </div>
-
-                    <!-- Información del proveedor -->
-                    <div class="card-provider">
-                        <i class="fas fa-building"></i>
-                        <span class="provider-name">{{ p.proveedor_adjudicado || 'Sin proveedor' }}</span>
-                        <span *ngIf="p.es_pyme === 'Si'" class="pyme-badge">PYME</span>
-                    </div>
-
-                    <!-- Chips meta -->
-                    <div class="meta-chips">
-                        <span class="chip">
-                            <i class="fas fa-user-tie"></i>
-                            <span class="chip-text" [title]="p.nombre_supervisor || 'N/D'">{{ (p.nombre_supervisor ||
-                                'N/D') | slice:0:24 }}<ng-container
-                                    *ngIf="(p.nombre_supervisor || '').length > 24">…</ng-container></span>
-                        </span>
-                        <span class="chip">
-                            <i class="far fa-clock"></i>
-                            <span class="chip-text">{{ p.ultima_actualizacion | date:'dd/MM/yyyy' }}</span>
-                        </span>
-                    </div>
-
-                    <!-- Fechas -->
-                    <div class="card-dates">
-                        <div class="date-item">
-                            <i class="far fa-calendar"></i>
-                            <span>{{ p.fecha_de_inicio_del_contrato | date:'dd/MM/yyyy' }}</span>
+                        <div class="modal-field">
+                            <span class="label">Valor contrato</span>
+                            <span class="value">$ {{ toNumber(selectedProceso.valor_del_contrato) | number:'1.0-0'
+                                }}</span>
                         </div>
-                        <div class="date-separator">→</div>
-                        <div class="date-item">
-                            <i class="far fa-calendar-check"></i>
-                            <span>{{ p.fecha_de_fin_del_contrato | date:'dd/MM/yyyy' }}</span>
+                        <div class="modal-field">
+                            <span class="label">Pagado</span>
+                            <span class="value text-success">$ {{ toNumber(selectedProceso.valor_pagado) |
+                                number:'1.0-0' }}</span>
                         </div>
                     </div>
-
-                    <!-- Objeto del contrato -->
-                    <div class="card-description">
-                        <p class="description-text">{{ p.objeto_del_contrato || 'Sin descripción' }}</p>
+                    <div class="modal-section">
+                        <div class="modal-field">
+                            <span class="label">Tipo</span>
+                            <span class="value">{{ selectedProceso.tipo_de_contrato || 'N/D' }}</span>
+                        </div>
+                        <div class="modal-field">
+                            <span class="label">Modalidad</span>
+                            <span class="value">{{ selectedProceso.modalidad_de_contratacion || 'N/D' }}</span>
+                        </div>
+                        <div class="modal-field">
+                            <span class="label">Documento proveedor</span>
+                            <span class="value">{{ selectedProceso.tipodocproveedor }} {{
+                                selectedProceso.documento_proveedor }}</span>
+                        </div>
                     </div>
-
-                    <!-- Indicador de abrir modal -->
-                    <div class="expand-indicator">
-                        <i class="fas fa-up-right-from-square"></i>
+                    <div class="modal-section">
+                        <div class="modal-field">
+                            <span class="label">Fecha inicio</span>
+                            <span class="value">{{ selectedProceso.fecha_de_inicio_del_contrato | date:'dd/MM/yyyy' }}</span>
+                        </div>
+                        <div class="modal-field">
+                            <span class="label">Fecha fin</span>
+                            <span class="value">{{ selectedProceso.fecha_de_fin_del_contrato | date:'dd/MM/yyyy' }}</span>
+                        </div>
+                        <div class="modal-field">
+                            <span class="label">Duración</span>
+                            <span class="value">{{ formatearDuracion(selectedProceso!) }}</span>
+                        </div>
+                    </div>
+                    <div class="modal-description">
+                        <span class="label">Objeto del contrato</span>
+                        <p>{{ selectedProceso.objeto_del_contrato || 'Sin descripción' }}</p>
+                    </div>
+                    <!-- Más detalles previamente mostrados -->
+                    <div class="modal-section">
+                        <div class="modal-field">
+                            <span class="label">Liquidación</span>
+                            <span class="value">{{ selectedProceso.liquidaci_n || 'Pendiente' }}</span>
+                        </div>
+                        <div class="modal-field">
+                            <span class="label">Supervisor</span>
+                            <span class="value">{{ selectedProceso.nombre_supervisor || 'N/D' }}</span>
+                        </div>
+                        <div class="modal-field">
+                            <span class="label">Última actualización</span>
+                            <span class="value">{{ selectedProceso.ultima_actualizacion | date:'dd/MM/yyyy'
+                                }}</span>
+                        </div>
+                    </div>
+                    <div class="modal-section">
+                        <div class="modal-field">
+                            <span class="label">Pago adelantado</span>
+                            <span class="value">$ {{ toNumber(selectedProceso.valor_de_pago_adelantado) |
+                                number:'1.0-0' }}</span>
+                        </div>
+                        <div class="modal-field">
+                            <span class="label">Facturado</span>
+                            <span class="value">$ {{ toNumber(selectedProceso.valor_facturado) | number:'1.0-0'
+                                }}</span>
+                        </div>
+                        <div class="modal-field">
+                            <span class="label">Pendiente de pago</span>
+                            <span class="value">$ {{ toNumber(selectedProceso.valor_pendiente_de_pago) |
+                                number:'1.0-0' }}</span>
+                        </div>
+                    </div>
+                    <div class="modal-section">
+                        <div class="modal-field">
+                            <span class="label">Amortizado</span>
+                            <span class="value">$ {{ toNumber(selectedProceso.valor_amortizado) | number:'1.0-0'
+                                }}</span>
+                        </div>
+                        <div class="modal-field">
+                            <span class="label">Pendiente de ejecución</span>
+                            <span class="value">$ {{ toNumber(selectedProceso.valor_pendiente_de_ejecucion) |
+                                number:'1.0-0' }}</span>
+                        </div>
+                        <div class="modal-field">
+                            <span class="label">Inicio de liquidación</span>
+                            <span class="value">{{ selectedProceso.fecha_inicio_liquidacion | date:'dd/MM/yyyy'
+                                }}</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Controles de paginación inferiores -->
-            <div class="pagination-bar d-flex align-items-center justify-content-between flex-wrap mt-3">
-                <div class="text-muted small mb-2 mb-md-0">
-                    Página <strong>{{ pageIndex }}</strong> de <strong>{{ totalPages }}</strong>
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                    <label class="form-label mb-0 me-2 small text-muted">Por página</label>
-                    <select class="form-select form-select-sm" [(ngModel)]="pageSize"
-                        (ngModelChange)="onPageSizeChange($event)">
-                        <option *ngFor="let s of pageSizes" [ngValue]="s">{{ s }}</option>
-                    </select>
-                    <div class="btn-group btn-group-sm" role="group" aria-label="Paginación">
-                        <button class="btn btn-outline-secondary" (click)="prevPage()"
-                            [disabled]="pageIndex === 1">«</button>
-                        <button *ngFor="let p of getPageNumbers()" class="btn" [class.btn-primary]="p === pageIndex"
-                            [class.btn-outline-secondary]="p !== pageIndex" (click)="goToPage(p)">{{ p }}</button>
-                        <button class="btn btn-outline-secondary" (click)="nextPage()"
-                            [disabled]="pageIndex === totalPages">»</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Modal de detalle minimalista -->
-            <div class="modal-overlay" *ngIf="showModal && selectedProceso" (click)="closeModal()">
-                <div class="modal-card" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
-                    <div class="modal-header">
-                        <div class="modal-title">
-                            <i class="fas fa-file-contract"></i>
-                            <div class="title-texts">
-                                <h3>{{ selectedProceso.referencia_del_contrato }}</h3>
-                                <div class="subtitle">
-                                    <span class="badge" [ngClass]="getEstadoBadgeClass(selectedProceso!)">
-                                        <span class="badge-dot"></span>
-                                        {{ getEstadoDisplay(selectedProceso!) }}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <button class="close-btn" (click)="closeModal()" aria-label="Cerrar">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="modal-section">
-                            <div class="modal-field">
-                                <span class="label">Proveedor</span>
-                                <span class="value">{{ selectedProceso.proveedor_adjudicado || 'N/D' }}</span>
-                            </div>
-                            <div class="modal-field">
-                                <span class="label">Valor contrato</span>
-                                <span class="value">$ {{ toNumber(selectedProceso.valor_del_contrato) | number:'1.0-0'
-                                    }}</span>
-                            </div>
-                            <div class="modal-field">
-                                <span class="label">Pagado</span>
-                                <span class="value text-success">$ {{ toNumber(selectedProceso.valor_pagado) |
-                                    number:'1.0-0' }}</span>
-                            </div>
-                        </div>
-                        <div class="modal-section">
-                            <div class="modal-field">
-                                <span class="label">Tipo</span>
-                                <span class="value">{{ selectedProceso.tipo_de_contrato || 'N/D' }}</span>
-                            </div>
-                            <div class="modal-field">
-                                <span class="label">Modalidad</span>
-                                <span class="value">{{ selectedProceso.modalidad_de_contratacion || 'N/D' }}</span>
-                            </div>
-                            <div class="modal-field">
-                                <span class="label">Documento proveedor</span>
-                                <span class="value">{{ selectedProceso.tipodocproveedor }} {{
-                                    selectedProceso.documento_proveedor }}</span>
-                            </div>
-                        </div>
-                        <div class="modal-section">
-                            <div class="modal-field">
-                                <span class="label">Fecha inicio</span>
-                                <span class="value">{{ selectedProceso.fecha_de_inicio_del_contrato | date:'dd/MM/yyyy' }}</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="label">Fecha fin</span>
-                                <span class="value">{{ selectedProceso.fecha_de_fin_del_contrato | date:'dd/MM/yyyy' }}</span>
-                            </div>
-                            <div class="modal-field">
-                                <span class="label">Duración</span>
-                                <span class="value">{{ formatearDuracion(selectedProceso!) }}</span>
-                            </div>
-                        </div>
-                        <div class="modal-description">
-                            <span class="label">Objeto del contrato</span>
-                            <p>{{ selectedProceso.objeto_del_contrato || 'Sin descripción' }}</p>
-                        </div>
-                        <!-- Más detalles previamente mostrados -->
-                        <div class="modal-section">
-                            <div class="modal-field">
-                                <span class="label">Liquidación</span>
-                                <span class="value">{{ selectedProceso.liquidaci_n || 'Pendiente' }}</span>
-                            </div>
-                            <div class="modal-field">
-                                <span class="label">Supervisor</span>
-                                <span class="value">{{ selectedProceso.nombre_supervisor || 'N/D' }}</span>
-                            </div>
-                            <div class="modal-field">
-                                <span class="label">Última actualización</span>
-                                <span class="value">{{ selectedProceso.ultima_actualizacion | date:'dd/MM/yyyy'
-                                    }}</span>
-                            </div>
-                        </div>
-                        <div class="modal-section">
-                            <div class="modal-field">
-                                <span class="label">Pago adelantado</span>
-                                <span class="value">$ {{ toNumber(selectedProceso.valor_de_pago_adelantado) |
-                                    number:'1.0-0' }}</span>
-                            </div>
-                            <div class="modal-field">
-                                <span class="label">Facturado</span>
-                                <span class="value">$ {{ toNumber(selectedProceso.valor_facturado) | number:'1.0-0'
-                                    }}</span>
-                            </div>
-                            <div class="modal-field">
-                                <span class="label">Pendiente de pago</span>
-                                <span class="value">$ {{ toNumber(selectedProceso.valor_pendiente_de_pago) |
-                                    number:'1.0-0' }}</span>
-                            </div>
-                        </div>
-                        <div class="modal-section">
-                            <div class="modal-field">
-                                <span class="label">Amortizado</span>
-                                <span class="value">$ {{ toNumber(selectedProceso.valor_amortizado) | number:'1.0-0'
-                                    }}</span>
-                            </div>
-                            <div class="modal-field">
-                                <span class="label">Pendiente de ejecución</span>
-                                <span class="value">$ {{ toNumber(selectedProceso.valor_pendiente_de_ejecucion) |
-                                    number:'1.0-0' }}</span>
-                            </div>
-                            <div class="modal-field">
-                                <span class="label">Inicio de liquidación</span>
-                                <span class="value">{{ selectedProceso.fecha_inicio_liquidacion | date:'dd/MM/yyyy'
-                                    }}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-actions">
-                        <button class="action-btn secondary" (click)="copyReferencia(selectedProceso!)">
-                            <i class="fas fa-copy"></i>
-                            <span>Copiar referencia</span>
-                        </button>
-                        <a class="action-btn primary" [href]="getProcesoUrl(selectedProceso!)" target="_blank"
-                            rel="noopener noreferrer">
-                            <i class="fas fa-external-link-alt"></i>
-                            <span>Ver en SECOP</span>
-                        </a>
-                    </div>
+                <div class="modal-actions">
+                    <button class="btn btn-outline-secondary" (click)="closeModal()">
+                        <i class="fas fa-times"></i>
+                        <span>Cerrar</span>
+                    </button>
+                    <a class="btn btn-primary" [href]="getProcesoUrl(selectedProceso!)" target="_blank"
+                        rel="noopener noreferrer">
+                        <i class="fas fa-external-link-alt"></i>
+                        <span>Ver en SECOP</span>
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 
-    <div *ngIf="loading" class="text-center my-4">
-        <div class="spinner-border text-primary" role="status"></div>
-        <div class="text-muted mt-2">Consultando datos de contratación...</div>
-    </div>
-
-    <div *ngIf="!loading && errorMsg" class="alert alert-warning mt-3">
-        <i class="fas fa-info-circle me-1"></i>{{ errorMsg }}
-    </div>
-
-    <div *ngIf="!loading && !errorMsg && procesosFiltrados.length === 0" class="alert alert-info mt-3">
-        <i class="fas fa-info-circle me-1"></i>
-        <strong>Sin resultados:</strong> No se encontraron procesos de contratación con los filtros
-        aplicados.
-        <div class="mt-2">
-            <small>
-                <strong>Nota:</strong> Asegúrate de que el NIT de la entidad esté correctamente
-                configurado en el
-                super
-                admin
-                y que corresponda al NIT registrado en SECOP II.
-            </small>
-        </div>
-    </div>
-</div>
-
-<!-- Modal de configuración de informe -->
-<div class="modal fade show d-block" *ngIf="mostrarModalInforme" style="background-color: rgba(0,0,0,0.5);">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">
-                    <i class="fas fa-file-pdf me-2"></i>Configurar Informe de Contratación
-                </h5>
-                <button type="button" class="btn-close btn-close-white" (click)="cerrarModalInforme()"></button>
-            </div>
-            <div class="modal-body">
-                <p class="text-muted mb-3">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Selecciona las opciones para generar el informe de contratación pública.
-                </p>
-
-                <div class="alert alert-info">
-                    <small>
-                        <strong>Periodo:</strong> {{ filtro.fechaDesde }} a {{ filtro.fechaHasta }}<br>
-                        <strong>Total procesos:</strong> {{ procesosFiltrados.length }}
-                    </small>
-                </div>
-
-                <div class="form-check mb-3" *ngIf="entity?.enable_ai_reports">
-                    <input class="form-check-input" type="checkbox" id="incluirIA" [(ngModel)]="incluirResumenIA">
-                    <label class="form-check-label" for="incluirIA">
-                        <i class="fas fa-magic me-1 text-primary"></i>
-                        <strong>Incluir resumen generado con IA</strong>
-                        <br>
-                        <small class="text-muted">
-                            El sistema generará un análisis narrativo automático basado en los datos de contratación.
-                        </small>
-                    </label>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" (click)="cerrarModalInforme()">
-                    <i class="fas fa-times me-2"></i>Cancelar
-                </button>
-                <button type="button" class="btn btn-primary" (click)="generarInformeConOpciones()">
-                    <i class="fas fa-file-pdf me-2"></i>Generar Informe PDF
-                </button>
-            </div>
-        </div>
+    <!-- Error message -->
+    <div *ngIf="errorMsg" class="alert alert-danger mt-4" role="alert">
+        {{ errorMsg }}
     </div>
 </div>

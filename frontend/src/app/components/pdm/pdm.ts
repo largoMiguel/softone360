@@ -152,7 +152,8 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Inicialización del componente
      */
     ngOnInit(): void {
-        this.verificarDatosBackend();
+        // Esperar a que el entity slug esté disponible antes de verificar datos
+        this.verificarDatosBackendConEspera();
         this.cargarSecretarios();
         
         // Verificar si hay que abrir un producto desde una alerta
@@ -168,6 +169,33 @@ export class PdmComponent implements OnInit, OnDestroy {
         };
         
         window.addEventListener('popstate', this.popstateListener);
+    }
+
+    /**
+     * Verifica datos del backend con espera para entity slug
+     */
+    private verificarDatosBackendConEspera(): void {
+        console.log('🔍 Esperando entity slug disponible...');
+        
+        // Esperar en un pequeño intervalo a que el entity slug esté disponible
+        let intentos = 0;
+        const verificar = () => {
+            intentos++;
+            const slug = this.pdmService.getEntitySlug();
+            
+            if (slug) {
+                console.log('✅ Entity slug disponible:', slug);
+                this.verificarDatosBackend();
+            } else if (intentos < 50) {
+                // Reintentar después de 100ms (máximo 5 segundos)
+                setTimeout(verificar, 100);
+            } else {
+                console.warn('⚠️ Entity slug no disponible después de 5 segundos, continuando sin datos del backend');
+                this.cargandoDesdeBackend = false;
+            }
+        };
+        
+        verificar();
     }
 
     /**
@@ -511,6 +539,28 @@ export class PdmComponent implements OnInit, OnDestroy {
     private cargarActividadesDesdeBackend() {
         if (!this.productoSeleccionado) return;
 
+        // Verificar que el entity slug esté disponible
+        const slug = this.pdmService.getEntitySlug();
+        if (!slug) {
+            console.warn('⚠️ Entity slug no disponible aún, esperando...');
+            let intentos = 0;
+            const reintentar = () => {
+                intentos++;
+                const slugActual = this.pdmService.getEntitySlug();
+                if (slugActual) {
+                    console.log('✅ Entity slug disponible después de espera');
+                    this.cargarActividadesDesdeBackend();
+                } else if (intentos < 30) {
+                    setTimeout(reintentar, 100);
+                } else {
+                    console.error('❌ No se puede cargar del backend sin entity slug');
+                    this.actualizarResumenActividades(false);
+                }
+            };
+            setTimeout(reintentar, 100);
+            return;
+        }
+
         this.pdmService.cargarActividadesDesdeBackend(this.productoSeleccionado.codigo).subscribe({
             next: (actividades) => {
                 console.log(`✅ ${actividades.length} actividades cargadas desde backend para producto ${this.productoSeleccionado?.codigo}`);
@@ -532,6 +582,9 @@ export class PdmComponent implements OnInit, OnDestroy {
             },
             error: (error) => {
                 console.warn('⚠️ Error al cargar actividades desde backend:', error);
+                if (error.status === 403) {
+                    console.error('❌ Error 403: Verifica que tengas permisos para esta entidad');
+                }
                 // Continuar con actividades locales si las hay
                 this.actualizarResumenActividades(false);
             }
