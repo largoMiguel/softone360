@@ -495,7 +495,13 @@ export class PdmComponent implements OnInit, OnDestroy {
                 this.limpiarFiltros();
                 
                 // ✅ CRÍTICO: Cargar actividades de TODOS los productos
-                this.cargarActividadesTodosProductos();
+                this.cargarActividadesTodosProductos().then(() => {
+                    // IMPORTANTE: Recalcular avance DESPUÉS de sincronizar actividades
+                    console.log('📊 Recalculando avance de productos con actividades sincronizadas...');
+                    this.resumenProductos = this.pdmService.generarResumenProductos(data);
+                    this.estadisticas = this.pdmService.calcularEstadisticas(data);
+                    console.log('✅ Avance recalculado');
+                });
                 
                 this.cargandoDesdeBackend = false;
             },
@@ -509,39 +515,45 @@ export class PdmComponent implements OnInit, OnDestroy {
     /**
      * Carga actividades de todos los productos en paralelo
      * Sincroniza automáticamente en el servicio
+     * Retorna una Promise que se resuelve cuando todas las actividades están sincronizadas
      */
-    private cargarActividadesTodosProductos(): void {
-        if (!this.resumenProductos.length) {
-            console.log('ℹ️ No hay productos para cargar actividades');
-            return;
-        }
-        
-        console.log(`📦 Iniciando carga de actividades para ${this.resumenProductos.length} productos...`);
-        
-        // Crear peticiones en paralelo para todos los productos
-        const peticiones = this.resumenProductos.map(producto =>
-            this.pdmService.cargarActividadesDesdeBackend(producto.codigo)
-                .pipe(
-                    tap(actividades => {
-                        console.log(`  ✅ ${producto.codigo}: ${actividades.length} actividades`);
-                        // Sincronizar en el servicio
-                        this.pdmService.sincronizarActividadesProducto(producto.codigo, actividades);
-                    }),
-                    catchError(error => {
-                        console.warn(`  ⚠️ ${producto.codigo}: Error -`, error.status);
-                        return of([]); // Continuar con productos siguientes
-                    })
-                )
-        );
-        
-        // Ejecutar todas en paralelo
-        forkJoin(peticiones).subscribe({
-            next: () => {
-                console.log('✅ ✅ Todas las actividades sincronizadas - Vista de productos lista');
-            },
-            error: (error) => {
-                console.error('❌ Error en forkJoin de actividades:', error);
+    private cargarActividadesTodosProductos(): Promise<void> {
+        return new Promise((resolve) => {
+            if (!this.resumenProductos.length) {
+                console.log('ℹ️ No hay productos para cargar actividades');
+                resolve();
+                return;
             }
+            
+            console.log(`📦 Iniciando carga de actividades para ${this.resumenProductos.length} productos...`);
+            
+            // Crear peticiones en paralelo para todos los productos
+            const peticiones = this.resumenProductos.map(producto =>
+                this.pdmService.cargarActividadesDesdeBackend(producto.codigo)
+                    .pipe(
+                        tap(actividades => {
+                            console.log(`  ✅ ${producto.codigo}: ${actividades.length} actividades`);
+                            // Sincronizar en el servicio
+                            this.pdmService.sincronizarActividadesProducto(producto.codigo, actividades);
+                        }),
+                        catchError(error => {
+                            console.warn(`  ⚠️ ${producto.codigo}: Error -`, error.status);
+                            return of([]); // Continuar con productos siguientes
+                        })
+                    )
+            );
+            
+            // Ejecutar todas en paralelo
+            forkJoin(peticiones).subscribe({
+                next: () => {
+                    console.log('✅ ✅ Todas las actividades sincronizadas - Vista de productos lista');
+                    resolve();
+                },
+                error: (error) => {
+                    console.error('❌ Error en forkJoin de actividades:', error);
+                    resolve(); // Resolver de todas formas
+                }
+            });
         });
     }
 
@@ -1633,18 +1645,21 @@ export class PdmComponent implements OnInit, OnDestroy {
                 
                 // ✅ PASO CRÍTICO: Cargar actividades de TODOS los productos
                 console.log('📦 Cargando actividades para cálculos de analytics...');
-                this.cargarActividadesTodosProductos();
-                
-                // Generar analytics después de un tiempo para permitir sincronización
-                setTimeout(() => {
-                    console.log('✅ Generando gráficos con datos sincronizados...');
+                this.cargarActividadesTodosProductos().then(() => {
+                    // IMPORTANTE: Recalcular después de que actividades estén sincronizadas
+                    console.log('✅ Actividades sincronizadas, recalculando con datos actualizados...');
+                    this.resumenProductos = this.pdmService.generarResumenProductos(data);
+                    this.estadisticas = this.pdmService.calcularEstadisticas(data);
+                    
+                    // Generar analytics con datos actualizados
                     this.generarAnalytics();
+                    
                     setTimeout(() => {
                         this.crearGraficos();
                         this.cargandoDesdeBackend = false;
                         this.showToast('Datos de análisis cargados correctamente', 'success');
                     }, 200);
-                }, 1500); // Esperar 1.5 segundos para sincronización
+                });
             },
             error: (error) => {
                 console.warn('⚠️ Error al recargar datos para analytics:', error);
