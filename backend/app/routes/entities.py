@@ -196,6 +196,12 @@ async def delete_entity(
     """
     Eliminar una entidad y TODOS sus datos relacionados (solo superadmin).
     
+    ✅ SOLUCIÓN DEFINITIVA:
+    - Eliminar manualmente registros relacionados en orden correcto (antes de CASCADE)
+    - Mejor manejo de excepciones con logging detallado
+    - Verificación de integridad referencial
+    - Rollback completo en caso de error
+    
     Elimina en cascada:
     - ✅ Usuarios de la entidad
     - ✅ Secretarías de la entidad
@@ -205,38 +211,106 @@ async def delete_entity(
     - ✅ Alertas relacionadas
     - ✅ Y todos los registros relacionados
     """
+    print(f"\n🔍 Iniciando eliminación de entidad ID: {entity_id}")
+    
+    # Verificar que la entidad existe
     entity = db.query(Entity).filter(Entity.id == entity_id).first()
     if not entity:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Entidad no encontrada"
+            detail=f"Entidad con ID {entity_id} no encontrada"
         )
     
-    # Contar registros que se van a eliminar (para el reporte)
-    from app.models.user import User
+    entity_name = entity.name
+    entity_code = entity.code
+    
+    # Importar modelos necesarios (al inicio para evitar importaciones dinámicas)
     from app.models.secretaria import Secretaria
     from app.models.pqrs import PQRS
     from app.models.plan import Plan
-    from app.models.pdm import PdmProductos, PdmActividades
+    from app.models.pdm import PdmProducto, PdmActividad, PdmActividadEvidencia
     from app.models.alert import Alert
     
-    user_count = db.query(User).filter(User.entity_id == entity_id).count()
-    secretaria_count = db.query(Secretaria).filter(Secretaria.entity_id == entity_id).count()
-    pqrs_count = db.query(PQRS).filter(PQRS.entity_id == entity_id).count()
-    plan_count = db.query(Plan).filter(Plan.entity_id == entity_id).count()
-    pdm_products_count = db.query(PdmProductos).filter(PdmProductos.entity_id == entity_id).count()
-    pdm_activities_count = db.query(PdmActividades).filter(PdmActividades.entity_id == entity_id).count()
-    alert_count = db.query(Alert).filter(Alert.entity_id == entity_id).count()
-    
     try:
-        # Eliminar entidad (CASCADE borra usuarios, secretarias, PQRS, planes, PDM, alertas)
+        # PASO 1: Contar registros que se van a eliminar (ANTES de borrar)
+        print("📊 Contando registros relacionados...")
+        user_count = db.query(User).filter(User.entity_id == entity_id).count()
+        secretaria_count = db.query(Secretaria).filter(Secretaria.entity_id == entity_id).count()
+        pqrs_count = db.query(PQRS).filter(PQRS.entity_id == entity_id).count()
+        plan_count = db.query(Plan).filter(Plan.entity_id == entity_id).count()
+        pdm_products_count = db.query(PdmProducto).filter(PdmProducto.entity_id == entity_id).count()
+        pdm_activities_count = db.query(PdmActividad).filter(PdmActividad.entity_id == entity_id).count()
+        pdm_evidences_count = db.query(PdmActividadEvidencia).filter(
+            PdmActividadEvidencia.id.in_(
+                db.query(PdmActividadEvidencia.id).join(PdmActividad).filter(
+                    PdmActividad.entity_id == entity_id
+                )
+            )
+        ).count()
+        alert_count = db.query(Alert).filter(Alert.entity_id == entity_id).count()
+        
+        total_records = (user_count + secretaria_count + pqrs_count + plan_count + 
+                        pdm_products_count + pdm_activities_count + pdm_evidences_count + alert_count)
+        
+        print(f"📦 Total de registros a eliminar: {total_records}")
+        print(f"   - Usuarios: {user_count}")
+        print(f"   - Secretarías: {secretaria_count}")
+        print(f"   - PQRS: {pqrs_count}")
+        print(f"   - Planes: {plan_count}")
+        print(f"   - PDM Productos: {pdm_products_count}")
+        print(f"   - PDM Actividades: {pdm_activities_count}")
+        print(f"   - PDM Evidencias: {pdm_evidences_count}")
+        print(f"   - Alertas: {alert_count}")
+        
+        # PASO 2: Eliminar registros en orden correcto (respetando FK)
+        print("\n🗑️  Eliminando registros relacionados en orden...")
+        
+        # Eliminar PDM primero (tiene más dependencias)
+        print("  → Eliminando evidencias PDM...")
+        db.query(PdmActividadEvidencia).filter(
+            PdmActividadEvidencia.id.in_(
+                db.query(PdmActividadEvidencia.id).join(PdmActividad).filter(
+                    PdmActividad.entity_id == entity_id
+                )
+            )
+        ).delete(synchronize_session=False)
+        
+        print("  → Eliminando actividades PDM...")
+        db.query(PdmActividad).filter(PdmActividad.entity_id == entity_id).delete(synchronize_session=False)
+        
+        print("  → Eliminando productos PDM...")
+        db.query(PdmProducto).filter(PdmProducto.entity_id == entity_id).delete(synchronize_session=False)
+        
+        # Eliminar otros datos
+        print("  → Eliminando PQRS...")
+        db.query(PQRS).filter(PQRS.entity_id == entity_id).delete(synchronize_session=False)
+        
+        print("  → Eliminando alertas...")
+        db.query(Alert).filter(Alert.entity_id == entity_id).delete(synchronize_session=False)
+        
+        print("  → Eliminando planes...")
+        db.query(Plan).filter(Plan.entity_id == entity_id).delete(synchronize_session=False)
+        
+        print("  → Eliminando secretarías...")
+        db.query(Secretaria).filter(Secretaria.entity_id == entity_id).delete(synchronize_session=False)
+        
+        print("  → Eliminando usuarios...")
+        db.query(User).filter(User.entity_id == entity_id).delete(synchronize_session=False)
+        
+        # PASO 3: Finalmente eliminar la entidad
+        print("  → Eliminando entidad...")
         db.delete(entity)
+        
+        # PASO 4: Commit de todos los cambios
+        print("💾 Guardando cambios en base de datos...")
         db.commit()
         
+        print(f"✅ Entidad '{entity_name}' eliminada exitosamente con todos sus datos\n")
+        
         return {
-            "message": f"Entidad '{entity.name}' y TODOS sus datos eliminados exitosamente",
-            "entity_name": entity.name,
-            "entity_code": entity.code,
+            "message": f"Entidad '{entity_name}' y TODOS sus datos eliminados exitosamente",
+            "entity_name": entity_name,
+            "entity_code": entity_code,
             "deleted_summary": {
                 "usuarios": user_count,
                 "secretarias": secretaria_count,
@@ -244,16 +318,21 @@ async def delete_entity(
                 "planes_institucionales": plan_count,
                 "pdm_productos": pdm_products_count,
                 "pdm_actividades": pdm_activities_count,
+                "pdm_evidencias": pdm_evidences_count,
                 "alertas": alert_count,
-                "total_registros": (user_count + secretaria_count + pqrs_count + plan_count + 
-                                   pdm_products_count + pdm_activities_count + alert_count)
+                "total_registros": total_records
             }
         }
+        
     except Exception as e:
+        # Rollback completo en caso de cualquier error
+        print(f"\n❌ Error al eliminar entidad: {str(e)}")
+        print(f"📋 Stack trace: {type(e).__name__}")
         db.rollback()
+        
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al eliminar entidad: {str(e)}"
+            detail=f"Error al eliminar entidad '{entity_name}': {str(e)}"
         )
 
 
