@@ -84,6 +84,10 @@ export class PdmComponent implements OnInit, OnDestroy {
     // Años disponibles
     aniosDisponibles = [2024, 2025, 2026, 2027];
     
+    // ✅ OPTIMIZACIÓN: Debounce timer para búsqueda
+    private debounceTimer: any = null;
+    private readonly DEBOUNCE_DELAY = 300; // ms
+    
     // Modal BPIN
     mostrarModalBPIN = false;
     proyectoBPIN: any = null;
@@ -231,6 +235,11 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Limpieza al destruir el componente
      */
     ngOnDestroy(): void {
+        // ✅ Limpiar debounce timer
+        if (this.debounceTimer) {
+            clearTimeout(this.debounceTimer);
+        }
+        
         this.destruirGraficos();
         
         // Remover el listener de popstate
@@ -627,40 +636,56 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Limpia los filtros y recarga datos del backend
+     * ✅ OPTIMIZACIÓN: Limpia los filtros
+     * SOLO filtra en memoria, NO recarga del backend
      */
     limpiarFiltros() {
-        console.log('🔄 Limpiando filtros y recargando datos...');
+        console.log('🔄 Limpiando filtros...');
         this.filtroLinea = '';
         this.filtroSector = '';
         this.filtroBusqueda = '';
-        
-        // ✅ NUEVO: Recargar datos al limpiar filtros
-        this.recargarSegunFiltros();
+        console.log(`📊 Mostrando ${this.productosFiltrados.length} productos sin filtros`);
+        // ✅ NO llamar a recargarSegunFiltros() - solo filtrar en memoria
     }
 
     /**
-     * Se ejecuta cuando cambia el filtro de línea estratégica
+     * ✅ OPTIMIZACIÓN: Se ejecuta cuando cambia el filtro de línea estratégica
+     * Solo filtra en memoria, SIN hacer petición al backend
      */
     onCambioFiltroLinea() {
         console.log('🔄 Filtro de línea cambió a:', this.filtroLinea);
-        this.recargarSegunFiltros();
+        console.log(`📊 Mostrando ${this.productosFiltrados.length} productos con este filtro`);
+        // ✅ NO llamar a recargarSegunFiltros() - solo filtrar en memoria
     }
 
     /**
-     * Se ejecuta cuando cambia el filtro de sector
+     * ✅ OPTIMIZACIÓN: Se ejecuta cuando cambia el filtro de sector
+     * Solo filtra en memoria, SIN hacer petición al backend
      */
     onCambioFiltroSector() {
         console.log('🔄 Filtro de sector cambió a:', this.filtroSector);
-        this.recargarSegunFiltros();
+        console.log(`📊 Mostrando ${this.productosFiltrados.length} productos con este filtro`);
+        // ✅ NO llamar a recargarSegunFiltros() - solo filtrar en memoria
     }
 
     /**
-     * Se ejecuta cuando cambia el filtro de búsqueda
+     * ✅ OPTIMIZACIÓN: Se ejecuta cuando cambia el filtro de búsqueda
+     * Implementa DEBOUNCE para evitar múltiples peticiones mientras se escribe
+     * Solo filtra en memoria después del debounce
      */
     onCambioFiltroBusqueda() {
-        console.log('🔄 Filtro de búsqueda cambió a:', this.filtroBusqueda);
-        this.recargarSegunFiltros();
+        // Cancelar debounce anterior
+        if (this.debounceTimer) {
+            clearTimeout(this.debounceTimer);
+        }
+        
+        // ✅ Establecer nuevo debounce
+        this.debounceTimer = setTimeout(() => {
+            console.log('🔄 Filtro de búsqueda cambió a:', this.filtroBusqueda);
+            console.log(`📊 Mostrando ${this.productosFiltrados.length} productos con este filtro`);
+            // ✅ NO llamar a recargarSegunFiltros() - solo filtrar en memoria
+            this.debounceTimer = null;
+        }, this.DEBOUNCE_DELAY);
     }
 
     /**
