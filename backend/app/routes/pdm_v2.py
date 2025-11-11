@@ -207,6 +207,15 @@ async def get_pdm_data(
         
         print(f"📊 Encontrados {len(productos)} productos para entidad {slug}")
         
+        # ✅ DEBUG: Verificar BPIN de productos
+        bpin_count = {}
+        for p in productos:
+            if hasattr(p, 'bpin') and p.bpin:
+                bpin_count[p.bpin] = bpin_count.get(p.bpin, 0) + 1
+        print(f"🔍 BPINs únicos: {len(bpin_count)}, Total productos: {len(productos)}")
+        if bpin_count:
+            print(f"   Primeros 5 BPINs: {list(bpin_count.items())[:5]}")
+        
         # Validar cada producto antes de retornar
         productos_validos = []
         lineas_set = set()  # Usar set para líneas únicas
@@ -260,7 +269,8 @@ async def get_pdm_data(
         lineas_estrategicas = [{"nombre": linea} for linea in sorted(lineas_set)]
         iniciativas_sgr = [{"bpin": iniciativa} for iniciativa in sorted(iniciativas_set) if iniciativa]
         
-        print(f"✅ Retornando {len(productos_validos)} productos + {len(lineas_estrategicas)} líneas + {len(iniciativas_sgr)} iniciativas")
+        print(f"✅ Retornando {len(productos_validos)} productos + {len(lineas_estrategicas)} líneas + {len(iniciativas_sgr)} iniciativas SGR")
+        print(f"🔍 DEBUG - Total iniciativas SGR: {len(iniciativas_sgr)} (desde {len(bpin_count)} BPINs únicos de productos)")
         return schemas.PDMDataResponse(
             productos_plan_indicativo=productos_validos,
             lineas_estrategicas=lineas_estrategicas,

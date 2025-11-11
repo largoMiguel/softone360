@@ -516,6 +516,20 @@ export class PdmService {
     calcularEstadisticas(pdmData: PDMData): EstadisticasPDM {
         const productos = pdmData.productos_plan_indicativo;
         
+        // ✅ IMPORTANTE: Regenerar iniciativas SGR desde los productos (como hace el backend)
+        // para garantizar consistencia entre frontend y backend
+        const iniciativas_set = new Set<string>();
+        productos.forEach(p => {
+            if (p.bpin && p.bpin.trim() !== '') {
+                iniciativas_set.add(p.bpin);
+            }
+        });
+        const iniciativas_regeneradas = Array.from(iniciativas_set)
+            .map(bpin => ({ bpin }))
+            .sort((a, b) => a.bpin.localeCompare(b.bpin));
+        
+        console.log(`🔍 Iniciativas SGR: ${pdmData.iniciativas_sgr.length} del Excel vs ${iniciativas_regeneradas.length} desde productos`);
+        
     const presupuesto_2024 = productos.reduce((sum, p) => sum + p.total_2024, 0);
     const presupuesto_2025 = productos.reduce((sum, p) => sum + p.total_2025, 0);
     const presupuesto_2026 = productos.reduce((sum, p) => sum + p.total_2026, 0);
@@ -540,7 +554,7 @@ export class PdmService {
         return {
             total_lineas_estrategicas: pdmData.lineas_estrategicas.length,
             total_productos: productos.length,
-            total_iniciativas_sgr: pdmData.iniciativas_sgr.length,
+            total_iniciativas_sgr: iniciativas_regeneradas.length, // ✅ Usar iniciativas regeneradas desde productos
             presupuesto_total: presupuesto_2024 + presupuesto_2025 + presupuesto_2026 + presupuesto_2027,
             presupuestoPorAnio: {
                 anio2024: presupuesto_2024,
