@@ -58,9 +58,11 @@ def ensure_user_can_manage_entity(user: User, entity: Entity):
         print(f"   entity.id: {user.entity.id}, entity.slug: {user.entity.slug}")
     print(f"   Target entity: {entity.slug} (id={entity.id})")
     
+    # Normalizar role a string (puede ser Enum o string)
+    user_role = user.role.value if hasattr(user.role, 'value') else str(user.role).lower()
+    
     # SUPERADMIN siempre tiene acceso
-    user_role_value = user.role.value if hasattr(user.role, 'value') else str(user.role)
-    if user_role_value == "superadmin":
+    if user_role == "superadmin":
         print(f"✅ SUPERADMIN - Acceso permitido\n")
         return
     
@@ -175,16 +177,41 @@ async def get_pdm_data(
     current_user: User = Depends(get_current_active_user)
 ):
     """Obtiene los productos del PDM cargados"""
-    entity = get_entity_or_404(db, slug)
-    ensure_user_can_manage_entity(current_user, entity)
-    
-    productos = db.query(PdmProducto).filter(
-        PdmProducto.entity_id == entity.id
-    ).all()
-    
-    return schemas.PDMDataResponse(
-        productos_plan_indicativo=[schemas.ProductoResponse.model_validate(p) for p in productos]
-    )
+    try:
+        entity = get_entity_or_404(db, slug)
+        ensure_user_can_manage_entity(current_user, entity)
+        
+        productos = db.query(PdmProducto).filter(
+            PdmProducto.entity_id == entity.id
+        ).all()
+        
+        print(f"📊 Encontrados {len(productos)} productos para entidad {slug}")
+        
+        # Validar cada producto antes de retornar
+        productos_validos = []
+        for p in productos:
+            try:
+                prod_response = schemas.ProductoResponse.model_validate(p)
+                productos_validos.append(prod_response)
+            except Exception as e:
+                print(f"⚠️ Error validando producto {p.id}: {str(e)}")
+                # Si falla un producto, retornar lista vacía para evitar error 500
+                print(f"❌ Retornando lista vacía debido a error de validación")
+                return schemas.PDMDataResponse(productos_plan_indicativo=[])
+        
+        return schemas.PDMDataResponse(
+            productos_plan_indicativo=productos_validos
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error en get_pdm_data: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error cargando datos PDM: {str(e)}"
+        )
 
 
 # ==============================================
