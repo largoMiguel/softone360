@@ -237,9 +237,6 @@ async def delete_entity(
             PdmProducto, 
             PdmActividad, 
             PdmActividadEvidencia,
-            PdmLineaEstrategica,
-            PdmIndicadorResultado,
-            PdmIniciativaSGR,
             PdmArchivoExcel
         )
         
@@ -254,10 +251,7 @@ async def delete_entity(
             "pdm_archivos": db.query(PdmArchivoExcel).filter(PdmArchivoExcel.entity_id == entity_id).count(),
             "pdm_productos": db.query(PdmProducto).filter(PdmProducto.entity_id == entity_id).count(),
             "pdm_actividades": db.query(PdmActividad).filter(PdmActividad.entity_id == entity_id).count(),
-            "pdm_evidencias": db.query(PdmActividadEvidencia).filter(PdmActividadEvidencia.entity_id == entity_id).count(),
-            "pdm_lineas": db.query(PdmLineaEstrategica).filter(PdmLineaEstrategica.entity_id == entity_id).count(),
-            "pdm_indicadores": db.query(PdmIndicadorResultado).filter(PdmIndicadorResultado.entity_id == entity_id).count(),
-            "pdm_iniciativas": db.query(PdmIniciativaSGR).filter(PdmIniciativaSGR.entity_id == entity_id).count()
+            "pdm_evidencias": db.query(PdmActividadEvidencia).filter(PdmActividadEvidencia.entity_id == entity_id).count()
         }
         
         total = sum(counts.values())
@@ -304,21 +298,12 @@ async def delete_entity(
         print("  8. PDM Productos...")
         db.query(PdmProducto).filter(PdmProducto.entity_id == entity_id).delete(synchronize_session=False)
         
-        print("  9. PDM Líneas Estratégicas...")
-        db.query(PdmLineaEstrategica).filter(PdmLineaEstrategica.entity_id == entity_id).delete(synchronize_session=False)
-        
-        print("  10. PDM Indicadores...")
-        db.query(PdmIndicadorResultado).filter(PdmIndicadorResultado.entity_id == entity_id).delete(synchronize_session=False)
-        
-        print("  11. PDM Iniciativas SGR...")
-        db.query(PdmIniciativaSGR).filter(PdmIniciativaSGR.entity_id == entity_id).delete(synchronize_session=False)
-        
         # USUARIOS (después de que no hay FK apuntando a ellos)
-        print("  12. Usuarios...")
+        print("  9. Usuarios...")
         db.query(User).filter(User.entity_id == entity_id).delete(synchronize_session=False)
         
         # FINALMENTE: Entidad
-        print("  13. Entidad...")
+        print("  10. Entidad...")
         db.delete(entity)
         
         # COMMIT ÚNICO

@@ -14,9 +14,6 @@ from app.models.plan import (
     TipoActividadEjecucion
 )
 from app.models.pdm import (
-    PdmLineaEstrategica,
-    PdmIndicadorResultado,
-    PdmIniciativaSGR,
     PdmProducto,
     PdmActividad,
     PdmActividadEvidencia
@@ -36,9 +33,6 @@ __all__ = [
     "EstadoActividad",
     "PrioridadActividad",
     "TipoActividadEjecucion",
-    "PdmLineaEstrategica",
-    "PdmIndicadorResultado",
-    "PdmIniciativaSGR",
     "PdmProducto",
     "PdmActividad",
     "PdmActividadEvidencia"
