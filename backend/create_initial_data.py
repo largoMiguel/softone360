@@ -35,30 +35,26 @@ def create_initial_data():
         # 1. Crear Entidad de Prueba
         print("\n📍 Paso 1: Creando entidad de prueba...")
         entity = Entity(
-            codigo="DEMO001",
-            nombre="Municipio Demo",
-            tipo_entidad="municipio",
+            code="DEMO001",
+            name="Municipio Demo",
+            slug="municipio-demo",
             nit="900123456-7",
-            telefono="3001234567",
+            phone="3001234567",
             email="contacto@municipiodemo.gov.co",
-            direccion="Calle 1 # 2-3, Centro",
-            municipio="Demo",
-            departamento="Cundinamarca",
-            representante_legal="Juan Pérez",
+            address="Calle 1 # 2-3, Centro",
+            description="Municipio de prueba para demostración del sistema",
             logo_url="https://via.placeholder.com/150",
+            horario_atencion="Lunes a Viernes 8:00 AM - 5:00 PM",
+            tiempo_respuesta="Respuesta en 24 horas",
             is_active=True,
             # Módulos habilitados
-            pqrs_enabled=True,
-            planes_enabled=True,
-            pdm_enabled=True,
-            contratacion_enabled=True,
-            bpin_enabled=True,
-            # Features IA habilitados
-            ia_pqrs_enabled=True,
-            ia_planes_enabled=True,
-            ia_contratacion_enabled=True,
-            pdf_export_enabled=True,
-            csv_export_enabled=True
+            enable_pqrs=True,
+            enable_planes_institucionales=True,
+            enable_pdm=True,
+            enable_contratacion=True,
+            enable_users_admin=True,
+            enable_reports_pdf=True,
+            enable_ai_reports=True
         )
         db.add(entity)
         db.flush()  # Para obtener el ID
@@ -69,12 +65,7 @@ def create_initial_data():
         print("\n🏢 Paso 2: Creando Secretaría de Administración...")
         secretaria = Secretaria(
             entity_id=entity.id,
-            codigo="ADM",
             nombre="Secretaría de Administración",
-            descripcion="Dependencia encargada de la administración general",
-            responsable="María González",
-            email="admin@municipiodemo.gov.co",
-            telefono="3009876543",
             is_active=True
         )
         db.add(secretaria)
@@ -112,7 +103,7 @@ def create_initial_data():
         print("✅ ¡DATOS INICIALES CREADOS CON ÉXITO!")
         print("=" * 70)
         print("\n📊 RESUMEN:")
-        print(f"   • Entidad: {entity.nombre} (Código: {entity.codigo})")
+        print(f"   • Entidad: {entity.name} (Código: {entity.code})")
         print(f"   • Secretaría: {secretaria.nombre}")
         print(f"   • Usuario: {superadmin.username}")
         print(f"   • Email: {superadmin.email}")
