@@ -59,7 +59,8 @@ def ensure_user_can_manage_entity(user: User, entity: Entity):
     print(f"   Target entity: {entity.slug} (id={entity.id})")
     
     # SUPERADMIN siempre tiene acceso
-    if user.role == "SUPERADMIN":
+    user_role_value = user.role.value if hasattr(user.role, 'value') else str(user.role)
+    if user_role_value == "superadmin":
         print(f"✅ SUPERADMIN - Acceso permitido\n")
         return
     
