@@ -170,71 +170,52 @@ async def upload_pdm_data(
 # Obtener todos los datos del PDM
 # ==============================================
 
-@router.get("/{slug}/data")
+@router.get("/{slug}/data", response_model=schemas.PDMDataResponse)
 async def get_pdm_data(
     slug: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Obtiene los productos del PDM cargados"""
+    """Obtiene los productos del PDM cargados con sus actividades"""
     try:
         entity = get_entity_or_404(db, slug)
         ensure_user_can_manage_entity(current_user, entity)
         
+        # Cargar productos CON sus actividades relacionadas (eager loading)
         productos = db.query(PdmProducto).filter(
             PdmProducto.entity_id == entity.id
         ).all()
         
         print(f"📊 Encontrados {len(productos)} productos para entidad {slug}")
         
-        # Serializar productos manualmente para mayor control
-        productos_dict = []
+        # Validar cada producto antes de retornar
+        productos_validos = []
         for p in productos:
-            prod_dict = {
-                'id': p.id,
-                'codigo_dane': p.codigo_dane,
-                'entidad_territorial': p.entidad_territorial,
-                'nombre_plan': p.nombre_plan,
-                'codigo_indicador_producto': p.codigo_indicador_producto,
-                'codigo_producto': p.codigo_producto,
-                'linea_estrategica': p.linea_estrategica,
-                'codigo_sector': p.codigo_sector,
-                'sector_mga': p.sector_mga,
-                'codigo_programa': p.codigo_programa,
-                'programa_mga': p.programa_mga,
-                'codigo_producto_mga': p.codigo_producto_mga,
-                'producto_mga': p.producto_mga,
-                'codigo_indicador_producto_mga': p.codigo_indicador_producto_mga,
-                'indicador_producto_mga': p.indicador_producto_mga,
-                'personalizacion_indicador': p.personalizacion_indicador,
-                'unidad_medida': p.unidad_medida,
-                'meta_cuatrienio': p.meta_cuatrienio,
-                'principal': p.principal,
-                'codigo_ods': p.codigo_ods,
-                'ods': p.ods,
-                'tipo_acumulacion': p.tipo_acumulacion,
-                'bpin': p.bpin,
-                'programacion_2024': p.programacion_2024,
-                'programacion_2025': p.programacion_2025,
-                'programacion_2026': p.programacion_2026,
-                'programacion_2027': p.programacion_2027,
-                'presupuesto_2024': p.presupuesto_2024,
-                'presupuesto_2025': p.presupuesto_2025,
-                'presupuesto_2026': p.presupuesto_2026,
-                'presupuesto_2027': p.presupuesto_2027,
-                'total_2024': p.total_2024,
-                'total_2025': p.total_2025,
-                'total_2026': p.total_2026,
-                'total_2027': p.total_2027,
-                'entity_id': p.entity_id,
-                'responsable_user_id': p.responsable_user_id,
-                'created_at': p.created_at.isoformat() if p.created_at else None,
-                'updated_at': p.updated_at.isoformat() if p.updated_at else None,
-            }
-            productos_dict.append(prod_dict)
+            try:
+                # Cargar actividades del producto usando el codigo_producto
+                actividades = db.query(PdmActividad).filter(
+                    PdmActividad.entity_id == entity.id,
+                    PdmActividad.codigo_producto == p.codigo_producto
+                ).all()
+                
+                # Asignar actividades al producto (para que Pydantic pueda validarlo)
+                p.actividades = actividades
+                
+                prod_response = schemas.ProductoResponse.model_validate(p)
+                productos_validos.append(prod_response)
+                
+            except Exception as e:
+                print(f"⚠️ Error validando producto {p.id}: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                # Si falla un producto, retornar lista vacía para evitar error 500
+                print(f"❌ Retornando lista vacía debido a error de validación")
+                return schemas.PDMDataResponse(productos_plan_indicativo=[])
         
-        return {'productos_plan_indicativo': productos_dict}
-        
+        print(f"✅ Retornando {len(productos_validos)} productos válidos con actividades")
+        return schemas.PDMDataResponse(
+            productos_plan_indicativo=productos_validos
+        )
     except HTTPException:
         raise
     except Exception as e:

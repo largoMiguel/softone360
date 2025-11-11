@@ -55,12 +55,31 @@ class ProductoPlanIndicativoBase(BaseModel):
     total_2027: float = 0
 
 
+class ActividadResponseBase(BaseModel):
+    """Base para respuestas - acepta datetime desde la DB"""
+    id: Optional[int] = None
+    codigo_producto: str
+    anio: int
+    nombre: str
+    descripcion: Optional[str] = None
+    responsable_user_id: Optional[int] = None
+    fecha_inicio: Optional[datetime] = None
+    fecha_fin: Optional[datetime] = None
+    meta_ejecutar: float
+    estado: str
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
 class ProductoResponse(ProductoPlanIndicativoBase):
     id: int
     entity_id: int
     responsable_user_id: Optional[int] = None
+    actividades: List[ActividadResponseBase] = []  # Incluir actividades asociadas
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -95,20 +114,6 @@ class ActividadUpdate(BaseModel):
     fecha_fin: Optional[str] = None
     meta_ejecutar: Optional[float] = None
     estado: Optional[str] = None
-
-
-class ActividadResponseBase(BaseModel):
-    """Base para respuestas - acepta datetime desde la DB"""
-    codigo_producto: str
-    anio: int
-    nombre: str
-    descripcion: Optional[str] = None
-    responsable: Optional[str] = None
-    responsable_user_id: Optional[int] = None
-    fecha_inicio: Optional[datetime] = None  # datetime para output desde DB
-    fecha_fin: Optional[datetime] = None  # datetime para output desde DB
-    meta_ejecutar: float
-    estado: str
 
 
 class EvidenciaActividadBase(BaseModel):

@@ -68,6 +68,15 @@ class PdmProducto(Base):
     
     # Relación con usuario responsable
     responsable_user = relationship("User", foreign_keys=[responsable_user_id])
+    
+    # Relación con actividades (lazy loading, se cargan bajo demanda)
+    actividades = relationship(
+        "PdmActividad",
+        foreign_keys="PdmActividad.codigo_producto",
+        primaryjoin="PdmProducto.codigo_producto == PdmActividad.codigo_producto",
+        viewonly=True,
+        lazy="select"
+    )
 
 
 # ============================================
