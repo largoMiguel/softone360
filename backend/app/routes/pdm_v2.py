@@ -187,21 +187,12 @@ async def get_pdm_data(
         
         print(f"📊 Encontrados {len(productos)} productos para entidad {slug}")
         
-        # Validar cada producto antes de retornar
-        productos_validos = []
-        for p in productos:
-            try:
-                prod_response = schemas.ProductoResponse.model_validate(p)
-                productos_validos.append(prod_response)
-            except Exception as e:
-                print(f"⚠️ Error validando producto {p.id}: {str(e)}")
-                # Si falla un producto, retornar lista vacía para evitar error 500
-                print(f"❌ Retornando lista vacía debido a error de validación")
-                return schemas.PDMDataResponse(productos_plan_indicativo=[])
-        
+        # Retornar productos directamente (sin validación que puede causar errores)
+        # El schema ProductoResponse usará from_attributes=True para mapear automáticamente
         return schemas.PDMDataResponse(
-            productos_plan_indicativo=productos_validos
+            productos_plan_indicativo=productos
         )
+        
     except HTTPException:
         raise
     except Exception as e:
