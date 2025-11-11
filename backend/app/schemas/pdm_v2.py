@@ -142,7 +142,7 @@ class ActividadResponse(ActividadResponseBase):
     entity_id: int
     evidencia: Optional[EvidenciaResponse] = None
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None  # Hacer opcional para evitar errores de serialización
 
     class Config:
         from_attributes = True

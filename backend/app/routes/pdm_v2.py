@@ -315,20 +315,34 @@ async def get_actividades_por_producto(
     current_user: User = Depends(get_current_active_user)
 ):
     """Obtiene todas las actividades de un producto, opcionalmente filtradas por año"""
-    entity = get_entity_or_404(db, slug)
-    ensure_user_can_manage_entity(current_user, entity)
-    
-    query = db.query(PdmActividad).filter(
-        PdmActividad.entity_id == entity.id,
-        PdmActividad.codigo_producto == codigo_producto
-    )
-    
-    if anio:
-        query = query.filter(PdmActividad.anio == anio)
-    
-    actividades = query.all()
-    
-    return [schemas.ActividadResponse.model_validate(a) for a in actividades]
+    try:
+        entity = get_entity_or_404(db, slug)
+        ensure_user_can_manage_entity(current_user, entity)
+        
+        query = db.query(PdmActividad).filter(
+            PdmActividad.entity_id == entity.id,
+            PdmActividad.codigo_producto == codigo_producto
+        )
+        
+        if anio:
+            query = query.filter(PdmActividad.anio == anio)
+        
+        actividades = query.all()
+        
+        print(f"📦 Encontradas {len(actividades)} actividades para producto {codigo_producto}")
+        
+        result = [schemas.ActividadResponse.model_validate(a) for a in actividades]
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error obteniendo actividades: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error obteniendo actividades: {str(e)}"
+        )
 
 
 @router.get("/{slug}/mis-actividades", response_model=List[schemas.ActividadResponse])
