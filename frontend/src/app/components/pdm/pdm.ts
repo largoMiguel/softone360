@@ -1343,11 +1343,13 @@ export class PdmComponent implements OnInit, OnDestroy {
             return 'PENDIENTE'; // Sin actividades creadas aún
         }
         
-        if (avance === 100 && resumenActividades.actividades_completadas === resumenActividades.total_actividades) {
+        // COMPLETADO: SOLO si tiene 100% DE AVANCE Y TODAS las actividades tienen evidencia
+        if (avance === 100 && resumenActividades.meta_ejecutada === resumenActividades.meta_programada && resumenActividades.actividades_completadas === resumenActividades.total_actividades) {
             return 'COMPLETADO'; // Todas las actividades tienen evidencia
         }
         
-        if (avance >= 100 || resumenActividades.meta_asignada > 0) {
+        // EN_PROGRESO: Hay actividades asignadas o en ejecución (incluso si muestra 100% de asignación)
+        if (resumenActividades.meta_asignada > 0) {
             return 'EN_PROGRESO'; // Hay actividades asignadas o en ejecución
         }
 
