@@ -134,15 +134,9 @@ export class PdmComponent implements OnInit, OnDestroy {
     get productosFiltrados(): ResumenProducto[] {
         let productos = this.resumenProductos;
 
-        // Filtro de rol: 
-        // - SECRETARIO: solo sus productos asignados (responsable_id === su usuario ID)
-        // - ADMIN/otros: todos los productos
-        const currentUser = this.authService.getCurrentUserValue();
-        if (currentUser && currentUser.role === 'secretario') {
-            // El secretario solo ve productos asignados a él
-            productos = productos.filter(p => p.responsable_id === currentUser.id);
-        }
-        // Los admin y otros roles ven TODOS los productos (sin filtro de responsable)
+        // ✅ FILTRADO EN BACKEND: Ya viene filtrado por rol desde el servidor
+        // No hay que aplicar filtro de secretario aquí - el backend lo maneja
+        // Los secretarios ya solo recibirán sus productos asignados
 
         // Filtrar productos con meta > 0 para el año seleccionado
         productos = productos.filter(p => {

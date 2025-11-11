@@ -73,12 +73,20 @@ class ActividadResponseBase(BaseModel):
         from_attributes = True
 
 
+class ActividadResponseConEvidencia(ActividadResponseBase):
+    """Actividad con evidencia - para retornar en productos"""
+    evidencia: Optional['EvidenciaResponse'] = None
+
+    class Config:
+        from_attributes = True
+
+
 class ProductoResponse(ProductoPlanIndicativoBase):
     id: int
     entity_id: int
     responsable_user_id: Optional[int] = None
     responsable_nombre: Optional[str] = None  # Nombre completo del responsable (enriquecido)
-    actividades: List['ActividadResponse'] = []  # Incluir actividades asociadas CON evidencias
+    actividades: List['ActividadResponseConEvidencia'] = []  # Incluir actividades asociadas CON evidencias
     created_at: datetime
     updated_at: Optional[datetime] = None
 

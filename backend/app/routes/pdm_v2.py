@@ -10,7 +10,7 @@ from datetime import datetime
 
 from app.config.database import get_db
 from app.models.entity import Entity
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.models.alert import Alert
 from app.models.pdm import (
     PdmProducto,
@@ -170,21 +170,34 @@ async def upload_pdm_data(
 # Obtener todos los datos del PDM
 # ==============================================
 
-@router.get("/{slug}/data", response_model=schemas.PDMDataResponse)
+@router.get("/{slug}/data")
 async def get_pdm_data(
     slug: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Obtiene los productos del PDM cargados con sus actividades y otros arrays del frontend"""
+    """Obtiene los productos del PDM cargados con sus actividades y otros arrays del frontend
+    
+    FILTRADO POR ROL EN BACKEND:
+    - ADMIN: ve TODOS los productos
+    - SECRETARIO: ve SOLO sus productos asignados (responsable_user_id == current_user.id)
+    """
     try:
         entity = get_entity_or_404(db, slug)
         ensure_user_can_manage_entity(current_user, entity)
         
+        # Construir query base
+        query = db.query(PdmProducto).filter(PdmProducto.entity_id == entity.id)
+        
+        # FILTRADO POR ROL: Secretarios solo ven sus productos asignados
+        if current_user.role == UserRole.SECRETARIO:
+            query = query.filter(PdmProducto.responsable_user_id == current_user.id)
+            print(f"🔐 Usuario SECRETARIO {current_user.id} - filtrando por productos asignados")
+        else:
+            print(f"👨‍💼 Usuario {current_user.role} - viendo TODOS los productos")
+        
         # Cargar productos CON sus actividades relacionadas (eager loading)
-        productos = db.query(PdmProducto).filter(
-            PdmProducto.entity_id == entity.id
-        ).all()
+        productos = query.all()
         
         print(f"📊 Encontrados {len(productos)} productos para entidad {slug}")
         
