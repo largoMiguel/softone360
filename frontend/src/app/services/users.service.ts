@@ -34,6 +34,13 @@ export interface UserCreatePayload {
     entity_id?: number | null;
 }
 
+export interface DeleteUserResponse {
+    message: string;
+    secretaria_id?: number | null;
+    secretaria_nombre?: string | null;
+    otros_usuarios_en_secretaria?: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class UsersService {
     private http = inject(HttpClient);
@@ -47,7 +54,14 @@ export class UsersService {
         return this.http.post<UserResponse>(`${this.baseUrl}/`, data);
     }
 
-    eliminar(id: number): Observable<{ message: string }> {
-        return this.http.delete<{ message: string }>(`${this.baseUrl}/${id}/`);
+    eliminar(id: number): Observable<DeleteUserResponse> {
+        return this.http.delete<DeleteUserResponse>(`${this.baseUrl}/${id}/`);
+    }
+
+    /**
+     * Obtiene la lista de secretarías existentes de la entidad actual
+     */
+    obtenerSecretarias(): Observable<string[]> {
+        return this.http.get<string[]>(`${this.baseUrl}/secretarias/`);
     }
 }

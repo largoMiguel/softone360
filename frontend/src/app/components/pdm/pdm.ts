@@ -74,6 +74,9 @@ export class PdmComponent implements OnInit, OnDestroy {
     // Secretarios para dropdown
     secretarios: any[] = [];
     cargandoSecretarios = false;
+    
+    // Secretarías agrupadas con responsables
+    secretariasAgrupadas: any[] = [];
 
     // Filtros
     filtroLinea = '';
@@ -1093,20 +1096,80 @@ export class PdmComponent implements OnInit, OnDestroy {
     /**
      * Carga la lista de secretarios de la entidad
      */
+    /**
+     * Carga los secretarios de la entidad y los agrupa por secretaría
+     */
     cargarSecretarios() {
         this.cargandoSecretarios = true;
         this.pdmService.obtenerSecretariosEntidad().subscribe({
             next: (secretarios) => {
                 this.secretarios = secretarios;
-                this.cargandoSecretarios = false;
                 console.log('✅ Secretarios cargados:', secretarios.length);
+                
+                // Agrupar por secretaría
+                this.agruparSecretariosporSecretaria();
             },
             error: (error) => {
                 console.error('❌ Error al cargar secretarios:', error);
                 this.cargandoSecretarios = false;
                 this.secretarios = [];
+                this.secretariasAgrupadas = [];
             }
         });
+    }
+
+    /**
+     * Agrupa los secretarios por secretaría para mostrar en dropdowns
+     */
+    private agruparSecretariosporSecretaria() {
+        const secretariaMap = new Map<number | string, any[]>();
+        
+        console.log('🔄 Agrupando secretarios...', 'cantidad:', this.secretarios.length);
+        
+        this.secretarios.forEach((sec, idx) => {
+            const nomSec = sec.secretaria || 'Sin Secretaría';
+            const secretariaId = sec.secretaria_id;
+            
+            console.log(`  [${idx}] ${sec.username}: secretaria_id=${secretariaId} (type: ${typeof secretariaId}), secretaria=${nomSec}`);
+            
+            // Solo usar secretaria_id si es un número válido
+            let clave: number | string;
+            if (typeof secretariaId === 'number' && !isNaN(secretariaId) && secretariaId > 0) {
+                clave = secretariaId;
+            } else {
+                // Si no hay ID válido, usar el nombre como clave (fallback)
+                clave = nomSec;
+            }
+            
+            if (!secretariaMap.has(clave)) {
+                secretariaMap.set(clave, []);
+            }
+            secretariaMap.get(clave)!.push(sec);
+        });
+
+        // Convertir a array de objetos, asegurando que id sea siempre un número válido o cero
+        this.secretariasAgrupadas = Array.from(secretariaMap.entries()).map(([id, responsables]) => {
+            // Validar y garantizar que id sea un número válido
+            let validId: number;
+            if (typeof id === 'number' && !isNaN(id)) {
+                validId = id;
+            } else {
+                // Si id no es un número, intentar extraer de algún usuario
+                const idFromUser = responsables.find(r => typeof r.secretaria_id === 'number' && r.secretaria_id > 0)?.secretaria_id;
+                validId = idFromUser || 0;
+            }
+            
+            console.log(`  ✅ Agrupada: ${responsables[0]?.secretaria || 'Sin Secretaría'} -> id: ${validId}`);
+            
+            return {
+                nombre: responsables[0]?.secretaria || 'Sin Secretaría',
+                responsables,
+                id: validId  // ID numérico garantizado
+            };
+        });
+
+        console.log('✅ Secretarías agrupadas completas:', this.secretariasAgrupadas);
+        this.cargandoSecretarios = false;
     }
 
     /**
@@ -2344,46 +2407,103 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Filtra secretarios por secretaría (sector)
      */
     secretariosPorSecretaria(sector: string): any[] {
-        if (!sector || !this.secretarios || this.secretarios.length === 0) {
+        if (!sector) {
             return this.secretarios;
         }
         
-        // Intentar filtrar por secretaría que coincida con el sector
-        // Por ejemplo, si el sector es "Salud y protección social", buscar secretarios de la Secretaría de Salud
+        // Buscar en secretarías agrupadas
+        const secretariaEncontrada = this.secretariasAgrupadas.find(s => 
+            s.nombre.toLowerCase().includes(sector.toLowerCase()) || 
+            sector.toLowerCase().includes(s.nombre.toLowerCase())
+        );
+        
+        if (secretariaEncontrada) {
+            return secretariaEncontrada.responsables;
+        }
+        
+        // Fallback: filtrar por coincidencia en el campo secretaria del usuario
         const secretariosFiltrados = this.secretarios.filter(s => {
             const secretariaNombre = s.secretaria?.toLowerCase() || '';
             const sectorNombre = sector.toLowerCase();
             return secretariaNombre.includes(sectorNombre) || sectorNombre.includes(secretariaNombre);
         });
         
-        // Si no hay coincidencias, retornar todos
         return secretariosFiltrados.length > 0 ? secretariosFiltrados : this.secretarios;
     }
 
     /**
-     * Asigna un responsable a un producto
+     * Asigna una SECRETARÍA como responsable de un producto
+     * ✅ Todos los usuarios de esa secretaría verán el producto
      */
     asignarResponsable(producto: ResumenProducto, event: Event): void {
         const select = event.target as HTMLSelectElement;
-        const responsableId = parseInt(select.value);
+        let selectedValue = select.value;
         
-        if (!responsableId) {
+        console.log('📋 asignarResponsable - Valores iniciales:');
+        console.log('   • selectedValue del select:', selectedValue, 'type:', typeof selectedValue);
+        console.log('   • select.value:', select.value);
+        console.log('   • producto.codigo:', producto.codigo);
+        console.log('   • secretariasAgrupadas:', this.secretariasAgrupadas);
+        
+        if (!selectedValue || selectedValue === '') {
+            console.error('❌ No se seleccionó ninguna secretaría');
             return;
         }
 
-        this.pdmService.asignarResponsableProducto(producto.codigo, responsableId).subscribe({
+        // Convertir a número si es posible
+        let secretariaIdNumerico = parseInt(selectedValue, 10);
+        
+        console.log('   • secretariaIdNumerico:', secretariaIdNumerico, 'isNaN:', isNaN(secretariaIdNumerico));
+        
+        if (isNaN(secretariaIdNumerico)) {
+            console.error('❌ El valor seleccionado no es un número válido:', selectedValue);
+            return;
+        }
+
+        // Buscar la secretaría en secretariasAgrupadas para obtener su nombre
+        const secretariaSeleccionada = this.secretariasAgrupadas.find(s => {
+            console.log('   • Comparando:', 's.id=', s.id, '(type:', typeof s.id + ')', 'vs secretariaIdNumerico=', secretariaIdNumerico);
+            // Comparar como números
+            const sIdNum = typeof s.id === 'number' ? s.id : parseInt(String(s.id), 10);
+            return sIdNum === secretariaIdNumerico;
+        });
+        
+        if (!secretariaSeleccionada) {
+            console.error('❌ Secretaría no encontrada en la lista');
+            console.log('   • Buscábamos ID:', secretariaIdNumerico);
+            console.log('   • IDs disponibles:', this.secretariasAgrupadas.map(s => s.id));
+            return;
+        }
+
+        const secretariaNombre = secretariaSeleccionada.nombre;
+        console.log('   • ✅ Secretaría seleccionada:', secretariaNombre);
+        console.log('   • Llamando asignarResponsableProducto con ID:', secretariaIdNumerico);
+
+        this.pdmService.asignarResponsableProducto(producto.codigo, secretariaIdNumerico).subscribe({
             next: (response) => {
-                console.log('✅ Responsable asignado:', response);
+                console.log('✅ Secretaría asignada como responsable:');
+                console.log('   • Response:', response);
                 
                 // Actualizar el producto en la lista
-                producto.responsable_id = response.responsable_id;
-                producto.responsable_nombre = response.responsable_nombre;
+                const nuevoId = response.responsable_secretaria_id;
+                const nuevoNombre = response.responsable_secretaria_nombre;
                 
-                this.showToast(`Responsable asignado correctamente al producto ${producto.codigo}`, 'success');
+                console.log('   • Actualizando producto:');
+                console.log('     - responsable_id:', nuevoId);
+                console.log('     - responsable_nombre:', nuevoNombre);
+                
+                producto.responsable_id = nuevoId;
+                producto.responsable_nombre = nuevoNombre;
+                
+                // Forzar actualización del select al nuevo valor
+                select.value = nuevoId?.toString() || '';
+                
+                console.log('   • select.value después de asignar:', select.value);
+                this.showToast(`Secretaría "${nuevoNombre}" asignada al producto ${producto.codigo}`, 'success');
             },
             error: (error) => {
-                console.error('❌ Error al asignar responsable:', error);
-                this.showToast('Error al asignar responsable', 'error');
+                console.error('❌ Error al asignar secretaría:', error);
+                this.showToast('Error al asignar secretaría: ' + (error.error?.detail || error.message), 'error');
                 
                 // Revertir selección
                 select.value = producto.responsable_id?.toString() || '';

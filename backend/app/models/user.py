@@ -42,6 +42,9 @@ class User(Base):
     # Relación con secretaría (solo para SECRETARIO)
     secretaria_id = Column(Integer, ForeignKey("secretarias.id", ondelete="SET NULL"), nullable=True, index=True)
     
+    # Campo de texto para compatibilidad backward (guarda el nombre de la secretaría si no está en tabla secretarias)
+    secretaria = Column(String, nullable=True)
+    
     # Tipo de usuario (para diferenciar secretarios de contratistas)
     user_type = Column(
         Enum(

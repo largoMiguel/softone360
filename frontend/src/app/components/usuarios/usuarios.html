@@ -12,37 +12,67 @@
 
     <div class="card" *ngIf="!cargando">
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover mb-0" data-version="1.1">
                 <thead>
                     <tr>
-                        <th>Usuario</th>
                         <th>Nombre</th>
+                        <th>Usuario</th>
                         <th>Email</th>
                         <th>Rol</th>
-                        <th>Secretaría</th>
+                        <th>Tipo</th>
+                        <th>Módulos</th>
+                        <th style="background-color: #e7f3ff;">🏢 Secretaría</th>
                         <th>Estado</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr *ngFor="let u of usuarios">
-                        <td>{{ u.username }}</td>
                         <td>{{ u.full_name }}</td>
+                        <td>{{ u.username }}</td>
                         <td>{{ u.email }}</td>
-                        <td>{{ u.role }}</td>
-                        <td>{{ u.secretaria || '-' }}</td>
+                        <td>
+                            <span class="badge" [class.bg-primary]="u.role === 'ADMIN'" [class.bg-secondary]="u.role !== 'ADMIN'">
+                                {{ u.role }}
+                            </span>
+                        </td>
+                        <td>
+                            <span *ngIf="u.user_type" class="badge bg-info">{{ u.user_type }}</span>
+                            <span *ngIf="!u.user_type" class="text-muted">-</span>
+                        </td>
+                        <td>
+                            <span *ngIf="u.allowed_modules && u.allowed_modules.length > 0" class="badge bg-success">
+                                {{ u.allowed_modules.length > 1 ? 'Varios' : u.allowed_modules[0] }}
+                            </span>
+                            <span *ngIf="!u.allowed_modules || u.allowed_modules.length === 0" class="text-muted">Todos</span>
+                        </td>
+                        <td>
+                            <span *ngIf="u.secretaria" class="badge bg-info text-white">
+                                <i class="fas fa-building me-1"></i>{{ u.secretaria }}
+                            </span>
+                            <span *ngIf="!u.secretaria" class="text-muted">-</span>
+                        </td>
                         <td>
                             <span class="badge" [class.bg-success]="u.is_active" [class.bg-secondary]="!u.is_active">
                                 {{ u.is_active ? 'Activo' : 'Inactivo' }}
                             </span>
                         </td>
                         <td>
-                            <button class="btn btn-sm btn-outline-danger" (click)="eliminarUsuario(u)"><i
-                                    class="fas fa-trash"></i></button>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-warning" title="Copiar">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" (click)="eliminarUsuario(u)" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     <tr *ngIf="usuarios.length === 0">
-                        <td colspan="7" class="text-center text-muted py-4">No hay usuarios</td>
+                        <td colspan="9" class="text-center text-muted py-4">No hay usuarios</td>
                     </tr>
                 </tbody>
             </table>
@@ -101,13 +131,22 @@
                             </div>
                         </div>
 
-                        <!-- Secretaría: solo pedir el nombre, sin lista -->
+                        <!-- Secretaría: autocompletar con secretarías existentes -->
                         <div class="mb-3">
                             <label class="form-label">Nombre de la Secretaría</label>
-                            <input type="text" class="form-control" [(ngModel)]="form.secretaria" name="secretaria"
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                [(ngModel)]="form.secretaria" 
+                                name="secretaria"
+                                list="secretariasList"
                                 placeholder="Ej: Secretaría de Gobierno" />
-                            <small class="text-muted">Se guardará como texto. No se carga lista; se crea con el nombre
-                                indicado.</small>
+                            <datalist id="secretariasList">
+                                <option *ngFor="let sec of secretarias" [value]="sec">{{ sec }}</option>
+                            </datalist>
+                            <small class="text-muted">
+                                Selecciona de la lista o escribe una nueva secretaría
+                            </small>
                         </div>
                     </form>
                 </div>

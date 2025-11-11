@@ -1,6 +1,7 @@
 # Archivo para hacer que sea un paquete Python
 from app.models.user import User, UserRole
 from app.models.entity import Entity
+from app.models.secretaria import Secretaria
 from app.models.pqrs import PQRS
 from app.models.plan import (
     PlanInstitucional, 
@@ -22,7 +23,8 @@ from app.models.pdm import (
 __all__ = [
     "User", 
     "UserRole", 
-    "Entity", 
+    "Entity",
+    "Secretaria", 
     "PQRS", 
     "PlanInstitucional", 
     "ComponenteProceso",

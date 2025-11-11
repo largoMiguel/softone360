@@ -1462,7 +1462,7 @@ export class PdmService {
      * Obtiene la lista de usuarios/secretarios de la entidad actual
      */
     obtenerSecretariosEntidad(): Observable<any[]> {
-    return this.http.get<any[]>(`${environment.apiUrl}/users/?role=secretario`).pipe(
+        return this.http.get<any[]>(`${environment.apiUrl}/users/?role=secretario`).pipe(
             tap(resp => {
                 console.log('🔍 Respuesta cruda de secretarios:', resp);
             }),
@@ -1472,6 +1472,36 @@ export class PdmService {
                     console.error('❌ Detalle error:', error.error);
                 }
                 return of([]);
+            })
+        );
+    }
+
+    /**
+     * Obtiene secretarías agrupadas con sus responsables
+     */
+    obtenerSecretariasConResponsables(): Observable<any[]> {
+        return this.obtenerSecretariosEntidad().pipe(
+            map(secretarios => {
+                // Agrupar secretarios por secretaría
+                const secretariaMap = new Map<string, any[]>();
+                
+                secretarios.forEach(sec => {
+                    const nomSec = sec.secretaria || 'Sin Secretaría';
+                    if (!secretariaMap.has(nomSec)) {
+                        secretariaMap.set(nomSec, []);
+                    }
+                    secretariaMap.get(nomSec)!.push(sec);
+                });
+
+                // Convertir a array de objetos
+                const result = Array.from(secretariaMap.entries()).map(([nombre, responsables]) => ({
+                    nombre,
+                    responsables,
+                    id: responsables[0]?.secretaria || nombre
+                }));
+
+                console.log('✅ Secretarías con responsables:', result);
+                return result;
             })
         );
     }
@@ -1502,22 +1532,23 @@ export class PdmService {
     }
 
     /**
-     * Asigna un responsable a un producto
+     * Asigna una SECRETARÍA como responsable de un producto
+     * ✅ Todos los usuarios de esa secretaría verán el producto
      */
-    asignarResponsableProducto(codigoProducto: string, responsableUserId: number): Observable<any> {
+    asignarResponsableProducto(codigoProducto: string, responsableSecretariaId: number): Observable<any> {
         if (!this.entitySlug) {
             console.warn('⚠️ No hay slug de entidad disponible');
             return of(null);
         }
 
-        const url = `${this.API_URL}/${this.entitySlug}/productos/${codigoProducto}/responsable?responsable_user_id=${responsableUserId}`;
+        const url = `${this.API_URL}/${this.entitySlug}/productos/${codigoProducto}/responsable?responsable_secretaria_id=${responsableSecretariaId}`;
         
         return this.http.patch(url, {}).pipe(
             tap(response => {
-                console.log('✅ Responsable asignado:', response);
+                console.log('✅ Secretaría asignada como responsable:', response);
             }),
             catchError(error => {
-                console.error('❌ Error al asignar responsable:', error);
+                console.error('❌ Error al asignar secretaría responsable:', error);
                 throw error;
             })
         );

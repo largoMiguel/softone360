@@ -15,6 +15,7 @@ export class UsuariosComponent implements OnInit {
 
     cargando = false;
     usuarios: UserResponse[] = [];
+    secretarias: string[] = [];
 
     modalAbierto: boolean = false;
     creando = false;
@@ -24,8 +25,12 @@ export class UsuariosComponent implements OnInit {
         role: 'SECRETARIO'
     };
 
+    // VERSION: 1.1 - Mostrar secretaría en tabla
+    version = '1.1';
+
     ngOnInit(): void {
         this.cargar();
+        this.cargarSecretarias();
     }
 
     cargar() {
@@ -34,6 +39,22 @@ export class UsuariosComponent implements OnInit {
             next: (data) => (this.usuarios = data),
             error: () => (this.usuarios = []),
             complete: () => (this.cargando = false)
+        });
+    }
+
+    /**
+     * Carga la lista de secretarías existentes para autocompletar
+     */
+    cargarSecretarias() {
+        this.usersService.obtenerSecretarias().subscribe({
+            next: (data) => {
+                this.secretarias = data;
+                console.log('✅ Secretarías cargadas:', this.secretarias);
+            },
+            error: (err) => {
+                console.error('❌ Error al cargar secretarías:', err);
+                this.secretarias = [];
+            }
         });
     }
 
@@ -60,9 +81,8 @@ export class UsuariosComponent implements OnInit {
             password: this.form.password!,
             role: this.form.role!,
             user_type: this.form.user_type ?? 'secretario',
-            // Requisito: no cargar lista de Secretaría; solo pedir nombre libre
+            // Enviar nombre de secretaría: se creará automáticamente en la tabla secretarias
             secretaria: (this.form.secretaria || '').trim() || null,
-            // No seteamos entity_id aquí; el backend lo forzará para ADMIN
             allowed_modules: this.form.allowed_modules ?? null
         };
 
@@ -71,6 +91,7 @@ export class UsuariosComponent implements OnInit {
             next: () => {
                 this.cerrarModal();
                 this.cargar();
+                this.cargarSecretarias();  // Recargar secretarías por si se agregó una nueva
             },
             error: () => {
                 this.cargando = false;
@@ -80,6 +101,28 @@ export class UsuariosComponent implements OnInit {
 
     eliminarUsuario(u: UserResponse) {
         if (!confirm(`¿Eliminar usuario ${u.username}?`)) return;
-        this.usersService.eliminar(u.id).subscribe(() => this.cargar());
+        
+        this.cargando = true;
+        this.usersService.eliminar(u.id).subscribe({
+            next: (response) => {
+                // Mostrar mensaje detallado
+                let mensaje = `✅ Usuario ${u.username} eliminado`;
+                if (u.secretaria) {
+                    mensaje += `\n✅ La Secretaría "${u.secretaria}" permanece activa`;
+                    if (response.otros_usuarios_en_secretaria && response.otros_usuarios_en_secretaria > 0) {
+                        mensaje += ` (${response.otros_usuarios_en_secretaria} otro(s) usuario(s))`;
+                    }
+                }
+                
+                console.log(mensaje);
+                alert(mensaje);
+                this.cargar();
+            },
+            error: (err) => {
+                console.error('❌ Error al eliminar usuario:', err);
+                alert('Error al eliminar usuario: ' + (err.error?.detail || err.message));
+                this.cargando = false;
+            }
+        });
     }
 }

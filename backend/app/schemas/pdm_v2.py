@@ -37,10 +37,10 @@ class ProductoPlanIndicativoBase(BaseModel):
     bpin: Optional[str] = None
     
     # Programación
-    programacion_2024: float = 0
-    programacion_2025: float = 0
-    programacion_2026: float = 0
-    programacion_2027: float = 0
+    programacion_2024: Optional[float] = None
+    programacion_2025: Optional[float] = None
+    programacion_2026: Optional[float] = None
+    programacion_2027: Optional[float] = None
     
     # Presupuesto (JSON simplificado)
     presupuesto_2024: Optional[Dict[str, Any]] = None
@@ -49,10 +49,10 @@ class ProductoPlanIndicativoBase(BaseModel):
     presupuesto_2027: Optional[Dict[str, Any]] = None
     
     # Totales
-    total_2024: float = 0
-    total_2025: float = 0
-    total_2026: float = 0
-    total_2027: float = 0
+    total_2024: Optional[float] = None
+    total_2025: Optional[float] = None
+    total_2026: Optional[float] = None
+    total_2027: Optional[float] = None
 
 
 class ActividadResponseBase(BaseModel):

@@ -2,7 +2,7 @@
 Rutas API para PDM - Versión 2
 Alineadas con la estructura del frontend
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
@@ -189,10 +189,16 @@ async def get_pdm_data(
         # Construir query base
         query = db.query(PdmProducto).filter(PdmProducto.entity_id == entity.id)
         
-        # FILTRADO POR ROL: Secretarios solo ven sus productos asignados
+        # FILTRADO POR ROL: Secretarios solo ven productos asignados a SU secretaría
         if current_user.role == UserRole.SECRETARIO:
-            query = query.filter(PdmProducto.responsable_user_id == current_user.id)
-            print(f"🔐 Usuario SECRETARIO {current_user.id} - filtrando por productos asignados")
+            # ✅ Si el usuario es secretario, ver productos asignados a su secretaría
+            if current_user.secretaria_id:
+                query = query.filter(PdmProducto.responsable_secretaria_id == current_user.secretaria_id)
+                print(f"🔐 Usuario SECRETARIO {current_user.username} (secretaria_id={current_user.secretaria_id}) - filtrando por productos de su secretaría")
+            else:
+                # Si no tiene secretaría asignada, no ver productos
+                query = query.filter(PdmProducto.id == -1)  # Query que no retorna nada
+                print(f"🔐 Usuario SECRETARIO {current_user.username} sin secretaría asignada - sin acceso a productos")
         else:
             print(f"👨‍💼 Usuario {current_user.role} - viendo TODOS los productos")
         
@@ -217,15 +223,15 @@ async def get_pdm_data(
                 # Asignar actividades al producto (para que Pydantic pueda validarlo)
                 p.actividades = actividades
                 
-                # Enriquecer con nombre del responsable si existe
+                # Enriquecer con nombre del responsable (SECRETARÍA) si existe
                 responsable_nombre = None
-                if p.responsable_user_id:
-                    usuario_responsable = db.query(User).filter(User.id == p.responsable_user_id).first()
-                    if usuario_responsable:
-                        responsable_nombre = usuario_responsable.full_name or usuario_responsable.name
+                
+                # ✅ Mostrar SECRETARÍA como responsable (no usuario)
+                if p.responsable_secretaria_nombre:
+                    responsable_nombre = p.responsable_secretaria_nombre
                 
                 prod_response = schemas.ProductoResponse.model_validate(p)
-                # Agregar el nombre del responsable al response
+                # Agregar el nombre de la secretaría responsable al response
                 prod_response.responsable_nombre = responsable_nombre
                 productos_validos.append(prod_response)
                 
@@ -557,11 +563,28 @@ async def get_evidencia(
 async def asignar_responsable_producto(
     slug: str,
     codigo_producto: str,
-    responsable_user_id: int,
+    responsable_secretaria_id: str = Query(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Asigna un responsable a un producto del PDM y crea una alerta"""
+    """
+    Asigna una SECRETARÍA como responsable de un producto del PDM.
+    
+    ✅ El producto se asigna a la SECRETARÍA, no a un usuario específico
+    ✅ TODOS los usuarios de esa secretaría ven el producto en su lista
+    ✅ Se crean alertas para TODOS los usuarios de la secretaría
+    
+    Args:
+        responsable_secretaria_id: ID de la secretaría responsable del producto
+    """
+    from app.models.secretaria import Secretaria
+    
+    # Convertir a número
+    try:
+        responsable_secretaria_id = int(responsable_secretaria_id)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="responsable_secretaria_id debe ser un número entero")
+    
     entity = get_entity_or_404(db, slug)
     ensure_user_can_manage_entity(current_user, entity)
     
@@ -574,39 +597,51 @@ async def asignar_responsable_producto(
     if not producto:
         raise HTTPException(status_code=404, detail=f"Producto '{codigo_producto}' no encontrado")
     
-    # Verificar que el usuario existe y pertenece a la entidad
-    usuario = db.query(User).filter(
-        User.id == responsable_user_id,
-        User.entity_id == entity.id
+    # Verificar que la secretaría existe y pertenece a la entidad
+    secretaria = db.query(Secretaria).filter(
+        Secretaria.id == responsable_secretaria_id,
+        Secretaria.entity_id == entity.id
     ).first()
     
-    if not usuario:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado o no pertenece a esta entidad")
+    if not secretaria:
+        raise HTTPException(status_code=404, detail="Secretaría no encontrada o no pertenece a esta entidad")
     
-    # Asignar responsable
-    producto.responsable_user_id = responsable_user_id
+    # Asignar secretaría como responsable
+    producto.responsable_secretaria_id = responsable_secretaria_id
+    producto.responsable_secretaria_nombre = secretaria.nombre
     
     db.commit()
     db.refresh(producto)
     
-    # Crear alerta para el nuevo responsable
-    alerta = Alert(
-        entity_id=entity.id,
-        recipient_user_id=responsable_user_id,
-        type="PDM_PRODUCT_ASSIGNED",
-        title=f"Producto asignado: {producto.codigo_producto}",
-        message=f"Se te ha asignado el producto '{producto.indicador_producto_mga or producto.personalizacion_indicador}' para seguimiento en el PDM.",
-        data=f'{{"producto_codigo": "{producto.codigo_producto}", "slug": "{slug}"}}',
-        created_at=datetime.utcnow()
-    )
-    db.add(alerta)
+    # ✅ Crear alertas para TODOS los usuarios de esta secretaría
+    usuarios_en_secretaria = db.query(User).filter(
+        User.secretaria_id == responsable_secretaria_id,
+        User.entity_id == entity.id,
+        User.is_active == True
+    ).all()
+    
+    for usuario in usuarios_en_secretaria:
+        alerta = Alert(
+            entity_id=entity.id,
+            recipient_user_id=usuario.id,
+            type="PDM_PRODUCT_ASSIGNED",
+            title=f"Producto asignado a tu secretaría: {producto.codigo_producto}",
+            message=f"El producto '{producto.indicador_producto_mga or producto.personalizacion_indicador}' ha sido asignado a la Secretaría {secretaria.nombre} para seguimiento en el PDM.",
+            data=f'{{"producto_codigo": "{producto.codigo_producto}", "slug": "{slug}", "secretaria_id": {responsable_secretaria_id}}}',
+            created_at=datetime.utcnow()
+        )
+        db.add(alerta)
+    
     db.commit()
+    
+    print(f"✅ Producto asignado a secretaría {secretaria.nombre}")
+    print(f"✅ Alertas creadas para {len(usuarios_en_secretaria)} usuario(s)")
     
     return {
         "success": True,
-        "message": f"Responsable asignado correctamente al producto {codigo_producto}",
+        "message": f"Producto asignado a la secretaría '{secretaria.nombre}'",
         "producto_codigo": producto.codigo_producto,
-        "responsable_id": producto.responsable_user_id,
-        "responsable_nombre": usuario.full_name or usuario.name,
-        "alerta_creada": True
+        "responsable_secretaria_id": producto.responsable_secretaria_id,
+        "responsable_secretaria_nombre": producto.responsable_secretaria_nombre,
+        "usuarios_notificados": len(usuarios_en_secretaria)
     }

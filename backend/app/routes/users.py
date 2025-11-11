@@ -25,25 +25,51 @@ async def list_secretarias(
     Devuelve la lista de nombres de secretarías existentes para una entidad.
     - SUPERADMIN: puede consultar por cualquier entidad si especifica entity_id; si no, retorna vacío.
     - ADMIN/SECRETARIO: retorna las secretarías dentro de su propia entidad.
+    
+    Esta lista se obtiene TANTO de la tabla secretarias como de los usuarios que tienen secretaria asignada.
     """
     from app.models.secretaria import Secretaria
     
+    # Obtener de la tabla secretarias
     query = db.query(Secretaria.nombre).filter(Secretaria.is_active == True)
 
     if current_user.role == UserRole.SUPERADMIN:
         if entity_id:
             query = query.filter(Secretaria.entity_id == entity_id)
         else:
-            # Sin entity_id explícito, no retornar global para evitar mezclar entre entidades
             return []
     else:
-        # Admin/Secretario limitados a su entidad
         if not current_user.entity_id:
             return []
         query = query.filter(Secretaria.entity_id == current_user.entity_id)
 
+    secretarias_set = set()
     rows = query.distinct().all()
-    secretarias = sorted([r[0] for r in rows if r and r[0]], key=lambda s: s.lower())
+    for r in rows:
+        if r and r[0]:
+            secretarias_set.add(r[0])
+    
+    # También obtener las secretarías de los usuarios (para compatibilidad backward)
+    users_query = db.query(User.secretaria).filter(
+        User.secretaria != None,
+        User.secretaria != ''
+    )
+    
+    if current_user.role == UserRole.SUPERADMIN:
+        if entity_id:
+            users_query = users_query.filter(User.entity_id == entity_id)
+    else:
+        if not current_user.entity_id:
+            return []
+        users_query = users_query.filter(User.entity_id == current_user.entity_id)
+    
+    user_rows = users_query.distinct().all()
+    for r in user_rows:
+        if r and r[0]:
+            secretarias_set.add(r[0])
+    
+    # Retornar ordenado
+    secretarias = sorted(list(secretarias_set), key=lambda s: s.lower())
     return secretarias
 
 @router.get("/users/", response_model=List[UserResponse])
@@ -225,6 +251,8 @@ async def create_user(
 
     # Si se proporciona una secretaría_id, validar que existe y pertenece a la entidad
     secretaria_id = None
+    secretaria_nombre = None
+    
     if hasattr(user_data, 'secretaria_id') and user_data.secretaria_id and user_data.entity_id:
         from app.models.secretaria import Secretaria
         secretaria = db.query(Secretaria).filter(
@@ -234,6 +262,30 @@ async def create_user(
         if not secretaria:
             raise HTTPException(status_code=400, detail="Secretaría no encontrada o no pertenece a la entidad")
         secretaria_id = user_data.secretaria_id
+        secretaria_nombre = secretaria.nombre
+
+    # ✅ Si se proporciona un nombre de secretaría (y no una secretaria_id), crear la secretaría en la tabla secretarias
+    if hasattr(user_data, 'secretaria') and user_data.secretaria and user_data.entity_id and not secretaria_id:
+        from app.models.secretaria import Secretaria
+        secretaria_nombre = (user_data.secretaria or '').strip()
+        if secretaria_nombre:
+            # Buscar si ya existe
+            existing_secretaria = db.query(Secretaria).filter(
+                Secretaria.entity_id == user_data.entity_id,
+                Secretaria.nombre.ilike(secretaria_nombre)
+            ).first()
+            if not existing_secretaria:
+                # Crear la secretaría
+                new_secretaria = Secretaria(
+                    entity_id=user_data.entity_id,
+                    nombre=secretaria_nombre,
+                    is_active=True
+                )
+                db.add(new_secretaria)
+                db.flush()
+                secretaria_id = new_secretaria.id
+            else:
+                secretaria_id = existing_secretaria.id
 
     # Crear el usuario
     db_user = User(
@@ -244,6 +296,7 @@ async def create_user(
         role=user_data.role,
         entity_id=user_data.entity_id,
         secretaria_id=secretaria_id,
+        secretaria=secretaria_nombre,  # Guardar también el nombre por compatibilidad backward
         user_type=normalized_user_type,
         allowed_modules=user_data.allowed_modules or [],
         is_active=True
@@ -456,7 +509,9 @@ async def delete_user(
     - SUPERADMIN: puede eliminar a cualquiera (excepto a sí mismo)
     - ADMIN: puede eliminar usuarios de su entidad (excepto otros ADMIN o SUPERADMIN)
     
-    ⚠️ Limpia referencias de clave foránea antes de eliminar.
+    ✅ La SECRETARÍA se mantiene intacta
+    ✅ Otros usuarios de la misma secretaría siguen teniendo acceso
+    ✅ Solo se elimina el usuario y sus alertas personales
     """
     # Verificar que el usuario actual tenga permisos
     if current_user.role not in [UserRole.SUPERADMIN, UserRole.ADMIN]:
@@ -479,26 +534,55 @@ async def delete_user(
         if user.role in [UserRole.ADMIN, UserRole.SUPERADMIN]:
             raise HTTPException(status_code=403, detail="No puedes eliminar administradores. Solo el SuperAdmin puede hacerlo.")
     
+    # ✅ Información sobre la secretaría ANTES de eliminar el usuario
+    secretaria_id = user.secretaria_id
+    secretaria_nombre = user.secretaria
+    
+    # Verificar cuántos usuarios más tienen la misma secretaría
+    if secretaria_id:
+        otros_usuarios_en_secretaria = db.query(User).filter(
+            User.secretaria_id == secretaria_id,
+            User.id != user_id
+        ).count()
+    else:
+        otros_usuarios_en_secretaria = 0
+    
     # ✅ Limpiar referencias de clave foránea antes de eliminar
     try:
         # Eliminar alertas donde este usuario es destinatario
         from app.models.alert import Alert
-        db.query(Alert).filter(Alert.recipient_id == user_id).delete()
+        db.query(Alert).filter(Alert.recipient_user_id == user_id).delete()
         
-        # Eliminar otros registros relacionados si existen
-        # (agregar más según el esquema)
+        # ✅ IMPORTANTE: NO eliminamos la secretaría, solo el usuario
+        # La secretaría permanece activa para otros usuarios
         
         # Finalmente eliminar el usuario
         db.delete(user)
         db.commit()
+        
+        # Mensaje informativo
+        mensaje = f"Usuario '{user.username}' eliminado exitosamente"
+        if secretaria_nombre and otros_usuarios_en_secretaria > 0:
+            mensaje += f". La Secretaría '{secretaria_nombre}' sigue activa con {otros_usuarios_en_secretaria} otro(s) usuario(s)."
+        elif secretaria_nombre and otros_usuarios_en_secretaria == 0:
+            mensaje += f". La Secretaría '{secretaria_nombre}' permanece disponible para futuros usuarios."
+        
+        return {
+            "message": mensaje,
+            "secretaria_id": secretaria_id,
+            "secretaria_nombre": secretaria_nombre,
+            "otros_usuarios_en_secretaria": otros_usuarios_en_secretaria
+        }
+        
     except Exception as e:
         db.rollback()
+        print(f"❌ Error al eliminar usuario: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=400,
-            detail=f"No se puede eliminar el usuario. Hay registros relacionados: {str(e)}"
+            detail=f"No se puede eliminar el usuario. Error: {str(e)}"
         )
-    
-    return {"message": "Usuario eliminado exitosamente"}
 
 @router.patch("/users/{user_id}/toggle-status/", response_model=UserResponse)
 async def toggle_user_status(

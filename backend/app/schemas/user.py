@@ -24,6 +24,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    secretaria: Optional[str] = None  # Nombre de la secretaría (se crea automáticamente)
 
 class UserUpdate(BaseModel):
     username: Optional[str] = None
@@ -47,6 +48,8 @@ class User(UserBase):
 class UserResponse(UserBase):
     id: int
     is_active: bool
+    secretaria: Optional[str] = None  # Campo de texto con el nombre de la secretaría
+    secretaria_id: Optional[int] = None  # ID numérico de la secretaría (FK)
     created_at: datetime
     updated_at: Optional[datetime] = None
     

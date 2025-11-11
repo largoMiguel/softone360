@@ -441,26 +441,28 @@
                                     </span>
                                 </td>
                                 <td (click)="$event.stopPropagation()">
-                                    <!-- Dropdown de asignación solo para Admin -->
+                                    <!-- Dropdown de asignación de SECRETARÍA solo para Admin -->
                                     <select 
                                         *ngIf="isAdmin()"
                                         class="form-select form-select-sm" 
                                         [value]="producto.responsable_id || ''"
                                         (change)="asignarResponsable(producto, $event)"
-                                        [disabled]="cargandoSecretarios">
-                                        <option value="">Asignar responsable...</option>
-                                        <option *ngFor="let secretario of secretarios" 
-                                                [value]="secretario.id">
-                                            {{ secretario.full_name || secretario.name }} - {{ secretario.secretaria || 'Sin secretaría' }}
+                                        [disabled]="cargandoSecretarios"
+                                        title="Secretarias: {{secretariasAgrupadas | json}}">
+                                        <option value="">Asignar secretaría responsable...</option>
+                                        <option *ngFor="let secretaria of secretariasAgrupadas" 
+                                                [value]="secretaria.id"
+                                                [title]="'ID: ' + secretaria.id">
+                                            🏢 {{ secretaria.nombre }} ({{ secretaria.responsables?.length || 0 }} usuario(s))
                                         </option>
                                     </select>
                                     
-                                    <!-- Solo mostrar nombre si no es admin (secretario) -->
+                                    <!-- Mostrar nombre de SECRETARÍA responsable (no usuario) -->
                                     <small *ngIf="!isAdmin() && producto.responsable_nombre" class="text-muted d-block">
-                                        <i class="fas fa-user me-1"></i>{{ producto.responsable_nombre }}
+                                        <i class="fas fa-building me-1"></i>{{ producto.responsable_nombre }}
                                     </small>
                                     <small *ngIf="producto.responsable_nombre && isAdmin()" class="text-muted d-block mt-1">
-                                        <i class="fas fa-user me-1"></i>{{ producto.responsable_nombre }}
+                                        <i class="fas fa-building me-1"></i>{{ producto.responsable_nombre }}
                                     </small>
                                     <small *ngIf="cargandoSecretarios" class="text-muted d-block mt-1">
                                         <i class="fas fa-spinner fa-spin"></i> Cargando...

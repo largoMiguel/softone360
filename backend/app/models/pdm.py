@@ -42,8 +42,11 @@ class PdmProducto(Base):
     tipo_acumulacion = Column(String(128), nullable=True)
     bpin = Column(String(50), nullable=True)
     
-    # Responsable del producto (FK a users)
-    responsable_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    # Responsable del producto (FK a secretarias)
+    responsable_secretaria_id = Column(Integer, ForeignKey("secretarias.id", ondelete="SET NULL"), nullable=True, index=True)
+    
+    # Campo de texto para guardar nombre de secretaría (por compatibilidad backward)
+    responsable_secretaria_nombre = Column(String(256), nullable=True)
     
     # Programación por año
     programacion_2024 = Column(Float, default=0)
@@ -66,8 +69,8 @@ class PdmProducto(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    # Relación con usuario responsable
-    responsable_user = relationship("User", foreign_keys=[responsable_user_id])
+    # Relación con secretaría responsable
+    responsable_secretaria = relationship("Secretaria", foreign_keys=[responsable_secretaria_id])
     
     # Relación con actividades (lazy loading, se cargan bajo demanda)
     actividades = relationship(
