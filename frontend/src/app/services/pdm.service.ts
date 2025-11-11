@@ -516,20 +516,6 @@ export class PdmService {
     calcularEstadisticas(pdmData: PDMData): EstadisticasPDM {
         const productos = pdmData.productos_plan_indicativo;
         
-        // ✅ IMPORTANTE: Regenerar iniciativas SGR desde los productos (como hace el backend)
-        // para garantizar consistencia entre frontend y backend
-        const iniciativas_set = new Set<string>();
-        productos.forEach(p => {
-            if (p.bpin && p.bpin.trim() !== '') {
-                iniciativas_set.add(p.bpin);
-            }
-        });
-        const iniciativas_regeneradas = Array.from(iniciativas_set)
-            .map(bpin => ({ bpin }))
-            .sort((a, b) => a.bpin.localeCompare(b.bpin));
-        
-        console.log(`🔍 Iniciativas SGR: ${pdmData.iniciativas_sgr.length} del Excel vs ${iniciativas_regeneradas.length} desde productos`);
-        
     const presupuesto_2024 = productos.reduce((sum, p) => sum + p.total_2024, 0);
     const presupuesto_2025 = productos.reduce((sum, p) => sum + p.total_2025, 0);
     const presupuesto_2026 = productos.reduce((sum, p) => sum + p.total_2026, 0);
@@ -554,7 +540,7 @@ export class PdmService {
         return {
             total_lineas_estrategicas: pdmData.lineas_estrategicas.length,
             total_productos: productos.length,
-            total_iniciativas_sgr: iniciativas_regeneradas.length, // ✅ Usar iniciativas regeneradas desde productos
+            total_iniciativas_sgr: pdmData.iniciativas_sgr.length,
             presupuesto_total: presupuesto_2024 + presupuesto_2025 + presupuesto_2026 + presupuesto_2027,
             presupuestoPorAnio: {
                 anio2024: presupuesto_2024,
@@ -948,31 +934,26 @@ export class PdmService {
         
         // Suma de metas de actividades CON evidencia (completadas)
         const metaEjecutada = actividades
-            .filter(a => a.evidencia !== undefined)
+            .filter(a => a.evidencia !== undefined && a.evidencia !== null)
             .reduce((sum, a) => sum + a.meta_ejecutar, 0);
         
-        const actividadesCompletadas = actividades.filter(a => a.evidencia !== undefined).length;
+        const actividadesCompletadas = actividades.filter(a => a.evidencia !== undefined && a.evidencia !== null).length;
         
-        // NUEVA LÓGICA: Porcentaje de avance basado en fases
+        // ✅ NUEVA LÓGICA según requerimiento:
+        // - Sin actividades: 0%
+        // - Con actividades (SIN evidencia): 0% (estado EN_PROGRESO)
+        // - Con actividades Y evidencia: % basado en metas ejecutadas
         let porcentajeAvance = 0;
         
-        if (actividades.length === 0) {
-            // Sin actividades: 0%
-            porcentajeAvance = 0;
-        } else if (metaAsignada > 0 && metaEjecutada === 0) {
-            // Hay actividades asignadas pero SIN evidencia: mostrar 100% de asignación
-            porcentajeAvance = 100;
-        } else if (metaEjecutada > 0) {
-            // Hay evidencias: mostrar % basado en ejecución vs programado
+        if (metaEjecutada > 0) {
+            // Hay evidencias completadas: mostrar % basado en ejecución vs programado
             porcentajeAvance = metaProgramada > 0 
                 ? (metaEjecutada / metaProgramada) * 100 
                 : 0;
             // Capping a 100% máximo
             porcentajeAvance = Math.min(porcentajeAvance, 100);
-        } else if (metaProgramada > 0) {
-            // Si no hay actividades pero hay meta programada: 0%
-            porcentajeAvance = 0;
         }
+        // Cualquier otro caso (sin actividades o sin evidencia) = 0%
 
         return {
             anio,
@@ -1234,20 +1215,88 @@ export class PdmService {
     }
 
     /**
+     * ✅ NUEVO: Genera análisis por secretaría
+     */
+    generarAnaliasisPorSecretaria(productos: ResumenProducto[], anioFiltro: number): any[] {
+        const secretariaMap = new Map<string | number, ResumenProducto[]>();
+        
+        productos.forEach(p => {
+            const secretaria = p.responsable_secretaria_nombre || 'Sin Secretaría';
+            const secretariaId = p.responsable_secretaria_id;
+            const key = secretariaId || secretaria;
+            
+            if (!secretariaMap.has(key)) {
+                secretariaMap.set(key, []);
+            }
+            secretariaMap.get(key)!.push(p);
+        });
+
+        const porSecretaria: any[] = [];
+        
+        secretariaMap.forEach((prods, secretaria) => {
+            const totalProductos = prods.length;
+            const completados = prods.filter(p => this.getEstadoProducto(p, anioFiltro) === 'COMPLETADO').length;
+            const enProgreso = prods.filter(p => this.getEstadoProducto(p, anioFiltro) === 'EN_PROGRESO').length;
+            const pendientes = prods.filter(p => this.getEstadoProducto(p, anioFiltro) === 'PENDIENTE').length;
+            const porEjecutar = prods.filter(p => this.getEstadoProducto(p, anioFiltro) === 'POR_EJECUTAR').length;
+            
+            const avancePromedio = prods.reduce((sum, p) => sum + p.porcentaje_ejecucion, 0) / totalProductos;
+            const presupuestoTotal = prods.reduce((sum, p) => sum + p.total_cuatrienio, 0);
+            
+            // Contar actividades
+            let totalActividades = 0;
+            let actividadesCompletadas = 0;
+            prods.forEach(p => {
+                const resumen = this.obtenerResumenActividadesPorAnio(p, anioFiltro);
+                totalActividades += resumen.total_actividades;
+                actividadesCompletadas += resumen.actividades_completadas;
+            });
+
+            porSecretaria.push({
+                nombre_secretaria: secretaria,
+                total_productos: totalProductos,
+                productos_completados: completados,
+                productos_en_progreso: enProgreso,
+                productos_pendientes: pendientes,
+                productos_por_ejecutar: porEjecutar,
+                porcentaje_avance_promedio: avancePromedio,
+                presupuesto_total: presupuestoTotal,
+                total_actividades: totalActividades,
+                actividades_completadas: actividadesCompletadas
+            });
+        });
+        
+        // Ordenar por avance descendente
+        return porSecretaria.sort((a, b) => b.porcentaje_avance_promedio - a.porcentaje_avance_promedio);
+    }
+
+    /**
      * Determina el estado de un producto para un año específico
      */
     private getEstadoProducto(producto: ResumenProducto, anio: number): string {
         const anioActual = new Date().getFullYear();
         const resumen = this.obtenerResumenActividadesPorAnio(producto, anio);
         const avance = resumen.porcentaje_avance;
+        const tieneActividades = resumen.total_actividades > 0;
+        const tieneEvidencias = resumen.actividades_completadas > 0;
 
         if (anio < anioActual) {
+            // Año pasado: solo COMPLETADO o PENDIENTE
             return avance >= 100 ? 'COMPLETADO' : 'PENDIENTE';
         } else if (anio === anioActual) {
+            // Año actual:
+            if (tieneActividades && !tieneEvidencias) {
+                // ✅ Con actividades pero SIN evidencia: EN_PROGRESO con avance 0%
+                return 'EN_PROGRESO';
+            }
+            
             if (avance === 0) return 'PENDIENTE';
             if (avance >= 100) return 'COMPLETADO';
-            return 'EN_PROGRESO';
+            if (avance > 0) return 'EN_PROGRESO';
+            
+            return 'PENDIENTE';
         } else {
+            // Año futuro
             return 'POR_EJECUTAR';
         }
     }
@@ -1320,9 +1369,19 @@ export class PdmService {
             return of({ success: false, message: 'Sin slug de entidad' });
         }
         
-        console.log('📤 Enviando datos al backend...', 'Slug:', this.entitySlug);
+        // ✅ Transformar datos al formato esperado por el backend
+        // El backend espera: { productos_plan_indicativo, iniciativas_sgr }
+        const dataParaBackend = {
+            productos_plan_indicativo: data.productos_plan_indicativo,
+            // ✅ Incluir iniciativas SGR desde el Excel
+            iniciativas_sgr: data.iniciativas_sgr
+        };
         
-        return this.http.post(`${this.API_URL}/${this.entitySlug}/upload`, data).pipe(
+        console.log('📤 Enviando datos al backend...', 'Slug:', this.entitySlug);
+        console.log('   Productos:', dataParaBackend.productos_plan_indicativo.length);
+        console.log('   Iniciativas SGR:', dataParaBackend.iniciativas_sgr.length);
+        
+        return this.http.post(`${this.API_URL}/${this.entitySlug}/upload`, dataParaBackend).pipe(
             tap(() => {
                 console.log('✅ Datos guardados exitosamente en backend');
             }),

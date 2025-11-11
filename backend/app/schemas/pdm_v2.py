@@ -166,9 +166,34 @@ class ActividadResponse(ActividadResponseBase):
 # Schemas para carga masiva del Excel
 # ============================================
 
+class IniciativaSGRBase(BaseModel):
+    """Iniciativa SGR del Excel"""
+    codigo_dane: Optional[str] = None
+    entidad_territorial: Optional[str] = None
+    nombre_plan: Optional[str] = None
+    consecutivo: str
+    linea_estrategica: Optional[str] = None
+    tipo_iniciativa: Optional[str] = None
+    sector_mga: Optional[str] = None
+    iniciativa_sgr: Optional[str] = None
+    recursos_sgr_indicativos: float = 0
+    bpin: Optional[str] = None
+
+
+class IniciativaSGRResponse(IniciativaSGRBase):
+    id: int
+    entity_id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
 class PDMDataUpload(BaseModel):
-    """Estructura del Excel PDM (solo productos)"""
+    """Estructura del Excel PDM - incluyendo productos e iniciativas SGR"""
     productos_plan_indicativo: List[ProductoPlanIndicativoBase]
+    iniciativas_sgr: List[IniciativaSGRBase] = []  # ✅ Agregar iniciativas SGR
 
 
 class PDMDataResponse(BaseModel):

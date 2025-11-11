@@ -142,6 +142,8 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
             // Guardar en sessionStorage que debe abrir un producto
             if (data.producto_codigo) {
                 sessionStorage.setItem('pdm_open_producto', data.producto_codigo);
+                // Distinguir si es alerta de actividad nueva o producto asignado
+                sessionStorage.setItem('pdm_alerta_tipo', alert.type === 'PDM_NEW_ACTIVITY' ? 'actividad' : 'producto');
             }
             setTimeout(() => this.alertsEvents.requestOpen(alert), 100);
         } else if (alert.type === 'PLAN_COMPONENT_ASSIGNED' || alert.type === 'PLAN_NEW_ACTIVITY') {

@@ -157,3 +157,32 @@ class PdmArchivoExcel(Base):
     tamanio = Column(Integer, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+# ============================================
+# Tabla para Iniciativas SGR
+# ============================================
+
+class PdmIniciativaSGR(Base):
+    """Iniciativas del Sistema General de Regalías (SGR) - Datos del Excel"""
+    __tablename__ = "pdm_iniciativas_sgr"
+
+    id = Column(Integer, primary_key=True, index=True)
+    entity_id = Column(Integer, ForeignKey("entities.id", ondelete="CASCADE"), nullable=False, index=True)
+    
+    # Identificadores
+    codigo_dane = Column(String(20), nullable=True)
+    entidad_territorial = Column(String(256), nullable=True)
+    nombre_plan = Column(String(512), nullable=True)
+    consecutivo = Column(String(128), nullable=False, unique=True, index=True)  # ISGR-1, ISGR-2, etc.
+    
+    # Estructura
+    linea_estrategica = Column(Text, nullable=True)
+    tipo_iniciativa = Column(String(256), nullable=True)
+    sector_mga = Column(String(256), nullable=True)
+    iniciativa_sgr = Column(Text, nullable=True)
+    recursos_sgr_indicativos = Column(Float, default=0)
+    bpin = Column(String(50), nullable=True)
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())

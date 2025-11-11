@@ -221,6 +221,84 @@
             </div>
         </div>
 
+        <!-- ✅ NUEVO: Mostrar tabla filtrada en dashboard cuando se hace clic en cards de estado -->
+        <div *ngIf="filtroEstado" class="card mb-4 border-info">
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-filter me-2"></i>
+                    Productos {{ filtroEstado === 'PENDIENTE' ? 'Pendientes' : 
+                                 filtroEstado === 'EN_PROGRESO' ? 'En Progreso' : 
+                                 filtroEstado === 'COMPLETADO' ? 'Completados' : 
+                                 'Por Ejecutar' }}
+                </h5>
+                <button class="btn btn-sm btn-light" (click)="filtroEstado = ''">
+                    <i class="fas fa-times me-1"></i> Cerrar
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Código</th>
+                                <th>Producto</th>
+                                <th>Línea</th>
+                                <th>Sector</th>
+                                <th>Meta 2024</th>
+                                <th>Avance</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let p of getProductosFiltrados()">
+                                <td><small class="fw-bold">{{ p.codigo }}</small></td>
+                                <td><small>{{ p.producto | slice:0:30 }}</small></td>
+                                <td><small>{{ p.linea_estrategica | slice:0:20 }}</small></td>
+                                <td><small>{{ p.sector | slice:0:20 }}</small></td>
+                                <td class="text-center"><small class="fw-bold">{{ p.meta_cuatrienio }}</small></td>
+                                <td class="text-center">
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar" 
+                                             [style.width.%]="p.porcentaje_ejecucion"
+                                             [ngClass]="{
+                                                'bg-success': p.porcentaje_ejecucion === 100,
+                                                'bg-info': p.porcentaje_ejecucion > 0 && p.porcentaje_ejecucion < 100,
+                                                'bg-warning': p.porcentaje_ejecucion === 0
+                                             }">
+                                            <small>{{ p.porcentaje_ejecucion }}%</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge" 
+                                          [ngClass]="{
+                                              'bg-warning': getEstadoProductoAnio(p, filtroAnio) === 'PENDIENTE',
+                                              'bg-info': getEstadoProductoAnio(p, filtroAnio) === 'EN_PROGRESO',
+                                              'bg-success': getEstadoProductoAnio(p, filtroAnio) === 'COMPLETADO',
+                                              'bg-secondary': getEstadoProductoAnio(p, filtroAnio) === 'POR_EJECUTAR'
+                                          }">
+                                        {{ getEstadoProductoAnio(p, filtroAnio) === 'PENDIENTE' ? 'Pendiente' : 
+                                           getEstadoProductoAnio(p, filtroAnio) === 'EN_PROGRESO' ? 'En Progreso' : 
+                                           getEstadoProductoAnio(p, filtroAnio) === 'COMPLETADO' ? 'Completado' : 
+                                           'Por Ejecutar' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" (click)="verAnalisisProducto(p)">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p *ngIf="getProductosFiltrados().length === 0" class="text-muted text-center mt-3">
+                    No hay productos con este estado
+                </p>
+            </div>
+        </div>
+
         <!-- Botón para ver productos -->
         <div class="text-center mb-4">
             <button class="btn btn-primary btn-lg" (click)="navegarA('productos')">
@@ -354,10 +432,6 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label"><i class="fas fa-search me-1"></i> Buscar Producto</label>
-                        <input type="text" class="form-control" [(ngModel)]="filtroBusqueda" (keyup)="onCambioFiltroBusqueda()" placeholder="Buscar por código, nombre...">
-                    </div>
-                    <div class="col-md-3">
                         <label class="form-label"><i class="fas fa-calendar-alt me-1"></i> Año</label>
                         <select class="form-select" [(ngModel)]="filtroAnio" (change)="onCambioFiltro()">
                             <option *ngFor="let anio of aniosDisponibles" [value]="anio">{{ anio }}</option>
@@ -372,6 +446,10 @@
                             <option value="COMPLETADO">Completado</option>
                             <option value="POR_EJECUTAR">Por Ejecutar</option>
                         </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label"><i class="fas fa-search me-1"></i> Buscar Producto</label>
+                        <input type="text" class="form-control" [(ngModel)]="filtroBusqueda" (keyup)="onCambioFiltroBusqueda()" placeholder="Buscar por código, nombre...">
                     </div>
                 </div>
                 <div class="mt-3 d-flex justify-content-between align-items-center">
@@ -1355,6 +1433,111 @@
                             </table>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ✅ SECCIÓN: Análisis por Secretaría -->
+        <div class="alert alert-success mt-5 mb-4">
+            <i class="fas fa-building me-2"></i>
+            <strong>Análisis por Secretaría:</strong> A continuación se presenta el análisis de desempeño y cumplimiento por cada secretaría responsable.
+        </div>
+
+        <!-- ✅ NUEVO: Análisis por Secretaría (Tabla Detallada) -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-building me-2"></i>Desempeño por Secretaría</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Secretaría</th>
+                                <th class="text-center">Productos</th>
+                                <th class="text-center">Completados</th>
+                                <th class="text-center">En Progreso</th>
+                                <th class="text-center">Pendientes</th>
+                                <th class="text-center">Por Ejecutar</th>
+                                <th class="text-center">Avance %</th>
+                                <th class="text-center">Actividades</th>
+                                <th class="text-end">Presupuesto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let item of analisisPorSecretaria" [class.table-success]="item.porcentaje_avance_promedio >= 80" [class.table-warning]="item.porcentaje_avance_promedio < 50">
+                                <td><strong>{{ item.nombre_secretaria }}</strong></td>
+                                <td class="text-center"><span class="badge bg-primary">{{ item.total_productos }}</span></td>
+                                <td class="text-center"><span class="badge bg-success">{{ item.productos_completados }}</span></td>
+                                <td class="text-center"><span class="badge bg-info">{{ item.productos_en_progreso }}</span></td>
+                                <td class="text-center"><span class="badge bg-warning text-dark">{{ item.productos_pendientes }}</span></td>
+                                <td class="text-center"><span class="badge bg-secondary">{{ item.productos_por_ejecutar }}</span></td>
+                                <td class="text-center">
+                                    <div class="progress" style="height: 25px;">
+                                        <div class="progress-bar"
+                                             [style.width.%]="item.porcentaje_avance_promedio"
+                                             [ngClass]="{
+                                                 'bg-success': item.porcentaje_avance_promedio >= 80,
+                                                 'bg-info': item.porcentaje_avance_promedio >= 50 && item.porcentaje_avance_promedio < 80,
+                                                 'bg-warning': item.porcentaje_avance_promedio < 50
+                                             }">
+                                            {{ item.porcentaje_avance_promedio.toFixed(1) }}%
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <small>{{ item.actividades_completadas }}/{{ item.total_actividades }}</small>
+                                </td>
+                                <td class="text-end"><strong>{{ formatearMoneda(item.presupuesto_total) }}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p *ngIf="analisisPorSecretaria.length === 0" class="text-muted text-center mt-3">
+                    No hay datos de secretarías disponibles
+                </p>
+            </div>
+        </div>
+
+        <!-- Gráficos de Análisis por Secretaría -->
+        <div class="row mb-4">
+            <!-- Gráfico de Avance Promedio por Secretaría -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Avance Promedio por Secretaría</h5>
+                    </div>
+                    <div class="card-body">
+                        <div style="position: relative; height: 350px;">
+                            <canvas id="chartAvanceSecretarias"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico de Productos por Secretaría -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Distribución de Productos por Secretaría</h5>
+                    </div>
+                    <div class="card-body">
+                        <div style="position: relative; height: 350px;">
+                            <canvas id="chartProductosSecretarias"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de Estado de Productos por Secretaría -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Estado de Productos por Secretaría</h5>
+            </div>
+            <div class="card-body">
+                <div style="position: relative; height: 350px;">
+                    <canvas id="chartEstadoSecretarias"></canvas>
                 </div>
             </div>
         </div>

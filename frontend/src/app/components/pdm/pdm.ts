@@ -108,6 +108,7 @@ export class PdmComponent implements OnInit, OnDestroy {
 
     // Analytics
     dashboardAnalytics: any = null;
+    analisisPorSecretaria: any[] = []; // ✅ NUEVO: Análisis por secretaría
 
     // Charts
     chartEstados: Chart | null = null;
@@ -195,8 +196,40 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Inicialización del componente
+     * ✅ NUEVO: Obtener productos filtrados por estado (para mostrar en dashboard)
      */
+    getProductosFiltrados(): ResumenProducto[] {
+        if (!this.resumenProductos) return [];
+        
+        let productos = [...this.resumenProductos];
+        
+        // Filtrar por estado
+        if (this.filtroEstado) {
+            productos = productos.filter(p => 
+                this.getEstadoProductoAnio(p, this.filtroAnio) === this.filtroEstado
+            );
+        }
+        
+        // Ordenar por código de menor a mayor
+        productos.sort((a, b) => {
+            const codeA = parseInt(a.codigo?.replace(/\D/g, '') || '0', 10);
+            const codeB = parseInt(b.codigo?.replace(/\D/g, '') || '0', 10);
+            return codeA - codeB;
+        });
+        
+        return productos;
+    }
+
+    /**
+     * ✅ NUEVO: Ordenar productos por código de menor a mayor
+     */
+    private ordenarProductosPorCodigo(productos: ResumenProducto[]): ResumenProducto[] {
+        return productos.sort((a, b) => {
+            const codeA = parseInt(a.codigo?.replace(/\D/g, '') || '0', 10);
+            const codeB = parseInt(b.codigo?.replace(/\D/g, '') || '0', 10);
+            return codeA - codeB;
+        });
+    }
     ngOnInit(): void {
         // Esperar a que el entity slug esté disponible antes de verificar datos
         this.verificarDatosBackendConEspera();
@@ -249,8 +282,10 @@ export class PdmComponent implements OnInit, OnDestroy {
      */
     private verificarProductoDesdeAlerta(): void {
         const productoCodigo = sessionStorage.getItem('pdm_open_producto');
+        const tipoAlerta = sessionStorage.getItem('pdm_alerta_tipo'); // 'producto' o 'actividad'
         if (productoCodigo) {
             sessionStorage.removeItem('pdm_open_producto');
+            sessionStorage.removeItem('pdm_alerta_tipo');
             
             // Esperar a que se carguen los datos
             const interval = setInterval(() => {
@@ -261,7 +296,9 @@ export class PdmComponent implements OnInit, OnDestroy {
                     const producto = this.resumenProductos.find(p => p.codigo === productoCodigo);
                     if (producto) {
                         console.log('🎯 Abriendo producto desde alerta:', productoCodigo);
-                        this.navegarA('detalle', producto);
+                        // Para alertas de actividades, ir directamente a análisis; para productos, a detalle
+                        const destino = tipoAlerta === 'actividad' ? 'analisis-producto' : 'detalle';
+                        this.navegarA(destino, producto);
                     }
                 }
             }, 500);
@@ -326,8 +363,10 @@ export class PdmComponent implements OnInit, OnDestroy {
                 this.pdmData = data;
                 
                 console.log('🔍 Generando resumen de productos...');
-                this.resumenProductos = this.pdmService.generarResumenProductos(data);
-                console.log('📦 Resumen productos:', this.resumenProductos.length, 'productos');
+                this.resumenProductos = this.ordenarProductosPorCodigo(
+                    this.pdmService.generarResumenProductos(data)
+                );
+                console.log('📦 Resumen productos:', this.resumenProductos.length, 'productos (ordenados por código)');
                 
                 console.log('📊 Calculando estadísticas...');
                 this.estadisticas = this.pdmService.calcularEstadisticas(data);
@@ -384,8 +423,10 @@ export class PdmComponent implements OnInit, OnDestroy {
                     this.pdmData = data;
                     
                     console.log('🔍 Generando resumen de productos...');
-                    this.resumenProductos = this.pdmService.generarResumenProductos(data);
-                    console.log('📦 Resumen productos:', this.resumenProductos.length, 'productos');
+                    this.resumenProductos = this.ordenarProductosPorCodigo(
+                        this.pdmService.generarResumenProductos(data)
+                    );
+                    console.log('📦 Resumen productos:', this.resumenProductos.length, 'productos (ordenados por código)');
                     
                     console.log('📊 Calculando estadísticas...');
                     this.estadisticas = this.pdmService.calcularEstadisticas(data);
@@ -506,7 +547,9 @@ export class PdmComponent implements OnInit, OnDestroy {
             next: (data) => {
                 console.log('✅ Dashboard recargado con datos frescos');
                 this.pdmData = data;
-                this.resumenProductos = this.pdmService.generarResumenProductos(data);
+                this.resumenProductos = this.ordenarProductosPorCodigo(
+                    this.pdmService.generarResumenProductos(data)
+                );
                 this.estadisticas = this.pdmService.calcularEstadisticas(data);
                 this.productoSeleccionado = null;
                 this.cargandoDesdeBackend = false;
@@ -538,7 +581,9 @@ export class PdmComponent implements OnInit, OnDestroy {
             next: (data) => {
                 console.log('✅ Datos base de productos recargados');
                 this.pdmData = data;
-                this.resumenProductos = this.pdmService.generarResumenProductos(data);
+                this.resumenProductos = this.ordenarProductosPorCodigo(
+                    this.pdmService.generarResumenProductos(data)
+                );
                 this.estadisticas = this.pdmService.calcularEstadisticas(data);
                 this.productoSeleccionado = null;
                 this.limpiarFiltros();
@@ -640,7 +685,9 @@ export class PdmComponent implements OnInit, OnDestroy {
             next: (data) => {
                 console.log('✅ Datos recargados según filtros');
                 this.pdmData = data;
-                this.resumenProductos = this.pdmService.generarResumenProductos(data);
+                this.resumenProductos = this.ordenarProductosPorCodigo(
+                    this.pdmService.generarResumenProductos(data)
+                );
                 this.estadisticas = this.pdmService.calcularEstadisticas(data);
                 
                 // ✅ Cargar actividades de productos que coincidan con filtros
@@ -746,9 +793,16 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Se ejecuta al hacer click en el card de "Pendientes"
      */
     filtrarPorEstadoPendiente() {
-        this.filtroEstado = 'PENDIENTE';
-        this.navegarA('productos');
-        console.log('🔍 Filtrando por estado: PENDIENTE');
+        // ✅ CAMBIO: No navegar a 'productos', solo cambiar el filtro en la vista actual
+        if (this.vistaActual === 'dashboard') {
+            // En dashboard, filtrar y mostrar tabla en la misma vista
+            this.filtroEstado = this.filtroEstado === 'PENDIENTE' ? '' : 'PENDIENTE';
+            console.log('🔍 Filtrando por estado: PENDIENTE (toggle en dashboard)');
+        } else {
+            // En vista productos, solo cambiar filtro sin navegar
+            this.filtroEstado = this.filtroEstado === 'PENDIENTE' ? '' : 'PENDIENTE';
+            console.log('🔍 Filtrando por estado: PENDIENTE');
+        }
     }
 
     /**
@@ -756,9 +810,14 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Se ejecuta al hacer click en el card de "En Progreso"
      */
     filtrarPorEstadoEnProgreso() {
-        this.filtroEstado = 'EN_PROGRESO';
-        this.navegarA('productos');
-        console.log('🔍 Filtrando por estado: EN_PROGRESO');
+        // ✅ CAMBIO: No navegar a 'productos', solo cambiar el filtro en la vista actual
+        if (this.vistaActual === 'dashboard') {
+            this.filtroEstado = this.filtroEstado === 'EN_PROGRESO' ? '' : 'EN_PROGRESO';
+            console.log('🔍 Filtrando por estado: EN_PROGRESO (toggle en dashboard)');
+        } else {
+            this.filtroEstado = this.filtroEstado === 'EN_PROGRESO' ? '' : 'EN_PROGRESO';
+            console.log('🔍 Filtrando por estado: EN_PROGRESO');
+        }
     }
 
     /**
@@ -766,9 +825,14 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Se ejecuta al hacer click en el card de "Completados"
      */
     filtrarPorEstadoCompletado() {
-        this.filtroEstado = 'COMPLETADO';
-        this.navegarA('productos');
-        console.log('🔍 Filtrando por estado: COMPLETADO');
+        // ✅ CAMBIO: No navegar a 'productos', solo cambiar el filtro en la vista actual
+        if (this.vistaActual === 'dashboard') {
+            this.filtroEstado = this.filtroEstado === 'COMPLETADO' ? '' : 'COMPLETADO';
+            console.log('🔍 Filtrando por estado: COMPLETADO (toggle en dashboard)');
+        } else {
+            this.filtroEstado = this.filtroEstado === 'COMPLETADO' ? '' : 'COMPLETADO';
+            console.log('🔍 Filtrando por estado: COMPLETADO');
+        }
     }
 
     /**
@@ -776,9 +840,14 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Se ejecuta al hacer click en el card de "Por Ejecutar"
      */
     filtrarPorEstadoPorEjecutar() {
-        this.filtroEstado = 'POR_EJECUTAR';
-        this.navegarA('productos');
-        console.log('🔍 Filtrando por estado: POR_EJECUTAR');
+        // ✅ CAMBIO: No navegar a 'productos', solo cambiar el filtro en la vista actual
+        if (this.vistaActual === 'dashboard') {
+            this.filtroEstado = this.filtroEstado === 'POR_EJECUTAR' ? '' : 'POR_EJECUTAR';
+            console.log('🔍 Filtrando por estado: POR_EJECUTAR (toggle en dashboard)');
+        } else {
+            this.filtroEstado = this.filtroEstado === 'POR_EJECUTAR' ? '' : 'POR_EJECUTAR';
+            console.log('🔍 Filtrando por estado: POR_EJECUTAR');
+        }
     }
 
     /**
@@ -1468,23 +1537,25 @@ export class PdmComponent implements OnInit, OnDestroy {
             return 'PENDIENTE'; // Sin actividades creadas aún
         }
         
-        // CRÍTICO: Primero verificar si hay evidencias antes de marcar como COMPLETADO
-        // Una actividad solo está completada si tiene evidencia (a.evidencia !== undefined)
-        if (resumenActividades.total_actividades > 0 && 
-            resumenActividades.actividades_completadas === resumenActividades.total_actividades &&
-            resumenActividades.actividades_completadas > 0) {
+        // ✅ CRÍTICO: Primero verificar si el avance es 100%
+        if (avance >= 100) {
             if (producto.codigo === '2201029') {
-                console.log(`✅ [${producto.codigo}] Estado COMPLETADO porque tiene evidencias`);
+                console.log(`✅ [${producto.codigo}] Estado COMPLETADO porque avance=${avance}%`);
             }
-            return 'COMPLETADO'; // Todas las actividades tienen evidencia
+            return 'COMPLETADO'; // Avance al 100% o más
         }
-        
+
         // Si hay actividades asignadas pero NO todas tienen evidencia
         if (resumenActividades.total_actividades > 0) {
             if (producto.codigo === '2201029') {
                 console.log(`🟡 [${producto.codigo}] Estado EN_PROGRESO (actividades=${resumenActividades.total_actividades}, completadas=${resumenActividades.actividades_completadas})`);
             }
             return 'EN_PROGRESO'; // Hay actividades asignadas o en ejecución
+        }
+
+        // Sin actividades y sin avance
+        if (avance === 0) {
+            return 'PENDIENTE';
         }
 
         return 'POR_EJECUTAR';
@@ -1828,6 +1899,19 @@ export class PdmComponent implements OnInit, OnDestroy {
             this.resumenProductos,
             this.filtroAnio
         );
+        // ✅ NUEVO: Generar análisis por secretaría
+        this.analisisPorSecretaria = this.pdmService.generarAnaliasisPorSecretaria(
+            this.resumenProductos,
+            this.filtroAnio
+        );
+    }
+
+    /**
+     * ✅ NUEVO: Ver análisis detallado del producto
+     */
+    verAnalisisProducto(producto: ResumenProducto): void {
+        console.log('👁️ Viendo análisis del producto:', producto.codigo);
+        this.navegarA('analisis-producto', producto);
     }
 
     /**
@@ -1855,7 +1939,9 @@ export class PdmComponent implements OnInit, OnDestroy {
             next: (data) => {
                 console.log('✅ Datos base cargados para analytics');
                 this.pdmData = data;
-                this.resumenProductos = this.pdmService.generarResumenProductos(data);
+                this.resumenProductos = this.ordenarProductosPorCodigo(
+                    this.pdmService.generarResumenProductos(data)
+                );
                 this.estadisticas = this.pdmService.calcularEstadisticas(data);
                 
                 // ✅ PASO CRÍTICO: Cargar actividades de TODOS los productos
@@ -1914,6 +2000,13 @@ export class PdmComponent implements OnInit, OnDestroy {
 
         // 6. Gráfico de barras horizontales - Sectores Detalle
         this.crearGraficoSectoresDetalle();
+
+        // 7. Gráficos de Análisis por Secretaría (si hay datos)
+        if (this.analisisPorSecretaria.length > 0) {
+            this.crearGraficoAvanceSecretarias();
+            this.crearGraficoProductosSecretarias();
+            this.crearGraficoEstadoSecretarias();
+        }
     }
 
     /**
@@ -2593,6 +2686,144 @@ export class PdmComponent implements OnInit, OnDestroy {
                 filtrosElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         }, 300);
+    }
+
+    /**
+     * ✅ NUEVO: Crea gráfico de avance promedio por secretaría
+     */
+    crearGraficoAvanceSecretarias(): void {
+        const ctx = document.getElementById('chartAvanceSecretarias') as HTMLCanvasElement;
+        if (!ctx || !this.analisisPorSecretaria.length) return;
+
+        const labels = this.analisisPorSecretaria.map(s => s.nombre_secretaria.substring(0, 20));
+        const data = this.analisisPorSecretaria.map(s => s.porcentaje_avance_promedio);
+        const colores = data.map(d => d >= 80 ? '#28a745' : d >= 50 ? '#17a2b8' : '#ffc107');
+
+        this.chartEstados = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Avance Promedio (%)',
+                    data,
+                    backgroundColor: colores,
+                    borderColor: colores,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true, position: 'top' },
+                    title: {
+                        display: true,
+                        text: 'Avance Promedio por Secretaría',
+                        font: { size: 14, weight: 'bold' }
+                    }
+                },
+                scales: {
+                    x: { beginAtZero: true, max: 100 }
+                }
+            }
+        });
+    }
+
+    /**
+     * ✅ NUEVO: Crea gráfico de distribución de productos por secretaría
+     */
+    crearGraficoProductosSecretarias(): void {
+        const ctx = document.getElementById('chartProductosSecretarias') as HTMLCanvasElement;
+        if (!ctx || !this.analisisPorSecretaria.length) return;
+
+        const labels = this.analisisPorSecretaria.map(s => s.nombre_secretaria.substring(0, 20));
+        const data = this.analisisPorSecretaria.map(s => s.total_productos);
+        const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'];
+
+        this.chartSectores = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels,
+                datasets: [{
+                    data,
+                    backgroundColor: colors.slice(0, labels.length),
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    title: {
+                        display: true,
+                        text: 'Distribución de Productos',
+                        font: { size: 14, weight: 'bold' }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * ✅ NUEVO: Crea gráfico de estado de productos por secretaría
+     */
+    crearGraficoEstadoSecretarias(): void {
+        const ctx = document.getElementById('chartEstadoSecretarias') as HTMLCanvasElement;
+        if (!ctx || !this.analisisPorSecretaria.length) return;
+
+        const labels = this.analisisPorSecretaria.map(s => s.nombre_secretaria.substring(0, 20));
+        const completados = this.analisisPorSecretaria.map(s => s.productos_completados);
+        const enProgreso = this.analisisPorSecretaria.map(s => s.productos_en_progreso);
+        const pendientes = this.analisisPorSecretaria.map(s => s.productos_pendientes);
+        const porEjecutar = this.analisisPorSecretaria.map(s => s.productos_por_ejecutar);
+
+        this.chartODS = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'Completados',
+                        data: completados,
+                        backgroundColor: '#28a745'
+                    },
+                    {
+                        label: 'En Progreso',
+                        data: enProgreso,
+                        backgroundColor: '#17a2b8'
+                    },
+                    {
+                        label: 'Pendientes',
+                        data: pendientes,
+                        backgroundColor: '#ffc107'
+                    },
+                    {
+                        label: 'Por Ejecutar',
+                        data: porEjecutar,
+                        backgroundColor: '#6c757d'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    title: {
+                        display: true,
+                        text: 'Estado de Productos por Secretaría',
+                        font: { size: 14, weight: 'bold' }
+                    }
+                },
+                scales: {
+                    x: { stacked: false },
+                    y: { stacked: false }
+                }
+            }
+        });
     }
 
 }

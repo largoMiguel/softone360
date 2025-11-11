@@ -15,7 +15,8 @@ from app.models.alert import Alert
 from app.models.pdm import (
     PdmProducto,
     PdmActividad,
-    PdmActividadEvidencia
+    PdmActividadEvidencia,
+    PdmIniciativaSGR
 )
 from app.schemas import pdm_v2 as schemas
 from app.utils.auth import get_current_active_user
@@ -160,6 +161,21 @@ async def upload_pdm_data(
             producto = PdmProducto(entity_id=entity.id, **item.model_dump())
             db.add(producto)
     
+    # ✅ NUEVO: Upsert iniciativas SGR (clave: consecutivo)
+    # Primero, eliminar todas las iniciativas SGR existentes para esta entidad
+    # (ya que el Excel es la fuente de verdad)
+    db.query(PdmIniciativaSGR).filter(
+        PdmIniciativaSGR.entity_id == entity.id
+    ).delete()
+    
+    # Luego agregar las nuevas iniciativas SGR
+    for item in data.iniciativas_sgr:
+        iniciativa = PdmIniciativaSGR(
+            entity_id=entity.id,
+            **item.model_dump()
+        )
+        db.add(iniciativa)
+    
     db.commit()
     
     # Retornar status
@@ -207,19 +223,9 @@ async def get_pdm_data(
         
         print(f"📊 Encontrados {len(productos)} productos para entidad {slug}")
         
-        # ✅ DEBUG: Verificar BPIN de productos
-        bpin_count = {}
-        for p in productos:
-            if hasattr(p, 'bpin') and p.bpin:
-                bpin_count[p.bpin] = bpin_count.get(p.bpin, 0) + 1
-        print(f"🔍 BPINs únicos: {len(bpin_count)}, Total productos: {len(productos)}")
-        if bpin_count:
-            print(f"   Primeros 5 BPINs: {list(bpin_count.items())[:5]}")
-        
         # Validar cada producto antes de retornar
         productos_validos = []
         lineas_set = set()  # Usar set para líneas únicas
-        iniciativas_set = set()  # Para iniciativas SGR
         
         for p in productos:
             try:
@@ -248,10 +254,6 @@ async def get_pdm_data(
                 if p.linea_estrategica:
                     lineas_set.add(p.linea_estrategica)
                 
-                # Recolectar iniciativas SGR únicas
-                if hasattr(p, 'bpin') and p.bpin:
-                    iniciativas_set.add(p.bpin)
-                
             except Exception as e:
                 print(f"⚠️ Error validando producto {p.id}: {str(e)}")
                 import traceback
@@ -265,12 +267,24 @@ async def get_pdm_data(
                     iniciativas_sgr=[]
                 )
         
+        # ✅ Cargar iniciativas SGR desde la tabla separada (no del BPIN de productos)
+        iniciativas_sgr_db = db.query(PdmIniciativaSGR).filter(
+            PdmIniciativaSGR.entity_id == entity.id
+        ).all()
+        
         # Convertir sets a listas de diccionarios
         lineas_estrategicas = [{"nombre": linea} for linea in sorted(lineas_set)]
-        iniciativas_sgr = [{"bpin": iniciativa} for iniciativa in sorted(iniciativas_set) if iniciativa]
+        iniciativas_sgr = [
+            {
+                "consecutivo": i.consecutivo,
+                "iniciativa_sgr": i.iniciativa_sgr,
+                "recursos_sgr_indicativos": i.recursos_sgr_indicativos,
+                "bpin": i.bpin
+            }
+            for i in iniciativas_sgr_db
+        ]
         
         print(f"✅ Retornando {len(productos_validos)} productos + {len(lineas_estrategicas)} líneas + {len(iniciativas_sgr)} iniciativas SGR")
-        print(f"🔍 DEBUG - Total iniciativas SGR: {len(iniciativas_sgr)} (desde {len(bpin_count)} BPINs únicos de productos)")
         return schemas.PDMDataResponse(
             productos_plan_indicativo=productos_validos,
             lineas_estrategicas=lineas_estrategicas,
