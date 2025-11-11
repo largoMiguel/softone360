@@ -135,10 +135,8 @@ export class PdmComponent implements OnInit, OnDestroy {
         let productos = this.resumenProductos;
 
         // Si el usuario es SECRETARIO, solo mostrar sus productos asignados
-        // Si es ADMIN/SUPERADMIN, mostrar todos
         const currentUser = this.authService.getCurrentUserValue();
         if (currentUser && currentUser.role === 'secretario') {
-            // SECRETARIOS solo ven los productos asignados a ellos
             productos = productos.filter(p => p.responsable_id === currentUser.id);
         }
 
@@ -1345,13 +1343,15 @@ export class PdmComponent implements OnInit, OnDestroy {
             return 'PENDIENTE'; // Sin actividades creadas aún
         }
         
-        // COMPLETADO: SOLO si tiene 100% DE AVANCE Y TODAS las actividades tienen evidencia
-        if (avance === 100 && resumenActividades.meta_ejecutada === resumenActividades.meta_programada && resumenActividades.actividades_completadas === resumenActividades.total_actividades) {
+        // CRÍTICO: Primero verificar si hay evidencias antes de marcar como COMPLETADO
+        if (resumenActividades.total_actividades > 0 && 
+            resumenActividades.actividades_completadas === resumenActividades.total_actividades &&
+            resumenActividades.actividades_completadas > 0) {
             return 'COMPLETADO'; // Todas las actividades tienen evidencia
         }
         
-        // EN_PROGRESO: Hay actividades asignadas o en ejecución (incluso si muestra 100% de asignación)
-        if (resumenActividades.meta_asignada > 0) {
+        // Si hay actividades asignadas pero NO todas tienen evidencia
+        if (resumenActividades.total_actividades > 0) {
             return 'EN_PROGRESO'; // Hay actividades asignadas o en ejecución
         }
 

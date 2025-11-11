@@ -77,6 +77,7 @@ class ProductoResponse(ProductoPlanIndicativoBase):
     id: int
     entity_id: int
     responsable_user_id: Optional[int] = None
+    responsable_nombre: Optional[str] = None  # Nombre completo del responsable (enriquecido)
     actividades: List[ActividadResponseBase] = []  # Incluir actividades asociadas
     created_at: datetime
     updated_at: Optional[datetime] = None
