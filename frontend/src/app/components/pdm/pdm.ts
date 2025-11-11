@@ -2316,4 +2316,36 @@ export class PdmComponent implements OnInit, OnDestroy {
         });
     }
 
+    /**
+     * Filtra productos por línea estratégica desde stat-card clickeable
+     */
+    filtrarPorLinea(): void {
+        console.log('🔍 Abriendo filtro de líneas estratégicas');
+        this.navegarA('productos');
+        
+        // Scroll a los filtros
+        setTimeout(() => {
+            const filtrosElement = document.querySelector('.filtros-section');
+            if (filtrosElement) {
+                filtrosElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 300);
+    }
+
+    /**
+     * Filtra productos por iniciativa SGR desde stat-card clickeable
+     */
+    filtrarPorIniciativa(): void {
+        console.log('🔍 Abriendo filtro de iniciativas SGR');
+        this.navegarA('productos');
+        
+        // Scroll a los filtros
+        setTimeout(() => {
+            const filtrosElement = document.querySelector('.filtros-section');
+            if (filtrosElement) {
+                filtrosElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 300);
+    }
+
 }
