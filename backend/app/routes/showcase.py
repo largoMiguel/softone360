@@ -3,77 +3,9 @@ Ruta para el endpoint de showcase.
 Retorna información estática sobre características, módulos, beneficios, etc.
 """
 
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from sqlalchemy import text
-from app.config.database import get_db
+from fastapi import APIRouter
 
 router = APIRouter(prefix="/showcase", tags=["Showcase"])
-
-
-@router.get("/db-audit")
-async def db_audit(db: Session = Depends(get_db)):
-    """
-    Endpoint temporal para auditar la base de datos y verificar CASCADE.
-    """
-    try:
-        # 1. Listar todas las tablas
-        tables_result = db.execute(text("""
-            SELECT tablename 
-            FROM pg_tables 
-            WHERE schemaname = 'public' 
-            ORDER BY tablename;
-        """))
-        tables = [row[0] for row in tables_result.fetchall()]
-        
-        # 2. Verificar FKs con CASCADE para cada tabla
-        cascade_info = {}
-        for table in tables:
-            fks_result = db.execute(text(f"""
-                SELECT
-                    tc.constraint_name,
-                    tc.table_name,
-                    kcu.column_name,
-                    ccu.table_name AS foreign_table_name,
-                    ccu.column_name AS foreign_column_name,
-                    rc.delete_rule
-                FROM information_schema.table_constraints AS tc
-                JOIN information_schema.key_column_usage AS kcu
-                  ON tc.constraint_name = kcu.constraint_name
-                  AND tc.table_schema = kcu.table_schema
-                JOIN information_schema.constraint_column_usage AS ccu
-                  ON ccu.constraint_name = tc.constraint_name
-                  AND ccu.table_schema = tc.table_schema
-                JOIN information_schema.referential_constraints AS rc
-                  ON tc.constraint_name = rc.constraint_name
-                WHERE tc.constraint_type = 'FOREIGN KEY'
-                  AND tc.table_name = '{table}';
-            """))
-            
-            fks = []
-            for fk in fks_result.fetchall():
-                fks.append({
-                    "constraint": fk[0],
-                    "column": fk[2],
-                    "references": f"{fk[3]}.{fk[4]}",
-                    "on_delete": fk[5]
-                })
-            
-            if fks:
-                cascade_info[table] = fks
-        
-        return {
-            "status": "success",
-            "total_tables": len(tables),
-            "tables": tables,
-            "foreign_keys": cascade_info
-        }
-        
-    except Exception as e:
-        return {
-            "status": "error",
-            "message": str(e)
-        }
 
 
 @router.get("")
