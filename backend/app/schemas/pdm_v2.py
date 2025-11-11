@@ -63,6 +63,8 @@ class ActividadResponseBase(BaseModel):
     nombre: str
     descripcion: Optional[str] = None
     responsable_user_id: Optional[int] = None
+    responsable_secretaria_id: Optional[int] = None
+    responsable_secretaria_nombre: Optional[str] = None
     fecha_inicio: Optional[datetime] = None
     fecha_fin: Optional[datetime] = None
     meta_ejecutar: float
@@ -106,6 +108,7 @@ class ActividadBase(BaseModel):
     nombre: str = Field(..., min_length=1, max_length=512)
     descripcion: Optional[str] = None
     responsable_user_id: Optional[int] = None  # ID del usuario responsable
+    responsable_secretaria_id: Optional[int] = None  # ID de la secretaría responsable
     fecha_inicio: Optional[str] = None  # ISO string para input
     fecha_fin: Optional[str] = None  # ISO string para input
     meta_ejecutar: float = Field(..., ge=0)
@@ -121,6 +124,7 @@ class ActividadUpdate(BaseModel):
     descripcion: Optional[str] = None
     responsable: Optional[str] = None
     responsable_user_id: Optional[int] = None
+    responsable_secretaria_id: Optional[int] = None
     fecha_inicio: Optional[str] = None
     fecha_fin: Optional[str] = None
     meta_ejecutar: Optional[float] = None

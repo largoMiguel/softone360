@@ -117,6 +117,7 @@ export class PdmComponent implements OnInit, OnDestroy {
     chartPresupuestoPorAnio: Chart | null = null;
     chartODS: Chart | null = null;
     chartSectoresDetalle: Chart | null = null;
+    chartSecretarias: Chart | null = null; // ✅ NUEVO
 
     // Getters para datos filtrados
     get lineasEstrategicas(): string[] {
@@ -281,24 +282,51 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Verifica si hay que abrir un producto desde una alerta
      */
     private verificarProductoDesdeAlerta(): void {
+        // ✅ IMPORTANTE: El backend debe enviar en la alerta:
+        // Para actividades: { actividad_id: number, producto_codigo: string }
+        // Para productos: { producto_codigo: string }
+        
+        // Buscar si hay datos de producto o actividad en sessionStorage
         const productoCodigo = sessionStorage.getItem('pdm_open_producto');
-        const tipoAlerta = sessionStorage.getItem('pdm_alerta_tipo'); // 'producto' o 'actividad'
-        if (productoCodigo) {
-            sessionStorage.removeItem('pdm_open_producto');
-            sessionStorage.removeItem('pdm_alerta_tipo');
+        const actividadId = sessionStorage.getItem('pdm_open_actividad');
+        
+        if (productoCodigo || actividadId) {
+            if (productoCodigo) {
+                sessionStorage.removeItem('pdm_open_producto');
+            }
+            if (actividadId) {
+                sessionStorage.removeItem('pdm_open_actividad');
+            }
             
             // Esperar a que se carguen los datos
             const interval = setInterval(() => {
                 if (this.resumenProductos.length > 0 && !this.cargandoDesdeBackend) {
                     clearInterval(interval);
                     
-                    // Buscar el producto
-                    const producto = this.resumenProductos.find(p => p.codigo === productoCodigo);
-                    if (producto) {
-                        console.log('🎯 Abriendo producto desde alerta:', productoCodigo);
-                        // Para alertas de actividades, ir directamente a análisis; para productos, a detalle
-                        const destino = tipoAlerta === 'actividad' ? 'analisis-producto' : 'detalle';
-                        this.navegarA(destino, producto);
+                    // Si hay actividadId, encontrar el producto de esa actividad
+                    if (actividadId) {
+                        console.log('🎯 Buscando actividad desde alerta:', actividadId);
+                        // Iterar por productos para encontrar la actividad
+                        for (const producto of this.resumenProductos) {
+                            const actividades = this.pdmService.obtenerActividadesPorProducto(producto.codigo);
+                            const actividad = actividades.find(a => String(a.id) === String(actividadId));
+                            if (actividad) {
+                                console.log('✅ Actividad encontrada en producto:', producto.codigo);
+                                // Abrir el producto y marcar la actividad para desplazarse
+                                this.navegarA('detalle', producto);
+                                // Guardar ID de actividad para que el componente de detalle la destace
+                                sessionStorage.setItem('pdm_scroll_to_actividad', actividadId);
+                                break;
+                            }
+                        }
+                    } 
+                    // Si solo hay código de producto
+                    else if (productoCodigo) {
+                        const producto = this.resumenProductos.find(p => p.codigo === productoCodigo);
+                        if (producto) {
+                            console.log('🎯 Abriendo producto desde alerta:', productoCodigo);
+                            this.navegarA('detalle', producto);
+                        }
                     }
                 }
             }, 500);
@@ -1043,6 +1071,7 @@ export class PdmComponent implements OnInit, OnDestroy {
             descripcion: ['', [Validators.required, Validators.minLength(10)]],
             responsable: [responsableNombre, [Validators.required, Validators.minLength(3)]],
             responsable_user_id: [responsableProducto], // Preseleccionar responsable del producto
+            responsable_secretaria_id: [''], // Responsable por secretaría
             estado: ['PENDIENTE', Validators.required],
             fecha_inicio: ['', Validators.required],
             fecha_fin: ['', Validators.required],
@@ -1079,6 +1108,7 @@ export class PdmComponent implements OnInit, OnDestroy {
             descripcion: [actividad.descripcion, [Validators.required, Validators.minLength(10)]],
             responsable: [actividad.responsable, [Validators.required, Validators.minLength(3)]],
             responsable_user_id: [actividad.responsable_user_id || null],
+            responsable_secretaria_id: [actividad.responsable_secretaria_id || null],
             estado: [actividad.estado, Validators.required],
             fecha_inicio: [actividad.fecha_inicio.split('T')[0], Validators.required],
             fecha_fin: [actividad.fecha_fin.split('T')[0], Validators.required],
@@ -1427,6 +1457,30 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
+     * Obtiene el nombre del responsable de una actividad
+     */
+    getNombreResponsable(actividad: ActividadPDM): string {
+        if (actividad.responsable) {
+            return actividad.responsable;
+        }
+        
+        // Buscar el responsable por ID
+        if (actividad.responsable_user_id) {
+            const responsable = this.secretarios.find(s => s.id === actividad.responsable_user_id);
+            if (responsable) {
+                return responsable.full_name || 'Sin nombre';
+            }
+        }
+        
+        // Mostrar secretaría si está asignada
+        if (actividad.responsable_secretaria_nombre) {
+            return `📍 ${actividad.responsable_secretaria_nombre} (Secretaría)`;
+        }
+        
+        return 'Sin responsable';
+    }
+
+    /**
      * Obtiene el texto del estado en español
      */
     getTextoEstado(estado: string): string {
@@ -1532,33 +1586,28 @@ export class PdmComponent implements OnInit, OnDestroy {
             return 'POR_EJECUTAR';
         }
 
-        // Basado en el avance calculado
+        // ✅ Basado en el avance calculado
+        // Estado COMPLETADO: avance EXACTAMENTE 100%
+        if (avance === 100) {
+            if (producto.codigo === '2201029') {
+                console.log(`✅ [${producto.codigo}] Estado COMPLETADO (avance = 100%)`);
+            }
+            return 'COMPLETADO';
+        }
+        
         if (avance === 0 && resumenActividades.total_actividades === 0) {
             return 'PENDIENTE'; // Sin actividades creadas aún
         }
         
-        // ✅ CRÍTICO: Primero verificar si el avance es 100%
-        if (avance >= 100) {
-            if (producto.codigo === '2201029') {
-                console.log(`✅ [${producto.codigo}] Estado COMPLETADO porque avance=${avance}%`);
-            }
-            return 'COMPLETADO'; // Avance al 100% o más
-        }
-
-        // Si hay actividades asignadas pero NO todas tienen evidencia
+        // Si tiene actividades: EN_PROGRESO
         if (resumenActividades.total_actividades > 0) {
             if (producto.codigo === '2201029') {
-                console.log(`🟡 [${producto.codigo}] Estado EN_PROGRESO (actividades=${resumenActividades.total_actividades}, completadas=${resumenActividades.actividades_completadas})`);
+                console.log(`🟡 [${producto.codigo}] Estado EN_PROGRESO (actividades=${resumenActividades.total_actividades}, completadas=${resumenActividades.actividades_completadas}, avance=${avance}%)`);
             }
-            return 'EN_PROGRESO'; // Hay actividades asignadas o en ejecución
+            return 'EN_PROGRESO';
         }
 
-        // Sin actividades y sin avance
-        if (avance === 0) {
-            return 'PENDIENTE';
-        }
-
-        return 'POR_EJECUTAR';
+        return 'PENDIENTE';
     }
 
     /**
@@ -2001,12 +2050,8 @@ export class PdmComponent implements OnInit, OnDestroy {
         // 6. Gráfico de barras horizontales - Sectores Detalle
         this.crearGraficoSectoresDetalle();
 
-        // 7. Gráficos de Análisis por Secretaría (si hay datos)
-        if (this.analisisPorSecretaria.length > 0) {
-            this.crearGraficoAvanceSecretarias();
-            this.crearGraficoProductosSecretarias();
-            this.crearGraficoEstadoSecretarias();
-        }
+        // 7. Gráfico de barras horizontales - Desempeño por Secretaría
+        this.crearGraficoSecretarias();
     }
 
     /**
@@ -2036,6 +2081,10 @@ export class PdmComponent implements OnInit, OnDestroy {
         if (this.chartSectoresDetalle) {
             this.chartSectoresDetalle.destroy();
             this.chartSectoresDetalle = null;
+        }
+        if (this.chartSecretarias) {
+            this.chartSecretarias.destroy();
+            this.chartSecretarias = null;
         }
     }
 
@@ -2549,6 +2598,96 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
+     * Crea gráfico de desempeño por secretaría
+     */
+    crearGraficoSecretarias() {
+        if (!this.analisisPorSecretaria || this.analisisPorSecretaria.length === 0) {
+            return;
+        }
+
+        const canvasElement = document.getElementById('chartSecretarias') as HTMLCanvasElement;
+        if (!canvasElement) {
+            return;
+        }
+
+        // Ordenar por avance descendente para mejor visualización
+        const secretariasOrdenadas = [...this.analisisPorSecretaria].sort((a, b) => 
+            b.porcentaje_avance_promedio - a.porcentaje_avance_promedio
+        );
+
+        // Colores según desempeño
+        const getColor = (avance: number) => {
+            if (avance >= 80) return 'rgba(75, 192, 75, 0.7)'; // Verde
+            if (avance >= 50) return 'rgba(255, 206, 86, 0.7)'; // Amarillo
+            if (avance >= 20) return 'rgba(255, 159, 64, 0.7)'; // Naranja
+            return 'rgba(255, 99, 132, 0.7)'; // Rojo
+        };
+
+        const data = {
+            labels: secretariasOrdenadas.map(s => s.nombre_secretaria),
+            datasets: [{
+                label: 'Avance Promedio (%)',
+                data: secretariasOrdenadas.map(s => s.porcentaje_avance_promedio),
+                backgroundColor: secretariasOrdenadas.map(s => getColor(s.porcentaje_avance_promedio)),
+                borderColor: secretariasOrdenadas.map(s => getColor(s.porcentaje_avance_promedio).replace('0.7', '1')),
+                borderWidth: 2
+            }]
+        };
+
+        const ctx = canvasElement.getContext('2d');
+        if (!ctx) return;
+
+        // Destruir gráfico anterior si existe
+        if (this.chartSecretarias) {
+            this.chartSecretarias.destroy();
+        }
+
+        this.chartSecretarias = new Chart(ctx, {
+            type: 'bar',
+            data: data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Desempeño por Secretaría'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => {
+                                const item = secretariasOrdenadas[context.dataIndex];
+                                return [
+                                    `Avance: ${item.porcentaje_avance_promedio.toFixed(1)}%`,
+                                    `Productos: ${item.total_productos}`,
+                                    `Completados: ${item.completados}`,
+                                    `En Progreso: ${item.en_progreso}`,
+                                    `Pendientes: ${item.pendientes}`,
+                                    `Actividades: ${item.actividades_completadas}/${item.total_actividades}`
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: (value) => value + '%'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
      * Filtra secretarios por secretaría (sector)
      */
     secretariosPorSecretaria(sector: string): any[] {
@@ -2686,144 +2825,6 @@ export class PdmComponent implements OnInit, OnDestroy {
                 filtrosElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         }, 300);
-    }
-
-    /**
-     * ✅ NUEVO: Crea gráfico de avance promedio por secretaría
-     */
-    crearGraficoAvanceSecretarias(): void {
-        const ctx = document.getElementById('chartAvanceSecretarias') as HTMLCanvasElement;
-        if (!ctx || !this.analisisPorSecretaria.length) return;
-
-        const labels = this.analisisPorSecretaria.map(s => s.nombre_secretaria.substring(0, 20));
-        const data = this.analisisPorSecretaria.map(s => s.porcentaje_avance_promedio);
-        const colores = data.map(d => d >= 80 ? '#28a745' : d >= 50 ? '#17a2b8' : '#ffc107');
-
-        this.chartEstados = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels,
-                datasets: [{
-                    label: 'Avance Promedio (%)',
-                    data,
-                    backgroundColor: colores,
-                    borderColor: colores,
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: true, position: 'top' },
-                    title: {
-                        display: true,
-                        text: 'Avance Promedio por Secretaría',
-                        font: { size: 14, weight: 'bold' }
-                    }
-                },
-                scales: {
-                    x: { beginAtZero: true, max: 100 }
-                }
-            }
-        });
-    }
-
-    /**
-     * ✅ NUEVO: Crea gráfico de distribución de productos por secretaría
-     */
-    crearGraficoProductosSecretarias(): void {
-        const ctx = document.getElementById('chartProductosSecretarias') as HTMLCanvasElement;
-        if (!ctx || !this.analisisPorSecretaria.length) return;
-
-        const labels = this.analisisPorSecretaria.map(s => s.nombre_secretaria.substring(0, 20));
-        const data = this.analisisPorSecretaria.map(s => s.total_productos);
-        const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'];
-
-        this.chartSectores = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels,
-                datasets: [{
-                    data,
-                    backgroundColor: colors.slice(0, labels.length),
-                    borderColor: '#fff',
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom' },
-                    title: {
-                        display: true,
-                        text: 'Distribución de Productos',
-                        font: { size: 14, weight: 'bold' }
-                    }
-                }
-            }
-        });
-    }
-
-    /**
-     * ✅ NUEVO: Crea gráfico de estado de productos por secretaría
-     */
-    crearGraficoEstadoSecretarias(): void {
-        const ctx = document.getElementById('chartEstadoSecretarias') as HTMLCanvasElement;
-        if (!ctx || !this.analisisPorSecretaria.length) return;
-
-        const labels = this.analisisPorSecretaria.map(s => s.nombre_secretaria.substring(0, 20));
-        const completados = this.analisisPorSecretaria.map(s => s.productos_completados);
-        const enProgreso = this.analisisPorSecretaria.map(s => s.productos_en_progreso);
-        const pendientes = this.analisisPorSecretaria.map(s => s.productos_pendientes);
-        const porEjecutar = this.analisisPorSecretaria.map(s => s.productos_por_ejecutar);
-
-        this.chartODS = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels,
-                datasets: [
-                    {
-                        label: 'Completados',
-                        data: completados,
-                        backgroundColor: '#28a745'
-                    },
-                    {
-                        label: 'En Progreso',
-                        data: enProgreso,
-                        backgroundColor: '#17a2b8'
-                    },
-                    {
-                        label: 'Pendientes',
-                        data: pendientes,
-                        backgroundColor: '#ffc107'
-                    },
-                    {
-                        label: 'Por Ejecutar',
-                        data: porEjecutar,
-                        backgroundColor: '#6c757d'
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'top' },
-                    title: {
-                        display: true,
-                        text: 'Estado de Productos por Secretaría',
-                        font: { size: 14, weight: 'bold' }
-                    }
-                },
-                scales: {
-                    x: { stacked: false },
-                    y: { stacked: false }
-                }
-            }
-        });
     }
 
 }

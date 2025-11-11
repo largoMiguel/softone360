@@ -753,7 +753,7 @@
                                                 <p class="text-muted small mb-2">{{ actividad.descripcion }}</p>
                                                 <div class="row small">
                                                     <div class="col-md-4">
-                                                        <i class="fas fa-user me-1"></i> <strong>Responsable:</strong> {{ actividad.responsable }}
+                                                        <i class="fas fa-user me-1"></i> <strong>Responsable:</strong> {{ getNombreResponsable(actividad) }}
                                                     </div>
                                                     <div class="col-md-4">
                                                         <i class="fas fa-calendar me-1"></i> <strong>Fechas:</strong> {{ actividad.fecha_inicio | date:'dd/MM/yyyy' }} - {{ actividad.fecha_fin | date:'dd/MM/yyyy' }}
@@ -1067,6 +1067,22 @@
                                 <div *ngIf="formularioActividad.get('responsable')?.invalid && formularioActividad.get('responsable')?.touched" class="text-danger small">
                                     Debe seleccionar un responsable
                                 </div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Secretaría Responsable</label>
+                                <select 
+                                    class="form-select" 
+                                    formControlName="responsable_secretaria_id"
+                                    [disabled]="cargandoSecretarios">
+                                    <option value="">Ninguna (opcional)</option>
+                                    <option *ngFor="let secretaria of secretariasAgrupadas" [value]="secretaria.id">
+                                        🏢 {{ secretaria.nombre }}
+                                    </option>
+                                </select>
+                                <small class="text-muted d-block mt-1">
+                                    <i class="fas fa-info-circle"></i> Todos los usuarios de esta secretaría podrán ver la actividad
+                                </small>
                             </div>
 
                             <div class="col-md-6 mb-3">
@@ -1437,18 +1453,18 @@
             </div>
         </div>
 
-        <!-- ✅ SECCIÓN: Análisis por Secretaría -->
-        <div class="alert alert-success mt-5 mb-4">
-            <i class="fas fa-building me-2"></i>
-            <strong>Análisis por Secretaría:</strong> A continuación se presenta el análisis de desempeño y cumplimiento por cada secretaría responsable.
-        </div>
-
         <!-- ✅ NUEVO: Análisis por Secretaría (Tabla Detallada) -->
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-success text-white">
-                <h5 class="mb-0"><i class="fas fa-building me-2"></i>Desempeño por Secretaría</h5>
+                <h5 class="mb-0"><i class="fas fa-building me-2"></i>Análisis por Secretaría</h5>
             </div>
             <div class="card-body">
+                <!-- Gráfico de desempeño por secretaría -->
+                <div class="mb-4" style="position: relative; height: 400px;">
+                    <canvas id="chartSecretarias"></canvas>
+                </div>
+
+                <!-- Tabla detallada -->
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead class="table-light">
@@ -1496,49 +1512,6 @@
                 <p *ngIf="analisisPorSecretaria.length === 0" class="text-muted text-center mt-3">
                     No hay datos de secretarías disponibles
                 </p>
-            </div>
-        </div>
-
-        <!-- Gráficos de Análisis por Secretaría -->
-        <div class="row mb-4">
-            <!-- Gráfico de Avance Promedio por Secretaría -->
-            <div class="col-md-6 mb-4">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-success text-white">
-                        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Avance Promedio por Secretaría</h5>
-                    </div>
-                    <div class="card-body">
-                        <div style="position: relative; height: 350px;">
-                            <canvas id="chartAvanceSecretarias"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Gráfico de Productos por Secretaría -->
-            <div class="col-md-6 mb-4">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-info text-white">
-                        <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Distribución de Productos por Secretaría</h5>
-                    </div>
-                    <div class="card-body">
-                        <div style="position: relative; height: 350px;">
-                            <canvas id="chartProductosSecretarias"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Gráfico de Estado de Productos por Secretaría -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-warning text-dark">
-                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Estado de Productos por Secretaría</h5>
-            </div>
-            <div class="card-body">
-                <div style="position: relative; height: 350px;">
-                    <canvas id="chartEstadoSecretarias"></canvas>
-                </div>
             </div>
         </div>
     </div>

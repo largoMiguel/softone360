@@ -11,6 +11,7 @@ from datetime import datetime
 from app.config.database import get_db
 from app.models.entity import Entity
 from app.models.user import User, UserRole
+from app.models.secretaria import Secretaria
 from app.models.alert import Alert
 from app.models.pdm import (
     PdmProducto,
@@ -340,7 +341,7 @@ async def create_actividad(
     db.commit()
     db.refresh(nueva_actividad)
     
-    # Generar alerta si se asignó un responsable
+    # Generar alertas si se asignó un responsable
     if nueva_actividad.responsable_user_id:
         responsable = db.query(User).filter(User.id == nueva_actividad.responsable_user_id).first()
         if responsable:
@@ -353,6 +354,29 @@ async def create_actividad(
                 data=f'{{"actividad_id": {nueva_actividad.id}, "codigo_producto": "{nueva_actividad.codigo_producto}"}}'
             )
             db.add(alerta)
+            db.commit()
+    
+    # Generar alertas si se asignó a una secretaría
+    if nueva_actividad.responsable_secretaria_id:
+        secretaria = db.query(Secretaria).filter(Secretaria.id == nueva_actividad.responsable_secretaria_id).first()
+        if secretaria:
+            # Obtener todos los usuarios de esa secretaría
+            usuarios_secretaria = db.query(User).filter(
+                User.secretaria_id == secretaria.id,
+                User.is_active == True,
+                User.entity_id == entity.id
+            ).all()
+            
+            for usuario in usuarios_secretaria:
+                alerta = Alert(
+                    entity_id=entity.id,
+                    recipient_user_id=usuario.id,
+                    type="PDM_ACTIVIDAD_ASIGNADA",
+                    title=f"Nueva actividad en {secretaria.nombre}: {nueva_actividad.nombre}",
+                    message=f"Se ha asignado la actividad '{nueva_actividad.nombre}' a la Secretaría {secretaria.nombre} para el año {nueva_actividad.anio}.",
+                    data=f'{{"actividad_id": {nueva_actividad.id}, "codigo_producto": "{nueva_actividad.codigo_producto}", "responsable_secretaria": "{secretaria.nombre}"}}'
+                )
+                db.add(alerta)
             db.commit()
     
     return schemas.ActividadResponse.model_validate(nueva_actividad)
@@ -404,13 +428,16 @@ async def get_mis_actividades(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Obtiene las actividades asignadas al usuario actual (para secretarios)"""
+    """Obtiene las actividades asignadas al usuario actual Y a su secretaría (para secretarios)"""
     entity = get_entity_or_404(db, slug)
     ensure_user_can_manage_entity(current_user, entity)
     
+    # Incluir actividades asignadas al usuario O a su secretaría
     query = db.query(PdmActividad).filter(
-        PdmActividad.entity_id == entity.id,
-        PdmActividad.responsable_user_id == current_user.id
+        PdmActividad.entity_id == entity.id
+    ).filter(
+        (PdmActividad.responsable_user_id == current_user.id) |
+        (PdmActividad.responsable_secretaria_id == current_user.secretaria_id)
     )
     
     if anio:
@@ -465,7 +492,11 @@ async def update_actividad(
     db.commit()
     db.refresh(actividad)
     
-    # Generar alerta si cambió el responsable
+    # Guardar responsable anterior secretaría
+    responsable_secretaria_anterior = None
+    # (sería accesible si guardamos antes del update)
+    
+    # Generar alerta si cambió el responsable usuario
     if actividad.responsable_user_id and actividad.responsable_user_id != responsable_anterior_id:
         responsable = db.query(User).filter(User.id == actividad.responsable_user_id).first()
         if responsable:
@@ -478,6 +509,28 @@ async def update_actividad(
                 data=f'{{"actividad_id": {actividad.id}, "codigo_producto": "{actividad.codigo_producto}"}}'
             )
             db.add(alerta)
+            db.commit()
+    
+    # Generar alertas si cambió la secretaría asignada
+    if actividad.responsable_secretaria_id and 'responsable_secretaria_id' in update_dict:
+        secretaria = db.query(Secretaria).filter(Secretaria.id == actividad.responsable_secretaria_id).first()
+        if secretaria:
+            usuarios_secretaria = db.query(User).filter(
+                User.secretaria_id == secretaria.id,
+                User.is_active == True,
+                User.entity_id == entity.id
+            ).all()
+            
+            for usuario in usuarios_secretaria:
+                alerta = Alert(
+                    entity_id=entity.id,
+                    recipient_user_id=usuario.id,
+                    type="PDM_ACTIVIDAD_REASIGNADA",
+                    title=f"Actividad reasignada en {secretaria.nombre}: {actividad.nombre}",
+                    message=f"La actividad '{actividad.nombre}' ha sido reasignada a la Secretaría {secretaria.nombre} para el año {actividad.anio}.",
+                    data=f'{{"actividad_id": {actividad.id}, "codigo_producto": "{actividad.codigo_producto}", "responsable_secretaria": "{secretaria.nombre}"}}'
+                )
+                db.add(alerta)
             db.commit()
     
     return schemas.ActividadResponse.model_validate(actividad)

@@ -137,13 +137,16 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
 
         // Redirigir según el tipo de alerta
         if (alert.type === 'PDM_PRODUCT_ASSIGNED' || alert.type === 'PDM_NEW_ACTIVITY') {
-            // Alerta de PDM - redirigir al módulo PDM y luego abrir el producto
+            // Alerta de PDM - redirigir al módulo PDM y luego abrir el producto/actividad
             await this.router.navigate([`/${slug}/pdm`]);
-            // Guardar en sessionStorage que debe abrir un producto
-            if (data.producto_codigo) {
+            // Guardar en sessionStorage que debe abrir un producto o actividad
+            if (data.actividad_id) {
+                // ✅ Si hay ID de actividad, priorizar ir a la actividad
+                sessionStorage.setItem('pdm_open_actividad', data.actividad_id);
+                console.log('📌 Alerta de actividad con ID:', data.actividad_id);
+            } else if (data.producto_codigo) {
                 sessionStorage.setItem('pdm_open_producto', data.producto_codigo);
-                // Distinguir si es alerta de actividad nueva o producto asignado
-                sessionStorage.setItem('pdm_alerta_tipo', alert.type === 'PDM_NEW_ACTIVITY' ? 'actividad' : 'producto');
+                console.log('📌 Alerta de producto:', data.producto_codigo);
             }
             setTimeout(() => this.alertsEvents.requestOpen(alert), 100);
         } else if (alert.type === 'PLAN_COMPONENT_ASSIGNED' || alert.type === 'PLAN_NEW_ACTIVITY') {

@@ -101,7 +101,10 @@ class PdmActividad(Base):
     nombre = Column(String(512), nullable=False)
     descripcion = Column(Text, nullable=True)
     
-    # Responsable de la actividad (FK a users)
+    # Responsable de la actividad (FK a secretarias)
+    responsable_secretaria_id = Column(Integer, ForeignKey("secretarias.id", ondelete="SET NULL"), nullable=True, index=True)
+    
+    # Responsable específico del usuario (si fue asignado a nivel de usuario)
     responsable_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     
     fecha_inicio = Column(DateTime, nullable=True)
@@ -118,6 +121,9 @@ class PdmActividad(Base):
     
     # Relación con evidencia
     evidencia = relationship("PdmActividadEvidencia", back_populates="actividad", uselist=False, cascade="all, delete-orphan")
+    
+    # Relación con secretaría responsable
+    responsable_secretaria = relationship("Secretaria", foreign_keys=[responsable_secretaria_id])
     
     # Relación con usuario responsable
     responsable_user = relationship("User", foreign_keys=[responsable_user_id])

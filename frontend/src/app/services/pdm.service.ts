@@ -1281,8 +1281,8 @@ export class PdmService {
         const tieneEvidencias = resumen.actividades_completadas > 0;
 
         if (anio < anioActual) {
-            // Año pasado: solo COMPLETADO o PENDIENTE
-            return avance >= 100 ? 'COMPLETADO' : 'PENDIENTE';
+            // Año pasado: solo COMPLETADO o PENDIENTE (EXACTAMENTE 100%)
+            return avance === 100 ? 'COMPLETADO' : 'PENDIENTE';
         } else if (anio === anioActual) {
             // Año actual:
             if (tieneActividades && !tieneEvidencias) {
@@ -1291,7 +1291,7 @@ export class PdmService {
             }
             
             if (avance === 0) return 'PENDIENTE';
-            if (avance >= 100) return 'COMPLETADO';
+            if (avance === 100) return 'COMPLETADO'; // ✅ EXACTAMENTE 100%
             if (avance > 0) return 'EN_PROGRESO';
             
             return 'PENDIENTE';

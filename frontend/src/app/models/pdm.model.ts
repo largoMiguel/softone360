@@ -237,6 +237,8 @@ export interface ActividadPDM {
     descripcion: string;
     responsable: string; // Nombre del responsable (legacy)
     responsable_user_id?: number; // ID del usuario responsable
+    responsable_secretaria_id?: number; // ID de la secretaría responsable
+    responsable_secretaria_nombre?: string; // Nombre de la secretaría responsable
     estado: 'PENDIENTE' | 'EN_PROGRESO' | 'COMPLETADA' | 'CANCELADA';
     fecha_inicio: string; // ISO date string
     fecha_fin: string; // ISO date string
