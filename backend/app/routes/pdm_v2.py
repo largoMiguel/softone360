@@ -176,7 +176,7 @@ async def get_pdm_data(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Obtiene los productos del PDM cargados con sus actividades"""
+    """Obtiene los productos del PDM cargados con sus actividades y otros arrays del frontend"""
     try:
         entity = get_entity_or_404(db, slug)
         ensure_user_can_manage_entity(current_user, entity)
@@ -190,6 +190,9 @@ async def get_pdm_data(
         
         # Validar cada producto antes de retornar
         productos_validos = []
+        lineas_set = set()  # Usar set para líneas únicas
+        iniciativas_set = set()  # Para iniciativas SGR
+        
         for p in productos:
             try:
                 # Cargar actividades del producto usando el codigo_producto
@@ -204,17 +207,37 @@ async def get_pdm_data(
                 prod_response = schemas.ProductoResponse.model_validate(p)
                 productos_validos.append(prod_response)
                 
+                # Recolectar líneas estratégicas únicas
+                if p.linea_estrategica:
+                    lineas_set.add(p.linea_estrategica)
+                
+                # Recolectar iniciativas SGR únicas
+                if hasattr(p, 'bpin') and p.bpin:
+                    iniciativas_set.add(p.bpin)
+                
             except Exception as e:
                 print(f"⚠️ Error validando producto {p.id}: {str(e)}")
                 import traceback
                 traceback.print_exc()
                 # Si falla un producto, retornar lista vacía para evitar error 500
                 print(f"❌ Retornando lista vacía debido a error de validación")
-                return schemas.PDMDataResponse(productos_plan_indicativo=[])
+                return schemas.PDMDataResponse(
+                    productos_plan_indicativo=[],
+                    lineas_estrategicas=[],
+                    indicadores_resultado=[],
+                    iniciativas_sgr=[]
+                )
         
-        print(f"✅ Retornando {len(productos_validos)} productos válidos con actividades")
+        # Convertir sets a listas de diccionarios
+        lineas_estrategicas = [{"nombre": linea} for linea in sorted(lineas_set)]
+        iniciativas_sgr = [{"bpin": iniciativa} for iniciativa in sorted(iniciativas_set) if iniciativa]
+        
+        print(f"✅ Retornando {len(productos_validos)} productos + {len(lineas_estrategicas)} líneas + {len(iniciativas_sgr)} iniciativas")
         return schemas.PDMDataResponse(
-            productos_plan_indicativo=productos_validos
+            productos_plan_indicativo=productos_validos,
+            lineas_estrategicas=lineas_estrategicas,
+            indicadores_resultado=[],  # Empty for now
+            iniciativas_sgr=iniciativas_sgr
         )
     except HTTPException:
         raise

@@ -161,8 +161,11 @@ class PDMDataUpload(BaseModel):
 
 
 class PDMDataResponse(BaseModel):
-    """Respuesta con todos los datos del PDM cargados"""
+    """Respuesta con todos los datos del PDM cargados - incluye todos los arrays que el frontend espera"""
     productos_plan_indicativo: List[ProductoResponse]
+    lineas_estrategicas: List[Dict[str, Any]] = []  # Líneas estratégicas únicas
+    indicadores_resultado: List[Dict[str, Any]] = []  # Indicadores de resultado
+    iniciativas_sgr: List[Dict[str, Any]] = []  # Iniciativas SGR
 
 
 class PDMLoadStatusResponse(BaseModel):
