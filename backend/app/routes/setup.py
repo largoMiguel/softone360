@@ -172,3 +172,33 @@ async def fix_superadmin(db: Session = Depends(get_db)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error actualizando superadmin: {str(e)}"
         )
+
+@router.get("/list-users")
+async def list_users(db: Session = Depends(get_db)):
+    """
+    Lista todos los usuarios en el sistema para debugging.
+    """
+    try:
+        users = db.query(User).all()
+        
+        return {
+            "status": "success",
+            "total": len(users),
+            "users": [
+                {
+                    "id": u.id,
+                    "username": u.username,
+                    "email": u.email,
+                    "role": u.role,
+                    "entity_id": u.entity_id,
+                    "secretaria_id": u.secretaria_id
+                }
+                for u in users
+            ]
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error listando usuarios: {str(e)}"
+        )
