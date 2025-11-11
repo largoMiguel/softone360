@@ -134,11 +134,15 @@ export class PdmComponent implements OnInit, OnDestroy {
     get productosFiltrados(): ResumenProducto[] {
         let productos = this.resumenProductos;
 
-        // Si el usuario es SECRETARIO, solo mostrar sus productos asignados
+        // Filtro de rol: 
+        // - SECRETARIO: solo sus productos asignados (responsable_id === su usuario ID)
+        // - ADMIN/otros: todos los productos
         const currentUser = this.authService.getCurrentUserValue();
         if (currentUser && currentUser.role === 'secretario') {
+            // El secretario solo ve productos asignados a él
             productos = productos.filter(p => p.responsable_id === currentUser.id);
         }
+        // Los admin y otros roles ven TODOS los productos (sin filtro de responsable)
 
         // Filtrar productos con meta > 0 para el año seleccionado
         productos = productos.filter(p => {
@@ -1333,6 +1337,18 @@ export class PdmComponent implements OnInit, OnDestroy {
         const avance = this.getAvanceAnio(producto, anio);
         const resumenActividades = this.pdmService.obtenerResumenActividadesPorAnio(producto, anio);
 
+        // DEBUG: Log para entender qué está pasando
+        if (producto.codigo === '2201029') {
+            console.log(`🔍 [${producto.codigo}] año=${anio}:`, {
+                total_actividades: resumenActividades.total_actividades,
+                actividades_completadas: resumenActividades.actividades_completadas,
+                meta_asignada: resumenActividades.meta_asignada,
+                meta_ejecutada: resumenActividades.meta_ejecutada,
+                porcentaje_avance: resumenActividades.porcentaje_avance,
+                avance: avance
+            });
+        }
+
         // Año futuro: siempre POR_EJECUTAR
         if (anio > new Date().getFullYear()) {
             return 'POR_EJECUTAR';
@@ -1344,14 +1360,21 @@ export class PdmComponent implements OnInit, OnDestroy {
         }
         
         // CRÍTICO: Primero verificar si hay evidencias antes de marcar como COMPLETADO
+        // Una actividad solo está completada si tiene evidencia (a.evidencia !== undefined)
         if (resumenActividades.total_actividades > 0 && 
             resumenActividades.actividades_completadas === resumenActividades.total_actividades &&
             resumenActividades.actividades_completadas > 0) {
+            if (producto.codigo === '2201029') {
+                console.log(`✅ [${producto.codigo}] Estado COMPLETADO porque tiene evidencias`);
+            }
             return 'COMPLETADO'; // Todas las actividades tienen evidencia
         }
         
         // Si hay actividades asignadas pero NO todas tienen evidencia
         if (resumenActividades.total_actividades > 0) {
+            if (producto.codigo === '2201029') {
+                console.log(`🟡 [${producto.codigo}] Estado EN_PROGRESO (actividades=${resumenActividades.total_actividades}, completadas=${resumenActividades.actividades_completadas})`);
+            }
             return 'EN_PROGRESO'; // Hay actividades asignadas o en ejecución
         }
 
