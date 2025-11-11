@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import inspect, text
 from app.config.database import engine, get_db, Base
 from app.config.settings import settings
-from app.routes import auth, pqrs, users, planes, entities, contratacion, alerts, secretarias, migrations, bpin, showcase
+from app.routes import auth, pqrs, users, planes, entities, contratacion, alerts, secretarias, migrations, bpin, showcase, setup
 from app.models import user, pqrs as pqrs_model, plan, entity, pdm as pdm_model, secretaria as secretaria_model
 from app.models.user import User, UserRole
 from app.utils.auth import get_password_hash
@@ -144,6 +144,7 @@ app.include_router(secretarias.router, prefix="/api", tags=["Secretarías"])
 app.include_router(migrations.router, prefix="/api", tags=["Migrations"])
 app.include_router(bpin.router, tags=["BPIN"])
 app.include_router(showcase.router, prefix="/api", tags=["Showcase"])
+app.include_router(setup.router, prefix="/api", tags=["Setup"])
 
 @app.get("/")
 async def root():
