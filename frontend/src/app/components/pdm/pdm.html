@@ -253,7 +253,7 @@
         <!-- Dashboard de Estadísticas por Estado (Solo productos con meta > 0 para el año seleccionado) -->
         <div class="row mb-4">
             <div class="col-md-3 mb-3">
-                <div class="stat-card card border-warning">
+                <div class="stat-card card border-warning clickable" (click)="filtrarPorEstadoPendiente()" title="Filtrar productos pendientes">
                     <div class="card-body">
                         <div class="stat-icon">
                             <i class="fas fa-clock fa-2x text-warning"></i>
@@ -267,7 +267,7 @@
                 </div>
             </div>
             <div class="col-md-3 mb-3">
-                <div class="stat-card card border-info">
+                <div class="stat-card card border-info clickable" (click)="filtrarPorEstadoEnProgreso()" title="Filtrar productos en progreso">
                     <div class="card-body">
                         <div class="stat-icon">
                             <i class="fas fa-spinner fa-2x text-info"></i>
@@ -281,7 +281,7 @@
                 </div>
             </div>
             <div class="col-md-3 mb-3">
-                <div class="stat-card card border-success">
+                <div class="stat-card card border-success clickable" (click)="filtrarPorEstadoCompletado()" title="Filtrar productos completados">
                     <div class="card-body">
                         <div class="stat-icon">
                             <i class="fas fa-check-circle fa-2x text-success"></i>
@@ -295,7 +295,7 @@
                 </div>
             </div>
             <div class="col-md-3 mb-3">
-                <div class="stat-card card border-secondary">
+                <div class="stat-card card border-secondary clickable" (click)="filtrarPorEstadoPorEjecutar()" title="Filtrar productos por ejecutar">
                     <div class="card-body">
                         <div class="stat-icon">
                             <i class="fas fa-calendar-plus fa-2x text-secondary"></i>
@@ -329,12 +329,23 @@
                         </select>
                     </div>
                     <div class="col-md-3">
+                        <label class="form-label"><i class="fas fa-building me-1"></i> Secretaría Responsable</label>
+                        <select class="form-select" [(ngModel)]="filtroSecretaria" (change)="onCambioFiltro()">
+                            <option value="">Todas las secretarías</option>
+                            <option *ngFor="let secretaria of secretariasAgrupadas" [value]="secretaria.id">
+                                🏢 {{ secretaria.nombre }}
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
                         <label class="form-label"><i class="fas fa-globe me-1"></i> ODS</label>
                         <select class="form-select" [(ngModel)]="filtroODS" (change)="onCambioFiltro()">
                             <option value="">Todos los ODS</option>
                             <option *ngFor="let ods of odsDisponibles" [value]="ods">{{ ods }}</option>
                         </select>
                     </div>
+                </div>
+                <div class="row g-3 mt-2">
                     <div class="col-md-3">
                         <label class="form-label"><i class="fas fa-code-branch me-1"></i> Tipo Acumulación</label>
                         <select class="form-select" [(ngModel)]="filtroTipoAcumulacion" (change)="onCambioFiltro()">
@@ -342,11 +353,9 @@
                             <option *ngFor="let tipo of tiposAcumulacionDisponibles" [value]="tipo">{{ tipo }}</option>
                         </select>
                     </div>
-                </div>
-                <div class="row g-3 mt-2">
-                    <div class="col-md-6">
+                    <div class="col-md-3">
                         <label class="form-label"><i class="fas fa-search me-1"></i> Buscar Producto</label>
-                        <input type="text" class="form-control" [(ngModel)]="filtroBusqueda" (keyup)="onCambioFiltroBusqueda()" placeholder="Buscar por código, nombre o programa...">
+                        <input type="text" class="form-control" [(ngModel)]="filtroBusqueda" (keyup)="onCambioFiltroBusqueda()" placeholder="Buscar por código, nombre...">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label"><i class="fas fa-calendar-alt me-1"></i> Año</label>
@@ -445,7 +454,7 @@
                                     <select 
                                         *ngIf="isAdmin()"
                                         class="form-select form-select-sm" 
-                                        [value]="producto.responsable_id || ''"
+                                        [value]="producto.responsable_secretaria_id || ''"
                                         (change)="asignarResponsable(producto, $event)"
                                         [disabled]="cargandoSecretarios"
                                         title="Secretarias: {{secretariasAgrupadas | json}}">
@@ -458,11 +467,11 @@
                                     </select>
                                     
                                     <!-- Mostrar nombre de SECRETARÍA responsable (no usuario) -->
-                                    <small *ngIf="!isAdmin() && producto.responsable_nombre" class="text-muted d-block">
-                                        <i class="fas fa-building me-1"></i>{{ producto.responsable_nombre }}
+                                    <small *ngIf="!isAdmin() && producto.responsable_secretaria_nombre" class="text-muted d-block">
+                                        <i class="fas fa-building me-1"></i>{{ producto.responsable_secretaria_nombre }}
                                     </small>
-                                    <small *ngIf="producto.responsable_nombre && isAdmin()" class="text-muted d-block mt-1">
-                                        <i class="fas fa-building me-1"></i>{{ producto.responsable_nombre }}
+                                    <small *ngIf="producto.responsable_secretaria_nombre && isAdmin()" class="text-muted d-block mt-1">
+                                        <i class="fas fa-building me-1"></i>{{ producto.responsable_secretaria_nombre }}
                                     </small>
                                     <small *ngIf="cargandoSecretarios" class="text-muted d-block mt-1">
                                         <i class="fas fa-spinner fa-spin"></i> Cargando...

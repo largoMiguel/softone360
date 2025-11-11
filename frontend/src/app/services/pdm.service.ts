@@ -500,7 +500,9 @@ export class PdmService {
                 porcentaje_ejecucion: porcentajeEjecucion,
                 detalle_completo: producto,
                 responsable_id: (producto as any).responsable_user_id || null,
-                responsable_nombre: (producto as any).responsable_nombre || undefined
+                responsable_nombre: (producto as any).responsable_nombre || undefined,
+                responsable_secretaria_id: (producto as any).responsable_secretaria_id || null, // ✅ Mapear ID de secretaría
+                responsable_secretaria_nombre: (producto as any).responsable_secretaria_nombre || undefined // ✅ Mapear nombre de secretaría
             };
         });
         

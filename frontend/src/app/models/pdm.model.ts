@@ -202,6 +202,8 @@ export interface ResumenProducto {
     detalle_completo: ProductoPlanIndicativo;
     responsable_id?: number | null;
     responsable_nombre?: string;
+    responsable_secretaria_id?: number | null; // ✅ ID de la secretaría responsable
+    responsable_secretaria_nombre?: string; // ✅ Nombre de la secretaría responsable
 }
 
 // Interfaz para estadísticas del PDM

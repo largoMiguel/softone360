@@ -86,6 +86,7 @@ export class PdmComponent implements OnInit, OnDestroy {
     filtroEstado = '';
     filtroBusqueda = '';
     filtroAnio = new Date().getFullYear(); // Año actual por defecto
+    filtroSecretaria = ''; // ✅ Nuevo filtro por secretaría
     
     // Años disponibles
     aniosDisponibles = [2024, 2025, 2026, 2027];
@@ -168,6 +169,16 @@ export class PdmComponent implements OnInit, OnDestroy {
             productos = productos.filter(p => 
                 this.getEstadoProductoAnio(p, this.filtroAnio) === this.filtroEstado
             );
+        }
+
+        // ✅ Nuevo: Filtro por secretaría
+        if (this.filtroSecretaria) {
+            const secretariaId = parseInt(this.filtroSecretaria, 10);
+            productos = productos.filter(p => {
+                // El backend ahora retorna responsable_secretaria_id
+                const productoSecretariaId = p.responsable_secretaria_id || p.responsable_id;
+                return productoSecretariaId && parseInt(String(productoSecretariaId), 10) === secretariaId;
+            });
         }
 
         if (this.filtroBusqueda) {
@@ -676,6 +687,7 @@ export class PdmComponent implements OnInit, OnDestroy {
         this.filtroTipoAcumulacion = '';
         this.filtroEstado = '';
         this.filtroBusqueda = '';
+        this.filtroSecretaria = ''; // ✅ Agregar filtro de secretaría
         console.log(`📊 Mostrando ${this.productosFiltrados.length} productos sin filtros`);
         // ✅ NO llamar a recargarSegunFiltros() - solo filtrar en memoria
     }
@@ -727,6 +739,46 @@ export class PdmComponent implements OnInit, OnDestroy {
             // ✅ NO llamar a recargarSegunFiltros() - solo filtrar en memoria
             this.debounceTimer = null;
         }, this.DEBOUNCE_DELAY);
+    }
+
+    /**
+     * ✅ Filtra productos por estado (Pendiente)
+     * Se ejecuta al hacer click en el card de "Pendientes"
+     */
+    filtrarPorEstadoPendiente() {
+        this.filtroEstado = 'PENDIENTE';
+        this.navegarA('productos');
+        console.log('🔍 Filtrando por estado: PENDIENTE');
+    }
+
+    /**
+     * ✅ Filtra productos por estado (En Progreso)
+     * Se ejecuta al hacer click en el card de "En Progreso"
+     */
+    filtrarPorEstadoEnProgreso() {
+        this.filtroEstado = 'EN_PROGRESO';
+        this.navegarA('productos');
+        console.log('🔍 Filtrando por estado: EN_PROGRESO');
+    }
+
+    /**
+     * ✅ Filtra productos por estado (Completado)
+     * Se ejecuta al hacer click en el card de "Completados"
+     */
+    filtrarPorEstadoCompletado() {
+        this.filtroEstado = 'COMPLETADO';
+        this.navegarA('productos');
+        console.log('🔍 Filtrando por estado: COMPLETADO');
+    }
+
+    /**
+     * ✅ Filtra productos por estado (Por Ejecutar)
+     * Se ejecuta al hacer click en el card de "Por Ejecutar"
+     */
+    filtrarPorEstadoPorEjecutar() {
+        this.filtroEstado = 'POR_EJECUTAR';
+        this.navegarA('productos');
+        console.log('🔍 Filtrando por estado: POR_EJECUTAR');
     }
 
     /**
@@ -2489,11 +2541,11 @@ export class PdmComponent implements OnInit, OnDestroy {
                 const nuevoNombre = response.responsable_secretaria_nombre;
                 
                 console.log('   • Actualizando producto:');
-                console.log('     - responsable_id:', nuevoId);
-                console.log('     - responsable_nombre:', nuevoNombre);
+                console.log('     - responsable_secretaria_id:', nuevoId);
+                console.log('     - responsable_secretaria_nombre:', nuevoNombre);
                 
-                producto.responsable_id = nuevoId;
-                producto.responsable_nombre = nuevoNombre;
+                producto.responsable_secretaria_id = nuevoId; // ✅ Usar responsable_secretaria_id
+                producto.responsable_secretaria_nombre = nuevoNombre; // ✅ Usar responsable_secretaria_nombre
                 
                 // Forzar actualización del select al nuevo valor
                 select.value = nuevoId?.toString() || '';
@@ -2506,7 +2558,7 @@ export class PdmComponent implements OnInit, OnDestroy {
                 this.showToast('Error al asignar secretaría: ' + (error.error?.detail || error.message), 'error');
                 
                 // Revertir selección
-                select.value = producto.responsable_id?.toString() || '';
+                select.value = producto.responsable_secretaria_id?.toString() || '';
             }
         });
     }

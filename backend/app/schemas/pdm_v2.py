@@ -86,6 +86,8 @@ class ProductoResponse(ProductoPlanIndicativoBase):
     entity_id: int
     responsable_user_id: Optional[int] = None
     responsable_nombre: Optional[str] = None  # Nombre completo del responsable (enriquecido)
+    responsable_secretaria_id: Optional[int] = None  # ✅ ID de la secretaría responsable
+    responsable_secretaria_nombre: Optional[str] = None  # ✅ Nombre de la secretaría responsable
     actividades: List['ActividadResponseConEvidencia'] = []  # Incluir actividades asociadas CON evidencias
     created_at: datetime
     updated_at: Optional[datetime] = None
