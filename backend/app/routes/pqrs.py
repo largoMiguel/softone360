@@ -38,7 +38,7 @@ async def create_pqrs(
             if not pqrs_data.nombre_ciudadano:
                 pqrs_data.nombre_ciudadano = current_user.full_name or "Usuario Registrado"
             if not pqrs_data.cedula_ciudadano:
-                pqrs_data.cedula_ciudadano = current_user.cedula or current_user.username
+                pqrs_data.cedula_ciudadano = current_user.username
         else:
             # PQRS Anónima: asignar valores por defecto
             if not pqrs_data.nombre_ciudadano:
@@ -163,11 +163,9 @@ async def get_pqrs(
         # Secretarios solo ven PQRS asignadas a ellos
         query = query.filter(PQRS.assigned_to_id == current_user.id)
     elif current_user.role == UserRole.CIUDADANO:
-        # Ciudadanos ven PQRS que ellos crearon (basándose en created_by_id)
-        # O que coincidan con su cédula/email
+        # Ciudadanos ven PQRS que ellos crearon (basándose en created_by_id o email)
         query = query.filter(
             (PQRS.created_by_id == current_user.id) |
-            (PQRS.cedula_ciudadano == current_user.cedula) |
             (PQRS.email_ciudadano == current_user.email)
         )
     

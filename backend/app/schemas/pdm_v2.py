@@ -59,69 +59,8 @@ class ProductoResponse(ProductoPlanIndicativoBase):
     id: int
     entity_id: int
     responsable_user_id: Optional[int] = None
-    responsable: Optional[str] = None
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class LineaEstrategicaBase(BaseModel):
-    codigo_dane: Optional[str] = None
-    entidad_territorial: Optional[str] = None
-    nombre_plan: Optional[str] = None
-    consecutivo: Optional[str] = None
-    linea_estrategica: str
-
-
-class LineaEstrategicaResponse(LineaEstrategicaBase):
-    id: int
-    entity_id: int
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class IndicadorResultadoBase(BaseModel):
-    codigo_dane: Optional[str] = None
-    entidad_territorial: Optional[str] = None
-    nombre_plan: Optional[str] = None
-    consecutivo: Optional[str] = None
-    linea_estrategica: Optional[str] = None
-    indicador_resultado: str
-    esta_pnd: Optional[str] = None
-    meta_cuatrienio: Optional[float] = None
-    transformacion_pnd: Optional[str] = None
-
-
-class IndicadorResultadoResponse(IndicadorResultadoBase):
-    id: int
-    entity_id: int
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class IniciativaSGRBase(BaseModel):
-    codigo_dane: Optional[str] = None
-    entidad_territorial: Optional[str] = None
-    nombre_plan: Optional[str] = None
-    consecutivo: Optional[str] = None
-    linea_estrategica: Optional[str] = None
-    tipo_iniciativa: Optional[str] = None
-    sector_mga: Optional[str] = None
-    iniciativa_sgr: str
-    recursos_sgr_indicativos: Optional[float] = None
-    bpin: Optional[str] = None
-
-
-class IniciativaSGRResponse(IniciativaSGRBase):
-    id: int
-    entity_id: int
-    created_at: datetime
 
     class Config:
         from_attributes = True
@@ -136,7 +75,6 @@ class ActividadBase(BaseModel):
     anio: int = Field(..., ge=2024, le=2027)
     nombre: str = Field(..., min_length=1, max_length=512)
     descripcion: Optional[str] = None
-    responsable: Optional[str] = None  # Nombre del responsable (legacy)
     responsable_user_id: Optional[int] = None  # ID del usuario responsable
     fecha_inicio: Optional[str] = None  # ISO string para input
     fecha_fin: Optional[str] = None  # ISO string para input
@@ -213,30 +151,19 @@ class ActividadResponse(ActividadResponseBase):
 # ============================================
 
 class PDMDataUpload(BaseModel):
-    """Estructura completa del Excel PDM"""
-    lineas_estrategicas: List[LineaEstrategicaBase]
-    indicadores_resultado: List[IndicadorResultadoBase]
-    iniciativas_sgr: List[IniciativaSGRBase]
+    """Estructura del Excel PDM (solo productos)"""
     productos_plan_indicativo: List[ProductoPlanIndicativoBase]
-    productos_plan_indicativo_sgr: Optional[List[Any]] = []
 
 
 class PDMDataResponse(BaseModel):
     """Respuesta con todos los datos del PDM cargados"""
-    lineas_estrategicas: List[LineaEstrategicaResponse]
-    indicadores_resultado: List[IndicadorResultadoResponse]
-    iniciativas_sgr: List[IniciativaSGRResponse]
     productos_plan_indicativo: List[ProductoResponse]
-    productos_plan_indicativo_sgr: List[Any] = []
 
 
 class PDMLoadStatusResponse(BaseModel):
     """Estado de carga del PDM"""
     tiene_datos: bool
     total_productos: int = 0
-    total_lineas: int = 0
-    total_indicadores: int = 0
-    total_iniciativas: int = 0
     fecha_ultima_carga: Optional[datetime] = None
 
 

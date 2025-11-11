@@ -17,6 +17,7 @@ from app.models.plan import (
 )
 from app.models.user import User, UserRole
 from app.models.alert import Alert
+from app.models.secretaria import Secretaria
 from app.schemas import plan as plan_schemas
 from app.utils.auth import get_current_user, require_feature_enabled
 
@@ -24,6 +25,14 @@ router = APIRouter()
 
 
 # ==================== UTILIDADES ====================
+
+def get_secretaria_nombre(user: User, db: Session) -> Optional[str]:
+    """Obtiene el nombre de la secretaría del usuario usando secretaria_id"""
+    if not user.secretaria_id:
+        return None
+    secretaria = db.query(Secretaria).filter(Secretaria.id == user.secretaria_id).first()
+    return secretaria.nombre if secretaria else None
+
 
 def calcular_porcentaje_avance_actividad(db: Session, actividad: Actividad) -> Decimal:
     """Regla: si la actividad tiene al menos una ejecución, su avance es 100%, sino 0%"""
@@ -100,7 +109,8 @@ def tiene_permiso_actividad(user: User, actividad: Actividad, db: Session) -> bo
     # Si es secretario, solo puede acceder si la actividad está asignada a su secretaría
     if user.role == UserRole.SECRETARIO:
         # Verificar que el responsable de la actividad coincida con la secretaría del usuario
-        return actividad.responsable == user.secretaria
+        secretaria_nombre = get_secretaria_nombre(user, db)
+        return actividad.responsable == secretaria_nombre if secretaria_nombre else False
     
     return False
 
@@ -141,7 +151,8 @@ def puede_registrar_ejecucion(user: User, actividad: Actividad, db: Session) -> 
     
     # Secretarios solo en su secretaría
     if user.role == UserRole.SECRETARIO:
-        return actividad.responsable == user.secretaria
+        secretaria_nombre = get_secretaria_nombre(user, db)
+        return actividad.responsable == secretaria_nombre if secretaria_nombre else False
     
     return False
 
@@ -543,8 +554,13 @@ def listar_actividades(
     query = db.query(Actividad).filter(Actividad.componente_id == componente_id)
     
     # Si es secretario, filtrar solo sus actividades
-    if current_user.role == UserRole.SECRETARIO and current_user.secretaria:
-        query = query.filter(Actividad.responsable == current_user.secretaria)
+    if current_user.role == UserRole.SECRETARIO:
+        secretaria_nombre = get_secretaria_nombre(current_user, db)
+        if secretaria_nombre:
+            query = query.filter(Actividad.responsable == secretaria_nombre)
+        else:
+            # Sin secretaría asignada, no ve ninguna actividad
+            return []
     
     return query.order_by(Actividad.created_at).all()
 
@@ -633,25 +649,34 @@ def crear_actividad(
     
     # Crear alertas para secretarios responsables y administradores
     try:
-        # 1. Alertas para secretarios responsables de la actividad
+        # 1. Alertas para secretarios que pertenecen a la secretaría responsable
         if nueva_actividad.responsable:
-            secretarios = db.query(User).filter(
-                User.role == UserRole.SECRETARIO,
-                User.entity_id == componente.plan.entity_id,
-                User.secretaria == nueva_actividad.responsable,
-                User.is_active == True
-            ).all()
+            # Buscar la secretaría por nombre
+            secretaria = db.query(Secretaria).filter(
+                Secretaria.nombre == nueva_actividad.responsable,
+                Secretaria.entity_id == componente.plan.entity_id,
+                Secretaria.is_active == True
+            ).first()
             
-            for secretario in secretarios:
-                db.add(Alert(
-                    entity_id=componente.plan.entity_id,
-                    recipient_user_id=secretario.id,
-                    type="PLAN_NEW_ACTIVITY",
-                    title="Nueva actividad asignada en Plan Institucional",
-                    message=f"Se te ha asignado una nueva actividad en el componente '{componente.nombre}'",
-                    data=json.dumps({
-                        "plan_id": componente.plan_id,
-                        "componente_id": componente_id,
+            if secretaria:
+                # Buscar usuarios de esa secretaría
+                secretarios = db.query(User).filter(
+                    User.role == UserRole.SECRETARIO,
+                    User.entity_id == componente.plan.entity_id,
+                    User.secretaria_id == secretaria.id,
+                    User.is_active == True
+                ).all()
+                
+                for secretario in secretarios:
+                    db.add(Alert(
+                        entity_id=componente.plan.entity_id,
+                        recipient_user_id=secretario.id,
+                        type="PLAN_NEW_ACTIVITY",
+                        title="Nueva actividad asignada en Plan Institucional",
+                        message=f"Se te ha asignado una nueva actividad en el componente '{componente.nombre}'",
+                        data=json.dumps({
+                            "plan_id": componente.plan_id,
+                            "componente_id": componente_id,
                         "actividad_id": nueva_actividad.id
                     }),
                 ))
@@ -875,9 +900,10 @@ def crear_ejecucion(
     # Validar permisos específicos para registrar ejecución
     if not puede_registrar_ejecucion(current_user, actividad, db):
         if current_user.role == UserRole.SECRETARIO:
+            secretaria_nombre = get_secretaria_nombre(current_user, db)
             raise HTTPException(
                 status_code=403, 
-                detail=f"Solo puedes registrar avances en actividades asignadas a tu secretaría ({current_user.secretaria}). Esta actividad está asignada a: {actividad.responsable}"
+                detail=f"Solo puedes registrar avances en actividades asignadas a tu secretaría ({secretaria_nombre or 'ninguna'}). Esta actividad está asignada a: {actividad.responsable}"
             )
         else:
             raise HTTPException(status_code=403, detail="No tienes acceso a esta actividad")

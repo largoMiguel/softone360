@@ -105,14 +105,16 @@ class PQRS(Base):
     # Información de la PQRS
     tipo_solicitud = Column(
         EnumType(TipoSolicitud),
-        nullable=False
+        nullable=False,
+        index=True  # Índice para filtros frecuentes
     )
     asunto = Column(String, nullable=False)
     descripcion = Column(Text, nullable=False)
     estado = Column(
         EnumType(EstadoPQRS),
         nullable=False,
-        default=EstadoPQRS.PENDIENTE
+        default=EstadoPQRS.PENDIENTE,
+        index=True  # Índice para filtros frecuentes
     )
     
     # Fechas importantes
@@ -121,9 +123,9 @@ class PQRS(Base):
     fecha_delegacion = Column(DateTime(timezone=True), nullable=True)
     fecha_respuesta = Column(DateTime(timezone=True), nullable=True)
     
-    # Relaciones con usuarios
-    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    assigned_to_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    # Relaciones con usuarios (SET NULL: mantiene PQRS si se elimina el usuario)
+    created_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    assigned_to_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     
     # Relación con entidad (CASCADE: elimina PQRS cuando se elimina entidad)
     entity_id = Column(Integer, ForeignKey("entities.id", ondelete="CASCADE"), nullable=False)

@@ -13,9 +13,6 @@ from app.models.entity import Entity
 from app.models.user import User
 from app.models.alert import Alert
 from app.models.pdm import (
-    PdmLineaEstrategica,
-    PdmIndicadorResultado,
-    PdmIniciativaSGR,
     PdmProducto,
     PdmActividad,
     PdmActividadEvidencia
@@ -113,18 +110,6 @@ async def get_pdm_status(
         PdmProducto.entity_id == entity.id
     ).scalar()
     
-    total_lineas = db.query(func.count(PdmLineaEstrategica.id)).filter(
-        PdmLineaEstrategica.entity_id == entity.id
-    ).scalar()
-    
-    total_indicadores = db.query(func.count(PdmIndicadorResultado.id)).filter(
-        PdmIndicadorResultado.entity_id == entity.id
-    ).scalar()
-    
-    total_iniciativas = db.query(func.count(PdmIniciativaSGR.id)).filter(
-        PdmIniciativaSGR.entity_id == entity.id
-    ).scalar()
-    
     fecha_ultima_carga = None
     if total_productos > 0:
         producto_mas_reciente = db.query(PdmProducto).filter(
@@ -136,9 +121,6 @@ async def get_pdm_status(
     return schemas.PDMLoadStatusResponse(
         tiene_datos=total_productos > 0,
         total_productos=total_productos,
-        total_lineas=total_lineas,
-        total_indicadores=total_indicadores,
-        total_iniciativas=total_iniciativas,
         fecha_ultima_carga=fecha_ultima_carga
     )
 
@@ -154,54 +136,9 @@ async def upload_pdm_data(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Carga/actualiza todos los datos del Excel PDM. Actualiza existentes y agrega nuevos."""
+    """Carga/actualiza productos del Excel PDM. Actualiza existentes y agrega nuevos."""
     entity = get_entity_or_404(db, slug)
     ensure_user_can_manage_entity(current_user, entity)
-    
-    # Upsert líneas estratégicas (actualizar o insertar)
-    for item in data.lineas_estrategicas:
-        # Buscar si ya existe por linea_estrategica
-        existing = db.query(PdmLineaEstrategica).filter(
-            PdmLineaEstrategica.entity_id == entity.id,
-            PdmLineaEstrategica.linea_estrategica == item.linea_estrategica
-        ).first()
-        
-        if existing:
-            # Actualizar
-            for key, value in item.model_dump().items():
-                setattr(existing, key, value)
-        else:
-            # Insertar nuevo
-            linea = PdmLineaEstrategica(entity_id=entity.id, **item.model_dump())
-            db.add(linea)
-    
-    # Upsert indicadores de resultado
-    for item in data.indicadores_resultado:
-        existing = db.query(PdmIndicadorResultado).filter(
-            PdmIndicadorResultado.entity_id == entity.id,
-            PdmIndicadorResultado.indicador_resultado == item.indicador_resultado
-        ).first()
-        
-        if existing:
-            for key, value in item.model_dump().items():
-                setattr(existing, key, value)
-        else:
-            indicador = PdmIndicadorResultado(entity_id=entity.id, **item.model_dump())
-            db.add(indicador)
-    
-    # Upsert iniciativas SGR
-    for item in data.iniciativas_sgr:
-        existing = db.query(PdmIniciativaSGR).filter(
-            PdmIniciativaSGR.entity_id == entity.id,
-            PdmIniciativaSGR.iniciativa_sgr == item.iniciativa_sgr
-        ).first()
-        
-        if existing:
-            for key, value in item.model_dump().items():
-                setattr(existing, key, value)
-        else:
-            iniciativa = PdmIniciativaSGR(entity_id=entity.id, **item.model_dump())
-            db.add(iniciativa)
     
     # Upsert productos (clave: codigo_producto)
     for item in data.productos_plan_indicativo:
@@ -211,10 +148,9 @@ async def upload_pdm_data(
         ).first()
         
         if existing:
-            # Actualizar solo campos del Excel, preservar responsable y responsable_user_id
+            # Actualizar campos del Excel, preservar responsable_user_id
             for key, value in item.model_dump().items():
-                # No sobrescribir los campos de responsable si ya están definidos
-                if key not in ['responsable', 'responsable_user_id']:
+                if key != 'responsable_user_id':
                     setattr(existing, key, value)
         else:
             # Insertar nuevo producto
@@ -237,32 +173,16 @@ async def get_pdm_data(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Obtiene todos los datos del PDM cargados"""
+    """Obtiene los productos del PDM cargados"""
     entity = get_entity_or_404(db, slug)
     ensure_user_can_manage_entity(current_user, entity)
-    
-    lineas = db.query(PdmLineaEstrategica).filter(
-        PdmLineaEstrategica.entity_id == entity.id
-    ).all()
-    
-    indicadores = db.query(PdmIndicadorResultado).filter(
-        PdmIndicadorResultado.entity_id == entity.id
-    ).all()
-    
-    iniciativas = db.query(PdmIniciativaSGR).filter(
-        PdmIniciativaSGR.entity_id == entity.id
-    ).all()
     
     productos = db.query(PdmProducto).filter(
         PdmProducto.entity_id == entity.id
     ).all()
     
     return schemas.PDMDataResponse(
-        lineas_estrategicas=[schemas.LineaEstrategicaResponse.model_validate(l) for l in lineas],
-        indicadores_resultado=[schemas.IndicadorResultadoResponse.model_validate(i) for i in indicadores],
-        iniciativas_sgr=[schemas.IniciativaSGRResponse.model_validate(i) for i in iniciativas],
-        productos_plan_indicativo=[schemas.ProductoResponse.model_validate(p) for p in productos],
-        productos_plan_indicativo_sgr=[]
+        productos_plan_indicativo=[schemas.ProductoResponse.model_validate(p) for p in productos]
     )
 
 
@@ -564,7 +484,6 @@ async def asignar_responsable_producto(
     
     # Asignar responsable
     producto.responsable_user_id = responsable_user_id
-    producto.responsable = usuario.full_name or usuario.name  # Actualizar también el campo legacy
     
     db.commit()
     db.refresh(producto)

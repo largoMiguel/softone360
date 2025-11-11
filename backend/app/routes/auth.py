@@ -95,18 +95,10 @@ async def register_ciudadano(user_data: UserCreate, db: Session = Depends(get_db
             detail="Este endpoint es solo para registro de ciudadanos"
         )
     
-    # Verificar que la cédula sea proporcionada
-    if not user_data.cedula:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="La cédula es requerida para ciudadanos"
-        )
-    
     # Verificar si el usuario ya existe
     existing_user = db.query(User).filter(
         (User.username == user_data.username) | 
-        (User.email == user_data.email) |
-        (User.cedula == user_data.cedula)
+        (User.email == user_data.email)
     ).first()
     
     if existing_user:
@@ -120,11 +112,6 @@ async def register_ciudadano(user_data: UserCreate, db: Session = Depends(get_db
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="El email ya está registrado"
             )
-        elif existing_user.cedula == user_data.cedula:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="La cédula ya está registrada"
-            )
     
     # Crear nuevo ciudadano
     hashed_password = get_password_hash(user_data.password)
@@ -133,10 +120,7 @@ async def register_ciudadano(user_data: UserCreate, db: Session = Depends(get_db
         email=user_data.email,
         full_name=user_data.full_name,
         hashed_password=hashed_password,
-        role=UserRole.CIUDADANO,
-        cedula=user_data.cedula,
-        telefono=user_data.telefono,
-        direccion=user_data.direccion
+        role=UserRole.CIUDADANO
     )
     
     db.add(db_user)
