@@ -121,3 +121,54 @@ async def create_initial_data(db: Session = Depends(get_db)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error creando datos iniciales: {str(e)}"
         )
+
+@router.post("/fix-superadmin")
+async def fix_superadmin(db: Session = Depends(get_db)):
+    """
+    Actualiza el usuario superadmin para que no pertenezca a ninguna entidad.
+    El superadmin debe tener entity_id y secretaria_id en NULL.
+    """
+    try:
+        admin_user = db.query(User).filter(User.username == "admin").first()
+        
+        if not admin_user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuario 'admin' no encontrado"
+            )
+        
+        # Actualizar a NULL
+        old_entity_id = admin_user.entity_id
+        old_secretaria_id = admin_user.secretaria_id
+        
+        admin_user.entity_id = None
+        admin_user.secretaria_id = None
+        admin_user.role = UserRole.SUPERADMIN
+        
+        db.commit()
+        
+        return {
+            "status": "success",
+            "message": "Superadmin actualizado correctamente",
+            "changes": {
+                "entity_id": f"{old_entity_id} → NULL",
+                "secretaria_id": f"{old_secretaria_id} → NULL",
+                "role": str(admin_user.role)
+            },
+            "user": {
+                "id": admin_user.id,
+                "username": admin_user.username,
+                "role": admin_user.role,
+                "entity_id": admin_user.entity_id,
+                "secretaria_id": admin_user.secretaria_id
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error actualizando superadmin: {str(e)}"
+        )
