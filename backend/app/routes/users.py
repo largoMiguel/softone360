@@ -22,18 +22,17 @@ async def list_secretarias(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Devuelve la lista de nombres de secretarías existentes (distintas) para una entidad.
+    Devuelve la lista de nombres de secretarías existentes para una entidad.
     - SUPERADMIN: puede consultar por cualquier entidad si especifica entity_id; si no, retorna vacío.
     - ADMIN/SECRETARIO: retorna las secretarías dentro de su propia entidad.
     """
-    query = db.query(User.secretaria).filter(
-        User.secretaria.isnot(None),
-        User.secretaria != ""
-    )
+    from app.models.secretaria import Secretaria
+    
+    query = db.query(Secretaria.nombre).filter(Secretaria.is_active == True)
 
     if current_user.role == UserRole.SUPERADMIN:
         if entity_id:
-            query = query.filter(User.entity_id == entity_id)
+            query = query.filter(Secretaria.entity_id == entity_id)
         else:
             # Sin entity_id explícito, no retornar global para evitar mezclar entre entidades
             return []
@@ -41,7 +40,7 @@ async def list_secretarias(
         # Admin/Secretario limitados a su entidad
         if not current_user.entity_id:
             return []
-        query = query.filter(User.entity_id == current_user.entity_id)
+        query = query.filter(Secretaria.entity_id == current_user.entity_id)
 
     rows = query.distinct().all()
     secretarias = sorted([r[0] for r in rows if r and r[0]], key=lambda s: s.lower())
@@ -224,23 +223,17 @@ async def create_user(
                 raise HTTPException(status_code=400, detail="user_type inválido (use 'secretario' o 'contratista')")
             normalized_user_type = ut_str
 
-    # Si se proporciona una secretaría, asegurar que existe en la tabla secretarias (idempotente)
-    secretaria_nombre = (user_data.secretaria or '').strip() if user_data.secretaria else None
-    if secretaria_nombre and user_data.entity_id:
+    # Si se proporciona una secretaría_id, validar que existe y pertenece a la entidad
+    secretaria_id = None
+    if hasattr(user_data, 'secretaria_id') and user_data.secretaria_id and user_data.entity_id:
         from app.models.secretaria import Secretaria
-        existing_secretaria = db.query(Secretaria).filter(
-            Secretaria.entity_id == user_data.entity_id,
-            Secretaria.nombre.ilike(secretaria_nombre)
+        secretaria = db.query(Secretaria).filter(
+            Secretaria.id == user_data.secretaria_id,
+            Secretaria.entity_id == user_data.entity_id
         ).first()
-        if not existing_secretaria:
-            # Crear automáticamente la secretaría
-            new_secretaria = Secretaria(
-                entity_id=user_data.entity_id,
-                nombre=secretaria_nombre,
-                is_active=True
-            )
-            db.add(new_secretaria)
-            db.flush()  # Asegurar que se crea antes del usuario
+        if not secretaria:
+            raise HTTPException(status_code=400, detail="Secretaría no encontrada o no pertenece a la entidad")
+        secretaria_id = user_data.secretaria_id
 
     # Crear el usuario
     db_user = User(
@@ -250,9 +243,9 @@ async def create_user(
         hashed_password=hashed_password,
         role=user_data.role,
         entity_id=user_data.entity_id,
+        secretaria_id=secretaria_id,
         user_type=normalized_user_type,
         allowed_modules=user_data.allowed_modules or [],
-        secretaria=secretaria_nombre,
         is_active=True
     )
     
