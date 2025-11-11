@@ -24,9 +24,20 @@ async def create_initial_data(db: Session = Depends(get_db)):
         # Verificar si ya hay datos
         entity_count = db.query(Entity).count()
         if entity_count > 0:
+            # Si ya existe, verificar si el usuario admin es superadmin
+            admin_user = db.query(User).filter(User.username == "admin").first()
+            if admin_user and admin_user.role != UserRole.SUPERADMIN:
+                # Actualizar rol a SUPERADMIN
+                admin_user.role = UserRole.SUPERADMIN
+                db.commit()
+                return {
+                    "status": "updated",
+                    "message": f"Usuario 'admin' actualizado a rol SUPERADMIN"
+                }
+            
             return {
                 "status": "skipped",
-                "message": f"Ya existen {entity_count} entidades en la base de datos"
+                "message": f"Ya existen {entity_count} entidades. Usuario admin verificado."
             }
         
         # 1. Crear Entidad
@@ -73,7 +84,7 @@ async def create_initial_data(db: Session = Depends(get_db)):
             email="admin@municipiodemo.gov.co",
             full_name="Administrador Principal",
             hashed_password=hashed_password,
-            role=UserRole.ADMIN,
+            role=UserRole.SUPERADMIN,
             is_active=True,
             allowed_modules=["pqrs", "planes", "pdm", "contratacion", "bpin", "users", "entities", "secretarias"]
         )
