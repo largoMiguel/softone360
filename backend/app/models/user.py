@@ -39,6 +39,9 @@ class User(Base):
     entity_id = Column(Integer, ForeignKey("entities.id", ondelete="CASCADE"), nullable=True)
     entity = relationship("Entity", back_populates="users")
     
+    # Relación con secretaría (solo para SECRETARIO)
+    secretaria_id = Column(Integer, ForeignKey("secretarias.id", ondelete="SET NULL"), nullable=True, index=True)
+    
     # Tipo de usuario (para diferenciar secretarios de contratistas)
     user_type = Column(
         Enum(
