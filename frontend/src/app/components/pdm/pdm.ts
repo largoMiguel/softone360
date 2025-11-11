@@ -78,6 +78,9 @@ export class PdmComponent implements OnInit, OnDestroy {
     // Filtros
     filtroLinea = '';
     filtroSector = '';
+    filtroODS = '';
+    filtroTipoAcumulacion = '';
+    filtroEstado = '';
     filtroBusqueda = '';
     filtroAnio = new Date().getFullYear(); // Año actual por defecto
     
@@ -119,6 +122,14 @@ export class PdmComponent implements OnInit, OnDestroy {
         if (!this.pdmData) return [];
         return [...new Set(this.pdmData.productos_plan_indicativo.map(p => p.sector_mga))].filter(s => s);
     }
+    get odsDisponibles(): string[] {
+        if (!this.pdmData) return [];
+        return [...new Set(this.pdmData.productos_plan_indicativo.map(p => p.ods))].filter(s => s).sort();
+    }
+    get tiposAcumulacionDisponibles(): string[] {
+        if (!this.pdmData) return [];
+        return [...new Set(this.pdmData.productos_plan_indicativo.map(p => p.tipo_acumulacion))].filter(s => s).sort();
+    }
 
     get productosFiltrados(): ResumenProducto[] {
         let productos = this.resumenProductos;
@@ -135,6 +146,7 @@ export class PdmComponent implements OnInit, OnDestroy {
             return meta > 0;
         });
 
+        // Filtros adicionales
         if (this.filtroLinea) {
             productos = productos.filter(p => p.linea_estrategica === this.filtroLinea);
         }
@@ -143,11 +155,27 @@ export class PdmComponent implements OnInit, OnDestroy {
             productos = productos.filter(p => p.sector === this.filtroSector);
         }
 
+        if (this.filtroODS) {
+            productos = productos.filter(p => p.ods === this.filtroODS);
+        }
+
+        if (this.filtroTipoAcumulacion) {
+            productos = productos.filter(p => p.tipo_acumulacion === this.filtroTipoAcumulacion);
+        }
+
+        if (this.filtroEstado) {
+            productos = productos.filter(p => 
+                this.getEstadoProductoAnio(p, this.filtroAnio) === this.filtroEstado
+            );
+        }
+
         if (this.filtroBusqueda) {
             const busqueda = this.filtroBusqueda.toLowerCase();
             productos = productos.filter(p =>
                 p.producto.toLowerCase().includes(busqueda) ||
-                p.codigo.toLowerCase().includes(busqueda)
+                p.codigo.toLowerCase().includes(busqueda) ||
+                p.programa_mga?.toLowerCase().includes(busqueda) ||
+                p.bpin?.toLowerCase().includes(busqueda)
             );
         }
 
@@ -643,9 +671,21 @@ export class PdmComponent implements OnInit, OnDestroy {
         console.log('🔄 Limpiando filtros...');
         this.filtroLinea = '';
         this.filtroSector = '';
+        this.filtroODS = '';
+        this.filtroTipoAcumulacion = '';
+        this.filtroEstado = '';
         this.filtroBusqueda = '';
         console.log(`📊 Mostrando ${this.productosFiltrados.length} productos sin filtros`);
         // ✅ NO llamar a recargarSegunFiltros() - solo filtrar en memoria
+    }
+
+    /**
+     * ✅ OPTIMIZACIÓN: Se ejecuta cuando cambia cualquier filtro
+     * Solo filtra en memoria, SIN hacer petición al backend
+     */
+    onCambioFiltro() {
+        console.log('🔄 Filtros cambieron');
+        console.log(`   📊 Mostrando ${this.productosFiltrados.length} productos con estos filtros`);
     }
 
     /**
