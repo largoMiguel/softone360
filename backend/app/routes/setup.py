@@ -129,12 +129,13 @@ async def fix_superadmin(db: Session = Depends(get_db)):
     El superadmin debe tener entity_id y secretaria_id en NULL.
     """
     try:
-        admin_user = db.query(User).filter(User.username == "admin").first()
+        # Buscar por rol en lugar de username
+        admin_user = db.query(User).filter(User.role == UserRole.SUPERADMIN).first()
         
         if not admin_user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Usuario 'admin' no encontrado"
+                detail="Usuario con rol SUPERADMIN no encontrado"
             )
         
         # Actualizar a NULL
