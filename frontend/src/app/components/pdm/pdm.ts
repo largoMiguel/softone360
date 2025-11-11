@@ -135,8 +135,10 @@ export class PdmComponent implements OnInit, OnDestroy {
         let productos = this.resumenProductos;
 
         // Si el usuario es SECRETARIO, solo mostrar sus productos asignados
+        // Si es ADMIN/SUPERADMIN, mostrar todos
         const currentUser = this.authService.getCurrentUserValue();
         if (currentUser && currentUser.role === 'secretario') {
+            // SECRETARIOS solo ven los productos asignados a ellos
             productos = productos.filter(p => p.responsable_id === currentUser.id);
         }
 

@@ -1459,19 +1459,30 @@ export class PdmService {
     }
 
     /**
-     * Obtiene la lista de usuarios/secretarios de la entidad actual
+     * Obtiene la lista de secretarios disponibles de la entidad actual para asignar como responsables
      */
     obtenerSecretariosEntidad(): Observable<any[]> {
-    return this.http.get<any[]>(`${environment.apiUrl}/users/?role=secretario`).pipe(
+        if (!this.entitySlug) {
+            console.warn('⚠️ No hay slug de entidad disponible');
+            return of([]);
+        }
+
+        return this.http.get<any[]>(`${this.API_URL}/${this.entitySlug}/secretarios`).pipe(
             tap(resp => {
-                console.log('🔍 Respuesta cruda de secretarios:', resp);
+                console.log('✅ Secretarios cargados:', resp);
             }),
             catchError(error => {
                 console.error('❌ Error al obtener secretarios:', error);
-                if (error && error.error) {
-                    console.error('❌ Detalle error:', error.error);
-                }
-                return of([]);
+                // Fallback: intentar endpoint global
+                return this.http.get<any[]>(`${environment.apiUrl}/users/?role=secretario`).pipe(
+                    tap(resp => {
+                        console.log('✅ Secretarios (fallback):', resp);
+                    }),
+                    catchError(() => {
+                        console.error('❌ Ambos endpoints fallaron');
+                        return of([]);
+                    })
+                );
             })
         );
     }

@@ -588,3 +588,42 @@ async def asignar_responsable_producto(
         "responsable_nombre": usuario.full_name or usuario.name,
         "alerta_creada": True
     }
+
+
+@router.get("/{slug}/secretarios", response_model=List[dict])
+async def get_secretarios_por_entidad(
+    slug: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Obtiene la lista de secretarios disponibles para asignar como responsables en PDM.
+    Retorna usuarios con rol 'secretario' de la entidad actual.
+    
+    Respuesta: List[{id, name, full_name, email, role}]
+    """
+    try:
+        entity = get_entity_or_404(db, slug)
+        ensure_user_can_manage_entity(current_user, entity)
+        
+        secretarios = db.query(User).filter(
+            User.entity_id == entity.id,
+            User.role == 'secretario',
+            User.is_active == True
+        ).order_by(User.full_name.asc()).all()
+        
+        return [
+            {
+                "id": u.id,
+                "name": u.name,
+                "full_name": u.full_name or u.name,
+                "email": u.email,
+                "role": u.role
+            }
+            for u in secretarios
+        ]
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        print(f"❌ Error obteniendo secretarios: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error obteniendo secretarios: {str(e)}")
