@@ -760,35 +760,6 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Obtiene el tipo de visualización para un producto en un año
-     * Retorna 'ejecucion' si hay actividades con evidencia
-     * Retorna 'progreso' si hay actividades sin evidencia
-     * Retorna 'sin_actividades' si no hay actividades
-     */
-    getTipoVisualizacion(producto: ResumenProducto, anio: number): 'ejecucion' | 'progreso' | 'sin_actividades' {
-        const resumen = this.pdmService.obtenerResumenActividadesPorAnio(producto, anio);
-        
-        if (resumen.total_actividades === 0) {
-            return 'sin_actividades';
-        } else if (resumen.actividades_completadas > 0) {
-            return 'ejecucion';
-        } else {
-            return 'progreso';
-        }
-    }
-
-    /**
-     * Obtiene el texto que se debe mostrar en la barra de progreso
-     */
-    getTextoTipoVisualizacion(tipo: 'ejecucion' | 'progreso' | 'sin_actividades'): string {
-        switch (tipo) {
-            case 'ejecucion': return '✅ EJECUCIÓN';
-            case 'progreso': return '🔄 PROGRESO';
-            case 'sin_actividades': return '⚪ SIN ACTIVIDADES';
-        }
-    }
-
-    /**
      * Muestra un toast de notificación
      */
     private showToast(message: string, type: 'success' | 'error' | 'info' = 'info') {
@@ -1351,22 +1322,36 @@ export class PdmComponent implements OnInit, OnDestroy {
      * - Año actual con avance = 100% = COMPLETADO
      * - Años futuros = POR_EJECUTAR
      */
+    /**
+     * Obtiene el estado del producto para un año específico
+     * NUEVA LÓGICA DE PROGRESO:
+     * - POR_EJECUTAR: Años futuros o sin actividades asignadas (0% avance)
+     * - EN_PROGRESO: Actividades asignadas o en ejecución (0-99% avance)
+     * - COMPLETADO: Todas las actividades tienen evidencia (100% avance)
+     */
     getEstadoProductoAnio(producto: ResumenProducto, anio: number): string {
-        const anioActual = new Date().getFullYear();
         const avance = this.getAvanceAnio(producto, anio);
+        const resumenActividades = this.pdmService.obtenerResumenActividadesPorAnio(producto, anio);
 
-        if (anio < anioActual) {
-            // Año pasado
-            return avance >= 100 ? 'COMPLETADO' : 'PENDIENTE';
-        } else if (anio === anioActual) {
-            // Año actual
-            if (avance === 0) return 'PENDIENTE';
-            if (avance >= 100) return 'COMPLETADO';
-            return 'EN_PROGRESO';
-        } else {
-            // Años futuros
+        // Año futuro: siempre POR_EJECUTAR
+        if (anio > new Date().getFullYear()) {
             return 'POR_EJECUTAR';
         }
+
+        // Basado en el avance calculado
+        if (avance === 0 && resumenActividades.total_actividades === 0) {
+            return 'PENDIENTE'; // Sin actividades creadas aún
+        }
+        
+        if (avance === 100 && resumenActividades.actividades_completadas === resumenActividades.total_actividades) {
+            return 'COMPLETADO'; // Todas las actividades tienen evidencia
+        }
+        
+        if (avance >= 100 || resumenActividades.meta_asignada > 0) {
+            return 'EN_PROGRESO'; // Hay actividades asignadas o en ejecución
+        }
+
+        return 'POR_EJECUTAR';
     }
 
     /**

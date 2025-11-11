@@ -909,6 +909,12 @@ export class PdmService {
 
     /**
      * Obtiene el resumen de actividades por año para un producto
+     * 
+     * LÓGICA DE PROGRESO:
+     * - Si NO hay actividades: 0% (POR_EJECUTAR)
+     * - Si hay actividades SIN evidencia: 100% en fase de ASIGNACIÓN (EN_PROGRESO)
+     * - Si hay algunas actividades CON evidencia: (meta_ejecutada/meta_programada)*100 en VERDE (EN_PROGRESO)
+     * - Si TODAS las actividades tienen evidencia: 100% COMPLETADO
      */
     obtenerResumenActividadesPorAnio(producto: ResumenProducto, anio: number): ResumenActividadesPorAnio {
         const actividades = this.obtenerActividadesPorProductoYAnio(producto.codigo, anio);
@@ -931,25 +937,26 @@ export class PdmService {
         
         const actividadesCompletadas = actividades.filter(a => a.evidencia !== undefined).length;
         
-        // 🔄 NUEVA LÓGICA:
-        // Si hay actividades CON evidencia -> mostrar EJECUCIÓN (meta completada)
-        // Si hay actividades PERO SIN evidencia -> mostrar PROGRESO (meta asignada)
-        // Si NO hay actividades -> 0%
-        
+        // NUEVA LÓGICA: Porcentaje de avance basado en fases
         let porcentajeAvance = 0;
         
-        if (actividadesCompletadas > 0) {
-            // Al menos 1 actividad tiene evidencia -> mostrar EJECUCIÓN
+        if (actividades.length === 0) {
+            // Sin actividades: 0%
+            porcentajeAvance = 0;
+        } else if (metaAsignada > 0 && metaEjecutada === 0) {
+            // Hay actividades asignadas pero SIN evidencia: mostrar 100% de asignación
+            porcentajeAvance = 100;
+        } else if (metaEjecutada > 0) {
+            // Hay evidencias: mostrar % basado en ejecución vs programado
             porcentajeAvance = metaProgramada > 0 
                 ? (metaEjecutada / metaProgramada) * 100 
                 : 0;
-        } else if (actividades.length > 0) {
-            // Hay actividades pero SIN evidencia -> mostrar PROGRESO
-            porcentajeAvance = metaProgramada > 0
-                ? (metaAsignada / metaProgramada) * 100
-                : 0;
+            // Capping a 100% máximo
+            porcentajeAvance = Math.min(porcentajeAvance, 100);
+        } else if (metaProgramada > 0) {
+            // Si no hay actividades pero hay meta programada: 0%
+            porcentajeAvance = 0;
         }
-        // Si no hay actividades, porcentajeAvance = 0
 
         return {
             anio,
