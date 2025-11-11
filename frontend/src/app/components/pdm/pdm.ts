@@ -760,6 +760,35 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
+     * Obtiene el tipo de visualización para un producto en un año
+     * Retorna 'ejecucion' si hay actividades con evidencia
+     * Retorna 'progreso' si hay actividades sin evidencia
+     * Retorna 'sin_actividades' si no hay actividades
+     */
+    getTipoVisualizacion(producto: ResumenProducto, anio: number): 'ejecucion' | 'progreso' | 'sin_actividades' {
+        const resumen = this.pdmService.obtenerResumenActividadesPorAnio(producto, anio);
+        
+        if (resumen.total_actividades === 0) {
+            return 'sin_actividades';
+        } else if (resumen.actividades_completadas > 0) {
+            return 'ejecucion';
+        } else {
+            return 'progreso';
+        }
+    }
+
+    /**
+     * Obtiene el texto que se debe mostrar en la barra de progreso
+     */
+    getTextoTipoVisualizacion(tipo: 'ejecucion' | 'progreso' | 'sin_actividades'): string {
+        switch (tipo) {
+            case 'ejecucion': return '✅ EJECUCIÓN';
+            case 'progreso': return '🔄 PROGRESO';
+            case 'sin_actividades': return '⚪ SIN ACTIVIDADES';
+        }
+    }
+
+    /**
      * Muestra un toast de notificación
      */
     private showToast(message: string, type: 'success' | 'error' | 'info' = 'info') {

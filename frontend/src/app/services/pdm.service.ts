@@ -931,10 +931,25 @@ export class PdmService {
         
         const actividadesCompletadas = actividades.filter(a => a.evidencia !== undefined).length;
         
-        // El porcentaje de avance se basa en metas ejecutadas vs metas programadas
-        const porcentajeAvance = metaProgramada > 0 
-            ? (metaEjecutada / metaProgramada) * 100 
-            : 0;
+        // 🔄 NUEVA LÓGICA:
+        // Si hay actividades CON evidencia -> mostrar EJECUCIÓN (meta completada)
+        // Si hay actividades PERO SIN evidencia -> mostrar PROGRESO (meta asignada)
+        // Si NO hay actividades -> 0%
+        
+        let porcentajeAvance = 0;
+        
+        if (actividadesCompletadas > 0) {
+            // Al menos 1 actividad tiene evidencia -> mostrar EJECUCIÓN
+            porcentajeAvance = metaProgramada > 0 
+                ? (metaEjecutada / metaProgramada) * 100 
+                : 0;
+        } else if (actividades.length > 0) {
+            // Hay actividades pero SIN evidencia -> mostrar PROGRESO
+            porcentajeAvance = metaProgramada > 0
+                ? (metaAsignada / metaProgramada) * 100
+                : 0;
+        }
+        // Si no hay actividades, porcentajeAvance = 0
 
         return {
             anio,

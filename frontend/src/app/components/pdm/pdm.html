@@ -427,13 +427,14 @@
                                     <strong class="text-success">{{ formatearMoneda(getPresupuestoAnio(producto, filtroAnio)) }}</strong>
                                 </td>
                                 <td class="text-center">
-                                    <div class="progress" style="height: 24px;">
+                                    <div class="progress" style="height: 24px;" [title]="getTextoTipoVisualizacion(getTipoVisualizacion(producto, filtroAnio))">
                                         <div [class]="'progress-bar ' + getColorProgreso(getAvanceAnio(producto, filtroAnio))" 
                                              [style.width.%]="getAvanceAnio(producto, filtroAnio)"
                                              role="progressbar">
                                             <strong>{{ getAvanceAnio(producto, filtroAnio).toFixed(1) }}%</strong>
                                         </div>
                                     </div>
+                                    <small class="d-block text-muted mt-1">{{ getTextoTipoVisualizacion(getTipoVisualizacion(producto, filtroAnio)) }}</small>
                                 </td>
                                 <td class="text-center">
                                     <span class="badge" [class]="'bg-' + getColorEstadoProducto(getEstadoProductoAnio(producto, filtroAnio))">
