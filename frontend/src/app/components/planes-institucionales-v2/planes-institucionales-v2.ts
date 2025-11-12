@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { NotificationsService, AlertItem } from '../../services/notifications.service';
 import { AlertsEventsService } from '../../services/alerts-events.service';
 import { Observable, Subject, takeUntil } from 'rxjs';
@@ -8,6 +8,7 @@ import { User } from '../../models/user.model';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PlanV2Service } from '../../services/plan-v2.service';
+import { Chart, ChartConfiguration, registerables } from 'chart.js';
 import {
     PlanInstitucional,
     ComponenteProceso,
@@ -29,6 +30,9 @@ import {
     EstadisticasPlan
 } from '../../models/plan-v2.model';
 
+// Registrar los componentes de Chart.js
+Chart.register(...registerables);
+
 @Component({
     selector: 'app-planes-institucionales-v2',
     standalone: true,
@@ -37,6 +41,9 @@ import {
     styleUrls: ['./planes-institucionales-v2.scss']
 })
 export class PlanesInstitucionalesV2Component implements OnInit, OnDestroy {
+    @ViewChild('chartEstado') chartEstadoCanvas!: ElementRef<HTMLCanvasElement>;
+    @ViewChild('chartAnios') chartAniosCanvas!: ElementRef<HTMLCanvasElement>;
+    
     private planService = inject(PlanV2Service);
     private authService = inject(AuthService);
     private notificationsService = inject(NotificationsService);
@@ -46,6 +53,10 @@ export class PlanesInstitucionalesV2Component implements OnInit, OnDestroy {
     private refreshInterval: any;
     alerts$!: Observable<AlertItem[]>;
     unreadCount$!: Observable<number>;
+    
+    // Charts
+    chartEstado: any = null;
+    chartAnios: any = null;
 
     // Estados y labels
     EstadoPlan = EstadoPlan;
@@ -254,7 +265,11 @@ export class PlanesInstitucionalesV2Component implements OnInit, OnDestroy {
                 // Navegar a la vista de gestión de planes
                 break;
             case 'analisis':
-                // Navegar a la vista de análisis
+                // Navegar a la vista de análisis y crear gráficos
+                setTimeout(() => {
+                    this.crearGraficoEstado();
+                    this.crearGraficoAnios();
+                }, 100);
                 break;
             case 'componentes':
                 this.planSeleccionado = payload as PlanInstitucional;
@@ -753,5 +768,138 @@ export class PlanesInstitucionalesV2Component implements OnInit, OnDestroy {
         }
 
         return `Esta actividad está asignada a "${actividad.responsable_secretaria_nombre || 'desconocida'}". Solo puedes registrar avances en actividades asignadas a tu secretaría.`;
+    }
+    
+    // ==================== GRÁFICOS ====================
+    
+    crearGraficoEstado() {
+        if (this.chartEstadoCanvas && this.chartEstadoCanvas.nativeElement) {
+            // Destruir gráfico anterior si existe
+            if (this.chartEstado) {
+                this.chartEstado.destroy();
+            }
+            
+            const ctx = this.chartEstadoCanvas.nativeElement.getContext('2d');
+            if (!ctx) return;
+            
+            const config: ChartConfiguration = {
+                type: 'doughnut',
+                data: {
+                    labels: ['Formulación', 'Aprobado', 'En Ejecución', 'Finalizado', 'Suspendido', 'Cancelado'],
+                    datasets: [{
+                        data: [
+                            this.planesFormulacionResumen,
+                            this.planesAprobadosResumen,
+                            this.planesEnEjecucionResumen,
+                            this.planesFinalizadosAnalisisResumen,
+                            this.planes.filter(p => p.estado === 'suspendido').length,
+                            this.planes.filter(p => p.estado === 'cancelado').length
+                        ],
+                        backgroundColor: [
+                            '#6c757d', // Formulación - gris
+                            '#0d6efd', // Aprobado - azul
+                            '#0dcaf0', // En Ejecución - cyan
+                            '#198754', // Finalizado - verde
+                            '#ffc107', // Suspendido - amarillo
+                            '#dc3545'  // Cancelado - rojo
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = (context.dataset.data as number[]).reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            
+            this.chartEstado = new Chart(ctx, config);
+        }
+    }
+    
+    crearGraficoAnios() {
+        if (this.chartAniosCanvas && this.chartAniosCanvas.nativeElement) {
+            // Destruir gráfico anterior si existe
+            if (this.chartAnios) {
+                this.chartAnios.destroy();
+            }
+            
+            const ctx = this.chartAniosCanvas.nativeElement.getContext('2d');
+            if (!ctx) return;
+            
+            const data = this.anosDisponibles.map(ano => this.getPlanesPorAnio(ano));
+            
+            const config: ChartConfiguration = {
+                type: 'bar',
+                data: {
+                    labels: this.anosDisponibles.map(ano => `Año ${ano}`),
+                    datasets: [{
+                        label: 'Cantidad de Planes',
+                        data: data,
+                        backgroundColor: '#0d6efd',
+                        borderColor: '#0d6efd',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    return `Planes: ${context.parsed.y}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            
+            this.chartAnios = new Chart(ctx, config);
+        }
+    }
+    
+    ngAfterViewInit() {
+        // Los gráficos se crearán cuando se navegue a la vista de análisis
+        setTimeout(() => {
+            if (this.vistaActual === 'analisis') {
+                this.crearGraficoEstado();
+                this.crearGraficoAnios();
+            }
+        }, 100);
     }
 }

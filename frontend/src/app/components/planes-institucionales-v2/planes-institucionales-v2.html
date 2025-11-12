@@ -39,62 +39,84 @@
 
     <!-- VISTA RESUMEN -->
     <div *ngIf="vistaActual === 'resumen'" class="vista-resumen">
-        <!-- Filtro de Año -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-3">
-                        <label class="form-label">
-                            <i class="fas fa-calendar"></i> Seleccionar Año
-                        </label>
-                        <select class="form-select" [(ngModel)]="filtroAnio" (change)="cargarPlanes()">
-                            <option value="">Todos los años</option>
-                            <option *ngFor="let ano of anosDisponibles" [value]="ano">{{ ano }}</option>
-                        </select>
-                    </div>
-                    <div class="col-md-9 text-end">
-                        <button class="btn btn-primary" (click)="navegarA('gestion')">
-                            <i class="fas fa-plus"></i> Ingresar
-                        </button>
-                        <button class="btn btn-outline-success ms-2" (click)="navegarA('analisis')">
-                            <i class="fas fa-chart-bar"></i> Ver Análisis
-                        </button>
-                    </div>
-                </div>
-            </div>
+        <!-- Selector de Año con Tabs -->
+        <ul class="nav nav-tabs mb-4">
+            <li class="nav-item">
+                <a class="nav-link" [class.active]="filtroAnio === ''" (click)="filtroAnio = ''; cargarPlanes()" style="cursor: pointer;">
+                    Todos
+                </a>
+            </li>
+            <li class="nav-item" *ngFor="let ano of anosDisponibles">
+                <a class="nav-link" [class.active]="filtroAnio === ano" (click)="filtroAnio = ano; cargarPlanes()" style="cursor: pointer;">
+                    {{ ano }}
+                </a>
+            </li>
+        </ul>
+
+        <!-- Botones de Acción -->
+        <div class="mb-4 text-end">
+            <button class="btn btn-outline-primary me-2" (click)="cargarPlanes()">
+                <i class="fas fa-sync"></i> Actualizar
+            </button>
+            <button class="btn btn-primary me-2" (click)="navegarA('gestion')" *ngIf="!esSecretario()">
+                <i class="fas fa-plus"></i> Ingresar
+            </button>
+            <button class="btn btn-success" (click)="navegarA('analisis')">
+                <i class="fas fa-chart-pie"></i> Ver Análisis
+            </button>
         </div>
 
         <!-- Estadísticas Globales -->
         <div class="row mb-4">
             <div class="col-md-3 mb-3">
-                <div class="stat-card card">
-                    <div class="card-body text-center">
-                        <h3 class="stat-value">{{ totalPlanesResumen }}</h3>
-                        <p class="stat-label mb-0">Total Planes</p>
+                <div class="stat-card card clickable" (click)="navegarA('gestion')" title="Ver todos los planes">
+                    <div class="card-body">
+                        <div class="stat-icon">
+                            <i class="fas fa-clipboard-list fa-2x text-primary"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 class="stat-value">{{ totalPlanesResumen }}</h3>
+                            <p class="stat-label">Total Planes</p>
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="col-md-3 mb-3">
                 <div class="stat-card card">
-                    <div class="card-body text-center">
-                        <h3 class="stat-value">{{ planesActivosResumen }}</h3>
-                        <p class="stat-label mb-0">Planes Activos</p>
+                    <div class="card-body">
+                        <div class="stat-icon">
+                            <i class="fas fa-play-circle fa-2x text-info"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 class="stat-value">{{ planesActivosResumen }}</h3>
+                            <p class="stat-label">Planes Activos</p>
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="col-md-3 mb-3">
                 <div class="stat-card card">
-                    <div class="card-body text-center">
-                        <h3 class="stat-value">{{ planesFinalizadosResumen }}</h3>
-                        <p class="stat-label mb-0">Finalizados</p>
+                    <div class="card-body">
+                        <div class="stat-icon">
+                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 class="stat-value">{{ planesFinalizadosResumen }}</h3>
+                            <p class="stat-label">Finalizados</p>
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="col-md-3 mb-3">
                 <div class="stat-card card">
-                    <div class="card-body text-center">
-                        <h3 class="stat-value">{{ avancePromedioResumen }}%</h3>
-                        <p class="stat-label mb-0">Avance Promedio</p>
+                    <div class="card-body">
+                        <div class="stat-icon">
+                            <i class="fas fa-chart-line fa-2x text-warning"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 class="stat-value">{{ avancePromedioResumen }}%</h3>
+                            <p class="stat-label">Avance Promedio</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -102,7 +124,7 @@
 
         <!-- Botón Ver Todos -->
         <div class="text-center mb-4">
-            <button class="btn btn-outline-info" (click)="navegarA('gestion')">
+            <button class="btn btn-lg btn-outline-primary" (click)="navegarA('gestion')">
                 <i class="fas fa-list"></i> Ver Todos los Planes Institucionales
             </button>
         </div>
@@ -589,50 +611,36 @@
     </div>
 
     <!-- VISTA ANÁLISIS -->
+        <!-- VISTA ANÁLISIS -->
     <div *ngIf="vistaActual === 'analisis'" class="vista-analisis">
-        <!-- Filtro de Año -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-3">
-                        <label class="form-label">
-                            <i class="fas fa-calendar"></i> Seleccionar Año
-                        </label>
-                        <select class="form-select" [(ngModel)]="filtroAnio" (change)="cargarPlanes()">
-                            <option value="">Todos los años</option>
-                            <option *ngFor="let ano of anosDisponibles" [value]="ano">{{ ano }}</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- Selector de Año con Tabs -->
+        <ul class="nav nav-tabs mb-4">
+            <li class="nav-item">
+                <a class="nav-link" [class.active]="filtroAnio === ''" (click)="filtroAnio = ''; cargarPlanes(); crearGraficoEstado(); crearGraficoAnios()" style="cursor: pointer;">
+                    Todos
+                </a>
+            </li>
+            <li class="nav-item" *ngFor="let ano of anosDisponibles">
+                <a class="nav-link" [class.active]="filtroAnio === ano" (click)="filtroAnio = ano; cargarPlanes(); crearGraficoEstado(); crearGraficoAnios()" style="cursor: pointer;">
+                    {{ ano }}
+                </a>
+            </li>
+        </ul>
 
         <!-- Dashboard de Análisis -->
         <div class="row mb-4">
             <!-- Distribución por Estado -->
             <div class="col-lg-6 mb-4">
                 <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Distribución por Estado</h5>
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-pie me-2 text-primary"></i>
+                            Distribución por Estado
+                        </h5>
                     </div>
                     <div class="card-body">
-                        <div class="list-group">
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>Formulación</span>
-                                <span class="badge bg-secondary">{{ planesFormulacionResumen }}</span>
-                            </div>
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>Aprobado</span>
-                                <span class="badge bg-primary">{{ planesAprobadosResumen }}</span>
-                            </div>
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>En Ejecución</span>
-                                <span class="badge bg-info">{{ planesEnEjecucionResumen }}</span>
-                            </div>
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>Finalizado</span>
-                                <span class="badge bg-success">{{ planesFinalizadosAnalisisResumen }}</span>
-                            </div>
+                        <div style="height: 300px; position: relative;">
+                            <canvas #chartEstado></canvas>
                         </div>
                     </div>
                 </div>
@@ -641,16 +649,56 @@
             <!-- Planes por Año -->
             <div class="col-lg-6 mb-4">
                 <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Planes por Año</h5>
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-bar me-2 text-info"></i>
+                            Planes por Año
+                        </h5>
                     </div>
                     <div class="card-body">
-                        <div class="list-group">
-                            <div *ngFor="let ano of anosDisponibles" class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>Año {{ ano }}</span>
-                                <span class="badge bg-primary">{{ getPlanesPorAnio(ano) }}</span>
-                            </div>
+                        <div style="height: 300px; position: relative;">
+                            <canvas #chartAnios></canvas>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumen de Estadísticas -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="card border-primary">
+                    <div class="card-body text-center">
+                        <i class="fas fa-clipboard-list fa-3x text-primary mb-2"></i>
+                        <h3 class="mb-0">{{ totalPlanesResumen }}</h3>
+                        <p class="text-muted mb-0 small">Total de Planes</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card border-info">
+                    <div class="card-body text-center">
+                        <i class="fas fa-play-circle fa-3x text-info mb-2"></i>
+                        <h3 class="mb-0">{{ planesEnEjecucionResumen }}</h3>
+                        <p class="text-muted mb-0 small">En Ejecución</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card border-success">
+                    <div class="card-body text-center">
+                        <i class="fas fa-check-circle fa-3x text-success mb-2"></i>
+                        <h3 class="mb-0">{{ planesFinalizadosAnalisisResumen }}</h3>
+                        <p class="text-muted mb-0 small">Finalizados</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card border-warning">
+                    <div class="card-body text-center">
+                        <i class="fas fa-chart-line fa-3x text-warning mb-2"></i>
+                        <h3 class="mb-0">{{ avancePromedioResumen }}%</h3>
+                        <p class="text-muted mb-0 small">Avance Promedio</p>
                     </div>
                 </div>
             </div>
@@ -660,33 +708,60 @@
         <div class="row">
             <div class="col-12">
                 <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Tendencia de Avance</h5>
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-line me-2 text-success"></i>
+                            Tendencia de Avance - Top 10 Planes
+                        </h5>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
                                     <tr>
-                                        <th>Plan</th>
-                                        <th>Año</th>
-                                        <th>Estado</th>
-                                        <th>Avance</th>
+                                        <th width="35%">Plan</th>
+                                        <th width="10%" class="text-center">Año</th>
+                                        <th width="15%" class="text-center">Estado</th>
+                                        <th width="40%">Avance</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr *ngFor="let plan of planes | slice:0:10">
-                                        <td>{{ plan.nombre }}</td>
-                                        <td>{{ plan.anio }}</td>
                                         <td>
+                                            <strong>{{ plan.nombre }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ plan.descripcion | slice:0:80 }}...</small>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-secondary">{{ plan.anio }}</span>
+                                        </td>
+                                        <td class="text-center">
                                             <span [class]="BADGE_CLASS_ESTADO_PLAN[plan.estado]">
                                                 {{ LABELS_ESTADO_PLAN[plan.estado] }}
                                             </span>
                                         </td>
                                         <td>
-                                            <div class="progress" style="height: 20px;">
-                                                <div class="progress-bar" [style.width.%]="plan.porcentaje_avance"></div>
+                                            <div class="d-flex align-items-center">
+                                                <div class="progress flex-grow-1 me-2" style="height: 25px;">
+                                                    <div class="progress-bar" 
+                                                         [ngClass]="{
+                                                            'bg-success': plan.porcentaje_avance >= 80,
+                                                            'bg-info': plan.porcentaje_avance >= 50 && plan.porcentaje_avance < 80,
+                                                            'bg-warning': plan.porcentaje_avance >= 25 && plan.porcentaje_avance < 50,
+                                                            'bg-danger': plan.porcentaje_avance < 25
+                                                         }"
+                                                         [style.width.%]="plan.porcentaje_avance"
+                                                         role="progressbar">
+                                                        <span class="px-2">{{ plan.porcentaje_avance }}%</span>
+                                                    </div>
+                                                </div>
                                             </div>
+                                        </td>
+                                    </tr>
+                                    <tr *ngIf="planes.length === 0">
+                                        <td colspan="4" class="text-center text-muted">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            No hay planes registrados
                                         </td>
                                     </tr>
                                 </tbody>
@@ -697,6 +772,8 @@
             </div>
         </div>
     </div>
+
+    <!-- MODALES -->
 
     <!-- MODALES -->
     <!-- Plan -->

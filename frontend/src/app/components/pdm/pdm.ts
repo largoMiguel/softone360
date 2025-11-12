@@ -102,22 +102,22 @@ export class PdmComponent implements OnInit, OnDestroy {
 
     // Modal Análisis Producto
     mostrarModalAnalisisProducto = false;
-    chartProgresoAnual: Chart | null = null;
-    chartMetaEjecutado: Chart | null = null;
-    chartPresupuestoAnual: Chart | null = null;
+    chartProgresoAnual: any = null;
+    chartMetaEjecutado: any = null;
+    chartPresupuestoAnual: any = null;
 
     // Analytics
     dashboardAnalytics: any = null;
     analisisPorSecretaria: any[] = []; // ✅ NUEVO: Análisis por secretaría
 
     // Charts
-    chartEstados: Chart | null = null;
-    chartSectores: Chart | null = null;
-    chartMetasEjecutadas: Chart | null = null;
-    chartPresupuestoPorAnio: Chart | null = null;
-    chartODS: Chart | null = null;
-    chartSectoresDetalle: Chart | null = null;
-    chartSecretarias: Chart | null = null; // ✅ NUEVO
+    chartEstados: any = null;
+    chartSectores: any = null;
+    chartMetasEjecutadas: any = null;
+    chartPresupuestoPorAnio: any = null;
+    chartODS: any = null;
+    chartSectoresDetalle: any = null;
+    chartSecretarias: any = null; // ✅ NUEVO
 
     // Getters para datos filtrados
     get lineasEstrategicas(): string[] {

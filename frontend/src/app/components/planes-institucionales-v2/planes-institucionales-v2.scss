@@ -1,33 +1,117 @@
 .planes-institucionales-container {
     position: relative;
+    min-height: 100vh;
+    padding-bottom: 2rem;
 }
 
 .page-header {
-    margin-bottom: 1rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e9ecef;
 }
 
 .header-content {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
 }
 
 .page-title {
+    font-size: 1.75rem;
     font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    i {
+        color: #4e73df;
+    }
+}
+
+.page-subtitle {
+    color: #6c757d;
+    margin: 0.5rem 0 0 0;
+    font-size: 0.95rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
 }
 
 .loading-overlay {
     position: fixed;
     inset: 0;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.9);
     z-index: 1050;
+    backdrop-filter: blur(4px);
 }
 
-.plan-card .progress-bar {
-    background: linear-gradient(90deg, #4e73df, #1cc88a);
+// Stat Cards (Dashboard)
+.stat-card {
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    border: none;
+
+    &.clickable {
+        cursor: pointer;
+
+        &:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            
+            .stat-icon {
+                transform: scale(1.1);
+            }
+        }
+    }
+
+    .card-body {
+        display: flex;
+        align-items: center;
+        padding: 1.5rem;
+        gap: 1rem;
+    }
+
+    .stat-icon {
+        transition: transform 0.3s ease;
+        opacity: 0.9;
+    }
+
+    .stat-info {
+        flex: 1;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0;
+        line-height: 1;
+    }
+
+    .stat-label {
+        color: #6c757d;
+        margin: 0.5rem 0 0 0;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+}
+
+.plan-card {
+    .progress-bar {
+        background: linear-gradient(90deg, #4e73df, #1cc88a);
+    }
 }
 
 .plan-meta .meta-item {
@@ -48,6 +132,117 @@
 .plan-info-card .stat-value {
     font-size: 1.25rem;
     font-weight: 700;
+}
+
+// Vista Análisis
+.vista-analisis {
+    .card {
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        border: none;
+        margin-bottom: 1.5rem;
+
+        .card-header {
+            border-bottom: 2px solid #f0f0f0;
+            padding: 1.25rem;
+
+            h5 {
+                font-size: 1.1rem;
+                font-weight: 600;
+                color: #2c3e50;
+            }
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+    }
+
+    .table {
+        margin-bottom: 0;
+
+        thead {
+            background-color: #f8f9fc;
+
+            th {
+                font-weight: 600;
+                text-transform: uppercase;
+                font-size: 0.75rem;
+                letter-spacing: 0.5px;
+                color: #6c757d;
+                border-bottom: 2px solid #e3e6f0;
+                padding: 1rem;
+            }
+        }
+
+        tbody {
+            tr {
+                transition: background-color 0.2s;
+
+                &:hover {
+                    background-color: #f8f9fc;
+                }
+
+                td {
+                    padding: 1rem;
+                    vertical-align: middle;
+                    border-bottom: 1px solid #e3e6f0;
+
+                    strong {
+                        color: #2c3e50;
+                        font-size: 0.95rem;
+                    }
+
+                    .text-muted {
+                        font-size: 0.8rem;
+                    }
+                }
+            }
+        }
+    }
+
+    .progress {
+        background-color: #e9ecef;
+        border-radius: 50px;
+        overflow: hidden;
+
+        .progress-bar {
+            transition: width 0.6s ease;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+    }
+}
+
+// Tabs de años
+.nav-tabs {
+    border-bottom: 2px solid #e9ecef;
+    margin-bottom: 1.5rem;
+
+    .nav-item {
+        margin-bottom: -2px;
+    }
+
+    .nav-link {
+        border: none;
+        color: #6c757d;
+        font-weight: 500;
+        padding: 0.75rem 1.5rem;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s ease;
+
+        &:hover {
+            border-bottom-color: #dee2e6;
+            color: #495057;
+        }
+
+        &.active {
+            color: #4e73df;
+            background-color: transparent;
+            border-bottom-color: #4e73df;
+        }
+    }
 }
 
 .plan-info-card .stat-label {
