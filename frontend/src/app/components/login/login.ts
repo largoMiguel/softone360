@@ -58,7 +58,7 @@ export class LoginComponent implements OnInit {
                 this.isLoading = false;
                 // Redirigir al portal ciudadano
                 setTimeout(() => {
-                  const slug = this.entityContext.currentEntity?.slug || this.router.url.replace(/^\//, '').split('/')[0];
+                  const slug = user.entity?.slug;
                   this.router.navigate(slug ? ['/', slug, 'portal-ciudadano'] : ['/']);
                 }, 2000);
               } else if (user && user.role === 'superadmin') {
@@ -68,14 +68,14 @@ export class LoginComponent implements OnInit {
               } else {
                 // Usuario administrativo válido (admin o secretario)
                 this.isLoading = false;
-                const slug = this.entityContext.currentEntity?.slug || this.router.url.replace(/^\//, '').split('/')[0];
+                const slug = user.entity?.slug;
                 this.router.navigate(slug ? ['/', slug, 'dashboard'] : ['/'], { replaceUrl: true });
               }
             },
             error: () => {
               this.isLoading = false;
-              const slug = this.entityContext.currentEntity?.slug || this.router.url.replace(/^\//, '').split('/')[0];
-              this.router.navigate(slug ? ['/', slug, 'dashboard'] : ['/'], { replaceUrl: true });
+              // En caso de error al obtener el usuario, redirigir al home
+              this.router.navigate(['/'], { replaceUrl: true });
             }
           });
         },
