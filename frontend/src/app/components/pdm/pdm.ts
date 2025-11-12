@@ -1043,21 +1043,28 @@ export class PdmComponent implements OnInit, OnDestroy {
 
     /**
      * Actualiza el resumen de actividades al seleccionar un producto o cambiar de año
+     * ✅ CORREGIDO: Primero actualiza con datos locales, luego sincroniza con backend
      */
     private actualizarResumenActividades(cargarDesdeBackend: boolean = false) {
         if (!this.productoSeleccionado) return;
         
-        // Cargar actividades desde el backend solo si se solicita explícitamente
-        if (cargarDesdeBackend && this.datosEnBackend) {
-            this.cargarActividadesDesdeBackend();
-            return; // El callback actualizará la vista
-        }
-        
+        // ✅ IMPORTANTE: Actualizar PRIMERO con datos locales para que la UI no quede en blanco
+        // Esto asegura que el botón de "Nueva Actividad" se muestre aunque esté actualizándose
+        console.log('📊 Actualizando resumen de actividades localmente...');
         this.resumenAnioActual = this.pdmService.obtenerResumenActividadesPorAnio(
             this.productoSeleccionado,
             this.anioSeleccionado
         );
         this.avanceProducto = this.pdmService.calcularAvanceProducto(this.productoSeleccionado);
+        
+        // Si no hay backend o no se solicita, listo
+        if (!cargarDesdeBackend || !this.datosEnBackend) {
+            return;
+        }
+        
+        // ✅ LUEGO: Cargar desde backend y actualizar cuando lleguen los datos
+        console.log('🔄 Sincronizando actividades desde backend...');
+        this.cargarActividadesDesdeBackend();
     }
 
     /**
