@@ -34,6 +34,24 @@ def get_secretaria_nombre(user: User, db: Session) -> Optional[str]:
     return secretaria.nombre if secretaria else None
 
 
+def enrich_actividad_with_secretaria(actividad: Actividad, db: Session, current_user: User = None) -> dict:
+    """Enriquece una actividad con el nombre de la secretaría responsable"""
+    actividad_dict = plan_schemas.Actividad.model_validate(actividad).model_dump()
+    
+    if actividad.responsable_secretaria_id:
+        secretaria = db.query(Secretaria).filter(
+            Secretaria.id == actividad.responsable_secretaria_id
+        ).first()
+        
+        if secretaria:
+            if current_user and current_user.secretaria_id == actividad.responsable_secretaria_id:
+                actividad_dict['responsable_secretaria_nombre'] = f"Tu Secretaría ({secretaria.nombre})"
+            else:
+                actividad_dict['responsable_secretaria_nombre'] = secretaria.nombre
+    
+    return actividad_dict
+
+
 def calcular_porcentaje_avance_actividad(db: Session, actividad: Actividad) -> Decimal:
     """Regla: si la actividad tiene al menos una ejecución, su avance es 100%, sino 0%"""
     count = db.query(ActividadEjecucion).filter(ActividadEjecucion.actividad_id == actividad.id).count()
@@ -89,7 +107,7 @@ def tiene_permiso_actividad(user: User, actividad: Actividad, db: Session) -> bo
     Permisos para actividades:
     - SUPERADMIN: acceso total
     - ADMIN: acceso a actividades de su entidad
-    - SECRETARIO: solo actividades asignadas a su secretaría (campo responsable)
+    - SECRETARIO: solo actividades asignadas a su secretaría (responsable_secretaria_id)
     """
     if user.role == UserRole.SUPERADMIN:
         return True
@@ -108,9 +126,7 @@ def tiene_permiso_actividad(user: User, actividad: Actividad, db: Session) -> bo
     
     # Si es secretario, solo puede acceder si la actividad está asignada a su secretaría
     if user.role == UserRole.SECRETARIO:
-        # Verificar que el responsable de la actividad coincida con la secretaría del usuario
-        secretaria_nombre = get_secretaria_nombre(user, db)
-        return actividad.responsable == secretaria_nombre if secretaria_nombre else False
+        return actividad.responsable_secretaria_id == user.secretaria_id
     
     return False
 
@@ -139,7 +155,7 @@ def puede_registrar_ejecucion(user: User, actividad: Actividad, db: Session) -> 
     """
     Verifica si el usuario puede registrar ejecución en una actividad:
     - SUPERADMIN/ADMIN: pueden registrar en cualquier actividad
-    - SECRETARIO: solo en actividades asignadas a su secretaría
+    - SECRETARIO: solo en actividades asignadas a su secretaría (responsable_secretaria_id)
     """
     if user.role == UserRole.SUPERADMIN or user.role == UserRole.ADMIN:
         # Verificar que pertenece a la entidad
@@ -151,8 +167,7 @@ def puede_registrar_ejecucion(user: User, actividad: Actividad, db: Session) -> 
     
     # Secretarios solo en su secretaría
     if user.role == UserRole.SECRETARIO:
-        secretaria_nombre = get_secretaria_nombre(user, db)
-        return actividad.responsable == secretaria_nombre if secretaria_nombre else False
+        return actividad.responsable_secretaria_id == user.secretaria_id
     
     return False
 
@@ -555,14 +570,12 @@ def listar_actividades(
     
     # Si es secretario, filtrar solo sus actividades
     if current_user.role == UserRole.SECRETARIO:
-        secretaria_nombre = get_secretaria_nombre(current_user, db)
-        if secretaria_nombre:
-            query = query.filter(Actividad.responsable == secretaria_nombre)
-        else:
-            # Sin secretaría asignada, no ve ninguna actividad
-            return []
+        query = query.filter(Actividad.responsable_secretaria_id == current_user.secretaria_id)
     
-    return query.order_by(Actividad.created_at).all()
+    actividades = query.order_by(Actividad.created_at).all()
+    
+    # Enriquecer cada actividad con el nombre de la secretaría
+    return [enrich_actividad_with_secretaria(a, db, current_user) for a in actividades]
 
 
 @router.get("/actividades/{actividad_id}", response_model=plan_schemas.Actividad)
@@ -581,7 +594,7 @@ def obtener_actividad(
     if not tiene_permiso_actividad(current_user, actividad, db):
         raise HTTPException(status_code=403, detail="No tienes acceso a esta actividad")
     
-    return actividad
+    return enrich_actividad_with_secretaria(actividad, db, current_user)
 
 
 @router.get("/actividades/{actividad_id}/completa", response_model=plan_schemas.ActividadCompleta)
@@ -602,7 +615,12 @@ def obtener_actividad_completa(
     if not tiene_permiso_actividad(current_user, actividad, db):
         raise HTTPException(status_code=403, detail="No tienes acceso a esta actividad")
     
-    return actividad
+    actividad_enriquecida = enrich_actividad_with_secretaria(actividad, db, current_user)
+    actividad_enriquecida['actividades_ejecucion'] = [
+        exec.model_dump() if hasattr(exec, 'model_dump') else exec 
+        for exec in actividad.actividades_ejecucion
+    ]
+    return actividad_enriquecida
 
 
 @router.post("/componentes/{componente_id}/actividades", response_model=plan_schemas.Actividad,
@@ -650,11 +668,10 @@ def crear_actividad(
     # Crear alertas para secretarios responsables y administradores
     try:
         # 1. Alertas para secretarios que pertenecen a la secretaría responsable
-        if nueva_actividad.responsable:
-            # Buscar la secretaría por nombre
+        if nueva_actividad.responsable_secretaria_id:
+            # Buscar la secretaría
             secretaria = db.query(Secretaria).filter(
-                Secretaria.nombre == nueva_actividad.responsable,
-                Secretaria.entity_id == componente.plan.entity_id,
+                Secretaria.id == nueva_actividad.responsable_secretaria_id,
                 Secretaria.is_active == True
             ).first()
             
@@ -721,7 +738,7 @@ def crear_actividad(
     except Exception:
         db.rollback()
 
-    return nueva_actividad
+    return enrich_actividad_with_secretaria(nueva_actividad, db, current_user)
 
 
 @router.put("/actividades/{actividad_id}", response_model=plan_schemas.Actividad)
@@ -771,7 +788,7 @@ def actualizar_actividad(
             plan.porcentaje_avance = calcular_porcentaje_avance_plan(plan, db)
             db.commit()
     
-    return actividad
+    return enrich_actividad_with_secretaria(actividad, db, current_user)
 
 
 ## Eliminado: endpoint de actualización manual de avance de actividad

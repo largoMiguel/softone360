@@ -143,8 +143,8 @@ class Actividad(Base):
     fecha_inicio_prevista = Column(Date, nullable=False)
     fecha_fin_prevista = Column(Date, nullable=False)
 
-    # Responsable único de la actividad
-    responsable = Column(String(200), nullable=False, index=True)
+    # Responsable: Foreign Key a secretarías
+    responsable_secretaria_id = Column(Integer, ForeignKey("secretarias.id", ondelete="SET NULL"), nullable=True, index=True)
 
     # Auditoría
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -153,6 +153,9 @@ class Actividad(Base):
     # Relación con componente
     componente_id = Column(Integer, ForeignKey("componentes_procesos.id", ondelete="CASCADE"), nullable=False, index=True)
     componente = relationship("ComponenteProceso", back_populates="actividades")
+    
+    # Relación con secretaría responsable
+    secretaria_responsable = relationship("Secretaria", foreign_keys=[responsable_secretaria_id])
     
     # Relaciones
     actividades_ejecucion = relationship("ActividadEjecucion", back_populates="actividad", 

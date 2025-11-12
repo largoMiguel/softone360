@@ -96,7 +96,7 @@ class ActividadBase(BaseModel):
     objetivo_especifico: Optional[str] = Field(None, min_length=5)
     fecha_inicio_prevista: date
     fecha_fin_prevista: date
-    responsable: str = Field(..., min_length=3, max_length=200)
+    responsable_secretaria_id: Optional[int] = Field(None, description="ID de la secretaría responsable")
 
     @field_validator('fecha_fin_prevista')
     @classmethod
@@ -116,7 +116,7 @@ class ActividadUpdate(BaseModel):
     objetivo_especifico: Optional[str] = Field(None, min_length=5)
     fecha_inicio_prevista: Optional[date] = None
     fecha_fin_prevista: Optional[date] = None
-    responsable: Optional[str] = Field(None, min_length=3, max_length=200)
+    responsable_secretaria_id: Optional[int] = Field(None, description="ID de la secretaría responsable")
 
 
 class Actividad(ActividadBase):
@@ -125,6 +125,7 @@ class Actividad(ActividadBase):
     componente_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
+    responsable_secretaria_nombre: Optional[str] = Field(None, description="Nombre enriquecido de la secretaría responsable")
 
     class Config:
         from_attributes = True
