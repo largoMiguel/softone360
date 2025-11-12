@@ -39,6 +39,33 @@ def get_entity_or_404(db: Session, slug: str) -> Entity:
     return entity
 
 
+def enrich_actividad_with_secretaria(actividad: PdmActividad, db: Session, current_user: User = None) -> dict:
+    """Enriquece una actividad con el nombre de la secretaría responsable y lógica de UI
+    
+    Retorna un dict que mapea:
+    - Para ADMIN: muestra nombre de la secretaría
+    - Para SECRETARIO: muestra "Tu Secretaría" 
+    """
+    actividad_dict = schemas.ActividadResponse.model_validate(actividad).model_dump()
+    
+    # Si hay secretaría asignada, obtener su nombre
+    if actividad.responsable_secretaria_id:
+        secretaria = db.query(Secretaria).filter(
+            Secretaria.id == actividad.responsable_secretaria_id
+        ).first()
+        
+        if secretaria:
+            # Determinar qué mostrar según el rol del usuario
+            if current_user and current_user.secretaria_id == actividad.responsable_secretaria_id:
+                # Si es secretario de esa secretaría, mostrar "Tu Secretaría"
+                actividad_dict['responsable_secretaria_nombre'] = f"Tu Secretaría ({secretaria.nombre})"
+            else:
+                # Si es admin u otro rol, mostrar el nombre completo
+                actividad_dict['responsable_secretaria_nombre'] = secretaria.nombre
+    
+    return actividad_dict
+
+
 def ensure_user_can_manage_entity(user: User, entity: Entity):
     """Verifica que el usuario pueda gestionar la entidad
     
@@ -392,7 +419,8 @@ async def get_actividades_por_producto(
         
         print(f"📦 Encontradas {len(actividades)} actividades para producto {codigo_producto}")
         
-        result = [schemas.ActividadResponse.model_validate(a) for a in actividades]
+        # Enriquecer actividades con nombre de secretaría
+        result = [enrich_actividad_with_secretaria(a, db, current_user) for a in actividades]
         return result
     except HTTPException:
         raise
@@ -428,7 +456,8 @@ async def get_mis_actividades(
     
     actividades = query.order_by(PdmActividad.fecha_inicio.desc()).all()
     
-    return [schemas.ActividadResponse.model_validate(a) for a in actividades]
+    # Enriquecer actividades con nombre de secretaría
+    return [enrich_actividad_with_secretaria(a, db, current_user) for a in actividades]
 
 
 @router.put("/{slug}/actividades/{actividad_id}", response_model=schemas.ActividadResponse)
