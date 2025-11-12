@@ -5,7 +5,6 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { EntityService } from '../../services/entity.service';
 import { AuthService } from '../../services/auth.service';
-import { EntityContextService } from '../../services/entity-context.service';
 import { AlertModalComponent } from './alert-modal/alert-modal.component';
 
 interface Feature {
@@ -139,8 +138,7 @@ export class ShowcaseComponent implements OnInit {
         private http: HttpClient, 
         private router: Router,
         private entityService: EntityService,
-        private authService: AuthService,
-        private entityContext: EntityContextService
+        private authService: AuthService
     ) { }
 
     ngOnInit(): void {
@@ -183,20 +181,23 @@ export class ShowcaseComponent implements OnInit {
 
     // Nuevos métodos para los portales de acceso
     irALogin(): void {
-        // Si el usuario ya tiene sesión activa, redirigirlo al dashboard
-        // en lugar de destruir la sesión
+        // Si ya hay una sesión activa, redirigir directamente al dashboard
         if (this.authService.isAuthenticated()) {
             const user = this.authService.getCurrentUserValue();
-            const entity = this.entityContext.currentEntity;
             
-            if (user && entity) {
+            if (user) {
                 // Redirigir según el rol del usuario
                 if (user.role === 'ciudadano') {
-                    this.router.navigate(['/', entity.slug, 'portal-ciudadano']);
-                } else if (user.role === 'admin' || user.role === 'secretario') {
-                    this.router.navigate(['/', entity.slug, 'dashboard']);
+                    // Ciudadano va al portal ciudadano
+                    const slug = user.entity?.slug;
+                    this.router.navigate(slug ? ['/', slug, 'portal-ciudadano'] : ['/']);
                 } else if (user.role === 'superadmin') {
+                    // Superadmin va a soft-admin
                     this.router.navigate(['/soft-admin']);
+                } else if (user.role === 'admin' || user.role === 'secretario') {
+                    // Admin/Secretario va al dashboard
+                    const slug = user.entity?.slug;
+                    this.router.navigate(slug ? ['/', slug, 'dashboard'] : ['/']);
                 }
                 return;
             }
@@ -207,18 +208,7 @@ export class ShowcaseComponent implements OnInit {
     }
 
     abrirSelectorEntidades(): void {
-        // Si ya tiene sesión activa como ciudadano, ir directamente al portal ciudadano
-        if (this.authService.isAuthenticated()) {
-            const user = this.authService.getCurrentUserValue();
-            const entity = this.entityContext.currentEntity;
-            
-            if (user && entity && user.role === 'ciudadano') {
-                this.router.navigate(['/', entity.slug, 'portal-ciudadano']);
-                return;
-            }
-        }
-        
-        // Si no tiene sesión o no es ciudadano, cargar entidades
+        // Cargar entidades usando el servicio
         this.entityService.getPublicEntities().subscribe({
             next: (entities) => {
                 this.entities = entities;

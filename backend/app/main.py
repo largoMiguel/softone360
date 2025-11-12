@@ -6,7 +6,7 @@ from sqlalchemy import inspect, text
 from app.config.database import engine, get_db, Base
 from app.config.settings import settings
 from app.routes import auth, pqrs, users, planes, entities, contratacion, alerts, secretarias, bpin, showcase, setup
-from app.models import user, pqrs as pqrs_model, plan, entity, pdm as pdm_model, secretaria as secretaria_model
+from app.models import user, pqrs as pqrs_model, plan, entity, pdm as pdm_model, secretaria as secretaria_model, pdm_ejecucion
 from app.models.user import User, UserRole
 from app.utils.auth import get_password_hash
 
@@ -139,6 +139,8 @@ app.include_router(entities.router, prefix="/api", tags=["Entidades"])
 app.include_router(contratacion.router, prefix="/api", tags=["Contratación"])
 from app.routes import pdm_v2 as pdm_v2_routes
 app.include_router(pdm_v2_routes.router, prefix="/api", tags=["PDM V2"])
+from app.routes import pdm_ejecucion
+app.include_router(pdm_ejecucion.router, prefix="/api/pdm/ejecucion", tags=["PDM Ejecución"])
 app.include_router(alerts.router, prefix="/api", tags=["Alerts"])
 app.include_router(secretarias.router, prefix="/api", tags=["Secretarías"])
 app.include_router(bpin.router, tags=["BPIN"])

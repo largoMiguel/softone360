@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Location } from '@angular/common';
 import { PdmService } from '../../services/pdm.service';
+import { PdmEjecucionService } from '../../services/pdm-ejecucion.service';
 import { AlertsService, Alert } from '../../services/alerts.service';
 import { AuthService } from '../../services/auth.service';
 import {
@@ -19,6 +20,7 @@ import {
     AvanceProducto,
     ProyectoBPIN
 } from '../../models/pdm.model';
+import { PDMEjecucionResumen } from '../../models/pdm-ejecucion.model';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 import { forkJoin, of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
@@ -35,6 +37,7 @@ Chart.register(...registerables);
 })
 export class PdmComponent implements OnInit, OnDestroy {
     private pdmService = inject(PdmService);
+    private pdmEjecucionService = inject(PdmEjecucionService);
     private fb = inject(FormBuilder);
     private alertsService = inject(AlertsService);
     private authService = inject(AuthService);
@@ -99,6 +102,11 @@ export class PdmComponent implements OnInit, OnDestroy {
     mostrarModalBPIN = false;
     proyectoBPIN: any = null;
     cargandoBPIN = false;
+
+    // Ejecución Presupuestal
+    ejecucionPresupuestal: PDMEjecucionResumen | null = null;
+    cargandoEjecucion = false;
+    archivoEjecucionCargado = false;
 
     // Modal Análisis Producto
     mostrarModalAnalisisProducto = false;
@@ -418,6 +426,60 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
+     * Maneja la selección de archivo Excel/CSV de ejecución presupuestal
+     */
+    onEjecucionFileSelected(event: Event) {
+        const input = event.target as HTMLInputElement;
+        if (!input.files || input.files.length === 0) return;
+
+        const file = input.files[0];
+        
+        // Validar extensión
+        const extension = file.name.split('.').pop()?.toLowerCase();
+        if (extension !== 'xlsx' && extension !== 'xls' && extension !== 'csv') {
+            this.showToast('Por favor seleccione un archivo válido (.xlsx, .xls o .csv)', 'error');
+            return;
+        }
+
+        this.cargarArchivoEjecucion(file);
+    }
+
+    /**
+     * Carga el archivo de ejecución presupuestal al backend
+     */
+    private cargarArchivoEjecucion(file: File) {
+        this.cargando = true;
+        console.log('🔄 Iniciando carga de archivo de ejecución:', file.name);
+
+        this.pdmEjecucionService.uploadEjecucion(file).subscribe({
+            next: (response) => {
+                console.log('✅ Ejecución presupuestal cargada:', response);
+                this.cargando = false;
+                this.archivoEjecucionCargado = true;
+                
+                const mensaje = `Excel de ejecución cargado: ${response.registros_insertados} registros procesados`;
+                this.showToast(mensaje, 'success');
+                
+                // Si hay errores, mostrarlos en consola
+                if (response.errores && response.errores.length > 0) {
+                    console.warn('⚠️ Errores al procesar ejecución:', response.errores);
+                }
+                
+                // Si hay un producto seleccionado, recargar su ejecución
+                if (this.productoSeleccionado) {
+                    this.cargarEjecucionPresupuestal(this.productoSeleccionado.codigo);
+                }
+            },
+            error: (error) => {
+                console.error('❌ Error al cargar ejecución:', error);
+                this.cargando = false;
+                const mensaje = error.error?.detail || 'Error al cargar el archivo de ejecución';
+                this.showToast(mensaje, 'error');
+            }
+        });
+    }
+
+    /**
      * Maneja la selección de archivo Excel
      */
     onFileSelected(event: Event) {
@@ -537,6 +599,8 @@ export class PdmComponent implements OnInit, OnDestroy {
             this.anioSeleccionado = [2024, 2025, 2026, 2027].includes(anioActual) ? anioActual : 2024;
             // Cargar actividades desde backend al abrir el detalle del producto
             this.actualizarResumenActividades(true);
+            // Cargar ejecución presupuestal si está disponible
+            this.cargarEjecucionPresupuestal(producto.codigo);
         } else if (vista === 'analisis-producto') {
             console.log('📈 Navegando a análisis del producto');
             this.recargarAnalisisProducto();
@@ -552,11 +616,33 @@ export class PdmComponent implements OnInit, OnDestroy {
         } else if (this.vistaActual === 'detalle') {
             this.vistaActual = 'productos';
             this.productoSeleccionado = null;
+            this.ejecucionPresupuestal = null;
         } else if (this.vistaActual === 'productos') {
             this.vistaActual = 'dashboard';
         } else if (this.vistaActual === 'analytics') {
             this.vistaActual = 'dashboard';
         }
+    }
+
+    /**
+     * Carga la ejecución presupuestal para un producto PDM
+     */
+    private cargarEjecucionPresupuestal(codigoProducto: string): void {
+        this.cargandoEjecucion = true;
+        this.ejecucionPresupuestal = null;
+
+        this.pdmEjecucionService.getEjecucionPorProducto(codigoProducto).subscribe({
+            next: (ejecucion) => {
+                console.log(`✅ Ejecución presupuestal cargada para producto ${codigoProducto}`, ejecucion);
+                this.ejecucionPresupuestal = ejecucion;
+                this.cargandoEjecucion = false;
+            },
+            error: (error) => {
+                console.log(`ℹ️ No hay datos de ejecución para el producto ${codigoProducto}`);
+                this.ejecucionPresupuestal = null;
+                this.cargandoEjecucion = false;
+            }
+        });
     }
 
     /**

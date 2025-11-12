@@ -26,6 +26,10 @@
                 <button *ngIf="vistaActual !== 'dashboard' && archivoExcelCargado" class="btn btn-outline-secondary me-2" (click)="volver()">
                     <i class="fas fa-arrow-left"></i> Volver
                 </button>
+                <label *ngIf="archivoExcelCargado && vistaActual === 'dashboard'" class="btn btn-outline-success me-2" title="Cargar Excel de Ejecución Presupuestal">
+                    <i class="fas fa-file-invoice-dollar"></i> Cargar Ejecución
+                    <input type="file" accept=".xlsx,.xls,.csv" (change)="onEjecucionFileSelected($event)" style="display: none;">
+                </label>
                 <button *ngIf="archivoExcelCargado && (vistaActual === 'dashboard' || vistaActual === 'detalle')" class="btn btn-outline-primary" (click)="cargarNuevoArchivo()">
                     <i class="fas fa-upload"></i> Cargar Nuevo Archivo
                 </button>
@@ -860,21 +864,91 @@
                         <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i> Información Adicional</h6>
                     </div>
                     <div class="card-body">
-                        <div class="mb-3">
-                            <label class="text-muted small">Programa MGA</label>
-                            <p class="small">{{ productoSeleccionado.detalle_completo.programa_mga }}</p>
+                        <!-- Loading state -->
+                        <div *ngIf="cargandoEjecucion" class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                            <p class="text-muted small mt-2">Cargando ejecución presupuestal...</p>
                         </div>
-                        <div class="mb-3">
-                            <label class="text-muted small">ODS</label>
-                            <p class="small">{{ productoSeleccionado.detalle_completo.ods }}</p>
+
+                        <!-- Si hay datos de ejecución -->
+                        <div *ngIf="!cargandoEjecucion && ejecucionPresupuestal">
+                            <!-- Fuentes presupuestales -->
+                            <div class="mb-3">
+                                <label class="text-muted small"><strong>Fuentes Presupuestales</strong></label>
+                                <ul class="list-unstyled small mb-0">
+                                    <li *ngFor="let fuente of ejecucionPresupuestal.fuentes" class="mb-1">
+                                        <i class="fas fa-circle text-primary me-2" style="font-size: 6px;"></i>
+                                        {{ fuente }}
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <hr>
+
+                            <!-- Totales presupuestales -->
+                            <div class="mb-2">
+                                <label class="text-muted small"><strong>Ejecución Presupuestal</strong></label>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <tbody>
+                                            <tr>
+                                                <td class="text-muted small">Pto. Inicial:</td>
+                                                <td class="text-end small">{{ formatearMoneda(ejecucionPresupuestal.totales.pto_inicial) }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted small">Adición:</td>
+                                                <td class="text-end small text-success">+{{ formatearMoneda(ejecucionPresupuestal.totales.adicion) }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted small">Reducción:</td>
+                                                <td class="text-end small text-danger">-{{ formatearMoneda(ejecucionPresupuestal.totales.reduccion) }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted small">Crédito:</td>
+                                                <td class="text-end small">{{ formatearMoneda(ejecucionPresupuestal.totales.credito) }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted small">Contracrédito:</td>
+                                                <td class="text-end small">{{ formatearMoneda(ejecucionPresupuestal.totales.contracredito) }}</td>
+                                            </tr>
+                                            <tr class="border-top">
+                                                <td class="text-muted small"><strong>Pto. Definitivo:</strong></td>
+                                                <td class="text-end small"><strong>{{ formatearMoneda(ejecucionPresupuestal.totales.pto_definitivo) }}</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted small"><strong>Pagos:</strong></td>
+                                                <td class="text-end small"><strong class="text-primary">{{ formatearMoneda(ejecucionPresupuestal.totales.pagos) }}</strong></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="text-muted small">Tipo de Acumulación</label>
-                            <p class="small">{{ productoSeleccionado.detalle_completo.tipo_acumulacion }}</p>
-                        </div>
-                        <div *ngIf="productoSeleccionado.detalle_completo.bpin">
-                            <label class="text-muted small">BPIN</label>
-                            <p class="small">{{ productoSeleccionado.detalle_completo.bpin }}</p>
+
+                        <!-- Si NO hay datos de ejecución, mostrar campos originales -->
+                        <div *ngIf="!cargandoEjecucion && !ejecucionPresupuestal">
+                            <div class="mb-3">
+                                <label class="text-muted small">Programa MGA</label>
+                                <p class="small">{{ productoSeleccionado.detalle_completo.programa_mga }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="text-muted small">ODS</label>
+                                <p class="small">{{ productoSeleccionado.detalle_completo.ods }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="text-muted small">Tipo de Acumulación</label>
+                                <p class="small">{{ productoSeleccionado.detalle_completo.tipo_acumulacion }}</p>
+                            </div>
+                            <div *ngIf="productoSeleccionado.detalle_completo.bpin">
+                                <label class="text-muted small">BPIN</label>
+                                <p class="small">{{ productoSeleccionado.detalle_completo.bpin }}</p>
+                            </div>
+                            <div class="alert alert-info small mt-3 mb-0" role="alert">
+                                <i class="fas fa-info-circle me-2"></i>
+                                No hay datos de ejecución presupuestal disponibles para este producto.
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -40,6 +40,7 @@ class Entity(Base):
     # Relaciones
     users = relationship("User", back_populates="entity", cascade="all, delete-orphan")
     secretarias = relationship("Secretaria", back_populates="entity", cascade="all, delete-orphan")
+    pdm_ejecuciones = relationship("PDMEjecucionPresupuestal", back_populates="entity", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Entity {self.code}: {self.name}>"
