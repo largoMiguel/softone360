@@ -1426,16 +1426,17 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Obtiene el nombre del responsable de una actividad
      */
     getNombreResponsable(actividad: ActividadPDM): string {
-        if (actividad.responsable) {
-            return actividad.responsable;
-        }
-        
         // Mostrar secretaría si está asignada
         if (actividad.responsable_secretaria_nombre) {
-            return `📍 ${actividad.responsable_secretaria_nombre} (Secretaría)`;
+            return `🏢 ${actividad.responsable_secretaria_nombre}`;
         }
         
-        return 'Sin responsable asignada';
+        // Si hay campo responsable legacy, mostrar también
+        if (actividad.responsable) {
+            return `� ${actividad.responsable}`;
+        }
+        
+        return '⚠️ Sin asignar';
     }
 
     /**
