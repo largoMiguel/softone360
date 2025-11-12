@@ -27,10 +27,22 @@ export const authGuard: CanActivateFn = (route, state) => {
 
 export const loginGuard: CanActivateFn = (route, state) => {
     const authService = inject(AuthService);
-    // Permitir el acceso a /:slug/login aunque el usuario esté autenticado,
-    // forzando un logout suave para que pueda iniciar sesión nuevamente.
+    const router = inject(Router);
+    
+    // Si el usuario está autenticado y viene desde el back del navegador,
+    // permitir acceso a /login. Si viene acceso directo, hacer logout.
+    // Para determinar esto, verificamos si hay referrer:
     if (authService.isAuthenticated()) {
-        authService.logout();
+        // Permitir que el usuario pueda acceder a /login con back button sin perder sesión
+        // Solo hacer logout si viene de acceso directo (sin referrer)
+        const referrer = document.referrer;
+        const isBackNavigation = referrer && referrer.includes(window.location.hostname);
+        
+        if (!isBackNavigation) {
+            // Acceso directo a /login - logout suave para nueva sesión
+            authService.logout();
+        }
+        // Si es back navigation, permitir acceso sin logout
     }
     return true;
 };

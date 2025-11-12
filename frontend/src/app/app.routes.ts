@@ -16,10 +16,13 @@ import { enforceUserEntityGuard } from './guards/enforce-user-entity.guard';
 import { entityResolver } from './resolvers/entity.resolver';
 import { defaultEntityGuard } from './guards/default-entity.guard';
 import { moduleAccessGuard } from './guards/module-access.guard';
+import { sessionRedirectGuard } from './guards/session-redirect.guard';
+import { showcaseSessionGuard } from './guards/showcase-session.guard';
 
 export const routes: Routes = [
     // Ruta raíz: muestra el showcase como home
-    { path: '', component: ShowcaseComponent },
+    // Si hay sesión activa, redirige automáticamente al dashboard
+    { path: '', component: ShowcaseComponent, canActivate: [showcaseSessionGuard] },
 
     // Ruta de login global (sin slug de entidad)
     { path: 'login', component: LoginComponent, canActivate: [loginGuard] },
@@ -30,7 +33,7 @@ export const routes: Routes = [
     // Rutas por entidad (con slug). Ej: /chiquiza-boyaca/
     {
         path: ':slug',
-        canActivate: [ensureEntityGuard],
+        canActivate: [ensureEntityGuard, sessionRedirectGuard],
         resolve: { entity: entityResolver },
         children: [
             { path: '', component: VentanillaComponent },
