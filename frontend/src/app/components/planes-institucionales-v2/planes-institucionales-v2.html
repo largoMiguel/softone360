@@ -5,21 +5,25 @@
             <div class="header-info">
                 <h2 class="page-title">
                     <i class="fas fa-project-diagram"></i>
-                    <span *ngIf="vistaActual === 'planes'">Planes Institucionales</span>
+                    <span *ngIf="vistaActual === 'resumen'">Planes Institucionales</span>
+                    <span *ngIf="vistaActual === 'gestion'">Gestión de Planes</span>
+                    <span *ngIf="vistaActual === 'analisis'">Análisis de Planes</span>
                     <span *ngIf="vistaActual === 'componentes'">{{ planSeleccionado?.nombre }}</span>
                     <span *ngIf="vistaActual === 'actividades'">{{ componenteSeleccionado?.nombre }}</span>
                     <span *ngIf="vistaActual === 'detalle-actividad'">{{ actividadSeleccionada?.objetivo_especifico ||
                         'Actividad' }}</span>
                     <span *ngIf="vistaActual === 'estadisticas'">Estadísticas - {{ planSeleccionado?.nombre }}</span>
-                    <span *ngIf="vistaActual === 'analisis'">Análisis General</span>
                 </h2>
-                <p class="page-subtitle" *ngIf="vistaActual === 'planes'">
+                <p class="page-subtitle" *ngIf="vistaActual === 'resumen'">
+                    Resumen de planificación estratégica institucional
+                </p>
+                <p class="page-subtitle" *ngIf="vistaActual === 'gestion'">
                     Gestión de planificación estratégica institucional
                 </p>
             </div>
 
             <div class="header-actions">
-                <button *ngIf="vistaActual !== 'planes'" class="btn btn-outline-secondary" (click)="volver()">
+                <button *ngIf="vistaActual !== 'resumen' && vistaActual !== 'gestion'" class="btn btn-outline-secondary" (click)="volver()">
                     <i class="fas fa-arrow-left"></i> Volver
                 </button>
             </div>
@@ -33,8 +37,79 @@
         </div>
     </div>
 
-    <!-- VISTA PLANES -->
-    <div *ngIf="vistaActual === 'planes'" class="vista-planes">
+    <!-- VISTA RESUMEN -->
+    <div *ngIf="vistaActual === 'resumen'" class="vista-resumen">
+        <!-- Filtro de Año -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">
+                            <i class="fas fa-calendar"></i> Seleccionar Año
+                        </label>
+                        <select class="form-select" [(ngModel)]="filtroAnio" (change)="cargarPlanes()">
+                            <option value="">Todos los años</option>
+                            <option *ngFor="let ano of anosDisponibles" [value]="ano">{{ ano }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-9 text-end">
+                        <button class="btn btn-primary" (click)="navegarA('gestion')">
+                            <i class="fas fa-plus"></i> Ingresar
+                        </button>
+                        <button class="btn btn-outline-success ms-2" (click)="navegarA('analisis')">
+                            <i class="fas fa-chart-bar"></i> Ver Análisis
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estadísticas Globales -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="stat-card card">
+                    <div class="card-body text-center">
+                        <h3 class="stat-value">{{ totalPlanesResumen }}</h3>
+                        <p class="stat-label mb-0">Total Planes</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stat-card card">
+                    <div class="card-body text-center">
+                        <h3 class="stat-value">{{ planesActivosResumen }}</h3>
+                        <p class="stat-label mb-0">Planes Activos</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stat-card card">
+                    <div class="card-body text-center">
+                        <h3 class="stat-value">{{ planesFinalizadosResumen }}</h3>
+                        <p class="stat-label mb-0">Finalizados</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stat-card card">
+                    <div class="card-body text-center">
+                        <h3 class="stat-value">{{ avancePromedioResumen }}%</h3>
+                        <p class="stat-label mb-0">Avance Promedio</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botón Ver Todos -->
+        <div class="text-center mb-4">
+            <button class="btn btn-outline-info" (click)="navegarA('gestion')">
+                <i class="fas fa-list"></i> Ver Todos los Planes Institucionales
+            </button>
+        </div>
+    </div>
+
+    <!-- VISTA GESTIÓN -->
+    <div *ngIf="vistaActual === 'gestion'" class="vista-planes">
 
         <!-- Mensaje informativo para Secretarios -->
         <div *ngIf="esSecretario()" class="alert alert-info mb-3">
@@ -82,9 +157,6 @@
                     <div class="col-md-6 text-end">
                         <button class="btn btn-primary" (click)="abrirModalPlan()" *ngIf="!esSecretario()">
                             <i class="fas fa-plus"></i> Nuevo Plan
-                        </button>
-                        <button class="btn btn-outline-info ms-2" (click)="navegarA('analisis')" *ngIf="!esSecretario()" title="Ver análisis y estadísticas">
-                            <i class="fas fa-chart-bar"></i> Ver Análisis
                         </button>
                     </div>
                 </div>
@@ -517,8 +589,113 @@
     </div>
 
     <!-- VISTA ANÁLISIS -->
-    <div *ngIf="vistaActual === 'analisis'">
-        <app-planes-analisis [planes]="planes"></app-planes-analisis>
+    <div *ngIf="vistaActual === 'analisis'" class="vista-analisis">
+        <!-- Filtro de Año -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">
+                            <i class="fas fa-calendar"></i> Seleccionar Año
+                        </label>
+                        <select class="form-select" [(ngModel)]="filtroAnio" (change)="cargarPlanes()">
+                            <option value="">Todos los años</option>
+                            <option *ngFor="let ano of anosDisponibles" [value]="ano">{{ ano }}</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard de Análisis -->
+        <div class="row mb-4">
+            <!-- Distribución por Estado -->
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Distribución por Estado</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group">
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>Formulación</span>
+                                <span class="badge bg-secondary">{{ planesFormulacionResumen }}</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>Aprobado</span>
+                                <span class="badge bg-primary">{{ planesAprobadosResumen }}</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>En Ejecución</span>
+                                <span class="badge bg-info">{{ planesEnEjecucionResumen }}</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>Finalizado</span>
+                                <span class="badge bg-success">{{ planesFinalizadosAnalisisResumen }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Planes por Año -->
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Planes por Año</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group">
+                            <div *ngFor="let ano of anosDisponibles" class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>Año {{ ano }}</span>
+                                <span class="badge bg-primary">{{ getPlanesPorAnio(ano) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tendencia de Avance -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Tendencia de Avance</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Plan</th>
+                                        <th>Año</th>
+                                        <th>Estado</th>
+                                        <th>Avance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let plan of planes | slice:0:10">
+                                        <td>{{ plan.nombre }}</td>
+                                        <td>{{ plan.anio }}</td>
+                                        <td>
+                                            <span [class]="BADGE_CLASS_ESTADO_PLAN[plan.estado]">
+                                                {{ LABELS_ESTADO_PLAN[plan.estado] }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar" [style.width.%]="plan.porcentaje_avance"></div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- MODALES -->

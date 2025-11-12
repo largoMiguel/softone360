@@ -8,7 +8,6 @@ import { User } from '../../models/user.model';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PlanV2Service } from '../../services/plan-v2.service';
-import { PlanesAnalisisComponent } from './planes-analisis/planes-analisis';
 import {
     PlanInstitucional,
     ComponenteProceso,
@@ -33,7 +32,7 @@ import {
 @Component({
     selector: 'app-planes-institucionales-v2',
     standalone: true,
-    imports: [CommonModule, FormsModule, PlanesAnalisisComponent],
+    imports: [CommonModule, FormsModule],
     templateUrl: './planes-institucionales-v2.html',
     styleUrls: ['./planes-institucionales-v2.scss']
 })
@@ -57,7 +56,7 @@ export class PlanesInstitucionalesV2Component implements OnInit, OnDestroy {
 
     // Datos
     cargando = false;
-    vistaActual = 'planes' as 'planes' | 'componentes' | 'actividades' | 'detalle-actividad' | 'estadisticas' | 'analisis';
+    vistaActual = 'resumen' as 'resumen' | 'gestion' | 'componentes' | 'actividades' | 'detalle-actividad' | 'estadisticas' | 'analisis';
     planes: PlanInstitucional[] = [];
     planSeleccionado: PlanInstitucional | null = null;
     componentes: ComponenteProceso[] = [];
@@ -70,6 +69,23 @@ export class PlanesInstitucionalesV2Component implements OnInit, OnDestroy {
     filtroEstadoPlan: EstadoPlan | '' = '';
     filtroAnio: number | '' = '';
     anosDisponibles: number[] = [];
+    
+    // Resumen de planes (para la vista resumen)
+    totalPlanesResumen = 0;
+    planesActivosResumen = 0;
+    planesFinalizadosResumen = 0;
+    avancePromedioResumen = 0;
+    
+    // Estadísticas para análisis
+    planesFormulacionResumen = 0;
+    planesAprobadosResumen = 0;
+    planesEnEjecucionResumen = 0;
+    planesFinalizadosAnalisisResumen = 0;
+    
+    // Método para obtener cantidad de planes por año
+    getPlanesPorAnio(ano: number): number {
+        return this.planes.filter(p => p.anio === ano).length;
+    }
 
     // Modales
     modalAbierto: 'plan' | 'componente' | 'actividad' | 'ejecucion' | null = null;
@@ -122,7 +138,9 @@ export class PlanesInstitucionalesV2Component implements OnInit, OnDestroy {
             }
 
             // Recargar datos según la vista actual
-            if (this.vistaActual === 'planes') {
+            if (this.vistaActual === 'resumen' || this.vistaActual === 'analisis') {
+                this.cargarPlanes();
+            } else if (this.vistaActual === 'gestion') {
                 this.cargarPlanes();
             } else if (this.vistaActual === 'componentes' && this.planSeleccionado) {
                 this.cargarComponentes(this.planSeleccionado.id);
@@ -232,6 +250,12 @@ export class PlanesInstitucionalesV2Component implements OnInit, OnDestroy {
     // ==================== NAV ====================
     navegarA(vista: typeof this.vistaActual, payload?: any) {
         switch (vista) {
+            case 'gestion':
+                // Navegar a la vista de gestión de planes
+                break;
+            case 'analisis':
+                // Navegar a la vista de análisis
+                break;
             case 'componentes':
                 this.planSeleccionado = payload as PlanInstitucional;
                 this.cargarComponentes(this.planSeleccionado.id);
@@ -248,20 +272,17 @@ export class PlanesInstitucionalesV2Component implements OnInit, OnDestroy {
                 this.planSeleccionado = payload as PlanInstitucional;
                 this.cargarEstadisticas(this.planSeleccionado.id);
                 break;
-            case 'analisis':
-                // Para la vista de análisis, ya tenemos los planes cargados
-                // Solo necesitamos cambiar la vista
-                break;
         }
         this.vistaActual = vista;
     }
 
     volver() {
-        if (this.vistaActual === 'componentes') this.vistaActual = 'planes';
+        if (this.vistaActual === 'componentes') this.vistaActual = 'gestion';
         else if (this.vistaActual === 'actividades') this.vistaActual = 'componentes';
         else if (this.vistaActual === 'detalle-actividad') this.vistaActual = 'actividades';
-        else if (this.vistaActual === 'estadisticas') this.vistaActual = 'planes';
-        else if (this.vistaActual === 'analisis') this.vistaActual = 'planes';
+        else if (this.vistaActual === 'estadisticas') this.vistaActual = 'gestion';
+        else if (this.vistaActual === 'analisis') this.vistaActual = 'resumen';
+        else if (this.vistaActual === 'gestion') this.vistaActual = 'resumen';
     }
 
     // ==================== LOADERS ====================
@@ -276,6 +297,20 @@ export class PlanesInstitucionalesV2Component implements OnInit, OnDestroy {
                 // Extraer años disponibles de los planes
                 const anosUnicos = new Set(data.map(p => p.anio));
                 this.anosDisponibles = Array.from(anosUnicos).sort((a, b) => b - a);
+                
+                // Calcular estadísticas para el resumen
+                this.totalPlanesResumen = data.length;
+                this.planesActivosResumen = data.filter(p => p.estado === 'en_ejecucion').length;
+                this.planesFinalizadosResumen = data.filter(p => p.estado === 'finalizado').length;
+                this.avancePromedioResumen = data.length > 0 
+                    ? Math.round(data.reduce((sum, p) => sum + Number(p.porcentaje_avance || 0), 0) / data.length)
+                    : 0;
+                
+                // Estadísticas para análisis por estado
+                this.planesFormulacionResumen = data.filter(p => p.estado === 'formulacion').length;
+                this.planesAprobadosResumen = data.filter(p => p.estado === 'aprobado').length;
+                this.planesEnEjecucionResumen = data.filter(p => p.estado === 'en_ejecucion').length;
+                this.planesFinalizadosAnalisisResumen = data.filter(p => p.estado === 'finalizado').length;
             },
             error: () => (this.planes = []),
             complete: () => (this.cargando = false)
