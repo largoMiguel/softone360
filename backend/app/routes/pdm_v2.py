@@ -192,17 +192,22 @@ async def upload_pdm_data(
     # ✅ NUEVO: Upsert iniciativas SGR (clave: consecutivo)
     # Primero, eliminar todas las iniciativas SGR existentes para esta entidad
     # (ya que el Excel es la fuente de verdad)
-    db.query(PdmIniciativaSGR).filter(
-        PdmIniciativaSGR.entity_id == entity.id
-    ).delete()
-    
-    # Luego agregar las nuevas iniciativas SGR
-    for item in data.iniciativas_sgr:
-        iniciativa = PdmIniciativaSGR(
-            entity_id=entity.id,
-            **item.model_dump()
-        )
-        db.add(iniciativa)
+    try:
+        db.query(PdmIniciativaSGR).filter(
+            PdmIniciativaSGR.entity_id == entity.id
+        ).delete()
+        
+        # Luego agregar las nuevas iniciativas SGR
+        for item in data.iniciativas_sgr:
+            iniciativa = PdmIniciativaSGR(
+                entity_id=entity.id,
+                **item.model_dump()
+            )
+            db.add(iniciativa)
+    except Exception as e:
+        db.rollback()
+        print(f"⚠️ Error al procesar iniciativas SGR: {str(e)}")
+        # Continuar sin fallar, las iniciativas SGR son opcionales
     
     db.commit()
     
