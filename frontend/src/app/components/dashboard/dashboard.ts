@@ -1515,7 +1515,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   logout() {
-    console.log('🔐 Iniciando logout desde dashboard...');
     this.authService.logout();
     
     setTimeout(() => {
@@ -1523,7 +1522,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       const loginUrl = slug ? `/${slug}/login` : '/';
       
       this.router.navigate([loginUrl]).then(() => {
-        console.log('✅ Logout completado. Recargando página...');
+
         window.location.reload();
       });
     }, 100);

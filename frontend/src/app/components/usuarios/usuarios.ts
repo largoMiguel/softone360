@@ -49,7 +49,7 @@ export class UsuariosComponent implements OnInit {
         this.usersService.obtenerSecretarias().subscribe({
             next: (data) => {
                 this.secretarias = data;
-                console.log('✅ Secretarías cargadas:', this.secretarias);
+
             },
             error: (err) => {
                 console.error('❌ Error al cargar secretarías:', err);
@@ -113,8 +113,6 @@ export class UsuariosComponent implements OnInit {
                         mensaje += ` (${response.otros_usuarios_en_secretaria} otro(s) usuario(s))`;
                     }
                 }
-                
-                console.log(mensaje);
                 alert(mensaje);
                 this.cargar();
             },

@@ -636,13 +636,12 @@ export class SoftAdminComponent implements OnInit {
     }
 
     logout(): void {
-        console.log('🔐 Iniciando logout desde soft-admin...');
         this.authService.logout();
         this.alertService.success('Sesión cerrada exitosamente');
         
         setTimeout(() => {
             this.router.navigate(['/']).then(() => {
-                console.log('✅ Logout completado. Recargando página...');
+
                 window.location.reload();
             });
         }, 100);

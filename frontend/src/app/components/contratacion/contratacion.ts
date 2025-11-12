@@ -167,8 +167,6 @@ export class ContratacionComponent implements OnInit, OnDestroy {
             // Usar el NIT de la entidad para consultas SECOP
             const nit = entity!.nit || '891801994'; // NIT de ejemplo si no tiene
             this.filtro.entidad = nit;
-
-            console.log(`[Contratación] NIT de la entidad: ${nit}`);
             this.fetch();
         });
         this.subs.add(sub);
@@ -437,9 +435,6 @@ export class ContratacionComponent implements OnInit, OnDestroy {
             const porcentajeEjecucion = (diasTranscurridos / duracionTotal) * 100;
             return porcentajeEjecucion > 75 && fechaFin <= fechaEn15Dias && fechaFin > hoy;
         });
-
-        console.log(`[Contratación] Contratos vencidos: ${this.contratosVencidos.length}`);
-        console.log(`[Contratación] Contratos con ejecución retrasada: ${this.contratosRetrasados.length}`);
     }
 
     calcularDiasVencidos(contrato: ProcesoContratacion): number {
@@ -863,12 +858,11 @@ export class ContratacionComponent implements OnInit, OnDestroy {
 
     // Métodos de navegación
     logout(): void {
-        console.log('🔐 Iniciando logout desde contratacion...');
         this.authService.logout();
         
         setTimeout(() => {
             this.router.navigate([`/${this.entityContext.currentEntity?.slug}/login`]).then(() => {
-                console.log('✅ Logout completado. Recargando página...');
+
                 window.location.reload();
             });
         }, 100);

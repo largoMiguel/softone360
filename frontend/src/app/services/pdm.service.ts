@@ -61,12 +61,10 @@ export class PdmService {
         const user = this.authService.getCurrentUserValue();
         
         if (user) {
-            console.log('🔍 Usuario obtenido del AuthService:', user);
             
             // Obtener el slug de la entidad
             this.entitySlug = user.entity?.slug || '';
             
-            console.log('🔑 Entity slug obtenido:', this.entitySlug);
             
             if (!this.entitySlug) {
                 console.warn('⚠️ No se encontró entity slug en el usuario');
@@ -89,7 +87,6 @@ export class PdmService {
         while (!this.entitySlug && attempts < maxAttempts) {
             this.refreshEntitySlug();
             if (this.entitySlug) {
-                console.log('✅ Entity slug disponible después de', attempts * 100, 'ms');
                 return true;
             }
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -108,7 +105,6 @@ export class PdmService {
      */
     public setEntitySlug(slug: string): void {
         this.entitySlug = slug;
-        console.log('🔑 Entity slug establecido manualmente:', this.entitySlug);
     }
 
     /**
@@ -151,7 +147,6 @@ export class PdmService {
      * Parsea el workbook y extrae los datos de cada hoja
      */
     private parsearWorkbook(workbook: XLSX.WorkBook): PDMData {
-        console.log('📊 Hojas encontradas en el Excel:', workbook.SheetNames);
         
         const pdmData: PDMData = {
             lineas_estrategicas: [],
@@ -175,56 +170,39 @@ export class PdmService {
         // Parsear cada hoja con búsqueda flexible
         const hojaLineas = findSheet(['LÍNEAS ESTRATÉGICAS', 'LINEAS ESTRATEGICAS', 'Líneas Estratégicas']);
         if (hojaLineas) {
-            console.log('✅ Parseando:', hojaLineas);
             pdmData.lineas_estrategicas = this.parsearLineasEstrategicas(workbook.Sheets[hojaLineas]);
-            console.log(`   → ${pdmData.lineas_estrategicas.length} líneas estratégicas cargadas`);
         } else {
             console.warn('⚠️ No se encontró la hoja de Líneas Estratégicas');
         }
 
         const hojaIndicadores = findSheet(['INDICADORES DE RESULTADO', 'Indicadores de Resultado']);
         if (hojaIndicadores) {
-            console.log('✅ Parseando:', hojaIndicadores);
             pdmData.indicadores_resultado = this.parsearIndicadoresResultado(workbook.Sheets[hojaIndicadores]);
-            console.log(`   → ${pdmData.indicadores_resultado.length} indicadores de resultado cargados`);
         } else {
             console.warn('⚠️ No se encontró la hoja de Indicadores de Resultado');
         }
 
         const hojaIniciativas = findSheet(['INICIATIVAS SGR', 'Iniciativas SGR']);
         if (hojaIniciativas) {
-            console.log('✅ Parseando:', hojaIniciativas);
             pdmData.iniciativas_sgr = this.parsearIniciativasSGR(workbook.Sheets[hojaIniciativas]);
-            console.log(`   → ${pdmData.iniciativas_sgr.length} iniciativas SGR cargadas`);
         } else {
             console.warn('⚠️ No se encontró la hoja de Iniciativas SGR');
         }
 
         const hojaPlanIndicativo = findSheet(['PLAN INDICATIVO - PRODUCTOS', 'Plan Indicativo - Productos', 'PLAN INDICATIVO-PRODUCTOS']);
         if (hojaPlanIndicativo) {
-            console.log('✅ Parseando:', hojaPlanIndicativo);
             pdmData.productos_plan_indicativo = this.parsearProductosPlanIndicativo(workbook.Sheets[hojaPlanIndicativo]);
-            console.log(`   → ${pdmData.productos_plan_indicativo.length} productos del plan indicativo cargados`);
         } else {
             console.warn('⚠️ No se encontró la hoja de Plan Indicativo - Productos');
         }
 
         const hojaPlanSGR = findSheet(['PLAN INDICATIVO SGR - PRODUCTOS', 'Plan Indicativo SGR - Productos', 'PLAN INDICATIVO SGR-PRODUCTOS']);
         if (hojaPlanSGR) {
-            console.log('✅ Parseando:', hojaPlanSGR);
             pdmData.productos_plan_indicativo_sgr = this.parsearProductosPlanIndicativoSGR(workbook.Sheets[hojaPlanSGR]);
-            console.log(`   → ${pdmData.productos_plan_indicativo_sgr.length} productos SGR cargados`);
         } else {
             console.warn('⚠️ No se encontró la hoja de Plan Indicativo SGR - Productos');
         }
 
-        console.log('📈 Resumen de datos cargados:', {
-            lineas_estrategicas: pdmData.lineas_estrategicas.length,
-            indicadores_resultado: pdmData.indicadores_resultado.length,
-            iniciativas_sgr: pdmData.iniciativas_sgr.length,
-            productos_plan_indicativo: pdmData.productos_plan_indicativo.length,
-            productos_plan_indicativo_sgr: pdmData.productos_plan_indicativo_sgr.length
-        });
 
         return pdmData;
     }
@@ -464,11 +442,8 @@ export class PdmService {
      * Genera resumen de productos con información consolidada
      */
     generarResumenProductos(pdmData: PDMData): ResumenProducto[] {
-        console.log('🔨 Generando resumen de productos...');
-        console.log('   Productos disponibles:', pdmData.productos_plan_indicativo.length);
         
         if (pdmData.productos_plan_indicativo.length > 0) {
-            console.log('   Ejemplo de producto:', pdmData.productos_plan_indicativo[0]);
         }
         
         const resumen = pdmData.productos_plan_indicativo.map(producto => {
@@ -506,7 +481,6 @@ export class PdmService {
             };
         });
         
-        console.log('✅ Resumen generado:', resumen.length, 'productos');
         return resumen;
     }
 
@@ -568,7 +542,6 @@ export class PdmService {
             if (stored) {
                 const actividades = JSON.parse(stored) as ActividadPDM[];
                 this.actividadesSubject.next(actividades);
-                console.log('✅ Actividades cargadas desde localStorage:', actividades.length);
             }
         } catch (error) {
             console.error('Error al cargar actividades desde localStorage:', error);
@@ -581,7 +554,6 @@ export class PdmService {
     private guardarActividadesEnStorage(actividades: ActividadPDM[]) {
         try {
             localStorage.setItem(this.STORAGE_KEY, JSON.stringify(actividades));
-            console.log('💾 Actividades guardadas en localStorage:', actividades.length);
         } catch (error) {
             console.error('Error al guardar actividades en localStorage:', error);
         }
@@ -591,11 +563,9 @@ export class PdmService {
      * Limpia todo el caché de PDM (se llama al logout)
      */
     resetPdmCache(): void {
-        console.log('🔄 Limpiando caché de PDM...');
         this.actividadesSubject.next([]);
         this.entitySlug = '';
         localStorage.removeItem(this.STORAGE_KEY);
-        console.log('✅ Caché de PDM limpiado');
     }
 
     /**
@@ -636,11 +606,6 @@ export class PdmService {
         // Combinar: actividades de otros productos + nuevas actividades del backend
         const actividadesSincronizadas = [...actividadesOtrosProductos, ...actividadesBackend];
         
-        console.log(`🔄 Sincronizando actividades del producto ${codigoProducto}:`, {
-            antes: actividadesActuales.filter(a => a.codigo_producto === codigoProducto).length,
-            despues: actividadesBackend.length,
-            total: actividadesSincronizadas.length
-        });
         
         // Actualizar el BehaviorSubject con las actividades sincronizadas
         this.actividadesSubject.next(actividadesSincronizadas);
@@ -725,7 +690,6 @@ export class PdmService {
                     const nuevasActividades = [...actividades, actividadCreada];
                     this.actividadesSubject.next(nuevasActividades);
                     this.guardarActividadesEnStorage(nuevasActividades);
-                    console.log('✅ Actividad creada en backend:', actividadCreada);
                     return actividadCreada;
                 }),
                 catchError(error => {
@@ -781,7 +745,6 @@ export class PdmService {
                     nuevasActividades[index] = actividadActualizada;
                     this.actividadesSubject.next(nuevasActividades);
                     this.guardarActividadesEnStorage(nuevasActividades);
-                    console.log('✅ Actividad actualizada en backend:', actividadActualizada);
                     return actividadActualizada;
                 }),
                 catchError(error => {
@@ -834,7 +797,6 @@ export class PdmService {
                     const nuevasActividades = actividades.filter(a => a.id !== id);
                     this.actividadesSubject.next(nuevasActividades);
                     this.guardarActividadesEnStorage(nuevasActividades);
-                    console.log('🗑️ Actividad eliminada en backend:', id);
                     return true;
                 }),
                 catchError(error => {
@@ -852,7 +814,6 @@ export class PdmService {
         const nuevasActividades = actividades.filter(a => a.id !== id);
         this.actividadesSubject.next(nuevasActividades);
         this.guardarActividadesEnStorage(nuevasActividades);
-        console.log('🗑️ Actividad eliminada localmente:', id);
         return of(true);
     }
 
@@ -888,7 +849,6 @@ export class PdmService {
                         this.actividadesSubject.next(nuevasActividades);
                         this.guardarActividadesEnStorage(nuevasActividades);
                     }
-                    console.log('✅ Evidencia registrada en backend:', actividadActualizada);
                     return of(actividadActualizada);
                 }),
                 catchError(error => {
@@ -929,14 +889,6 @@ export class PdmService {
             case 2027: metaProgramada = producto.programacion_2027; break;
         }
 
-        console.log(`📊 [${producto.codigo}] Resumen año ${anio}:`, {
-            programacion_2024: producto.programacion_2024,
-            programacion_2025: producto.programacion_2025,
-            programacion_2026: producto.programacion_2026,
-            programacion_2027: producto.programacion_2027,
-            metaProgramada,
-            actividades_count: actividades.length
-        });
 
         // Suma de todas las metas asignadas a actividades
         const metaAsignada = actividades.reduce((sum, a) => sum + a.meta_ejecutar, 0);
@@ -1351,7 +1303,6 @@ export class PdmService {
             throw new Error('No hay slug de entidad disponible');
         }
         
-        console.log('📥 Cargando datos PDM desde:', `${this.API_URL}/${this.entitySlug}/data`);
         
         return this.http.get<PDMData>(`${this.API_URL}/${this.entitySlug}/data`).pipe(
             catchError(error => {
@@ -1386,13 +1337,9 @@ export class PdmService {
             iniciativas_sgr: data.iniciativas_sgr
         };
         
-        console.log('📤 Enviando datos al backend...', 'Slug:', this.entitySlug);
-        console.log('   Productos:', dataParaBackend.productos_plan_indicativo.length);
-        console.log('   Iniciativas SGR:', dataParaBackend.iniciativas_sgr.length);
         
         return this.http.post(`${this.API_URL}/${this.entitySlug}/upload`, dataParaBackend).pipe(
             tap(() => {
-                console.log('✅ Datos guardados exitosamente en backend');
             }),
             catchError(error => {
                 console.error('Error al guardar datos PDM:', error);
@@ -1423,7 +1370,6 @@ export class PdmService {
             url += `?anio=${anio}`;
         }
         
-        console.log('📥 Cargando actividades desde:', url);
         
         return this.http.get<ActividadPDM[]>(url).pipe(
             catchError(error => {
@@ -1548,7 +1494,6 @@ export class PdmService {
     obtenerSecretariosEntidad(): Observable<any[]> {
         return this.http.get<any[]>(`${environment.apiUrl}/users/?role=secretario`).pipe(
             tap(resp => {
-                console.log('🔍 Respuesta cruda de secretarios:', resp);
             }),
             catchError(error => {
                 console.error('❌ Error al obtener secretarios:', error);
@@ -1584,7 +1529,6 @@ export class PdmService {
                     id: responsables[0]?.secretaria || nombre
                 }));
 
-                console.log('✅ Secretarías con responsables:', result);
                 return result;
             })
         );
@@ -1606,7 +1550,6 @@ export class PdmService {
 
         return this.http.get<ActividadPDM[]>(url).pipe(
             tap(actividades => {
-                console.log('✅ Mis actividades obtenidas:', actividades.length);
             }),
             catchError(error => {
                 console.error('❌ Error al obtener mis actividades:', error);
@@ -1629,7 +1572,6 @@ export class PdmService {
         
         return this.http.patch(url, {}).pipe(
             tap(response => {
-                console.log('✅ Secretaría asignada como responsable:', response);
             }),
             catchError(error => {
                 console.error('❌ Error al asignar secretaría responsable:', error);

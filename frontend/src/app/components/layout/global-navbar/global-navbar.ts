@@ -143,10 +143,8 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
             if (data.actividad_id) {
                 // ✅ Si hay ID de actividad, priorizar ir a la actividad
                 sessionStorage.setItem('pdm_open_actividad', data.actividad_id);
-                console.log('📌 Alerta de actividad con ID:', data.actividad_id);
             } else if (data.producto_codigo) {
                 sessionStorage.setItem('pdm_open_producto', data.producto_codigo);
-                console.log('📌 Alerta de producto:', data.producto_codigo);
             }
             setTimeout(() => this.alertsEvents.requestOpen(alert), 100);
         } else if (alert.type === 'PLAN_COMPONENT_ASSIGNED' || alert.type === 'PLAN_NEW_ACTIVITY') {
@@ -261,19 +259,14 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
     }
 
     logout() {
-        console.log('🔐 Iniciando logout...');
         this.auth.logout();
         
         // Esperar un pequeño tiempo para que se complete la limpieza
         setTimeout(() => {
             const slug = this.router.url.replace(/^\//, '').split('/')[0];
             const loginUrl = slug ? `/${slug}/login` : '/';
-            
-            console.log('🔄 Navegando a:', loginUrl);
-            
             // Usar navigate y luego hacer un hard refresh para reinicializar todos los servicios
             this.router.navigate([loginUrl]).then(() => {
-                console.log('✅ Logout completado. Recargando página para reinicializar servicios...');
                 // Hard refresh para limpiar toda la memoria de los servicios
                 window.location.reload();
             });

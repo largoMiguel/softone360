@@ -42,8 +42,6 @@ export class AuthService {
     }
 
     logout(): void {
-        console.log('🔄 Cerrando sesión y limpiando caché...');
-        
         // 1. Limpiar token y usuario del localStorage
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -55,8 +53,6 @@ export class AuthService {
         
         // 3. Limpiar sessionStorage también (por si hay datos ahí)
         sessionStorage.clear();
-        
-        console.log('✅ Sesión y caché limpiados completamente');
     }
 
     getCurrentUser(): Observable<User> {

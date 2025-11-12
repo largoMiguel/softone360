@@ -6,15 +6,11 @@ import { EntityService } from '../services/entity.service';
 export const defaultEntityGuard: CanActivateFn = (route, state) => {
     const entityService = inject(EntityService);
     const router = inject(Router);
-
-    console.log('[defaultEntityGuard] Obteniendo entidades públicas...');
-
     // Intentar obtener la primera entidad activa como por defecto
     return entityService.getPublicEntities().pipe(
         map(entities => {
             if (entities && entities.length > 0) {
                 const defaultEntity = entities.find(e => e.is_active) || entities[0];
-                console.log(`[defaultEntityGuard] Redirigiendo a: /${defaultEntity.slug}`);
                 router.navigate(['/', defaultEntity.slug], { replaceUrl: true });
                 return false;
             } else {

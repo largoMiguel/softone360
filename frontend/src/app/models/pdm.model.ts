@@ -235,7 +235,7 @@ export interface ActividadPDM {
     anio: number; // 2024, 2025, 2026, 2027
     nombre: string;
     descripcion: string;
-    responsable: string; // Nombre del responsable (legacy)
+    responsable?: string; // Nombre del responsable (legacy) - opcional
     responsable_secretaria_id?: number; // ID de la secretaría responsable
     responsable_secretaria_nombre?: string; // Nombre de la secretaría responsable
     estado: 'PENDIENTE' | 'EN_PROGRESO' | 'COMPLETADA' | 'CANCELADA';

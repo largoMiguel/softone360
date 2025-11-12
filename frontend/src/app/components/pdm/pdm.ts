@@ -254,7 +254,6 @@ export class PdmComponent implements OnInit, OnDestroy {
         this.popstateListener = () => {
             // Si estamos en una vista que no sea dashboard, usar nuestro método volver()
             if (this.vistaActual !== 'dashboard') {
-                console.log('⬅️ Retroceso interceptado, usando navegación interna');
                 this.volver();
             }
         };
@@ -266,8 +265,6 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Verifica datos del backend con espera para entity slug
      */
     private verificarDatosBackendConEspera(): void {
-        console.log('🔍 Esperando entity slug disponible...');
-        
         // Esperar en un pequeño intervalo a que el entity slug esté disponible
         let intentos = 0;
         const verificar = () => {
@@ -275,7 +272,6 @@ export class PdmComponent implements OnInit, OnDestroy {
             const slug = this.pdmService.getEntitySlug();
             
             if (slug) {
-                console.log('✅ Entity slug disponible:', slug);
                 this.verificarDatosBackend();
             } else if (intentos < 50) {
                 // Reintentar después de 100ms (máximo 5 segundos)
@@ -316,13 +312,11 @@ export class PdmComponent implements OnInit, OnDestroy {
                     
                     // Si hay actividadId, encontrar el producto de esa actividad
                     if (actividadId) {
-                        console.log('🎯 Buscando actividad desde alerta:', actividadId);
                         // Iterar por productos para encontrar la actividad
                         for (const producto of this.resumenProductos) {
                             const actividades = this.pdmService.obtenerActividadesPorProducto(producto.codigo);
                             const actividad = actividades.find(a => String(a.id) === String(actividadId));
                             if (actividad) {
-                                console.log('✅ Actividad encontrada en producto:', producto.codigo);
                                 // Abrir el producto y marcar la actividad para desplazarse
                                 this.navegarA('detalle', producto);
                                 // Guardar ID de actividad para que el componente de detalle la destace
@@ -335,7 +329,6 @@ export class PdmComponent implements OnInit, OnDestroy {
                     else if (productoCodigo) {
                         const producto = this.resumenProductos.find(p => p.codigo === productoCodigo);
                         if (producto) {
-                            console.log('🎯 Abriendo producto desde alerta:', productoCodigo);
                             this.navegarA('detalle', producto);
                         }
                     }
@@ -368,19 +361,14 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Verifica si hay datos en el backend y los carga automáticamente
      */
     private verificarDatosBackend(): void {
-        console.log('🔍 Verificando estado PDM en backend...');
         this.cargandoDesdeBackend = true;
 
         this.pdmService.verificarEstadoPDM().subscribe({
             next: (estado) => {
-                console.log('✅ Estado PDM:', estado);
-                
                 if (estado.tiene_datos) {
                     this.datosEnBackend = true;
-                    console.log(`📦 Encontrados ${estado.total_productos} productos, cargando datos...`);
                     this.cargarDatosDesdeBackend();
                 } else {
-                    console.log('ℹ️ No hay datos en backend, esperando carga de Excel');
                     this.cargandoDesdeBackend = false;
                 }
             },
@@ -398,19 +386,11 @@ export class PdmComponent implements OnInit, OnDestroy {
     private cargarDatosDesdeBackend(): void {
         this.pdmService.cargarDatosPDMDesdeBackend().subscribe({
             next: (data) => {
-                console.log('✅ Datos cargados desde backend:', data);
                 this.pdmData = data;
-                
-                console.log('🔍 Generando resumen de productos...');
                 this.resumenProductos = this.ordenarProductosPorCodigo(
                     this.pdmService.generarResumenProductos(data)
                 );
-                console.log('📦 Resumen productos:', this.resumenProductos.length, 'productos (ordenados por código)');
-                
-                console.log('📊 Calculando estadísticas...');
                 this.estadisticas = this.pdmService.calcularEstadisticas(data);
-                console.log('📈 Estadísticas:', this.estadisticas);
-                
                 this.archivoExcelCargado = true;
                 this.vistaActual = 'dashboard';
                 this.cargandoDesdeBackend = false;
@@ -452,11 +432,8 @@ export class PdmComponent implements OnInit, OnDestroy {
      */
     private cargarArchivoEjecucion(file: File) {
         this.cargando = true;
-        console.log('🔄 Iniciando carga de archivo de ejecución:', file.name);
-
         this.pdmEjecucionService.uploadEjecucion(file).subscribe({
             next: (response) => {
-                console.log('✅ Ejecución presupuestal cargada:', response);
                 this.cargando = false;
                 this.archivoEjecucionCargado = true;
                 
@@ -506,34 +483,21 @@ export class PdmComponent implements OnInit, OnDestroy {
      */
     private cargarArchivoExcel(file: File) {
         this.cargando = true;
-        console.log('🔄 Iniciando carga de archivo:', file.name, 'Tamaño:', file.size, 'bytes');
-
         this.pdmService.procesarArchivoExcel(file).subscribe({
             next: (data) => {
-                console.log('✅ Datos recibidos del servicio:', data);
-                
                 try {
                     this.pdmData = data;
-                    
-                    console.log('🔍 Generando resumen de productos...');
                     this.resumenProductos = this.ordenarProductosPorCodigo(
                         this.pdmService.generarResumenProductos(data)
                     );
-                    console.log('📦 Resumen productos:', this.resumenProductos.length, 'productos (ordenados por código)');
-                    
-                    console.log('📊 Calculando estadísticas...');
                     this.estadisticas = this.pdmService.calcularEstadisticas(data);
-                    console.log('📈 Estadísticas:', this.estadisticas);
-                    
                     this.archivoExcelCargado = true;
                     this.vistaActual = 'dashboard';
                     
                     // Generar analytics iniciales
-                    console.log('📈 Generando analytics...');
                     this.generarAnalytics();
                     
                     // Guardar en backend (no bloqueante)
-                    console.log('💾 Guardando datos en backend...');
                     this.guardarEnBackend(data);
                     
                     this.cargando = false;
@@ -559,7 +523,6 @@ export class PdmComponent implements OnInit, OnDestroy {
     private guardarEnBackend(data: PDMData): void {
         this.pdmService.guardarDatosPDMEnBackend(data).subscribe({
             next: (respuesta) => {
-                console.log('✅ Datos guardados en backend:', respuesta);
                 this.datosEnBackend = true;
                 this.showToast('Datos guardados en el servidor correctamente.', 'success');
             },
@@ -589,13 +552,10 @@ export class PdmComponent implements OnInit, OnDestroy {
         
         // ✅ NUEVO: Recargar datos según la vista
         if (vista === 'dashboard') {
-            console.log('📊 Navegando a dashboard, recargando datos...');
             this.recargarDashboard();
         } else if (vista === 'productos') {
-            console.log('📦 Navegando a productos, recargando lista...');
             this.recargarProductos();
         } else if (vista === 'detalle' && producto) {
-            console.log('📋 Navegando a detalle del producto:', producto.codigo);
             this.productoSeleccionado = producto;
             // Inicializar vista de actividades para el año actual
             const anioActual = new Date().getFullYear();
@@ -605,7 +565,6 @@ export class PdmComponent implements OnInit, OnDestroy {
             // Cargar ejecución presupuestal si está disponible
             this.cargarEjecucionPresupuestal(producto.codigo);
         } else if (vista === 'analisis-producto') {
-            console.log('📈 Navegando a análisis del producto');
             this.recargarAnalisisProducto();
         }
     }
@@ -636,12 +595,10 @@ export class PdmComponent implements OnInit, OnDestroy {
 
         this.pdmEjecucionService.getEjecucionPorProducto(codigoProducto).subscribe({
             next: (ejecucion) => {
-                console.log(`✅ Ejecución presupuestal cargada para producto ${codigoProducto}`, ejecucion);
                 this.ejecucionPresupuestal = ejecucion;
                 this.cargandoEjecucion = false;
             },
             error: (error) => {
-                console.log(`ℹ️ No hay datos de ejecución para el producto ${codigoProducto}`);
                 this.ejecucionPresupuestal = null;
                 this.cargandoEjecucion = false;
             }
@@ -652,17 +609,13 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Recarga el dashboard con datos frescos del backend
      */
     private recargarDashboard(): void {
-        console.log('📈 Recargando dashboard con datos frescos...');
-        
         if (!this.datosEnBackend) {
-            console.log('ℹ️ No hay datos en backend, mostrando dashboard en blanco');
             return;
         }
         
         this.cargandoDesdeBackend = true;
         this.pdmService.cargarDatosPDMDesdeBackend().subscribe({
             next: (data) => {
-                console.log('✅ Dashboard recargado con datos frescos');
                 this.pdmData = data;
                 this.resumenProductos = this.ordenarProductosPorCodigo(
                     this.pdmService.generarResumenProductos(data)
@@ -685,10 +638,7 @@ export class PdmComponent implements OnInit, OnDestroy {
      * IMPORTANTE: Ahora también sincroniza actividades de todos los productos
      */
     private recargarProductos(): void {
-        console.log('📦 Recargando lista de productos...');
-        
         if (!this.datosEnBackend) {
-            console.log('ℹ️ No hay datos en backend');
             this.productoSeleccionado = null;
             return;
         }
@@ -696,7 +646,6 @@ export class PdmComponent implements OnInit, OnDestroy {
         this.cargandoDesdeBackend = true;
         this.pdmService.cargarDatosPDMDesdeBackend().subscribe({
             next: (data) => {
-                console.log('✅ Datos base de productos recargados');
                 this.pdmData = data;
                 this.resumenProductos = this.ordenarProductosPorCodigo(
                     this.pdmService.generarResumenProductos(data)
@@ -708,10 +657,8 @@ export class PdmComponent implements OnInit, OnDestroy {
                 // ✅ CRÍTICO: Cargar actividades de TODOS los productos
                 this.cargarActividadesTodosProductos().then(() => {
                     // IMPORTANTE: Recalcular avance DESPUÉS de sincronizar actividades
-                    console.log('📊 Recalculando avance de productos con actividades sincronizadas...');
                     this.resumenProductos = this.pdmService.generarResumenProductos(data);
                     this.estadisticas = this.pdmService.calcularEstadisticas(data);
-                    console.log('✅ Avance recalculado');
                 });
                 
                 this.cargandoDesdeBackend = false;
@@ -731,19 +678,14 @@ export class PdmComponent implements OnInit, OnDestroy {
     private cargarActividadesTodosProductos(): Promise<void> {
         return new Promise((resolve) => {
             if (!this.resumenProductos.length) {
-                console.log('ℹ️ No hay productos para cargar actividades');
                 resolve();
                 return;
             }
-            
-            console.log(`📦 Iniciando carga de actividades para ${this.resumenProductos.length} productos...`);
-            
             // Crear peticiones en paralelo para todos los productos
             const peticiones = this.resumenProductos.map(producto =>
                 this.pdmService.cargarActividadesDesdeBackend(producto.codigo)
                     .pipe(
                         tap(actividades => {
-                            console.log(`  ✅ ${producto.codigo}: ${actividades.length} actividades`);
                             // Sincronizar en el servicio
                             this.pdmService.sincronizarActividadesProducto(producto.codigo, actividades);
                         }),
@@ -757,7 +699,6 @@ export class PdmComponent implements OnInit, OnDestroy {
             // Ejecutar todas en paralelo
             forkJoin(peticiones).subscribe({
                 next: () => {
-                    console.log('✅ ✅ Todas las actividades sincronizadas - Vista de productos lista');
                     resolve();
                 },
                 error: (error) => {
@@ -772,8 +713,6 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Recarga el análisis del producto actual
      */
     private recargarAnalisisProducto(): void {
-        console.log('📊 Recargando análisis del producto...');
-        
         if (!this.productoSeleccionado) {
             console.warn('⚠️ No hay producto seleccionado');
             return;
@@ -790,17 +729,13 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Incluye sincronización de actividades
      */
     private recargarSegunFiltros(): void {
-        console.log('🔄 Recargando datos según filtros aplicados...');
-        
         if (!this.datosEnBackend) {
-            console.log('ℹ️ No hay datos en backend para recargar');
             return;
         }
         
         this.cargandoDesdeBackend = true;
         this.pdmService.cargarDatosPDMDesdeBackend().subscribe({
             next: (data) => {
-                console.log('✅ Datos recargados según filtros');
                 this.pdmData = data;
                 this.resumenProductos = this.ordenarProductosPorCodigo(
                     this.pdmService.generarResumenProductos(data)
@@ -810,8 +745,6 @@ export class PdmComponent implements OnInit, OnDestroy {
                 // ✅ Cargar actividades de productos que coincidan con filtros
                 const productosFiltrados = this.productosFiltrados;
                 if (productosFiltrados.length > 0) {
-                    console.log(`📦 Sincronizando actividades de ${productosFiltrados.length} productos filtrados...`);
-                    
                     const peticiones = productosFiltrados.map(producto =>
                         this.pdmService.cargarActividadesDesdeBackend(producto.codigo)
                             .pipe(
@@ -823,14 +756,11 @@ export class PdmComponent implements OnInit, OnDestroy {
                     );
                     
                     forkJoin(peticiones).subscribe(() => {
-                        console.log('✅ Actividades sincronizadas para productos filtrados');
                         this.cargandoDesdeBackend = false;
                     });
                 } else {
                     this.cargandoDesdeBackend = false;
                 }
-                
-                console.log(`📦 ${this.productosFiltrados.length} productos después de filtros`);
             },
             error: (error) => {
                 console.warn('⚠️ Error al recargar según filtros:', error);
@@ -844,7 +774,6 @@ export class PdmComponent implements OnInit, OnDestroy {
      * SOLO filtra en memoria, NO recarga del backend
      */
     limpiarFiltros() {
-        console.log('🔄 Limpiando filtros...');
         this.filtroLinea = '';
         this.filtroSector = '';
         this.filtroODS = '';
@@ -852,7 +781,6 @@ export class PdmComponent implements OnInit, OnDestroy {
         this.filtroEstado = '';
         this.filtroBusqueda = '';
         this.filtroSecretaria = ''; // ✅ Agregar filtro de secretaría
-        console.log(`📊 Mostrando ${this.productosFiltrados.length} productos sin filtros`);
         // ✅ NO llamar a recargarSegunFiltros() - solo filtrar en memoria
     }
 
@@ -861,8 +789,6 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Solo filtra en memoria, SIN hacer petición al backend
      */
     onCambioFiltro() {
-        console.log('🔄 Filtros cambieron');
-        console.log(`   📊 Mostrando ${this.productosFiltrados.length} productos con estos filtros`);
     }
 
     /**
@@ -870,8 +796,6 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Solo filtra en memoria, SIN hacer petición al backend
      */
     onCambioFiltroLinea() {
-        console.log('🔄 Filtro de línea cambió a:', this.filtroLinea);
-        console.log(`📊 Mostrando ${this.productosFiltrados.length} productos con este filtro`);
         // ✅ NO llamar a recargarSegunFiltros() - solo filtrar en memoria
     }
 
@@ -880,8 +804,6 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Solo filtra en memoria, SIN hacer petición al backend
      */
     onCambioFiltroSector() {
-        console.log('🔄 Filtro de sector cambió a:', this.filtroSector);
-        console.log(`📊 Mostrando ${this.productosFiltrados.length} productos con este filtro`);
         // ✅ NO llamar a recargarSegunFiltros() - solo filtrar en memoria
     }
 
@@ -898,8 +820,6 @@ export class PdmComponent implements OnInit, OnDestroy {
         
         // ✅ Establecer nuevo debounce
         this.debounceTimer = setTimeout(() => {
-            console.log('🔄 Filtro de búsqueda cambió a:', this.filtroBusqueda);
-            console.log(`📊 Mostrando ${this.productosFiltrados.length} productos con este filtro`);
             // ✅ NO llamar a recargarSegunFiltros() - solo filtrar en memoria
             this.debounceTimer = null;
         }, this.DEBOUNCE_DELAY);
@@ -914,11 +834,9 @@ export class PdmComponent implements OnInit, OnDestroy {
         if (this.vistaActual === 'dashboard') {
             // En dashboard, filtrar y mostrar tabla en la misma vista
             this.filtroEstado = this.filtroEstado === 'PENDIENTE' ? '' : 'PENDIENTE';
-            console.log('🔍 Filtrando por estado: PENDIENTE (toggle en dashboard)');
         } else {
             // En vista productos, solo cambiar filtro sin navegar
             this.filtroEstado = this.filtroEstado === 'PENDIENTE' ? '' : 'PENDIENTE';
-            console.log('🔍 Filtrando por estado: PENDIENTE');
         }
     }
 
@@ -930,10 +848,8 @@ export class PdmComponent implements OnInit, OnDestroy {
         // ✅ CAMBIO: No navegar a 'productos', solo cambiar el filtro en la vista actual
         if (this.vistaActual === 'dashboard') {
             this.filtroEstado = this.filtroEstado === 'EN_PROGRESO' ? '' : 'EN_PROGRESO';
-            console.log('🔍 Filtrando por estado: EN_PROGRESO (toggle en dashboard)');
         } else {
             this.filtroEstado = this.filtroEstado === 'EN_PROGRESO' ? '' : 'EN_PROGRESO';
-            console.log('🔍 Filtrando por estado: EN_PROGRESO');
         }
     }
 
@@ -945,10 +861,8 @@ export class PdmComponent implements OnInit, OnDestroy {
         // ✅ CAMBIO: No navegar a 'productos', solo cambiar el filtro en la vista actual
         if (this.vistaActual === 'dashboard') {
             this.filtroEstado = this.filtroEstado === 'COMPLETADO' ? '' : 'COMPLETADO';
-            console.log('🔍 Filtrando por estado: COMPLETADO (toggle en dashboard)');
         } else {
             this.filtroEstado = this.filtroEstado === 'COMPLETADO' ? '' : 'COMPLETADO';
-            console.log('🔍 Filtrando por estado: COMPLETADO');
         }
     }
 
@@ -960,10 +874,8 @@ export class PdmComponent implements OnInit, OnDestroy {
         // ✅ CAMBIO: No navegar a 'productos', solo cambiar el filtro en la vista actual
         if (this.vistaActual === 'dashboard') {
             this.filtroEstado = this.filtroEstado === 'POR_EJECUTAR' ? '' : 'POR_EJECUTAR';
-            console.log('🔍 Filtrando por estado: POR_EJECUTAR (toggle en dashboard)');
         } else {
             this.filtroEstado = this.filtroEstado === 'POR_EJECUTAR' ? '' : 'POR_EJECUTAR';
-            console.log('🔍 Filtrando por estado: POR_EJECUTAR');
         }
     }
 
@@ -1053,27 +965,14 @@ export class PdmComponent implements OnInit, OnDestroy {
         
         // ✅ IMPORTANTE: Actualizar PRIMERO con datos locales para que la UI no quede en blanco
         // Esto asegura que el botón de "Nueva Actividad" se muestre aunque esté actualizándose
-        console.log('📊 Actualizando resumen de actividades localmente...');
-        console.log('   Producto:', this.productoSeleccionado.codigo, this.productoSeleccionado.producto);
-        console.log('   Año seleccionado:', this.anioSeleccionado);
-        
         this.resumenAnioActual = this.pdmService.obtenerResumenActividadesPorAnio(
             this.productoSeleccionado,
             this.anioSeleccionado
         );
         this.avanceProducto = this.pdmService.calcularAvanceProducto(this.productoSeleccionado);
-        
-        console.log('📈 Resumen calculado:', {
-            meta_programada: this.resumenAnioActual?.meta_programada,
-            meta_asignada: this.resumenAnioActual?.meta_asignada,
-            meta_disponible: this.resumenAnioActual?.meta_disponible,
-            total_actividades: this.resumenAnioActual?.total_actividades
-        });
-        
         // ✅ LUEGO: SIEMPRE intentar cargar desde backend si se solicita
         // No importa si datosEnBackend es false, intentamos cargar de todas formas
         if (cargarDesdeBackend) {
-            console.log('🔄 Sincronizando actividades desde backend...');
             this.cargarActividadesDesdeBackend();
         }
     }
@@ -1097,7 +996,6 @@ export class PdmComponent implements OnInit, OnDestroy {
                 intentos++;
                 const slugActual = this.pdmService.getEntitySlug();
                 if (slugActual) {
-                    console.log('✅ Entity slug disponible después de espera');
                     this.cargarActividadesDesdeBackend();
                 } else if (intentos < 30) {
                     setTimeout(reintentar, 100);
@@ -1112,13 +1010,10 @@ export class PdmComponent implements OnInit, OnDestroy {
 
         this.pdmService.cargarActividadesDesdeBackend(this.productoSeleccionado.codigo).subscribe({
             next: (actividades) => {
-                console.log(`✅ ${actividades.length} actividades cargadas desde backend para producto ${this.productoSeleccionado?.codigo}`);
-                
                 // CRÍTICO: Sincronizar las actividades cargadas con el BehaviorSubject del servicio
                 // Esto reemplaza las actividades del producto actual con las del backend
                 this.pdmService.sincronizarActividadesProducto(this.productoSeleccionado!.codigo, actividades);
                 
-                console.log('📊 Actividades por año:', actividades.map(a => ({ id: a.id, descripcion: a.descripcion, anio: a.anio })));
                 
                 // Actualizar la vista con las actividades sincronizadas
                 this.resumenAnioActual = this.pdmService.obtenerResumenActividadesPorAnio(
@@ -1126,9 +1021,6 @@ export class PdmComponent implements OnInit, OnDestroy {
                     this.anioSeleccionado
                 );
                 this.avanceProducto = this.pdmService.calcularAvanceProducto(this.productoSeleccionado!);
-                
-                console.log('📈 Resumen año actual:', this.resumenAnioActual);
-                
                 // ✅ OCULTAR indicador de carga
                 this.cargandoActividadesBackend = false;
             },
@@ -1149,7 +1041,6 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Cambia el año seleccionado y recarga datos del backend
      */
     seleccionarAnio(anio: number) {
-        console.log(`📅 Cambio de año: ${this.anioSeleccionado} → ${anio}`);
         this.anioSeleccionado = anio;
         
         // ✅ MEJORADO: Recargar actividades y actualizar estadísticas
@@ -1157,7 +1048,6 @@ export class PdmComponent implements OnInit, OnDestroy {
         
         // Si estamos en analytics, regenerar con datos del nuevo año
         if (this.vistaActual === 'analytics') {
-            console.log('📊 Regenerando analytics para el año:', anio);
             this.generarAnalytics();
             setTimeout(() => this.crearGraficos(), 100);
         }
@@ -1182,8 +1072,7 @@ export class PdmComponent implements OnInit, OnDestroy {
         this.formularioActividad = this.fb.group({
             nombre: ['', [Validators.required, Validators.minLength(5)]],
             descripcion: ['', [Validators.required, Validators.minLength(10)]],
-            responsable: [responsableNombre, [Validators.required, Validators.minLength(3)]],
-            responsable_secretaria_id: [null, Validators.required], // ✅ null en lugar de ''
+            responsable_secretaria_id: [null, Validators.required],
             estado: ['PENDIENTE', Validators.required],
             fecha_inicio: ['', Validators.required],
             fecha_fin: ['', Validators.required],
@@ -1213,7 +1102,6 @@ export class PdmComponent implements OnInit, OnDestroy {
         this.formularioActividad = this.fb.group({
             nombre: [actividad.nombre, [Validators.required, Validators.minLength(5)]],
             descripcion: [actividad.descripcion, [Validators.required, Validators.minLength(10)]],
-            responsable: [actividad.responsable, [Validators.required, Validators.minLength(3)]],
             responsable_secretaria_id: [actividad.responsable_secretaria_id || null, Validators.required],
             estado: [actividad.estado, Validators.required],
             fecha_inicio: [actividad.fecha_inicio.split('T')[0], Validators.required],
@@ -1254,7 +1142,6 @@ export class PdmComponent implements OnInit, OnDestroy {
             anio: this.anioSeleccionado,
             nombre: valores.nombre,
             descripcion: valores.descripcion,
-            responsable: valores.responsable,
             responsable_secretaria_id: valores.responsable_secretaria_id, // ID de la secretaría responsable
             estado: valores.estado,
             fecha_inicio: new Date(valores.fecha_inicio).toISOString(),
@@ -1361,8 +1248,6 @@ export class PdmComponent implements OnInit, OnDestroy {
         this.pdmService.obtenerSecretariosEntidad().subscribe({
             next: (secretarios) => {
                 this.secretarios = secretarios;
-                console.log('✅ Secretarios cargados:', secretarios.length);
-                
                 // Agrupar por secretaría
                 this.agruparSecretariosporSecretaria();
             },
@@ -1380,14 +1265,10 @@ export class PdmComponent implements OnInit, OnDestroy {
      */
     private agruparSecretariosporSecretaria() {
         const secretariaMap = new Map<number | string, any[]>();
-        
-        console.log('🔄 Agrupando secretarios...', 'cantidad:', this.secretarios.length);
-        
         this.secretarios.forEach((sec, idx) => {
             const nomSec = sec.secretaria || 'Sin Secretaría';
             const secretariaId = sec.secretaria_id;
             
-            console.log(`  [${idx}] ${sec.username}: secretaria_id=${secretariaId} (type: ${typeof secretariaId}), secretaria=${nomSec}`);
             
             // Solo usar secretaria_id si es un número válido
             let clave: number | string;
@@ -1415,17 +1296,12 @@ export class PdmComponent implements OnInit, OnDestroy {
                 const idFromUser = responsables.find(r => typeof r.secretaria_id === 'number' && r.secretaria_id > 0)?.secretaria_id;
                 validId = idFromUser || 0;
             }
-            
-            console.log(`  ✅ Agrupada: ${responsables[0]?.secretaria || 'Sin Secretaría'} -> id: ${validId}`);
-            
             return {
                 nombre: responsables[0]?.secretaria || 'Sin Secretaría',
                 responsables,
                 id: validId  // ID numérico garantizado
             };
         });
-
-        console.log('✅ Secretarías agrupadas completas:', this.secretariasAgrupadas);
         this.cargandoSecretarios = false;
     }
 
@@ -1643,14 +1519,6 @@ export class PdmComponent implements OnInit, OnDestroy {
 
         // DEBUG: Log para entender qué está pasando
         if (producto.codigo === '2201029') {
-            console.log(`🔍 [${producto.codigo}] año=${anio}:`, {
-                total_actividades: resumenActividades.total_actividades,
-                actividades_completadas: resumenActividades.actividades_completadas,
-                meta_asignada: resumenActividades.meta_asignada,
-                meta_ejecutada: resumenActividades.meta_ejecutada,
-                porcentaje_avance: resumenActividades.porcentaje_avance,
-                avance: avance
-            });
         }
 
         // Año futuro: siempre POR_EJECUTAR
@@ -1662,7 +1530,6 @@ export class PdmComponent implements OnInit, OnDestroy {
         // Estado COMPLETADO: avance EXACTAMENTE 100%
         if (avance === 100) {
             if (producto.codigo === '2201029') {
-                console.log(`✅ [${producto.codigo}] Estado COMPLETADO (avance = 100%)`);
             }
             return 'COMPLETADO';
         }
@@ -1674,7 +1541,6 @@ export class PdmComponent implements OnInit, OnDestroy {
         // Si tiene actividades: EN_PROGRESO
         if (resumenActividades.total_actividades > 0) {
             if (producto.codigo === '2201029') {
-                console.log(`🟡 [${producto.codigo}] Estado EN_PROGRESO (actividades=${resumenActividades.total_actividades}, completadas=${resumenActividades.actividades_completadas}, avance=${avance}%)`);
             }
             return 'EN_PROGRESO';
         }
@@ -2031,7 +1897,6 @@ export class PdmComponent implements OnInit, OnDestroy {
      * ✅ NUEVO: Ver análisis detallado del producto
      */
     verAnalisisProducto(producto: ResumenProducto): void {
-        console.log('👁️ Viendo análisis del producto:', producto.codigo);
         this.navegarA('analisis-producto', producto);
     }
 
@@ -2040,15 +1905,12 @@ export class PdmComponent implements OnInit, OnDestroy {
      * CRÍTICO: Ahora también sincroniza actividades antes de generar gráficos
      */
     verAnalytics(): void {
-        console.log('📊 Abriendo analytics, recargando datos del servidor...');
-        
         // ✅ CRÍTICO: Mostrar indicador de carga
         this.vistaActual = 'analytics';
         this.cargandoDesdeBackend = true;
         
         if (!this.datosEnBackend) {
             // Sin datos en backend, usar lo que hay en memoria
-            console.log('ℹ️ No hay datos en backend, usando datos en caché');
             this.generarAnalytics();
             this.cargandoDesdeBackend = false;
             setTimeout(() => this.crearGraficos(), 100);
@@ -2058,7 +1920,6 @@ export class PdmComponent implements OnInit, OnDestroy {
         // Cargar datos base
         this.pdmService.cargarDatosPDMDesdeBackend().subscribe({
             next: (data) => {
-                console.log('✅ Datos base cargados para analytics');
                 this.pdmData = data;
                 this.resumenProductos = this.ordenarProductosPorCodigo(
                     this.pdmService.generarResumenProductos(data)
@@ -2066,10 +1927,8 @@ export class PdmComponent implements OnInit, OnDestroy {
                 this.estadisticas = this.pdmService.calcularEstadisticas(data);
                 
                 // ✅ PASO CRÍTICO: Cargar actividades de TODOS los productos
-                console.log('📦 Cargando actividades para cálculos de analytics...');
                 this.cargarActividadesTodosProductos().then(() => {
                     // IMPORTANTE: Recalcular después de que actividades estén sincronizadas
-                    console.log('✅ Actividades sincronizadas, recalculando con datos actualizados...');
                     this.resumenProductos = this.pdmService.generarResumenProductos(data);
                     this.estadisticas = this.pdmService.calcularEstadisticas(data);
                     
@@ -2794,13 +2653,6 @@ export class PdmComponent implements OnInit, OnDestroy {
     asignarResponsable(producto: ResumenProducto, event: Event): void {
         const select = event.target as HTMLSelectElement;
         let selectedValue = select.value;
-        
-        console.log('📋 asignarResponsable - Valores iniciales:');
-        console.log('   • selectedValue del select:', selectedValue, 'type:', typeof selectedValue);
-        console.log('   • select.value:', select.value);
-        console.log('   • producto.codigo:', producto.codigo);
-        console.log('   • secretariasAgrupadas:', this.secretariasAgrupadas);
-        
         if (!selectedValue || selectedValue === '') {
             console.error('❌ No se seleccionó ninguna secretaría');
             return;
@@ -2809,7 +2661,6 @@ export class PdmComponent implements OnInit, OnDestroy {
         // Convertir a número si es posible
         let secretariaIdNumerico = parseInt(selectedValue, 10);
         
-        console.log('   • secretariaIdNumerico:', secretariaIdNumerico, 'isNaN:', isNaN(secretariaIdNumerico));
         
         if (isNaN(secretariaIdNumerico)) {
             console.error('❌ El valor seleccionado no es un número válido:', selectedValue);
@@ -2818,7 +2669,6 @@ export class PdmComponent implements OnInit, OnDestroy {
 
         // Buscar la secretaría en secretariasAgrupadas para obtener su nombre
         const secretariaSeleccionada = this.secretariasAgrupadas.find(s => {
-            console.log('   • Comparando:', 's.id=', s.id, '(type:', typeof s.id + ')', 'vs secretariaIdNumerico=', secretariaIdNumerico);
             // Comparar como números
             const sIdNum = typeof s.id === 'number' ? s.id : parseInt(String(s.id), 10);
             return sIdNum === secretariaIdNumerico;
@@ -2826,35 +2676,20 @@ export class PdmComponent implements OnInit, OnDestroy {
         
         if (!secretariaSeleccionada) {
             console.error('❌ Secretaría no encontrada en la lista');
-            console.log('   • Buscábamos ID:', secretariaIdNumerico);
-            console.log('   • IDs disponibles:', this.secretariasAgrupadas.map(s => s.id));
             return;
         }
 
         const secretariaNombre = secretariaSeleccionada.nombre;
-        console.log('   • ✅ Secretaría seleccionada:', secretariaNombre);
-        console.log('   • Llamando asignarResponsableProducto con ID:', secretariaIdNumerico);
-
         this.pdmService.asignarResponsableProducto(producto.codigo, secretariaIdNumerico).subscribe({
             next: (response) => {
-                console.log('✅ Secretaría asignada como responsable:');
-                console.log('   • Response:', response);
-                
                 // Actualizar el producto en la lista
                 const nuevoId = response.responsable_secretaria_id;
                 const nuevoNombre = response.responsable_secretaria_nombre;
-                
-                console.log('   • Actualizando producto:');
-                console.log('     - responsable_secretaria_id:', nuevoId);
-                console.log('     - responsable_secretaria_nombre:', nuevoNombre);
-                
                 producto.responsable_secretaria_id = nuevoId; // ✅ Usar responsable_secretaria_id
                 producto.responsable_secretaria_nombre = nuevoNombre; // ✅ Usar responsable_secretaria_nombre
                 
                 // Forzar actualización del select al nuevo valor
                 select.value = nuevoId?.toString() || '';
-                
-                console.log('   • select.value después de asignar:', select.value);
                 this.showToast(`Secretaría "${nuevoNombre}" asignada al producto ${producto.codigo}`, 'success');
             },
             error: (error) => {
@@ -2871,7 +2706,6 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Filtra productos por línea estratégica desde stat-card clickeable
      */
     filtrarPorLinea(): void {
-        console.log('🔍 Abriendo filtro de líneas estratégicas');
         this.navegarA('productos');
         
         // Scroll a los filtros
@@ -2887,7 +2721,6 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Filtra productos por iniciativa SGR desde stat-card clickeable
      */
     filtrarPorIniciativa(): void {
-        console.log('🔍 Abriendo filtro de iniciativas SGR');
         this.navegarA('productos');
         
         // Scroll a los filtros
