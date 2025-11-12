@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Numeric, ForeignKey, DateTime, Text
+from sqlalchemy import Column, Integer, String, Numeric, ForeignKey, DateTime, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.config.database import Base
@@ -9,6 +9,12 @@ class PDMEjecucionPresupuestal(Base):
     Datos extraídos del Excel de Ejecución de Gastos.
     """
     __tablename__ = "pdm_ejecucion_presupuestal"
+    
+    # Constraint compuesto para evitar duplicados de la misma fuente en el mismo producto y entidad
+    __table_args__ = (
+        UniqueConstraint('entity_id', 'codigo_producto', 'descripcion_fte', 
+                        name='uq_pdm_ejecucion_entity_codigo_fuente'),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     

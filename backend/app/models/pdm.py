@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, Float, Text, ForeignKey, JSON
+from sqlalchemy import Column, Integer, String, DateTime, Float, Text, ForeignKey, JSON, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.config.database import Base
@@ -166,6 +166,11 @@ class PdmArchivoExcel(Base):
 class PdmIniciativaSGR(Base):
     """Iniciativas del Sistema General de Regalías (SGR) - Datos del Excel"""
     __tablename__ = "pdm_iniciativas_sgr"
+    
+    # Constraint compuesto para permitir mismo consecutivo en diferentes entidades
+    __table_args__ = (
+        UniqueConstraint('entity_id', 'consecutivo', name='uq_pdm_iniciativas_sgr_entity_consecutivo'),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     entity_id = Column(Integer, ForeignKey("entities.id", ondelete="CASCADE"), nullable=False, index=True)
@@ -174,7 +179,7 @@ class PdmIniciativaSGR(Base):
     codigo_dane = Column(String(20), nullable=True)
     entidad_territorial = Column(String(256), nullable=True)
     nombre_plan = Column(String(512), nullable=True)
-    consecutivo = Column(String(128), nullable=False, unique=True, index=True)  # ISGR-1, ISGR-2, etc.
+    consecutivo = Column(String(128), nullable=False, index=True)  # ISGR-1, ISGR-2, etc. (sin unique global)
     
     # Estructura
     linea_estrategica = Column(Text, nullable=True)
