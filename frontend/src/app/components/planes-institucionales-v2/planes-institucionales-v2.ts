@@ -56,7 +56,7 @@ export class PlanesInstitucionalesV2Component implements OnInit, OnDestroy {
 
     // Datos
     cargando = false;
-    vistaActual = 'planes' as 'planes' | 'componentes' | 'actividades' | 'detalle-actividad' | 'estadisticas';
+    vistaActual = 'planes' as 'planes' | 'componentes' | 'actividades' | 'detalle-actividad' | 'estadisticas' | 'analisis';
     planes: PlanInstitucional[] = [];
     planSeleccionado: PlanInstitucional | null = null;
     componentes: ComponenteProceso[] = [];
@@ -67,6 +67,8 @@ export class PlanesInstitucionalesV2Component implements OnInit, OnDestroy {
 
     // Filtros
     filtroEstadoPlan: EstadoPlan | '' = '';
+    filtroAnio: number | '' = '';
+    anosDisponibles: number[] = [];
 
     // Modales
     modalAbierto: 'plan' | 'componente' | 'actividad' | 'ejecucion' | null = null;
@@ -259,8 +261,16 @@ export class PlanesInstitucionalesV2Component implements OnInit, OnDestroy {
     // ==================== LOADERS ====================
     cargarPlanes() {
         this.cargando = true;
-        this.planService.listarPlanes({ estado: this.filtroEstadoPlan || undefined }).subscribe({
-            next: (data) => (this.planes = data),
+        this.planService.listarPlanes({ 
+            estado: this.filtroEstadoPlan || undefined,
+            anio: this.filtroAnio || undefined
+        }).subscribe({
+            next: (data) => {
+                this.planes = data;
+                // Extraer años disponibles de los planes
+                const anosUnicos = new Set(data.map(p => p.anio));
+                this.anosDisponibles = Array.from(anosUnicos).sort((a, b) => b - a);
+            },
             error: () => (this.planes = []),
             complete: () => (this.cargando = false)
         });
