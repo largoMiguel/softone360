@@ -929,6 +929,15 @@ export class PdmService {
             case 2027: metaProgramada = producto.programacion_2027; break;
         }
 
+        console.log(`📊 [${producto.codigo}] Resumen año ${anio}:`, {
+            programacion_2024: producto.programacion_2024,
+            programacion_2025: producto.programacion_2025,
+            programacion_2026: producto.programacion_2026,
+            programacion_2027: producto.programacion_2027,
+            metaProgramada,
+            actividades_count: actividades.length
+        });
+
         // Suma de todas las metas asignadas a actividades
         const metaAsignada = actividades.reduce((sum, a) => sum + a.meta_ejecutar, 0);
         

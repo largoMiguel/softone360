@@ -1054,13 +1054,21 @@ export class PdmComponent implements OnInit, OnDestroy {
         // ✅ IMPORTANTE: Actualizar PRIMERO con datos locales para que la UI no quede en blanco
         // Esto asegura que el botón de "Nueva Actividad" se muestre aunque esté actualizándose
         console.log('📊 Actualizando resumen de actividades localmente...');
+        console.log('   Producto:', this.productoSeleccionado.codigo, this.productoSeleccionado.producto);
+        console.log('   Año seleccionado:', this.anioSeleccionado);
+        
         this.resumenAnioActual = this.pdmService.obtenerResumenActividadesPorAnio(
             this.productoSeleccionado,
             this.anioSeleccionado
         );
         this.avanceProducto = this.pdmService.calcularAvanceProducto(this.productoSeleccionado);
         
-        console.log('📈 Meta disponible local:', this.resumenAnioActual?.meta_disponible);
+        console.log('📈 Resumen calculado:', {
+            meta_programada: this.resumenAnioActual?.meta_programada,
+            meta_asignada: this.resumenAnioActual?.meta_asignada,
+            meta_disponible: this.resumenAnioActual?.meta_disponible,
+            total_actividades: this.resumenAnioActual?.total_actividades
+        });
         
         // ✅ LUEGO: SIEMPRE intentar cargar desde backend si se solicita
         // No importa si datosEnBackend es false, intentamos cargar de todas formas
