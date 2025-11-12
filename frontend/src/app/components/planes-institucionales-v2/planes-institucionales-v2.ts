@@ -8,6 +8,7 @@ import { User } from '../../models/user.model';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PlanV2Service } from '../../services/plan-v2.service';
+import { PlanesAnalisisComponent } from './planes-analisis/planes-analisis';
 import {
     PlanInstitucional,
     ComponenteProceso,
@@ -32,7 +33,7 @@ import {
 @Component({
     selector: 'app-planes-institucionales-v2',
     standalone: true,
-    imports: [CommonModule, FormsModule],
+    imports: [CommonModule, FormsModule, PlanesAnalisisComponent],
     templateUrl: './planes-institucionales-v2.html',
     styleUrls: ['./planes-institucionales-v2.scss']
 })
@@ -247,6 +248,10 @@ export class PlanesInstitucionalesV2Component implements OnInit, OnDestroy {
                 this.planSeleccionado = payload as PlanInstitucional;
                 this.cargarEstadisticas(this.planSeleccionado.id);
                 break;
+            case 'analisis':
+                // Para la vista de análisis, ya tenemos los planes cargados
+                // Solo necesitamos cambiar la vista
+                break;
         }
         this.vistaActual = vista;
     }
@@ -256,6 +261,7 @@ export class PlanesInstitucionalesV2Component implements OnInit, OnDestroy {
         else if (this.vistaActual === 'actividades') this.vistaActual = 'componentes';
         else if (this.vistaActual === 'detalle-actividad') this.vistaActual = 'actividades';
         else if (this.vistaActual === 'estadisticas') this.vistaActual = 'planes';
+        else if (this.vistaActual === 'analisis') this.vistaActual = 'planes';
     }
 
     // ==================== LOADERS ====================

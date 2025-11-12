@@ -1,0 +1,284 @@
+.planes-analisis-container {
+    padding: 20px 0;
+
+    .page-title {
+        font-size: 28px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #333;
+
+        i {
+            margin-right: 10px;
+            color: #0d6efd;
+        }
+    }
+
+    // Tarjetas de Estadísticas
+    .stat-card {
+        display: flex;
+        align-items: center;
+        padding: 20px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            color: white;
+            font-size: 24px;
+
+            &.bg-primary { background-color: #0d6efd; }
+            &.bg-info { background-color: #0dcaf0; }
+            &.bg-success { background-color: #198754; }
+            &.bg-warning { background-color: #ffc107; }
+            &.bg-danger { background-color: #dc3545; }
+        }
+
+        .stat-content {
+            flex: 1;
+
+            .stat-label {
+                font-size: 12px;
+                color: #6c757d;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin: 0;
+            }
+
+            .stat-value {
+                font-size: 28px;
+                font-weight: 700;
+                color: #333;
+                margin: 5px 0 0 0;
+            }
+        }
+    }
+
+    // Tarjetas de Gráficos
+    .chart-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+
+        .chart-title {
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+        }
+
+        .chart-content {
+            padding: 20px;
+        }
+    }
+
+    // Estadísticas de Años
+    .year-stats {
+        .year-item {
+            margin-bottom: 18px;
+
+            .year-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 8px;
+
+                .year-label {
+                    font-weight: 600;
+                    color: #333;
+                }
+
+                .year-count {
+                    font-size: 12px;
+                }
+            }
+
+            .progress {
+                height: 24px;
+                background-color: #e9ecef;
+                border-radius: 4px;
+
+                .progress-bar {
+                    background: linear-gradient(90deg, #0d6efd 0%, #0dcaf0 100%);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-size: 11px;
+                    font-weight: 600;
+                    transition: width 0.3s ease;
+                }
+            }
+        }
+    }
+
+    // Estadísticas de Estados
+    .state-stats {
+        .state-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+
+            &:last-child {
+                border-bottom: none;
+            }
+
+            .state-header {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                flex: 1;
+
+                .state-indicator {
+                    width: 14px;
+                    height: 14px;
+                    border-radius: 3px;
+                    display: inline-block;
+                }
+
+                .state-label {
+                    color: #333;
+                    font-weight: 500;
+                }
+            }
+
+            .state-count {
+                background-color: #f8f9fa;
+                padding: 4px 12px;
+                border-radius: 4px;
+                font-weight: 600;
+                color: #333;
+                min-width: 40px;
+                text-align: center;
+            }
+        }
+    }
+
+    // Tabla de Detalles
+    .table-responsive {
+        margin: 0;
+
+        table {
+            margin-bottom: 0;
+
+            thead {
+                background-color: #f8f9fa;
+                border-bottom: 2px solid #dee2e6;
+
+                th {
+                    color: #333;
+                    font-weight: 600;
+                    padding: 15px;
+                    font-size: 13px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+            }
+
+            tbody {
+                tr {
+                    transition: background-color 0.2s;
+
+                    &:hover {
+                        background-color: #f8f9fa;
+                    }
+
+                    td {
+                        padding: 15px;
+                        vertical-align: middle;
+                        border-bottom: 1px solid #dee2e6;
+
+                        .badge {
+                            font-size: 11px;
+                            padding: 6px 10px;
+                            font-weight: 500;
+                        }
+
+                        .progress {
+                            margin-bottom: 0;
+
+                            .progress-bar {
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                color: white;
+                                font-size: 11px;
+                                font-weight: 600;
+                                transition: width 0.3s ease;
+
+                                &.bg-success {
+                                    background-color: #198754;
+                                }
+
+                                &.bg-warning {
+                                    background-color: #ffc107;
+                                    color: #333;
+                                }
+
+                                &.bg-danger {
+                                    background-color: #dc3545;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Responsive
+    @media (max-width: 768px) {
+        .stat-card {
+            flex-direction: column;
+            text-align: center;
+
+            .stat-icon {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+
+            .stat-content {
+                .stat-value {
+                    font-size: 24px;
+                }
+            }
+        }
+
+        .year-stats .year-item {
+            .year-header {
+                flex-direction: column;
+                align-items: flex-start;
+
+                .year-count {
+                    align-self: flex-end;
+                }
+            }
+        }
+
+        .state-stats .state-item {
+            flex-direction: column;
+            align-items: flex-start;
+
+            .state-count {
+                align-self: flex-end;
+                margin-top: 8px;
+            }
+        }
+    }
+}

@@ -1,0 +1,175 @@
+<div class="container-fluid planes-analisis-container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="page-title">
+                <i class="bi bi-graph-up"></i> Análisis de Planes Institucionales
+            </h2>
+            <p class="text-muted">
+                Visualización estadística de planes, componentes y actividades
+            </p>
+        </div>
+    </div>
+
+    <!-- Tarjetas de Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="stat-card">
+                <div class="stat-icon bg-primary">
+                    <i class="bi bi-file-earmark-text"></i>
+                </div>
+                <div class="stat-content">
+                    <h6 class="stat-label">Total de Planes</h6>
+                    <h3 class="stat-value">{{ estadisticas.totalPlanes }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="stat-card">
+                <div class="stat-icon bg-info">
+                    <i class="bi bi-play-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <h6 class="stat-label">En Ejecución</h6>
+                    <h3 class="stat-value">{{ estadisticas.planesEnEjecucion }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="stat-card">
+                <div class="stat-icon bg-success">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <h6 class="stat-label">Finalizados</h6>
+                    <h3 class="stat-value">{{ estadisticas.planesFinalizados }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="stat-card">
+                <div class="stat-icon bg-warning">
+                    <i class="bi bi-graph-up-arrow"></i>
+                </div>
+                <div class="stat-content">
+                    <h6 class="stat-label">Avance Promedio</h6>
+                    <h3 class="stat-value">{{ estadisticas.porcentajeAvancePromedio | number: '1.0-0' }}%</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row mb-4">
+        <!-- Planes por Año -->
+        <div class="col-lg-6 mb-3">
+            <div class="chart-card">
+                <h5 class="chart-title">Planes por Año</h5>
+                <div class="chart-content">
+                    <div class="year-stats">
+                        <div *ngFor="let item of getPlanesPorAnio()" class="year-item">
+                            <div class="year-header">
+                                <span class="year-label">{{ item.anio }}</span>
+                                <span class="year-count badge bg-primary">{{ item.cantidad }}</span>
+                            </div>
+                            <div class="progress">
+                                <div 
+                                    class="progress-bar"
+                                    [style.width.%]="item.avancePromedio"
+                                    role="progressbar"
+                                    [attr.aria-valuenow]="item.avancePromedio"
+                                    aria-valuemin="0"
+                                    aria-valuemax="100">
+                                    {{ item.avancePromedio | number: '1.0-0' }}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Planes por Estado -->
+        <div class="col-lg-6 mb-3">
+            <div class="chart-card">
+                <h5 class="chart-title">Planes por Estado</h5>
+                <div class="chart-content">
+                    <div class="state-stats">
+                        <div *ngFor="let estado of ['formulacion', 'aprobado', 'en_ejecucion', 'finalizado', 'suspendido', 'cancelado']" 
+                             class="state-item">
+                            <div class="state-header">
+                                <span 
+                                    class="state-indicator"
+                                    [style.backgroundColor]="getColorEstado(estado)">
+                                </span>
+                                <span class="state-label">{{ getEtiquetaEstado(estado) }}</span>
+                            </div>
+                            <span class="state-count">{{ getPlanesPorEstado()[estado] }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detalle de Planes -->
+    <div class="row">
+        <div class="col-12">
+            <div class="chart-card">
+                <h5 class="chart-title">Detalle de Planes</h5>
+                <div class="chart-content">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Plan</th>
+                                    <th>Año</th>
+                                    <th>Estado</th>
+                                    <th>Avance</th>
+                                    <th>Progreso</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let plan of estadisticas.planesOrdenados">
+                                    <td>
+                                        <strong>{{ plan.nombre_plan }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ plan.anio }}</span>
+                                    </td>
+                                    <td>
+                                        <span 
+                                            class="badge"
+                                            [ngStyle]="{'background-color': getColorEstado(plan.estado)}">
+                                            {{ getEtiquetaEstado(plan.estado) }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {{ plan.porcentaje_avance | number: '1.0-0' }}%
+                                    </td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div 
+                                                class="progress-bar"
+                                                [style.width.%]="plan.porcentaje_avance"
+                                                [ngClass]="{
+                                                    'bg-success': plan.porcentaje_avance === 100,
+                                                    'bg-warning': plan.porcentaje_avance < 50 && plan.porcentaje_avance > 0,
+                                                    'bg-danger': plan.porcentaje_avance === 0
+                                                }"
+                                                role="progressbar">
+                                                {{ getInfoProgreso(plan) }}
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

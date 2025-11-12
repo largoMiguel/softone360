@@ -11,6 +11,7 @@
                     <span *ngIf="vistaActual === 'detalle-actividad'">{{ actividadSeleccionada?.objetivo_especifico ||
                         'Actividad' }}</span>
                     <span *ngIf="vistaActual === 'estadisticas'">Estadísticas - {{ planSeleccionado?.nombre }}</span>
+                    <span *ngIf="vistaActual === 'analisis'">Análisis General</span>
                 </h2>
                 <p class="page-subtitle" *ngIf="vistaActual === 'planes'">
                     Gestión de planificación estratégica institucional
@@ -513,6 +514,11 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- VISTA ANÁLISIS -->
+    <div *ngIf="vistaActual === 'analisis'">
+        <app-planes-analisis [planes]="planes"></app-planes-analisis>
     </div>
 
     <!-- MODALES -->
