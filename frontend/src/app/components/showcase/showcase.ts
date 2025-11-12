@@ -4,6 +4,8 @@ import { Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { EntityService } from '../../services/entity.service';
+import { AuthService } from '../../services/auth.service';
+import { EntityContextService } from '../../services/entity-context.service';
 import { AlertModalComponent } from './alert-modal/alert-modal.component';
 
 interface Feature {
@@ -136,7 +138,9 @@ export class ShowcaseComponent implements OnInit {
     constructor(
         private http: HttpClient, 
         private router: Router,
-        private entityService: EntityService
+        private entityService: EntityService,
+        private authService: AuthService,
+        private entityContext: EntityContextService
     ) { }
 
     ngOnInit(): void {
@@ -179,11 +183,42 @@ export class ShowcaseComponent implements OnInit {
 
     // Nuevos métodos para los portales de acceso
     irALogin(): void {
+        // Si el usuario ya tiene sesión activa, redirigirlo al dashboard
+        // en lugar de destruir la sesión
+        if (this.authService.isAuthenticated()) {
+            const user = this.authService.getCurrentUserValue();
+            const entity = this.entityContext.currentEntity;
+            
+            if (user && entity) {
+                // Redirigir según el rol del usuario
+                if (user.role === 'ciudadano') {
+                    this.router.navigate(['/', entity.slug, 'portal-ciudadano']);
+                } else if (user.role === 'admin' || user.role === 'secretario') {
+                    this.router.navigate(['/', entity.slug, 'dashboard']);
+                } else if (user.role === 'superadmin') {
+                    this.router.navigate(['/soft-admin']);
+                }
+                return;
+            }
+        }
+        
+        // Si no hay sesión activa, ir al login
         this.router.navigate(['/login']);
     }
 
     abrirSelectorEntidades(): void {
-        // Cargar entidades usando el servicio
+        // Si ya tiene sesión activa como ciudadano, ir directamente al portal ciudadano
+        if (this.authService.isAuthenticated()) {
+            const user = this.authService.getCurrentUserValue();
+            const entity = this.entityContext.currentEntity;
+            
+            if (user && entity && user.role === 'ciudadano') {
+                this.router.navigate(['/', entity.slug, 'portal-ciudadano']);
+                return;
+            }
+        }
+        
+        // Si no tiene sesión o no es ciudadano, cargar entidades
         this.entityService.getPublicEntities().subscribe({
             next: (entities) => {
                 this.entities = entities;
