@@ -15,7 +15,8 @@ export interface User {
     entity?: EntityBasic;  // Datos básicos de la entidad (incluye slug)
     user_type?: 'secretario' | 'contratista' | null;  // Tipo de usuario (para secretarios/contratistas)
     allowed_modules?: string[];  // Módulos permitidos: ["pqrs", "planes_institucionales", "contratacion"]
-    secretaria?: string;
+    secretaria?: string;  // Nombre de la secretaría
+    secretaria_id?: number;  // ID de la secretaría (para comparaciones)
     cedula?: string;
     telefono?: string;
     direccion?: string;

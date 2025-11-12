@@ -687,8 +687,8 @@ export class PlanesInstitucionalesV2Component implements OnInit, OnDestroy {
         if (this.esAdmin()) return true;
 
         // Secretario solo puede registrar en actividades de su secretaría
-        if (this.esSecretario() && this.currentUser?.secretaria) {
-            return actividad.responsable === this.currentUser.secretaria;
+        if (this.esSecretario() && this.currentUser?.secretaria_id) {
+            return actividad.responsable_secretaria_id === this.currentUser.secretaria_id;
         }
 
         return false;
@@ -697,10 +697,10 @@ export class PlanesInstitucionalesV2Component implements OnInit, OnDestroy {
     mostrarMensajePermiso(actividad: Actividad): string {
         if (!this.esSecretario()) return '';
 
-        if (actividad.responsable === this.currentUser?.secretaria) {
+        if (actividad.responsable_secretaria_id === this.currentUser?.secretaria_id) {
             return '';
         }
 
-        return `Esta actividad está asignada a "${actividad.responsable}". Solo puedes registrar avances en actividades asignadas a "${this.currentUser?.secretaria}".`;
+        return `Esta actividad está asignada a "${actividad.responsable_secretaria_nombre || 'desconocida'}". Solo puedes registrar avances en actividades asignadas a tu secretaría.`;
     }
 }

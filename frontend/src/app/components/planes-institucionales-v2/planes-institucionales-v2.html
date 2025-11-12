@@ -306,7 +306,7 @@
                             <td>{{ formatearFecha(actividad.fecha_inicio_prevista) }}</td>
                             <td>{{ formatearFecha(actividad.fecha_fin_prevista) }}</td>
                             <td>
-                                <small>{{ actividad.responsable }}</small>
+                                <small>{{ actividad.responsable_secretaria_nombre || 'Sin asignar' }}</small>
                                 <!-- Indicador visual para secretarios -->
                                 <span *ngIf="esSecretario() && puedeRegistrarEjecucion(actividad)"
                                     class="badge bg-success ms-2" title="Puedes registrar avances">
@@ -422,6 +422,16 @@
             </div>
 
             <div class="col-lg-4">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">Información</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="small mb-2"><strong>Responsable (Secretaría):</strong><br>{{
+                            actividadSeleccionada.responsable_secretaria_nombre || 'Sin asignar' }}</p>
+                    </div>
+                </div>
+
                 <div class="card mb-3">
                     <div class="card-header">
                         <h6 class="mb-0">Fechas</h6>
