@@ -18,23 +18,22 @@ import { defaultEntityGuard } from './guards/default-entity.guard';
 import { moduleAccessGuard } from './guards/module-access.guard';
 
 export const routes: Routes = [
-    // Ruta pública de showcase del sistema (sin autenticación ni entidad) - DEBE IR PRIMERO
-    { path: 'showcase', component: ShowcaseComponent },
+    // Ruta raíz: muestra el showcase como home
+    { path: '', component: ShowcaseComponent },
 
-    // Ruta raíz: redirige a la primera entidad activa
-    { path: '', canActivate: [defaultEntityGuard], children: [] },
+    // Ruta de login global (sin slug de entidad)
+    { path: 'login', component: LoginComponent, canActivate: [loginGuard] },
 
     // Ruta de super administración (global, no depende de entidad)
     { path: 'soft-admin', component: SoftAdminComponent, canActivate: [superAdminGuard] },
 
-    // Rutas por entidad (con slug). Ej: /chiquiza-boyaca/login
+    // Rutas por entidad (con slug). Ej: /chiquiza-boyaca/
     {
         path: ':slug',
         canActivate: [ensureEntityGuard],
         resolve: { entity: entityResolver },
         children: [
             { path: '', component: VentanillaComponent },
-            { path: 'login', component: LoginComponent, canActivate: [loginGuard] },
             // El portal ciudadano no requiere permisos por módulos ni autenticación
             { path: 'portal-ciudadano', component: PortalCiudadanoComponent, canActivate: [ciudadanoGuard, pqrsEnabledGuard] },
             { path: 'dashboard', component: DashboardComponent, canActivate: [adminPortalGuard, enforceUserEntityGuard] },

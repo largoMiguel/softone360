@@ -1,0 +1,19 @@
+<div class="alert-overlay" *ngIf="isOpen" (click)="close()">
+    <div [ngClass]="['alert-modal', 'alert-' + type]" (click)="$event.stopPropagation()">
+        <div class="alert-header">
+            <i [class]="getIcon()"></i>
+            <h3 class="alert-title">{{ title }}</h3>
+            <button class="btn-close" (click)="close()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="alert-body">
+            <p class="alert-message">{{ message }}</p>
+        </div>
+        <div class="alert-footer">
+            <button class="btn btn-primary" (click)="close()">
+                <i class="fas fa-check me-2"></i>Entendido
+            </button>
+        </div>
+    </div>
+</div>

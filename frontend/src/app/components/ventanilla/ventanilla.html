@@ -3,11 +3,11 @@
         <div class="overlay"></div>
         <div class="content">
             <div class="logo-container" *ngIf="(currentEntity$ | async) as entity; else defaultLogo">
-                <img [src]="entity.logo_url || 'assets/logos/logo_completo.png'" [alt]="entity.name" class="hero-logo">
+                <img [src]="entity.logo_url || 'assets/logos/logo_administrativo.png'" [alt]="entity.name" class="hero-logo">
             </div>
             <ng-template #defaultLogo>
                 <div class="logo-container">
-                    <img src="assets/logos/logo_completo.png" alt="SoftOne360 Gestión Estratégica, Visión Total"
+                    <img src="assets/logos/logo_administrativo.png" alt="SoftOne360 Gestión Estratégica, Visión Total"
                         class="hero-logo">
                 </div>
             </ng-template>
@@ -32,24 +32,8 @@
             </h3>
 
             <div class="row g-4">
-                <!-- Portal Administrativo -->
-                <div class="col-md-3">
-                    <div class="service-card" (click)="navigateToLogin()">
-                        <div class="service-icon">
-                            <i class="fas fa-user-shield"></i>
-                        </div>
-                        <h4 class="service-title">Portal Administrativo</h4>
-                        <p class="service-description">
-                            Acceso para administradores y secretarios del sistema.
-                        </p>
-                        <button class="btn btn-primary w-100">
-                            <i class="fas fa-sign-in-alt me-2"></i>Ingresar
-                        </button>
-                    </div>
-                </div>
-
                 <!-- Portal Ciudadano -->
-                <div class="col-md-3" *ngIf="pqrsEnabled()">
+                <div class="col-md-4" *ngIf="pqrsEnabled()">
                     <div class="service-card" (click)="navigateToPortalCiudadano()">
                         <div class="service-icon service-icon-secondary">
                             <i class="fas fa-user-circle"></i>
@@ -65,7 +49,7 @@
                 </div>
 
                 <!-- Radicar PQRS -->
-                <div class="col-md-3" *ngIf="pqrsEnabled()">
+                <div class="col-md-4" *ngIf="pqrsEnabled()">
                     <div class="service-card" (click)="navigateToRadicacion()">
                         <div class="service-icon service-icon-success">
                             <i class="fas fa-file-signature"></i>
@@ -81,7 +65,7 @@
                 </div>
 
                 <!-- Consultar Estado -->
-                <div class="col-md-3" *ngIf="pqrsEnabled()">
+                <div class="col-md-4" *ngIf="pqrsEnabled()">
                     <div class="service-card" (click)="navigateToConsulta()">
                         <div class="service-icon service-icon-info">
                             <i class="fas fa-search"></i>

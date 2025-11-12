@@ -5,8 +5,6 @@ import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { AlertService } from '../../services/alert.service';
 import { EntityContextService } from '../../services/entity-context.service';
-import { Observable } from 'rxjs';
-import { Entity } from '../../models/entity.model';
 
 @Component({
   selector: 'app-login',
@@ -19,8 +17,6 @@ export class LoginComponent implements OnInit {
   loginForm: FormGroup;
   isLoading = false;
   errorMessage = '';
-  currentEntity$: Observable<Entity | null>;
-
 
   constructor(
     private fb: FormBuilder,
@@ -33,7 +29,6 @@ export class LoginComponent implements OnInit {
       username: ['', [Validators.required]],
       password: ['', [Validators.required]]
     });
-    this.currentEntity$ = this.entityContext.currentEntity$;
   }
 
   ngOnInit() {

@@ -18,12 +18,13 @@ export class App {
 
   get showGlobalNav() {
     const url = this.router.url;
-    // Ocultar en rutas públicas y portal ciudadano/login/ventanilla
-    if (/\/portal-ciudadano\b/.test(url)) return false;
-    if (/\/login\b/.test(url)) return false;
-    if (/^\/[\w-]+\/?$/.test(url)) return false; // ventanilla (root de entidad)
-    if (/^\/showcase\b/.test(url)) return false;
-    if (/^\/soft-admin\b/.test(url)) return false;
+    // Ocultar en rutas públicas: showcase, login, portal-ciudadano, root de entidad, soft-admin
+    if (/^\/(\?|#|$)/.test(url)) return false; // Raíz (showcase/home)
+    if (/^\/login(\?|#|$|\/)/i.test(url)) return false; // /login
+    if (/^\/showcase(\?|#|$|\/)/i.test(url)) return false; // /showcase
+    if (/^\/soft-admin(\?|#|$|\/)/i.test(url)) return false; // /soft-admin
+    if (/\/portal-ciudadano(\?|#|$|\/)/i.test(url)) return false; // portal ciudadano
+    if (/^\/[\w-]+\/?(\?|#|$)/.test(url)) return false; // /slug (ventanilla raíz)
     return true;
   }
 }
