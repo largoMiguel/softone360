@@ -3,6 +3,10 @@ set -e
 
 echo "🚀 Iniciando despliegue del frontend a S3..."
 
+# Cambiar al directorio del frontend
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$SCRIPT_DIR"
+
 # Variables
 BUCKET_NAME="softone360-frontend-useast1"
 DISTRIBUTION_PATH="dist/pqrs-frontend/browser"

@@ -1045,44 +1045,23 @@
                                     Mínimo 10 caracteres
                                 </div>
                             </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Responsable <span class="text-danger">*</span></label>
-                                <select 
-                                    class="form-select" 
-                                    formControlName="responsable_user_id"
-                                    (change)="onResponsableChange($event)"
-                                    [disabled]="cargandoSecretarios || (formularioActividad.get('responsable_user_id')?.disabled || false)">
-                                    <option value="">Seleccione un secretario...</option>
-                                    <option *ngFor="let secretario of secretarios" [value]="secretario.id">
-                                        {{ secretario.full_name }} - {{ secretario.secretaria || 'Sin secretaría' }}
-                                    </option>
-                                </select>
-                                <small class="text-muted" *ngIf="cargandoSecretarios">
-                                    <i class="fas fa-spinner fa-spin"></i> Cargando secretarios...
-                                </small>
-                                <small class="text-info d-block mt-1" *ngIf="!actividadEnEdicion && formularioActividad.get('responsable_user_id')?.disabled">
-                                    <i class="fas fa-info-circle"></i> Responsable asignado al producto
-                                </small>
-                                <div *ngIf="formularioActividad.get('responsable')?.invalid && formularioActividad.get('responsable')?.touched" class="text-danger small">
-                                    Debe seleccionar un responsable
-                                </div>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Secretaría Responsable</label>
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Secretaría Responsable <span class="text-danger">*</span></label>
                                 <select 
                                     class="form-select" 
                                     formControlName="responsable_secretaria_id"
                                     [disabled]="cargandoSecretarios">
-                                    <option value="">Ninguna (opcional)</option>
+                                    <option value="">Seleccione una secretaría...</option>
                                     <option *ngFor="let secretaria of secretariasAgrupadas" [value]="secretaria.id">
                                         🏢 {{ secretaria.nombre }}
                                     </option>
                                 </select>
                                 <small class="text-muted d-block mt-1">
-                                    <i class="fas fa-info-circle"></i> Todos los usuarios de esta secretaría podrán ver la actividad
+                                    <i class="fas fa-info-circle"></i> Todos los usuarios de esta secretaría podrán ver y registrar evidencia de la actividad
                                 </small>
+                                <div *ngIf="formularioActividad.get('responsable_secretaria_id')?.invalid && formularioActividad.get('responsable_secretaria_id')?.touched" class="text-danger small">
+                                    Debe seleccionar una secretaría responsable
+                                </div>
                             </div>
 
                             <div class="col-md-6 mb-3">

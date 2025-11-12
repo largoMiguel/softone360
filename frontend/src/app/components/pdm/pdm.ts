@@ -1070,18 +1070,12 @@ export class PdmComponent implements OnInit, OnDestroy {
             nombre: ['', [Validators.required, Validators.minLength(5)]],
             descripcion: ['', [Validators.required, Validators.minLength(10)]],
             responsable: [responsableNombre, [Validators.required, Validators.minLength(3)]],
-            responsable_user_id: [responsableProducto], // Preseleccionar responsable del producto
-            responsable_secretaria_id: [''], // Responsable por secretaría
+            responsable_secretaria_id: ['', Validators.required], // Responsable por secretaría (requerido)
             estado: ['PENDIENTE', Validators.required],
             fecha_inicio: ['', Validators.required],
             fecha_fin: ['', Validators.required],
             meta_ejecutar: [0, [Validators.required, Validators.min(0.01), Validators.max(metaDisponible)]]
         });
-
-        // Deshabilitar el campo responsable si el producto ya tiene uno asignado
-        if (responsableProducto) {
-            this.formularioActividad.get('responsable_user_id')?.disable();
-        }
 
         // Cargar lista de secretarios
         this.cargarSecretarios();
@@ -1107,8 +1101,7 @@ export class PdmComponent implements OnInit, OnDestroy {
             nombre: [actividad.nombre, [Validators.required, Validators.minLength(5)]],
             descripcion: [actividad.descripcion, [Validators.required, Validators.minLength(10)]],
             responsable: [actividad.responsable, [Validators.required, Validators.minLength(3)]],
-            responsable_user_id: [actividad.responsable_user_id || null],
-            responsable_secretaria_id: [actividad.responsable_secretaria_id || null],
+            responsable_secretaria_id: [actividad.responsable_secretaria_id || null, Validators.required],
             estado: [actividad.estado, Validators.required],
             fecha_inicio: [actividad.fecha_inicio.split('T')[0], Validators.required],
             fecha_fin: [actividad.fecha_fin.split('T')[0], Validators.required],
@@ -1149,7 +1142,7 @@ export class PdmComponent implements OnInit, OnDestroy {
             nombre: valores.nombre,
             descripcion: valores.descripcion,
             responsable: valores.responsable,
-            responsable_user_id: valores.responsable_user_id, // Incluir ID del usuario responsable (incluso si está disabled)
+            responsable_secretaria_id: valores.responsable_secretaria_id, // ID de la secretaría responsable
             estado: valores.estado,
             fecha_inicio: new Date(valores.fecha_inicio).toISOString(),
             fecha_fin: new Date(valores.fecha_fin).toISOString(),
@@ -1324,33 +1317,6 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Maneja el cambio de responsable en el dropdown
-     */
-    onResponsableChange(event: Event) {
-        const select = event.target as HTMLSelectElement;
-        const userId = select.value ? parseInt(select.value) : null;
-        
-        if (userId) {
-            // Buscar el secretario seleccionado
-            const secretario = this.secretarios.find(s => s.id === userId);
-            if (secretario) {
-                // Actualizar el campo responsable (nombre) para compatibilidad backward
-                this.formularioActividad.patchValue({
-                    responsable: secretario.full_name,
-                    responsable_user_id: userId
-                });
-                console.log('✅ Responsable seleccionado:', secretario.full_name);
-            }
-        } else {
-            // Si se deselecciona, limpiar campos
-            this.formularioActividad.patchValue({
-                responsable: '',
-                responsable_user_id: null
-            });
-        }
-    }
-
-    /**
      * Validador custom: debe haber URL o al menos una imagen
      */
     validarEvidenciaRequerida(group: FormGroup): {[key: string]: boolean} | null {
@@ -1464,20 +1430,12 @@ export class PdmComponent implements OnInit, OnDestroy {
             return actividad.responsable;
         }
         
-        // Buscar el responsable por ID
-        if (actividad.responsable_user_id) {
-            const responsable = this.secretarios.find(s => s.id === actividad.responsable_user_id);
-            if (responsable) {
-                return responsable.full_name || 'Sin nombre';
-            }
-        }
-        
         // Mostrar secretaría si está asignada
         if (actividad.responsable_secretaria_nombre) {
             return `📍 ${actividad.responsable_secretaria_nombre} (Secretaría)`;
         }
         
-        return 'Sin responsable';
+        return 'Sin responsable asignada';
     }
 
     /**

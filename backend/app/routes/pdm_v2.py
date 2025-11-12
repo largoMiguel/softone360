@@ -341,21 +341,6 @@ async def create_actividad(
     db.commit()
     db.refresh(nueva_actividad)
     
-    # Generar alertas si se asignó un responsable
-    if nueva_actividad.responsable_user_id:
-        responsable = db.query(User).filter(User.id == nueva_actividad.responsable_user_id).first()
-        if responsable:
-            alerta = Alert(
-                entity_id=entity.id,
-                recipient_user_id=responsable.id,
-                type="PDM_ACTIVIDAD_ASIGNADA",
-                title=f"Nueva actividad asignada: {nueva_actividad.nombre}",
-                message=f"Se te ha asignado la actividad '{nueva_actividad.nombre}' para el año {nueva_actividad.anio}.",
-                data=f'{{"actividad_id": {nueva_actividad.id}, "codigo_producto": "{nueva_actividad.codigo_producto}"}}'
-            )
-            db.add(alerta)
-            db.commit()
-    
     # Generar alertas si se asignó a una secretaría
     if nueva_actividad.responsable_secretaria_id:
         secretaria = db.query(Secretaria).filter(Secretaria.id == nueva_actividad.responsable_secretaria_id).first()
@@ -428,16 +413,14 @@ async def get_mis_actividades(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Obtiene las actividades asignadas al usuario actual Y a su secretaría (para secretarios)"""
+    """Obtiene las actividades asignadas a la secretaría del usuario actual"""
     entity = get_entity_or_404(db, slug)
     ensure_user_can_manage_entity(current_user, entity)
     
-    # Incluir actividades asignadas al usuario O a su secretaría
+    # Incluir actividades asignadas a la secretaría del usuario
     query = db.query(PdmActividad).filter(
-        PdmActividad.entity_id == entity.id
-    ).filter(
-        (PdmActividad.responsable_user_id == current_user.id) |
-        (PdmActividad.responsable_secretaria_id == current_user.secretaria_id)
+        PdmActividad.entity_id == entity.id,
+        PdmActividad.responsable_secretaria_id == current_user.secretaria_id
     )
     
     if anio:
@@ -469,8 +452,6 @@ async def update_actividad(
         raise HTTPException(status_code=404, detail="Actividad no encontrada")
     
     # Guardar el responsable anterior para comparar
-    responsable_anterior_id = actividad.responsable_user_id
-    
     update_dict = update_data.model_dump(exclude_unset=True)
     
     # Convertir fechas ISO string a datetime
@@ -491,25 +472,6 @@ async def update_actividad(
     
     db.commit()
     db.refresh(actividad)
-    
-    # Guardar responsable anterior secretaría
-    responsable_secretaria_anterior = None
-    # (sería accesible si guardamos antes del update)
-    
-    # Generar alerta si cambió el responsable usuario
-    if actividad.responsable_user_id and actividad.responsable_user_id != responsable_anterior_id:
-        responsable = db.query(User).filter(User.id == actividad.responsable_user_id).first()
-        if responsable:
-            alerta = Alert(
-                entity_id=entity.id,
-                recipient_user_id=responsable.id,
-                type="PDM_ACTIVIDAD_REASIGNADA",
-                title=f"Actividad reasignada: {actividad.nombre}",
-                message=f"Se te ha reasignado la actividad '{actividad.nombre}' para el año {actividad.anio}.",
-                data=f'{{"actividad_id": {actividad.id}, "codigo_producto": "{actividad.codigo_producto}"}}'
-            )
-            db.add(alerta)
-            db.commit()
     
     # Generar alertas si cambió la secretaría asignada
     if actividad.responsable_secretaria_id and 'responsable_secretaria_id' in update_dict:

@@ -62,7 +62,6 @@ class ActividadResponseBase(BaseModel):
     anio: int
     nombre: str
     descripcion: Optional[str] = None
-    responsable_user_id: Optional[int] = None
     responsable_secretaria_id: Optional[int] = None
     responsable_secretaria_nombre: Optional[str] = None
     fecha_inicio: Optional[datetime] = None
@@ -107,7 +106,6 @@ class ActividadBase(BaseModel):
     anio: int = Field(..., ge=2024, le=2027)
     nombre: str = Field(..., min_length=1, max_length=512)
     descripcion: Optional[str] = None
-    responsable_user_id: Optional[int] = None  # ID del usuario responsable
     responsable_secretaria_id: Optional[int] = None  # ID de la secretaría responsable
     fecha_inicio: Optional[str] = None  # ISO string para input
     fecha_fin: Optional[str] = None  # ISO string para input
@@ -123,7 +121,6 @@ class ActividadUpdate(BaseModel):
     nombre: Optional[str] = None
     descripcion: Optional[str] = None
     responsable: Optional[str] = None
-    responsable_user_id: Optional[int] = None
     responsable_secretaria_id: Optional[int] = None
     fecha_inicio: Optional[str] = None
     fecha_fin: Optional[str] = None
