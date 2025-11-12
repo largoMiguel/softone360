@@ -700,11 +700,11 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Responsable (Secretaría) *</label>
-                            <select class="form-select" [(ngModel)]="actividadForm.responsable" name="responsable"
+                            <select class="form-select" [(ngModel)]="actividadForm.responsable_secretaria_id" name="responsable_secretaria_id"
                                 required #actResp="ngModel"
                                 [ngClass]="{'is-invalid': actResp.invalid && actResp.touched}">
-                                <option value="">Seleccione una secretaría...</option>
-                                <option *ngFor="let s of secretarias" [value]="s.nombre">{{ s.nombre }}</option>
+                                <option [value]="null">Seleccione una secretaría...</option>
+                                <option *ngFor="let s of secretarias" [value]="s.id">{{ s.nombre }}</option>
                             </select>
                             <div class="invalid-feedback" *ngIf="actResp.invalid && actResp.touched">El
                                 responsable

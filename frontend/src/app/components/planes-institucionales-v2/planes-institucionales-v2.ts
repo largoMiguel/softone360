@@ -374,7 +374,7 @@ export class PlanesInstitucionalesV2Component implements OnInit, OnDestroy {
     abrirModalActividad(actividad?: Actividad) {
         if (!this.componenteSeleccionado) return;
         this.modoEdicion = !!actividad;
-        this.actividadForm = actividad ? { id: actividad.id, componente_id: actividad.componente_id, objetivo_especifico: actividad.objetivo_especifico, fecha_inicio_prevista: (actividad.fecha_inicio_prevista || '').slice(0, 10), fecha_fin_prevista: (actividad.fecha_fin_prevista || '').slice(0, 10), responsable: actividad.responsable } : { componente_id: this.componenteSeleccionado.id };
+        this.actividadForm = actividad ? { id: actividad.id, componente_id: actividad.componente_id, objetivo_especifico: actividad.objetivo_especifico, fecha_inicio_prevista: (actividad.fecha_inicio_prevista || '').slice(0, 10), fecha_fin_prevista: (actividad.fecha_fin_prevista || '').slice(0, 10), responsable_secretaria_id: actividad.responsable_secretaria_id } : { componente_id: this.componenteSeleccionado.id };
         this.modalAbierto = 'actividad';
     }
 

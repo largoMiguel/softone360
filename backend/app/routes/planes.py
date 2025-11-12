@@ -186,14 +186,24 @@ def listar_planes(
 ):
     """
     Listar planes institucionales.
-    - SECRETARIOS: Ven los planes de su entidad (para navegar a sus actividades)
-    - ADMIN/SUPERADMIN: Ven los planes de su entidad
+    - SECRETARIOS: Ven SOLO los planes que tengan actividades asignadas a su secretaría
+    - ADMIN/SUPERADMIN: Ven todos los planes de su entidad
     """
     query = db.query(PlanInstitucional)
     
     # Filtrar por entidad si no es superadmin
     if current_user.role != UserRole.SUPERADMIN:
         query = query.filter(PlanInstitucional.entity_id == current_user.entity_id)
+    
+    # SECRETARIOS: Filtrar planes que tengan actividades asignadas a su secretaría
+    if current_user.role == UserRole.SECRETARIO:
+        query = query.distinct().join(
+            ComponenteProceso
+        ).join(
+            Actividad
+        ).filter(
+            Actividad.responsable_secretaria_id == current_user.secretaria_id
+        )
     
     if estado:
         query = query.filter(PlanInstitucional.estado == estado)
@@ -644,6 +654,14 @@ def crear_actividad(
     if not componente:
         raise HTTPException(status_code=404, detail="Componente no encontrado")
     
+    # Cargar la relación plan para usarla en alertas
+    if not componente.plan:
+        plan = db.query(PlanInstitucional).filter(PlanInstitucional.id == componente.plan_id).first()
+        if not plan:
+            raise HTTPException(status_code=404, detail="Plan no encontrado")
+    else:
+        plan = componente.plan
+    
     if not tiene_permiso_componente(current_user, componente, db):
         raise HTTPException(status_code=403, detail="No tienes acceso a este componente")
     
@@ -679,14 +697,14 @@ def crear_actividad(
                 # Buscar usuarios de esa secretaría
                 secretarios = db.query(User).filter(
                     User.role == UserRole.SECRETARIO,
-                    User.entity_id == componente.plan.entity_id,
+                    User.entity_id == plan.entity_id,
                     User.secretaria_id == secretaria.id,
                     User.is_active == True
                 ).all()
                 
                 for secretario in secretarios:
                     db.add(Alert(
-                        entity_id=componente.plan.entity_id,
+                        entity_id=plan.entity_id,
                         recipient_user_id=secretario.id,
                         type="PLAN_NEW_ACTIVITY",
                         title="Nueva actividad asignada en Plan Institucional",
@@ -701,13 +719,13 @@ def crear_actividad(
         # 2. Alertas para administradores de la entidad
         admins = db.query(User).filter(
             User.role == UserRole.ADMIN,
-            User.entity_id == componente.plan.entity_id,
+            User.entity_id == plan.entity_id,
             User.is_active == True
         ).all()
         
         for admin in admins:
             db.add(Alert(
-                entity_id=componente.plan.entity_id,
+                entity_id=plan.entity_id,
                 recipient_user_id=admin.id,
                 type="PLAN_NEW_ACTIVITY",
                 title="Nueva actividad en Plan Institucional",

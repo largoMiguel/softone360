@@ -70,7 +70,8 @@ export interface Actividad {
     objetivo_especifico?: string;
     fecha_inicio_prevista: string;
     fecha_fin_prevista: string;
-    responsable: string;
+    responsable_secretaria_id?: number;
+    responsable_secretaria_nombre?: string;
     created_at?: string;
     updated_at?: string;
 }
@@ -80,7 +81,7 @@ export interface ActividadCreate {
     objetivo_especifico?: string;
     fecha_inicio_prevista: string;
     fecha_fin_prevista: string;
-    responsable: string;
+    responsable_secretaria_id?: number;
 }
 
 export interface ActividadUpdate extends Partial<ActividadCreate> {
