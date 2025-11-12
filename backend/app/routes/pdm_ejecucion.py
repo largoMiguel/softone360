@@ -118,6 +118,7 @@ async def upload_ejecucion_excel(
         
         registros_procesados = len(df_filtrado)
         registros_insertados = 0
+        registros_actualizados = 0
         errores = []
         
         # Eliminar registros existentes de esta entidad antes de insertar
@@ -130,6 +131,10 @@ async def upload_ejecucion_excel(
         
         print(f"🗑️ Eliminados {deleted_count} registros previos de ejecución presupuestal para entity_id={current_user.entity_id}")
         
+        # Diccionario para evitar duplicados dentro del mismo archivo
+        # Clave: (codigo_producto, descripcion_fte)
+        registros_unicos = {}
+        
         # Procesar cada fila filtrada
         for idx, row in df_filtrado.iterrows():
             try:
@@ -140,34 +145,61 @@ async def upload_ejecucion_excel(
                     errores.append(f"Fila {idx + 2}: No se pudo extraer código de producto de '{row['PRODUCTO']}'")
                     continue
                 
-                # Crear registro
-                ejecucion = PDMEjecucionPresupuestal(
-                    codigo_producto=codigo_producto,
-                    descripcion_fte=str(row['DESCRIPCIÓN FTE.']).strip(),
-                    pto_inicial=limpiar_numero(row['PTO. INICIAL']),
-                    adicion=limpiar_numero(row['ADICIÓN']),
-                    reduccion=limpiar_numero(row['REDUCCIÓN']),
-                    credito=limpiar_numero(row['CRÉDITO']),
-                    contracredito=limpiar_numero(row['CONTRACRÉDITO']),
-                    pto_definitivo=limpiar_numero(row['PTO. DEFINITIVO']),
-                    pagos=limpiar_numero(row['PAGOS']),
-                    sector=str(row['SECTOR']).strip() if pd.notna(row['SECTOR']) else None,
-                    dependencia=str(row['DEPENDENCIA']).strip() if 'DEPENDENCIA' in row and pd.notna(row['DEPENDENCIA']) else None,
-                    bpin=str(row['BPIN']).strip() if 'BPIN' in row and pd.notna(row['BPIN']) else None,
-                    entity_id=current_user.entity_id
-                )
+                descripcion_fte = str(row['DESCRIPCIÓN FTE.']).strip()
                 
-                db.add(ejecucion)
-                registros_insertados += 1
+                # Crear clave única
+                clave = (codigo_producto, descripcion_fte)
+                
+                # Si ya existe esta combinación en el archivo, actualizar valores
+                if clave in registros_unicos:
+                    # Sumar los valores (agregación)
+                    registros_unicos[clave]['pto_inicial'] += limpiar_numero(row['PTO. INICIAL'])
+                    registros_unicos[clave]['adicion'] += limpiar_numero(row['ADICIÓN'])
+                    registros_unicos[clave]['reduccion'] += limpiar_numero(row['REDUCCIÓN'])
+                    registros_unicos[clave]['credito'] += limpiar_numero(row['CRÉDITO'])
+                    registros_unicos[clave]['contracredito'] += limpiar_numero(row['CONTRACRÉDITO'])
+                    registros_unicos[clave]['pto_definitivo'] += limpiar_numero(row['PTO. DEFINITIVO'])
+                    registros_unicos[clave]['pagos'] += limpiar_numero(row['PAGOS'])
+                    registros_actualizados += 1
+                else:
+                    # Primera vez que aparece esta combinación
+                    registros_unicos[clave] = {
+                        'codigo_producto': codigo_producto,
+                        'descripcion_fte': descripcion_fte,
+                        'pto_inicial': limpiar_numero(row['PTO. INICIAL']),
+                        'adicion': limpiar_numero(row['ADICIÓN']),
+                        'reduccion': limpiar_numero(row['REDUCCIÓN']),
+                        'credito': limpiar_numero(row['CRÉDITO']),
+                        'contracredito': limpiar_numero(row['CONTRACRÉDITO']),
+                        'pto_definitivo': limpiar_numero(row['PTO. DEFINITIVO']),
+                        'pagos': limpiar_numero(row['PAGOS']),
+                        'sector': str(row['SECTOR']).strip() if pd.notna(row['SECTOR']) else None,
+                        'dependencia': str(row['DEPENDENCIA']).strip() if 'DEPENDENCIA' in row and pd.notna(row['DEPENDENCIA']) else None,
+                        'bpin': str(row['BPIN']).strip() if 'BPIN' in row and pd.notna(row['BPIN']) else None,
+                    }
                 
             except Exception as e:
                 errores.append(f"Fila {idx + 2}: {str(e)}")
         
+        # Ahora insertar los registros únicos
+        for clave, datos in registros_unicos.items():
+            try:
+                ejecucion = PDMEjecucionPresupuestal(
+                    entity_id=current_user.entity_id,
+                    **datos
+                )
+                db.add(ejecucion)
+                registros_insertados += 1
+            except Exception as e:
+                errores.append(f"Error insertando {clave}: {str(e)}")
+        
         db.commit()
+        
+        print(f"✅ Insertados {registros_insertados} registros únicos, {registros_actualizados} agregaciones de duplicados")
         
         return PDMEjecucionUploadResponse(
             success=True,
-            message=f"Archivo procesado exitosamente",
+            message=f"Archivo procesado exitosamente. {registros_insertados} registros únicos insertados.",
             registros_procesados=registros_procesados,
             registros_insertados=registros_insertados,
             errores=errores[:10]  # Limitar a 10 errores para no saturar la respuesta
