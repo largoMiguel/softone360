@@ -1138,8 +1138,8 @@
                                     class="form-select" 
                                     formControlName="responsable_secretaria_id"
                                     [disabled]="cargandoSecretarios">
-                                    <option value="">Seleccione una secretaría...</option>
-                                    <option *ngFor="let secretaria of secretariasAgrupadas" [value]="secretaria.id">
+                                    <option [value]="null">Seleccione una secretaría...</option>
+                                    <option *ngFor="let secretaria of secretariasAgrupadas" [ngValue]="secretaria.id">
                                         🏢 {{ secretaria.nombre }}
                                     </option>
                                 </select>

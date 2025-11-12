@@ -1183,7 +1183,7 @@ export class PdmComponent implements OnInit, OnDestroy {
             nombre: ['', [Validators.required, Validators.minLength(5)]],
             descripcion: ['', [Validators.required, Validators.minLength(10)]],
             responsable: [responsableNombre, [Validators.required, Validators.minLength(3)]],
-            responsable_secretaria_id: ['', Validators.required], // Responsable por secretaría (requerido)
+            responsable_secretaria_id: [null, Validators.required], // ✅ null en lugar de ''
             estado: ['PENDIENTE', Validators.required],
             fecha_inicio: ['', Validators.required],
             fecha_fin: ['', Validators.required],
