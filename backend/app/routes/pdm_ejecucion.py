@@ -121,9 +121,14 @@ async def upload_ejecucion_excel(
         errores = []
         
         # Eliminar registros existentes de esta entidad antes de insertar
-        db.query(PDMEjecucionPresupuestal).filter(
+        deleted_count = db.query(PDMEjecucionPresupuestal).filter(
             PDMEjecucionPresupuestal.entity_id == current_user.entity_id
         ).delete()
+        
+        # IMPORTANTE: Hacer commit del DELETE antes de los INSERT para evitar conflictos
+        db.commit()
+        
+        print(f"🗑️ Eliminados {deleted_count} registros previos de ejecución presupuestal para entity_id={current_user.entity_id}")
         
         # Procesar cada fila filtrada
         for idx, row in df_filtrado.iterrows():

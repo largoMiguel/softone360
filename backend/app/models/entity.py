@@ -40,6 +40,11 @@ class Entity(Base):
     # Relaciones
     users = relationship("User", back_populates="entity", cascade="all, delete-orphan")
     secretarias = relationship("Secretaria", back_populates="entity", cascade="all, delete-orphan")
+    
+    # Relaciones PDM (Plan de Desarrollo Municipal)
+    pdm_productos = relationship("PdmProducto", foreign_keys="PdmProducto.entity_id", cascade="all, delete-orphan")
+    pdm_actividades = relationship("PdmActividad", foreign_keys="PdmActividad.entity_id", cascade="all, delete-orphan")
+    pdm_iniciativas_sgr = relationship("PdmIniciativaSGR", foreign_keys="PdmIniciativaSGR.entity_id", cascade="all, delete-orphan")
     pdm_ejecuciones = relationship("PDMEjecucionPresupuestal", back_populates="entity", cascade="all, delete-orphan")
     
     def __repr__(self):

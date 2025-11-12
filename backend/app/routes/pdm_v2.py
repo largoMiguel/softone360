@@ -193,9 +193,14 @@ async def upload_pdm_data(
     # Primero, eliminar todas las iniciativas SGR existentes para esta entidad
     # (ya que el Excel es la fuente de verdad)
     try:
-        db.query(PdmIniciativaSGR).filter(
+        deleted_sgr = db.query(PdmIniciativaSGR).filter(
             PdmIniciativaSGR.entity_id == entity.id
         ).delete()
+        
+        # IMPORTANTE: Commit después del DELETE para evitar conflictos con el constraint único
+        db.commit()
+        
+        print(f"🗑️ Eliminadas {deleted_sgr} iniciativas SGR previas para entity_id={entity.id}")
         
         # Luego agregar las nuevas iniciativas SGR
         for item in data.iniciativas_sgr:
