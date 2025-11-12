@@ -108,6 +108,9 @@ export class PdmComponent implements OnInit, OnDestroy {
     cargandoEjecucion = false;
     archivoEjecucionCargado = false;
 
+    // ✅ NUEVO: Indicador de carga de actividades desde backend
+    cargandoActividadesBackend = false;
+
     // Modal Análisis Producto
     mostrarModalAnalisisProducto = false;
     chartProgresoAnual: any = null;
@@ -1057,21 +1060,25 @@ export class PdmComponent implements OnInit, OnDestroy {
         );
         this.avanceProducto = this.pdmService.calcularAvanceProducto(this.productoSeleccionado);
         
-        // Si no hay backend o no se solicita, listo
-        if (!cargarDesdeBackend || !this.datosEnBackend) {
-            return;
-        }
+        console.log('📈 Meta disponible local:', this.resumenAnioActual?.meta_disponible);
         
-        // ✅ LUEGO: Cargar desde backend y actualizar cuando lleguen los datos
-        console.log('🔄 Sincronizando actividades desde backend...');
-        this.cargarActividadesDesdeBackend();
+        // ✅ LUEGO: SIEMPRE intentar cargar desde backend si se solicita
+        // No importa si datosEnBackend es false, intentamos cargar de todas formas
+        if (cargarDesdeBackend) {
+            console.log('🔄 Sincronizando actividades desde backend...');
+            this.cargarActividadesDesdeBackend();
+        }
     }
 
     /**
      * Carga las actividades desde el backend para el producto seleccionado
+     * ✅ Con indicador visual de carga
      */
     private cargarActividadesDesdeBackend() {
         if (!this.productoSeleccionado) return;
+
+        // ✅ MOSTRAR indicador de carga
+        this.cargandoActividadesBackend = true;
 
         // Verificar que el entity slug esté disponible
         const slug = this.pdmService.getEntitySlug();
@@ -1088,7 +1095,7 @@ export class PdmComponent implements OnInit, OnDestroy {
                     setTimeout(reintentar, 100);
                 } else {
                     console.error('❌ No se puede cargar del backend sin entity slug');
-                    this.actualizarResumenActividades(false);
+                    this.cargandoActividadesBackend = false;
                 }
             };
             setTimeout(reintentar, 100);
@@ -1113,12 +1120,17 @@ export class PdmComponent implements OnInit, OnDestroy {
                 this.avanceProducto = this.pdmService.calcularAvanceProducto(this.productoSeleccionado!);
                 
                 console.log('📈 Resumen año actual:', this.resumenAnioActual);
+                
+                // ✅ OCULTAR indicador de carga
+                this.cargandoActividadesBackend = false;
             },
             error: (error) => {
                 console.warn('⚠️ Error al cargar actividades desde backend:', error);
                 if (error.status === 403) {
                     console.error('❌ Error 403: Verifica que tengas permisos para esta entidad');
                 }
+                // ✅ OCULTAR indicador de carga incluso en error
+                this.cargandoActividadesBackend = false;
                 // Continuar con actividades locales si las hay
                 this.actualizarResumenActividades(false);
             }

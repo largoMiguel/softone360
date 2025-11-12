@@ -663,9 +663,16 @@
                     <div class="card-header">
                         <div class="d-flex justify-content-between align-items-center">
                             <h5 class="mb-0"><i class="fas fa-tasks me-2"></i> Actividades y Seguimiento</h5>
-                            <button class="btn btn-sm btn-primary" (click)="abrirModalNuevaActividad()" *ngIf="isAdmin() && resumenAnioActual && resumenAnioActual.meta_disponible > 0">
-                                <i class="fas fa-plus me-1"></i> Nueva Actividad
-                            </button>
+                            <div class="d-flex align-items-center gap-2">
+                                <!-- ✅ Indicador de carga -->
+                                <div *ngIf="cargandoActividadesBackend" class="d-flex align-items-center text-muted small">
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                    <small>Cargando datos del servidor...</small>
+                                </div>
+                                <button class="btn btn-sm btn-primary" (click)="abrirModalNuevaActividad()" [disabled]="cargandoActividadesBackend" *ngIf="isAdmin() && resumenAnioActual && resumenAnioActual.meta_disponible > 0">
+                                    <i class="fas fa-plus me-1"></i> Nueva Actividad
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="card-body">
@@ -696,6 +703,12 @@
                                 </a>
                             </li>
                         </ul>
+
+                        <!-- ✅ Indicador de carga mientras se sincronizan actividades -->
+                        <div *ngIf="cargandoActividadesBackend" class="alert alert-info mb-3 text-center">
+                            <div class="spinner-border spinner-border-sm me-2"></div>
+                            <strong>Cargando actividades desde el servidor...</strong>
+                        </div>
 
                         <!-- Resumen del Año Seleccionado -->
                         <div *ngIf="resumenAnioActual" class="alert alert-info mb-3">
