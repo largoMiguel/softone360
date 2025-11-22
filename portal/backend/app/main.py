@@ -107,6 +107,23 @@ app.add_middleware(GZipMiddleware, minimum_size=500)
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 import traceback
+from fastapi.exceptions import RequestValidationError
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    try:
+        print("\n⚠️  ValidationError 422:")
+        print(f"   Path: {request.method} {request.url.path}")
+        # Detalle de errores pydantic
+        for err in exc.errors():
+            print(f"   - loc={err.get('loc')}, msg={err.get('msg')}, type={err.get('type')}")
+    except Exception:
+        pass
+    # Dejar que FastAPI genere la respuesta estándar
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()},
+    )
 
 @app.middleware("http")
 async def catch_exceptions_middleware(request: Request, call_next):

@@ -1,9 +1,14 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
+import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZoneChangeDetection, LOCALE_ID } from '@angular/core';
 import { provideRouter, withHashLocation } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimations } from '@angular/platform-browser/animations';
+import { registerLocaleData } from '@angular/common';
+import localeEsCO from '@angular/common/locales/es-CO';
 
 import { routes } from './app.routes';
+
+// Registrar locale español de Colombia
+registerLocaleData(localeEsCO, 'es-CO');
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -26,6 +31,7 @@ export const appConfig: ApplicationConfig = {
         return next(req);
       }
     ])),
-    provideAnimations()
+    provideAnimations(),
+    { provide: LOCALE_ID, useValue: 'es-CO' }
   ]
 };

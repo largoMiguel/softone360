@@ -2,11 +2,12 @@
 Rutas para gestionar la ejecución presupuestal del PDM.
 Permite cargar Excel de ejecución de gastos y consultar por producto.
 """
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional, Tuple, Dict
 import pandas as pd
 import io
+import unicodedata
 import re
 from decimal import Decimal
 
@@ -59,14 +60,65 @@ def extraer_codigo_producto(producto_str: str) -> str:
     return ""
 
 
+def _normalize_text(s: str) -> str:
+    if s is None:
+        return ""
+    s = str(s).strip()
+    s = unicodedata.normalize("NFD", s)
+    s = "".join(ch for ch in s if unicodedata.category(ch) != "Mn")  # quitar acentos
+    s = s.replace(".", " ").replace(",", " ")
+    s = re.sub(r"\s+", " ", s)
+    return s.upper()
+
+
+def _build_column_mapping(columns: List[str]) -> Tuple[Dict[str, str], List[str]]:
+    """
+    Crea un mapeo de nombres normalizados -> nombre real de columna.
+    Retorna (mapping, normalized_columns)
+    """
+    mapping = {}
+    normalized_cols = []
+    for c in columns:
+        norm = _normalize_text(c)
+        mapping[norm] = c
+        normalized_cols.append(norm)
+    return mapping, normalized_cols
+
+
+def _try_read_dataframe(contents: bytes, filename: str):
+    """Lee el archivo intentando diferentes offsets de cabecera."""
+    readers = []
+    if filename.endswith('.csv'):
+        readers = [
+            lambda: pd.read_csv(io.BytesIO(contents), header=0, sep=None, engine='python', encoding='utf-8-sig'),
+            lambda: pd.read_csv(io.BytesIO(contents), header=1, sep=None, engine='python', encoding='utf-8-sig'),
+        ]
+    else:
+        readers = [
+            lambda: pd.read_excel(io.BytesIO(contents), header=0),
+            lambda: pd.read_excel(io.BytesIO(contents), header=1),
+        ]
+
+    errors = []
+    for read in readers:
+        try:
+            return read(), None
+        except Exception as e:
+            errors.append(str(e))
+    return None, errors
+
+
 @router.post("/upload", response_model=PDMEjecucionUploadResponse)
 async def upload_ejecucion_excel(
     file: UploadFile = File(...),
+    anio: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    Carga un archivo Excel/CSV de ejecución presupuestal.
+    Carga un archivo Excel/CSV de ejecución presupuestal para un año específico.
+    
+    Si se proporciona el año, elimina los registros existentes de ese año antes de insertar.
     
     Filtra solo las filas donde:
     - ULT. NIVEL = "Si"
@@ -74,6 +126,20 @@ async def upload_ejecucion_excel(
     
     Extrae el código del producto de la columna PRODUCTO (ej: "4003018 - Alcantarillados construidos")
     """
+    # Convertir anio a int si se proporciona
+    anio_int = None
+    if anio:
+        try:
+            anio_int = int(anio)
+            print(f"📊 Upload ejecución - file: {file.filename if file else 'None'}, anio: {anio_int}")
+        except (ValueError, TypeError):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Parámetro 'anio' inválido: '{anio}'. Debe ser un número entero."
+            )
+    else:
+        print(f"📊 Upload ejecución - file: {file.filename if file else 'None'}, anio: None")
+    
     if not file.filename.endswith(('.csv', '.xlsx', '.xls')):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -81,39 +147,102 @@ async def upload_ejecucion_excel(
         )
     
     try:
-        # Leer el archivo
+        # Leer el archivo a memoria
         contents = await file.read()
-        
-        # Determinar el tipo de archivo y leer con pandas
-        if file.filename.endswith('.csv'):
-            # CSV - puede tener encabezados en múltiples filas
-            df = pd.read_csv(io.BytesIO(contents), skiprows=1, low_memory=False)
-        else:
-            # Excel
-            df = pd.read_excel(io.BytesIO(contents), skiprows=1)
-        
-        # Verificar que las columnas necesarias existan
-        columnas_requeridas = [
-            'ULT. NIVEL', 'SECTOR', 'PRODUCTO', 'DESCRIPCIÓN FTE.',
-            'PTO. INICIAL', 'ADICIÓN', 'REDUCCIÓN', 'CRÉDITO', 
-            'CONTRACRÉDITO', 'PTO. DEFINITIVO', 'PAGOS'
-        ]
-        
-        # Normalizar nombres de columnas (eliminar espacios extras)
-        df.columns = df.columns.str.strip()
-        
-        columnas_faltantes = [col for col in columnas_requeridas if col not in df.columns]
-        if columnas_faltantes:
+
+        # Intentar diferentes cabeceras
+        df, read_errors = _try_read_dataframe(contents, file.filename)
+        if df is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Columnas faltantes en el archivo: {', '.join(columnas_faltantes)}"
+                detail=f"No se pudo leer el archivo: {' | '.join(read_errors or [])}"
+            )
+
+        # Construir normalización y mapa de columnas
+        required_norm = [
+            "ULT NIVEL", "SECTOR", "PRODUCTO", "DESCRIPCION FTE",
+            "PTO INICIAL", "ADICION", "REDUCCION", "CREDITO",
+            "CONTRACREDITO", "PTO DEFINITIVO", "PAGOS"
+        ]
+
+        # Aliases permitidos
+        alias = {
+            "ULTIMO NIVEL": "ULT NIVEL",
+            "ULT. NIVEL": "ULT NIVEL",
+            "DESCRIPCION FTE": "DESCRIPCION FTE",
+            "DESCRIPCION FTE ": "DESCRIPCION FTE",
+            "DESCRIPCION FUENTE": "DESCRIPCION FTE",
+            "DESCRIPCION DE LA FUENTE": "DESCRIPCION FTE",
+            "PTO. INICIAL": "PTO INICIAL",
+            "PRESUPUESTO INICIAL": "PTO INICIAL",
+            "ADICION": "ADICION",
+            "ADICIONES": "ADICION",
+            "REDUCCION": "REDUCCION",
+            "REDUCCIONES": "REDUCCION",
+            "CREDITO": "CREDITO",
+            "CONTRACREDITO": "CONTRACREDITO",
+            "PTO. DEFINITIVO": "PTO DEFINITIVO",
+            "PRESUPUESTO DEFINITIVO": "PTO DEFINITIVO",
+            "PAGOS": "PAGOS",
+        }
+
+        def build_renamed(_df: pd.DataFrame) -> pd.DataFrame:
+            mapping, normalized_cols = _build_column_mapping(list(_df.columns))
+            rename_to_canonical = {}
+            for norm_col in normalized_cols:
+                base = alias.get(norm_col, norm_col)
+                rename_to_canonical[mapping[norm_col]] = base
+            return _df.rename(columns=rename_to_canonical)
+
+        df_renamed = build_renamed(df)
+
+        # Verificar columnas requeridas, y si faltan, intentar detectar fila de cabecera
+        present_norm = [alias.get(x, x) for x in set(df_renamed.columns.map(_normalize_text))]
+        faltantes = [c for c in required_norm if c not in present_norm]
+        if faltantes:
+            # Intentar lectura sin cabecera y buscar la fila correcta
+            try:
+                if file.filename.endswith('.csv'):
+                    df_raw = pd.read_csv(io.BytesIO(contents), header=None, sep=None, engine='python', encoding='utf-8-sig')
+                else:
+                    df_raw = pd.read_excel(io.BytesIO(contents), header=None)
+
+                header_idx = None
+                max_scan = min(30, len(df_raw))
+                required_set = set(required_norm)
+                for i in range(max_scan):
+                    row_vals = [ _normalize_text(v) for v in list(df_raw.iloc[i].astype(str).fillna('')) ]
+                    row_set = set(alias.get(x, x) for x in row_vals)
+                    if required_set.issubset(row_set):
+                        header_idx = i
+                        break
+                if header_idx is not None:
+                    cols = list(df_raw.iloc[header_idx].astype(str).fillna(''))
+                    df = df_raw.iloc[header_idx+1:].copy()
+                    df.columns = cols
+                    df_renamed = build_renamed(df)
+                    present_norm = [alias.get(x, x) for x in set(df_renamed.columns.map(_normalize_text))]
+                    faltantes = [c for c in required_norm if c not in present_norm]
+                # si sigue faltando, proceder al error
+            except Exception:
+                pass
+
+        if faltantes:
+            disponibles = ", ".join([str(c) for c in df.columns])
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Columnas faltantes en el archivo: {', '.join(faltantes)}. Disponibles: {disponibles}"
             )
         
+        # Asegurar columnas opcionales si existen con algún alias
+        has_dependencia = any(_normalize_text(c) == "DEPENDENCIA" for c in df_renamed.columns)
+        has_bpin = any(_normalize_text(c) == "BPIN" for c in df_renamed.columns)
+        
         # Filtrar filas según criterios
-        df_filtrado = df[
-            (df['ULT. NIVEL'].astype(str).str.strip() == 'Si') &
-            (df['SECTOR'].notna()) &
-            (df['SECTOR'].astype(str).str.strip() != '')
+        df_filtrado = df_renamed[
+            (df_renamed['ULT NIVEL'].astype(str).str.strip().str.upper().isin(['SI', 'SÍ'])) &
+            (df_renamed['SECTOR'].notna()) &
+            (df_renamed['SECTOR'].astype(str).str.strip() != '')
         ].copy()
         
         registros_procesados = len(df_filtrado)
@@ -121,15 +250,23 @@ async def upload_ejecucion_excel(
         registros_actualizados = 0
         errores = []
         
-        # Eliminar registros existentes de esta entidad antes de insertar
-        deleted_count = db.query(PDMEjecucionPresupuestal).filter(
-            PDMEjecucionPresupuestal.entity_id == current_user.entity_id
-        ).delete()
+        # Eliminar registros existentes según el año proporcionado
+        if anio_int:
+            # Si se proporciona año, eliminar solo los de ese año
+            deleted_count = db.query(PDMEjecucionPresupuestal).filter(
+                PDMEjecucionPresupuestal.entity_id == current_user.entity_id,
+                PDMEjecucionPresupuestal.anio == anio_int
+            ).delete()
+            print(f"🗑️ Eliminados {deleted_count} registros de ejecución del año {anio_int} para entity_id={current_user.entity_id}")
+        else:
+            # Si no se proporciona año, eliminar todos los de la entidad (comportamiento anterior)
+            deleted_count = db.query(PDMEjecucionPresupuestal).filter(
+                PDMEjecucionPresupuestal.entity_id == current_user.entity_id
+            ).delete()
+            print(f"🗑️ Eliminados {deleted_count} registros previos de ejecución presupuestal para entity_id={current_user.entity_id}")
         
         # IMPORTANTE: Hacer commit del DELETE antes de los INSERT para evitar conflictos
         db.commit()
-        
-        print(f"🗑️ Eliminados {deleted_count} registros previos de ejecución presupuestal para entity_id={current_user.entity_id}")
         
         # Diccionario para evitar duplicados dentro del mismo archivo
         # Clave: (codigo_producto, descripcion_fte)
@@ -145,7 +282,7 @@ async def upload_ejecucion_excel(
                     errores.append(f"Fila {idx + 2}: No se pudo extraer código de producto de '{row['PRODUCTO']}'")
                     continue
                 
-                descripcion_fte = str(row['DESCRIPCIÓN FTE.']).strip()
+                descripcion_fte = str(row.get('DESCRIPCION FTE', '')).strip()
                 
                 # Crear clave única
                 clave = (codigo_producto, descripcion_fte)
@@ -153,12 +290,12 @@ async def upload_ejecucion_excel(
                 # Si ya existe esta combinación en el archivo, actualizar valores
                 if clave in registros_unicos:
                     # Sumar los valores (agregación)
-                    registros_unicos[clave]['pto_inicial'] += limpiar_numero(row['PTO. INICIAL'])
-                    registros_unicos[clave]['adicion'] += limpiar_numero(row['ADICIÓN'])
-                    registros_unicos[clave]['reduccion'] += limpiar_numero(row['REDUCCIÓN'])
-                    registros_unicos[clave]['credito'] += limpiar_numero(row['CRÉDITO'])
-                    registros_unicos[clave]['contracredito'] += limpiar_numero(row['CONTRACRÉDITO'])
-                    registros_unicos[clave]['pto_definitivo'] += limpiar_numero(row['PTO. DEFINITIVO'])
+                    registros_unicos[clave]['pto_inicial'] += limpiar_numero(row['PTO INICIAL'])
+                    registros_unicos[clave]['adicion'] += limpiar_numero(row['ADICION'])
+                    registros_unicos[clave]['reduccion'] += limpiar_numero(row['REDUCCION'])
+                    registros_unicos[clave]['credito'] += limpiar_numero(row['CREDITO'])
+                    registros_unicos[clave]['contracredito'] += limpiar_numero(row['CONTRACREDITO'])
+                    registros_unicos[clave]['pto_definitivo'] += limpiar_numero(row['PTO DEFINITIVO'])
                     registros_unicos[clave]['pagos'] += limpiar_numero(row['PAGOS'])
                     registros_actualizados += 1
                 else:
@@ -166,16 +303,17 @@ async def upload_ejecucion_excel(
                     registros_unicos[clave] = {
                         'codigo_producto': codigo_producto,
                         'descripcion_fte': descripcion_fte,
-                        'pto_inicial': limpiar_numero(row['PTO. INICIAL']),
-                        'adicion': limpiar_numero(row['ADICIÓN']),
-                        'reduccion': limpiar_numero(row['REDUCCIÓN']),
-                        'credito': limpiar_numero(row['CRÉDITO']),
-                        'contracredito': limpiar_numero(row['CONTRACRÉDITO']),
-                        'pto_definitivo': limpiar_numero(row['PTO. DEFINITIVO']),
+                        'pto_inicial': limpiar_numero(row['PTO INICIAL']),
+                        'adicion': limpiar_numero(row['ADICION']),
+                        'reduccion': limpiar_numero(row['REDUCCION']),
+                        'credito': limpiar_numero(row['CREDITO']),
+                        'contracredito': limpiar_numero(row['CONTRACREDITO']),
+                        'pto_definitivo': limpiar_numero(row['PTO DEFINITIVO']),
                         'pagos': limpiar_numero(row['PAGOS']),
                         'sector': str(row['SECTOR']).strip() if pd.notna(row['SECTOR']) else None,
-                        'dependencia': str(row['DEPENDENCIA']).strip() if 'DEPENDENCIA' in row and pd.notna(row['DEPENDENCIA']) else None,
-                        'bpin': str(row['BPIN']).strip() if 'BPIN' in row and pd.notna(row['BPIN']) else None,
+                        'dependencia': str(row['DEPENDENCIA']).strip() if has_dependencia and pd.notna(row.get('DEPENDENCIA')) else None,
+                        'bpin': str(row['BPIN']).strip() if has_bpin and pd.notna(row.get('BPIN')) else None,
+                        'anio': anio_int  # Agregar el año al registro
                     }
                 
             except Exception as e:
@@ -195,11 +333,12 @@ async def upload_ejecucion_excel(
         
         db.commit()
         
-        print(f"✅ Insertados {registros_insertados} registros únicos, {registros_actualizados} agregaciones de duplicados")
+        mensaje_anio = f" para el año {anio_int}" if anio_int else ""
+        print(f"✅ Insertados {registros_insertados} registros únicos{mensaje_anio}, {registros_actualizados} agregaciones de duplicados")
         
         return PDMEjecucionUploadResponse(
             success=True,
-            message=f"Archivo procesado exitosamente. {registros_insertados} registros únicos insertados.",
+            message=f"Archivo procesado exitosamente{mensaje_anio}. {registros_insertados} registros únicos insertados.",
             registros_procesados=registros_procesados,
             registros_insertados=registros_insertados,
             errores=errores[:10]  # Limitar a 10 errores para no saturar la respuesta

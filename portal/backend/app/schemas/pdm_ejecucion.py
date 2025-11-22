@@ -16,6 +16,7 @@ class PDMEjecucionBase(BaseModel):
     sector: Optional[str] = None
     dependencia: Optional[str] = None
     bpin: Optional[str] = None
+    anio: Optional[int] = None
 
 
 class PDMEjecucionCreate(PDMEjecucionBase):

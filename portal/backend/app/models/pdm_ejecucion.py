@@ -10,10 +10,10 @@ class PDMEjecucionPresupuestal(Base):
     """
     __tablename__ = "pdm_ejecucion_presupuestal"
     
-    # Constraint compuesto para evitar duplicados de la misma fuente en el mismo producto y entidad
+    # Constraint compuesto para evitar duplicados de la misma fuente en el mismo producto, entidad y año
     __table_args__ = (
-        UniqueConstraint('entity_id', 'codigo_producto', 'descripcion_fte', 
-                        name='uq_pdm_ejecucion_entity_codigo_fuente'),
+        UniqueConstraint('entity_id', 'codigo_producto', 'descripcion_fte', 'anio',
+                        name='uq_pdm_ejecucion_entity_codigo_fuente_anio'),
     )
 
     id = Column(Integer, primary_key=True, index=True)
@@ -46,5 +46,8 @@ class PDMEjecucionPresupuestal(Base):
     dependencia = Column(String(200), nullable=True)
     bpin = Column(String(50), nullable=True)
     
+    # Año fiscal de la ejecución presupuestal
+    anio = Column(Integer, nullable=True, index=True)
+    
     def __repr__(self):
-        return f"<PDMEjecucionPresupuestal(codigo={self.codigo_producto}, fuente={self.descripcion_fte[:50]})>"
+        return f"<PDMEjecucionPresupuestal(codigo={self.codigo_producto}, fuente={self.descripcion_fte[:50]}, anio={self.anio})>"
