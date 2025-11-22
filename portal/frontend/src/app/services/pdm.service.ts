@@ -840,20 +840,24 @@ export class PdmService {
         if (this.entitySlug) {
             return this.registrarEvidenciaEnBackend(actividadId, evidenciaConFecha).pipe(
                 switchMap((actividadActualizada: ActividadPDM) => {
-                    // Actualizar estado local
+                    // ✅ El backend ahora retorna la ACTIVIDAD COMPLETA con evidencia incluida
                     const actividades = this.actividadesSubject.value;
                     const index = actividades.findIndex(a => a.id === actividadId);
+                    
+                    const nuevasActividades = [...actividades];
                     if (index !== -1) {
-                        const nuevasActividades = [...actividades];
                         nuevasActividades[index] = actividadActualizada;
-                        this.actividadesSubject.next(nuevasActividades);
-                        this.guardarActividadesEnStorage(nuevasActividades);
+                    } else {
+                        nuevasActividades.push(actividadActualizada);
                     }
+                    
+                    this.actividadesSubject.next(nuevasActividades);
+                    this.guardarActividadesEnStorage(nuevasActividades);
+                    
                     return of(actividadActualizada);
                 }),
                 catchError(error => {
-                    console.warn('⚠️ Error al registrar evidencia en backend, guardando solo local:', error);
-                    // Fallback: actualizar solo localmente
+                    console.warn('⚠️ Error al registrar evidencia:', error);
                     return this.actualizarActividad(actividadId, {
                         evidencia: evidenciaConFecha,
                         estado: 'COMPLETADA'
@@ -966,11 +970,11 @@ export class PdmService {
 
             anios.forEach(anio => {
                 const actividades = this.obtenerActividadesPorProductoYAnio(codigoProducto, anio);
-                const actividadesCompletadas = actividades.filter(a => a.evidencia !== undefined).length;
+                const actividadesCompletadas = actividades.filter(a => a.evidencia !== undefined && a.evidencia !== null).length;
                 const porcentajeAvance = actividades.length > 0 
                     ? (actividadesCompletadas / actividades.length) * 100 
                     : 0;
-                sumaAvances += porcentajeAvance;
+                sumaAvances += Math.min(100, porcentajeAvance);
             });
 
             return sumaAvances / anios.length;
@@ -992,14 +996,15 @@ export class PdmService {
             const actividades = this.obtenerActividadesPorProductoYAnio(codigoProducto, anio);
             
             const metaEjecutada = actividades
-                .filter(a => a.evidencia !== undefined)
+                .filter(a => a.evidencia !== undefined && a.evidencia !== null)
                 .reduce((sum, a) => sum + a.meta_ejecutar, 0);
             
             const porcentajeAvance = metaProgramada > 0 
                 ? (metaEjecutada / metaProgramada) * 100 
                 : 0;
             
-            sumaAvances += porcentajeAvance;
+            // Topar avance anual en 100%
+            sumaAvances += Math.min(100, porcentajeAvance);
         });
 
         // Retornar el promedio de los 4 años

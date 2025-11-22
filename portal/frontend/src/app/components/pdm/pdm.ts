@@ -398,6 +398,16 @@ export class PdmComponent implements OnInit, OnDestroy {
                 // Generar analytics iniciales
                 this.generarAnalytics();
                 
+                // ✅ Sincronizar actividades de TODOS los productos y recalcular avances
+                this.cargarActividadesTodosProductos().then(() => {
+                    // Recalcular avances y analytics tras sincronización
+                    this.resumenProductos = this.ordenarProductosPorCodigo(
+                        this.pdmService.generarResumenProductos(this.pdmData!)
+                    );
+                    this.estadisticas = this.pdmService.calcularEstadisticas(this.pdmData!);
+                    this.generarAnalytics();
+                });
+                
                 this.showToast(`Datos cargados desde el servidor. ${this.resumenProductos.length} productos disponibles.`, 'success');
             },
             error: (error) => {
@@ -702,8 +712,17 @@ export class PdmComponent implements OnInit, OnDestroy {
                 );
                 this.estadisticas = this.pdmService.calcularEstadisticas(data);
                 this.productoSeleccionado = null;
-                this.cargandoDesdeBackend = false;
-                this.showToast('Datos actualizados desde el servidor', 'success');
+                
+                // ✅ Sincronizar actividades de todos los productos y recalcular
+                this.cargarActividadesTodosProductos().then(() => {
+                    this.resumenProductos = this.ordenarProductosPorCodigo(
+                        this.pdmService.generarResumenProductos(this.pdmData!)
+                    );
+                    this.estadisticas = this.pdmService.calcularEstadisticas(this.pdmData!);
+                    this.generarAnalytics();
+                    this.cargandoDesdeBackend = false;
+                    this.showToast('Datos y actividades actualizados desde el servidor', 'success');
+                });
             },
             error: (error) => {
                 console.warn('⚠️ Error al recargar dashboard:', error);
@@ -1050,6 +1069,17 @@ export class PdmComponent implements OnInit, OnDestroy {
             this.anioSeleccionado
         );
         this.avanceProducto = this.pdmService.calcularAvanceProducto(this.productoSeleccionado);
+
+        // ✅ Recalcular y actualizar el porcentaje_ejecucion del producto seleccionado y en la lista
+        const nuevoAvance = this.pdmService.calcularAvanceRealProducto(
+            this.productoSeleccionado.codigo,
+            this.productoSeleccionado.detalle_completo as any
+        );
+        this.productoSeleccionado.porcentaje_ejecucion = Math.min(100, Number(nuevoAvance.toFixed(2)));
+        const idx = this.resumenProductos.findIndex(p => p.codigo === this.productoSeleccionado!.codigo);
+        if (idx !== -1) {
+            this.resumenProductos[idx] = { ...this.resumenProductos[idx], porcentaje_ejecucion: this.productoSeleccionado.porcentaje_ejecucion };
+        }
         // ✅ LUEGO: SIEMPRE intentar cargar desde backend si se solicita
         // No importa si datosEnBackend es false, intentamos cargar de todas formas
         if (cargarDesdeBackend) {
@@ -1101,6 +1131,17 @@ export class PdmComponent implements OnInit, OnDestroy {
                     this.anioSeleccionado
                 );
                 this.avanceProducto = this.pdmService.calcularAvanceProducto(this.productoSeleccionado!);
+
+                // ✅ Recalcular y actualizar porcentaje_ejecucion tras sincronización del backend
+                const nuevoAvance = this.pdmService.calcularAvanceRealProducto(
+                    this.productoSeleccionado!.codigo,
+                    this.productoSeleccionado!.detalle_completo as any
+                );
+                this.productoSeleccionado!.porcentaje_ejecucion = Math.min(100, Number(nuevoAvance.toFixed(2)));
+                const idx = this.resumenProductos.findIndex(p => p.codigo === this.productoSeleccionado!.codigo);
+                if (idx !== -1) {
+                    this.resumenProductos[idx] = { ...this.resumenProductos[idx], porcentaje_ejecucion: this.productoSeleccionado!.porcentaje_ejecucion };
+                }
                 // ✅ OCULTAR indicador de carga
                 this.cargandoActividadesBackend = false;
             },
@@ -1302,7 +1343,7 @@ export class PdmComponent implements OnInit, OnDestroy {
      */
     private registrarEvidenciaActividad(actividadId: number, valores: any) {
         const evidenciaData: EvidenciaActividad = {
-            descripcion: valores.descripcion, // Usar la descripción principal
+            descripcion: valores.descripcion,
             url_evidencia: valores.evidencia_url || undefined,
             imagenes: valores.imagenes || [],
             fecha_registro: new Date().toISOString()
@@ -1311,13 +1352,36 @@ export class PdmComponent implements OnInit, OnDestroy {
         this.pdmService.registrarEvidencia(actividadId, evidenciaData).subscribe({
             next: () => {
                 this.showToast('Evidencia de ejecución registrada exitosamente', 'success');
+                
+                // ✅ Recalcular avances ANTES de cerrar el modal
+                if (this.productoSeleccionado) {
+                    // Actualizar resumen de actividades del año actual
+                    this.resumenAnioActual = this.pdmService.obtenerResumenActividadesPorAnio(
+                        this.productoSeleccionado,
+                        this.anioSeleccionado
+                    );
+                    // Recalcular avance general
+                    this.avanceProducto = this.pdmService.calcularAvanceProducto(this.productoSeleccionado);
+                    // ✅ Recalcular porcentaje_ejecucion y asignar
+                    const nuevoAvance = this.pdmService.calcularAvanceRealProducto(
+                        this.productoSeleccionado.codigo,
+                        this.productoSeleccionado.detalle_completo as any
+                    );
+                    this.productoSeleccionado.porcentaje_ejecucion = Math.min(100, Number(nuevoAvance.toFixed(2)));
+                    // Actualizar en la lista también
+                    const idx = this.resumenProductos.findIndex(p => p.codigo === this.productoSeleccionado!.codigo);
+                    if (idx !== -1) {
+                        this.resumenProductos[idx] = { ...this.resumenProductos[idx], porcentaje_ejecucion: this.productoSeleccionado.porcentaje_ejecucion };
+                    }
+                }
+                
+                // Cerrar modal después de actualizar todo
                 this.cerrarModalActividad();
-                // IMPORTANTE: Recargar desde backend para mostrar la evidencia inmediatamente
-                this.actualizarResumenActividades(true);
             },
             error: () => {
                 this.showToast('Error al registrar la evidencia de ejecución', 'error');
                 this.cerrarModalActividad();
+                // Recargar de todas formas
                 this.actualizarResumenActividades(true);
             }
         });

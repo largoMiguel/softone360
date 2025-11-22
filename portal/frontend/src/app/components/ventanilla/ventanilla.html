@@ -300,11 +300,11 @@
                             </div>
                             <div class="result-row">
                                 <strong>Fecha de Solicitud:</strong>
-                                <span>{{ pqrsConsultada.fecha_solicitud | date:'dd/MM/yyyy HH:mm' }}</span>
+                                <span>{{ pqrsConsultada.fecha_solicitud | date:'dd/MM/yyyy HH:mm':'America/Bogota':'es-CO' }}</span>
                             </div>
                             <div class="result-row" *ngIf="pqrsConsultada.fecha_respuesta">
                                 <strong>Fecha de Respuesta:</strong>
-                                <span>{{ pqrsConsultada.fecha_respuesta | date:'dd/MM/yyyy HH:mm' }}</span>
+                                <span>{{ pqrsConsultada.fecha_respuesta | date:'dd/MM/yyyy HH:mm':'America/Bogota':'es-CO' }}</span>
                             </div>
                         </div>
 

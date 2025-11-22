@@ -290,8 +290,8 @@
                                     </td>
                                     <td>
                                         <small class="text-muted">
-                                            {{ pqrs.fecha_solicitud | date:'dd/MM/yyyy' }}<br>
-                                            {{ pqrs.fecha_solicitud | date:'HH:mm' }}
+                                            {{ pqrs.fecha_solicitud | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}<br>
+                                            {{ pqrs.fecha_solicitud | date:'HH:mm':'America/Bogota':'es-CO' }}
                                         </small>
                                     </td>
                                     <td (click)="$event.stopPropagation()">
@@ -474,7 +474,7 @@
                                     <i class="fas fa-user-times me-1"></i>Sin asignar
                                 </small>
                             </td>
-                            <td><small>{{ pqrs.fecha_solicitud | date:'dd/MM/yyyy HH:mm' }}</small></td>
+                            <td><small>{{ pqrs.fecha_solicitud | date:'dd/MM/yyyy HH:mm':'America/Bogota':'es-CO' }}</small></td>
                             <td>
                                 <!-- PQRS Finalizada -->
                                 <span *ngIf="pqrs.estado === 'resuelto' || pqrs.estado === 'cerrado'"
@@ -1011,11 +1011,11 @@
                                 </div>
                                 <div class="info-row">
                                     <strong>Fecha de Solicitud:</strong>
-                                    <span>{{ selectedPqrs.fecha_solicitud | date:'dd/MM/yyyy HH:mm' }}</span>
+                                    <span>{{ selectedPqrs.fecha_solicitud | date:'dd/MM/yyyy HH:mm':'America/Bogota':'es-CO' }}</span>
                                 </div>
                                 <div class="info-row" *ngIf="selectedPqrs.fecha_respuesta">
                                     <strong>Fecha de Respuesta:</strong>
-                                    <span>{{ selectedPqrs.fecha_respuesta | date:'dd/MM/yyyy HH:mm' }}</span>
+                                    <span>{{ selectedPqrs.fecha_respuesta | date:'dd/MM/yyyy HH:mm':'America/Bogota':'es-CO' }}</span>
                                 </div>
                             </div>
                         </div>

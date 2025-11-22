@@ -357,7 +357,7 @@
                                 {{ user.is_active ? 'Activo' : 'Inactivo' }}
                             </span>
                         </td>
-                        <td>{{ user.created_at | date:'short' }}</td>
+                        <td>{{ user.created_at | date:'short':'America/Bogota':'es-CO' }}</td>
                         <td>
                             <button *ngIf="canEditUser(user)" class="btn btn-sm btn-primary" (click)="showEditUser(user)">
                                 ✏️ Editar

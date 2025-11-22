@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map, of } from 'rxjs';
 import { ProcesoContratacion, FiltroContratacion } from '../models/contratacion.model';
+import { TimeService } from './time.service';
 import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
@@ -11,7 +12,7 @@ export class ContratacionService {
     private cache = new Map<string, { ts: number; data: ProcesoContratacion[] }>();
     private TTL_MS = 5 * 60 * 1000; // 5 minutos
 
-    constructor(private http: HttpClient) { }
+    constructor(private http: HttpClient, private time: TimeService) { }
 
     /**
      * Construye la consulta SODA con parámetros usando NIT de la entidad.
@@ -26,7 +27,7 @@ export class ContratacionService {
 
         // Fechas - forzar desde 1 de enero 2025 hasta fecha actual o especificada
         const fechaDesde = f.fechaDesde || '2025-01-01';
-        const fechaHasta = f.fechaHasta || new Date().toISOString().split('T')[0];
+        const fechaHasta = f.fechaHasta || this.time.todayBogotaISODate();
 
         condiciones.push(`(\`fecha_de_firma\` >= "${fechaDesde}T00:00:00.000" :: floating_timestamp)`);
         condiciones.push(`(\`fecha_de_firma\` <= "${fechaHasta}T23:59:59.000" :: floating_timestamp)`);

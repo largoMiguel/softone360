@@ -26,11 +26,10 @@
                 <button *ngIf="vistaActual !== 'dashboard' && archivoExcelCargado" class="btn btn-outline-secondary me-2" (click)="volver()">
                     <i class="fas fa-arrow-left"></i> Volver
                 </button>
-                <label *ngIf="archivoExcelCargado && vistaActual === 'dashboard'" class="btn btn-outline-success me-2" title="Cargar Excel de Ejecución Presupuestal">
+                <label *ngIf="archivoExcelCargado && vistaActual === 'dashboard' && puedeCargarArchivosEjecucion()" class="btn btn-outline-success me-2" (click)="abrirModalEjecucion()" title="Cargar Excel de Ejecución Presupuestal (Solo Admin)">
                     <i class="fas fa-file-invoice-dollar"></i> Cargar Ejecución
-                    <input type="file" accept=".xlsx,.xls,.csv" (change)="onEjecucionFileSelected($event)" style="display: none;">
                 </label>
-                <button *ngIf="archivoExcelCargado && (vistaActual === 'dashboard' || vistaActual === 'detalle')" class="btn btn-outline-primary" (click)="cargarNuevoArchivo()">
+                <button *ngIf="archivoExcelCargado && (vistaActual === 'dashboard' || vistaActual === 'detalle') && puedeCargarArchivosEjecucion()" class="btn btn-outline-primary" (click)="cargarNuevoArchivo()" title="Cargar Nuevo Archivo (Solo Admin)">
                     <i class="fas fa-upload"></i> Cargar Nuevo Archivo
                 </button>
             </div>
@@ -669,8 +668,8 @@
                                     <span class="spinner-border spinner-border-sm me-2"></span>
                                     <small>Cargando datos del servidor...</small>
                                 </div>
-                                <button class="btn btn-sm btn-primary" (click)="abrirModalNuevaActividad()" [disabled]="cargandoActividadesBackend" *ngIf="isAdmin() && resumenAnioActual && resumenAnioActual.meta_disponible > 0">
-                                    <i class="fas fa-plus me-1"></i> Nueva Actividad
+                                <button class="btn btn-sm btn-primary" (click)="abrirModalNuevaActividad()" [disabled]="cargandoActividadesBackend" *ngIf="puedeCrearEvidencia() && resumenAnioActual && resumenAnioActual.meta_disponible > 0">
+                                    <i class="fas fa-plus me-1"></i> Nueva Evidencia de Ejecución
                                 </button>
                             </div>
                         </div>
@@ -730,7 +729,7 @@
                                 <div class="col-md-3">
                                     <strong>Avance del Año</strong>
                                     <p class="mb-0">
-                                        {{ resumenAnioActual.actividades_completadas }} / {{ resumenAnioActual.total_actividades }} actividades
+                                        {{ resumenAnioActual.actividades_completadas }} / {{ resumenAnioActual.total_actividades }} evidencias
                                         <span class="badge" [class]="'bg-' + getColorProgreso(resumenAnioActual.porcentaje_avance) + ' ms-1'">
                                             {{ resumenAnioActual.porcentaje_avance.toFixed(1) }}%
                                         </span>
@@ -773,7 +772,7 @@
                                                         <i class="fas fa-user me-1"></i> <strong>Responsable:</strong> {{ getNombreResponsable(actividad) }}
                                                     </div>
                                                     <div class="col-md-4">
-                                                        <i class="fas fa-calendar me-1"></i> <strong>Fechas:</strong> {{ actividad.fecha_inicio | date:'dd/MM/yyyy' }} - {{ actividad.fecha_fin | date:'dd/MM/yyyy' }}
+                                                        <i class="fas fa-calendar me-1"></i> <strong>Fechas:</strong> {{ actividad.fecha_inicio | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }} - {{ actividad.fecha_fin | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}
                                                     </div>
                                                     <div class="col-md-4">
                                                         <i class="fas fa-target me-1"></i> <strong>Meta:</strong> {{ formatearNumero(actividad.meta_ejecutar) }} {{ productoSeleccionado.unidad_medida }}
@@ -781,10 +780,11 @@
                                                 </div>
                                             </div>
                                             <div class="ms-3">
-                                                <button *ngIf="!actividad.evidencia" class="btn btn-sm btn-success me-1" (click)="abrirModalEvidencia(actividad)" title="Registrar Evidencia">
-                                                    <i class="fas fa-camera"></i>
-                                                </button>
-                                                <button *ngIf="isAdmin() && !actividad.evidencia" class="btn btn-sm btn-outline-primary me-1" (click)="abrirModalEditarActividad(actividad)" title="Editar">
+                                                <!-- Botón Editar evidencia -->
+                                                <button *ngIf="puedeCrearEvidencia() && (!actividad.evidencia || isAdmin())" 
+                                                        class="btn btn-sm btn-outline-primary me-1" 
+                                                        (click)="abrirModalEditarActividad(actividad)" 
+                                                        [title]="actividad.evidencia ? 'Editar Evidencia (Admin)' : 'Agregar Evidencia'">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
                                                 <button *ngIf="!actividad.evidencia || isAdmin()" class="btn btn-sm btn-outline-danger" (click)="eliminarActividad(actividad)" [title]="actividad.evidencia ? 'Eliminar (Admin - incluye evidencia)' : 'Eliminar'">
@@ -798,7 +798,7 @@
                                             <h6 class="text-success"><i class="fas fa-check-circle me-1"></i> Evidencia de Cumplimiento</h6>
                                             <p class="mb-2"><strong>Descripción:</strong> {{ actividad.evidencia.descripcion }}</p>
                                             <p class="mb-2 small text-muted">
-                                                <i class="fas fa-clock me-1"></i> Registrado el {{ actividad.evidencia.fecha_registro | date:'dd/MM/yyyy HH:mm' }}
+                                                <i class="fas fa-clock me-1"></i> Registrado el {{ actividad.evidencia.fecha_registro | date:'dd/MM/yyyy HH:mm':'America/Bogota':'es-CO' }}
                                             </p>
                                             <div *ngIf="actividad.evidencia.url_evidencia" class="mb-2">
                                                 <a [href]="actividad.evidencia.url_evidencia" target="_blank" class="btn btn-sm btn-outline-primary">
@@ -868,6 +868,45 @@
                             <div class="progress mt-1" style="height: 4px;">
                                 <div class="progress-bar bg-success" [style.width.%]="(productoSeleccionado.total_2027 / productoSeleccionado.total_cuatrienio) * 100"></div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comparativa Presupuestal PDM vs Ejecución -->
+                <div class="card mb-3" *ngIf="ejecucionPresupuestal">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-balance-scale me-2"></i> Comparativa Presupuestal</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="text-muted small">Año</th>
+                                        <th class="text-muted small text-end">PDM</th>
+                                        <th class="text-muted small text-end">Ejecución</th>
+                                        <th class="text-muted small text-end">%</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let comp of getComparativaPresupuestal()">
+                                        <td class="small"><strong>{{ comp.anio }}</strong></td>
+                                        <td class="text-end small">{{ formatearMoneda(comp.pdm) }}</td>
+                                        <td class="text-end small">{{ formatearMoneda(comp.ejecucion) }}</td>
+                                        <td class="text-end small">
+                                            <span [class.text-success]="comp.porcentaje >= 95" 
+                                                  [class.text-warning]="comp.porcentaje >= 70 && comp.porcentaje < 95"
+                                                  [class.text-danger]="comp.porcentaje < 70">
+                                                {{ comp.porcentaje | number:'1.0-0' }}%
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="alert alert-info small mt-3 mb-0" role="alert">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Nota:</strong> La ejecución muestra el presupuesto definitivo total. Para ver desglose por año, cargue archivos de ejecución separados por cada año.
                         </div>
                     </div>
                 </div>
@@ -1098,92 +1137,139 @@
         </div>
     </div>
 
-    <!-- MODAL: CREAR/EDITAR ACTIVIDAD -->
+    <!-- MODAL: CREAR/EDITAR ACTIVIDAD CON EVIDENCIA -->
     <div *ngIf="mostrarModalActividad" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">
-                        <i class="fas fa-tasks me-2"></i>
-                        {{ actividadEnEdicion ? 'Editar Actividad' : 'Nueva Actividad' }} - Año {{ anioSeleccionado }}
+                        <i class="fas fa-clipboard-check me-2"></i>
+                        {{ actividadEnEdicion ? 'Editar Evidencia de Ejecución' : 'Nueva Evidencia de Ejecución' }} - Año {{ anioSeleccionado }}
                     </h5>
                     <button type="button" class="btn-close" (click)="cerrarModalActividad()"></button>
                 </div>
                 <form [formGroup]="formularioActividad" (ngSubmit)="guardarActividad()">
                     <div class="modal-body">
-                        <div class="alert alert-info">
+                        <div class="alert alert-info mb-4">
                             <i class="fas fa-info-circle me-1"></i>
                             <strong>Meta Disponible:</strong> {{ formatearNumero(resumenAnioActual?.meta_disponible || 0) }} {{ productoSeleccionado?.unidad_medida }}
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label">Nombre de la Actividad <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" formControlName="nombre" placeholder="Ej: Capacitación en gestión de proyectos">
-                                <div *ngIf="formularioActividad.get('nombre')?.invalid && formularioActividad.get('nombre')?.touched" class="text-danger small">
-                                    Mínimo 5 caracteres
+                        <!-- Sección 1: Información de la Actividad -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Información de la Evidencia de Ejecución</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label class="form-label fw-bold">Nombre de la Evidencia <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" formControlName="nombre" placeholder="Ej: Ejecución de capacitación en gestión de proyectos">
+                                        <div *ngIf="formularioActividad.get('nombre')?.invalid && formularioActividad.get('nombre')?.touched" class="text-danger small">
+                                            Mínimo 5 caracteres
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12 mb-3">
+                                        <label class="form-label fw-bold">Descripción <span class="text-danger">*</span></label>
+                                        <textarea class="form-control" formControlName="descripcion" rows="3" placeholder="Describa detalladamente la evidencia de ejecución de la meta"></textarea>
+                                        <div *ngIf="formularioActividad.get('descripcion')?.invalid && formularioActividad.get('descripcion')?.touched" class="text-danger small">
+                                            Mínimo 10 caracteres
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Secretaría Responsable <span class="text-danger">*</span></label>
+                                        <select 
+                                            class="form-select" 
+                                            [value]="formularioActividad.get('responsable_secretaria_id')?.value"
+                                            (change)="formularioActividad.patchValue({responsable_secretaria_id: $any($event.target).value})"
+                                            [disabled]="formularioActividad.get('responsable_secretaria_id')?.disabled">
+                                            <option [value]="null">Seleccione una secretaría...</option>
+                                            <option *ngFor="let secretaria of secretariasAgrupadas" [value]="secretaria.id">
+                                                🏢 {{ secretaria.nombre }}
+                                            </option>
+                                        </select>
+                                        <small class="text-muted d-block mt-1" *ngIf="!formularioActividad.get('responsable_secretaria_id')?.disabled">
+                                            <i class="fas fa-info-circle"></i> Todos los usuarios de esta secretaría podrán ver y registrar evidencia
+                                        </small>
+                                        <small class="text-success d-block mt-1" *ngIf="formularioActividad.get('responsable_secretaria_id')?.disabled">
+                                            <i class="fas fa-lock"></i> Su secretaría ha sido asignada automáticamente
+                                        </small>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Estado <span class="text-danger">*</span></label>
+                                        <select class="form-select" formControlName="estado">
+                                            <option value="PENDIENTE">Pendiente</option>
+                                            <option value="EN_PROGRESO">En Progreso</option>
+                                            <option value="CANCELADA">Cancelada</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label fw-bold">Fecha Inicio <span class="text-danger">*</span></label>
+                                        <input type="date" class="form-control" formControlName="fecha_inicio">
+                                    </div>
+
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label fw-bold">Fecha Fin <span class="text-danger">*</span></label>
+                                        <input type="date" class="form-control" formControlName="fecha_fin">
+                                    </div>
+
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label fw-bold">Meta a Ejecutar <span class="text-danger">*</span></label>
+                                        <input type="number" class="form-control" formControlName="meta_ejecutar" step="0.01" [placeholder]="'Max: ' + (resumenAnioActual?.meta_disponible || 0)">
+                                        <small class="text-muted">{{ productoSeleccionado?.unidad_medida }}</small>
+                                        <div *ngIf="formularioActividad.get('meta_ejecutar')?.invalid && formularioActividad.get('meta_ejecutar')?.touched" class="text-danger small">
+                                            Valor inválido o excede la meta disponible
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label">Descripción <span class="text-danger">*</span></label>
-                                <textarea class="form-control" formControlName="descripcion" rows="3" placeholder="Describa detalladamente la actividad"></textarea>
-                                <div *ngIf="formularioActividad.get('descripcion')?.invalid && formularioActividad.get('descripcion')?.touched" class="text-danger small">
-                                    Mínimo 10 caracteres
+                        <!-- Sección 2: Evidencia de Cumplimiento (Obligatoria) -->
+                        <div class="card">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0"><i class="fas fa-camera me-2"></i>Evidencia de Cumplimiento <span class="text-danger">*</span></h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-success border">
+                                    <i class="fas fa-check-circle me-2"></i>
+                                    La evidencia es <strong>obligatoria</strong> para registrar la ejecución de la meta. Debe proporcionar al menos una URL o imágenes.
                                 </div>
-                            </div>
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label">Secretaría Responsable <span class="text-danger">*</span></label>
-                                <select 
-                                    class="form-select" 
-                                    formControlName="responsable_secretaria_id"
-                                    [disabled]="cargandoSecretarios">
-                                    <option [value]="null">Seleccione una secretaría...</option>
-                                    <option *ngFor="let secretaria of secretariasAgrupadas" [ngValue]="secretaria.id">
-                                        🏢 {{ secretaria.nombre }}
-                                    </option>
-                                </select>
-                                <small class="text-muted d-block mt-1">
-                                    <i class="fas fa-info-circle"></i> Todos los usuarios de esta secretaría podrán ver y registrar evidencia de la actividad
-                                </small>
-                                <div *ngIf="formularioActividad.get('responsable_secretaria_id')?.invalid && formularioActividad.get('responsable_secretaria_id')?.touched" class="text-danger small">
-                                    Debe seleccionar una secretaría responsable
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">URL de Evidencia Externa</label>
+                                    <input type="url" class="form-control" formControlName="evidencia_url" placeholder="https://ejemplo.com/evidencia">
+                                    <small class="text-muted">Enlace a documentos en la nube, videos, etc. (Obligatorio si no carga imágenes)</small>
                                 </div>
-                            </div>
 
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Estado <span class="text-danger">*</span></label>
-                                <select class="form-select" formControlName="estado">
-                                    <option value="PENDIENTE">Pendiente</option>
-                                    <option value="EN_PROGRESO">En Progreso</option>
-                                    <option value="CANCELADA">Cancelada</option>
-                                </select>
-                            </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Imágenes (Máximo 4, 2MB cada una)</label>
+                                    <input type="file" class="form-control" accept="image/*" multiple (change)="onImagenesSeleccionadas($event)">
+                                    <small class="text-muted">Puede cargar hasta 4 imágenes de máximo 2MB cada una (Obligatorio si no proporciona URL)</small>
+                                </div>
 
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Fecha Inicio <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" formControlName="fecha_inicio">
-                            </div>
-
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Fecha Fin <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" formControlName="fecha_fin">
-                            </div>
-
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Meta a Ejecutar <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control" formControlName="meta_ejecutar" step="0.01" [placeholder]="'Max: ' + (resumenAnioActual?.meta_disponible || 0)">
-                                <small class="text-muted">{{ productoSeleccionado?.unidad_medida }}</small>
-                                <div *ngIf="formularioActividad.get('meta_ejecutar')?.invalid && formularioActividad.get('meta_ejecutar')?.touched" class="text-danger small">
-                                    Valor inválido o excede la meta disponible
+                                <div *ngIf="formularioActividad.get('imagenes')?.value?.length > 0" class="mb-3">
+                                    <label class="form-label fw-bold">Vista Previa de Imágenes</label>
+                                    <div class="row">
+                                        <div *ngFor="let imagen of formularioActividad.get('imagenes')?.value; let i = index" class="col-md-3 mb-2 position-relative">
+                                            <img [src]="imagen" class="img-thumbnail" style="max-height: 150px; width: 100%; object-fit: cover;">
+                                            <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1" (click)="eliminarImagen(i)">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" (click)="cerrarModalActividad()">Cancelar</button>
-                        <button type="submit" class="btn btn-primary" [disabled]="!formularioActividad.valid">
-                            <i class="fas fa-save me-1"></i> {{ actividadEnEdicion ? 'Actualizar' : 'Crear' }} Actividad
+                        <button type="submit" class="btn btn-success" [disabled]="!formularioActividad.valid || !tieneEvidenciaValida()">
+                            <i class="fas fa-check me-1"></i> {{ actividadEnEdicion ? 'Actualizar' : 'Registrar' }} Evidencia de Ejecución
                         </button>
                     </div>
                 </form>
@@ -1582,70 +1668,6 @@
         </div>
     </div>
 
-    <!-- MODAL: REGISTRAR EVIDENCIA -->
-    <div *ngIf="mostrarModalEvidencia" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title">
-                        <i class="fas fa-camera me-2"></i>
-                        Registrar Evidencia de Cumplimiento
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" (click)="cerrarModalEvidencia()"></button>
-                </div>
-                <form [formGroup]="formularioEvidencia" (ngSubmit)="guardarEvidencia()">
-                    <div class="modal-body">
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-1"></i>
-                            <strong>Actividad:</strong> {{ actividadParaEvidencia?.nombre }}
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Descripción de la Evidencia <span class="text-danger">*</span></label>
-                            <textarea class="form-control" formControlName="descripcion" rows="4" placeholder="Describa la evidencia del cumplimiento de la actividad"></textarea>
-                            <div *ngIf="formularioEvidencia.get('descripcion')?.invalid && formularioEvidencia.get('descripcion')?.touched" class="text-danger small">
-                                Mínimo 10 caracteres
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">URL de Evidencia Externa (Opcional)</label>
-                            <input type="url" class="form-control" formControlName="url_evidencia" placeholder="https://ejemplo.com/evidencia">
-                            <small class="text-muted">Puede proporcionar un enlace a documentos en la nube, videos, etc.</small>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Imágenes (Máximo 4, 2MB cada una)</label>
-                            <input type="file" class="form-control" accept="image/*" multiple (change)="onImagenesSeleccionadas($event)">
-                            <small class="text-muted">Puede cargar hasta 4 imágenes de máximo 2MB cada una</small>
-                        </div>
-
-                        <div *ngIf="formularioEvidencia.get('imagenes')?.value?.length > 0" class="mb-3">
-                            <label class="form-label">Vista Previa de Imágenes</label>
-                            <div class="row">
-                                <div *ngFor="let imagen of formularioEvidencia.get('imagenes')?.value" class="col-md-3 mb-2">
-                                    <img [src]="imagen" class="img-thumbnail" style="max-height: 150px; object-fit: cover;">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Mensaje de error si no hay URL ni imágenes -->
-                        <div *ngIf="formularioEvidencia.errors?.['evidenciaRequerida'] && formularioEvidencia.touched" class="alert alert-danger">
-                            <i class="fas fa-exclamation-triangle me-1"></i>
-                            Debe proporcionar al menos una URL de evidencia o cargar una imagen
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" (click)="cerrarModalEvidencia()">Cancelar</button>
-                        <button type="submit" class="btn btn-success" [disabled]="!formularioEvidencia.valid">
-                            <i class="fas fa-check me-1"></i> Registrar Evidencia
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
     <!-- MODAL: INFORMACIÓN BPIN -->
     <div *ngIf="mostrarModalBPIN" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
         <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -1738,6 +1760,49 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" (click)="cerrarModalBPIN()">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Cargar Ejecución Presupuestal -->
+    <div *ngIf="mostrarModalEjecucion" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-file-invoice-dollar me-2"></i>
+                        Cargar Ejecución Presupuestal
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" (click)="cerrarModalEjecucion()"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Importante:</strong> La carga reemplazará todos los datos de ejecución existentes para el año seleccionado.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Año de Ejecución <span class="text-danger">*</span></label>
+                        <select class="form-select" [(ngModel)]="anioEjecucionSeleccionado">
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                            <option value="2027">2027</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Archivo Excel/CSV</label>
+                        <input type="file" class="form-control" accept=".xlsx,.xls,.csv" (change)="onEjecucionFileSelected($event)" #fileEjecucionInput>
+                        <small class="text-muted">Formatos aceptados: .xlsx, .xls, .csv</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" (click)="cerrarModalEjecucion()">Cancelar</button>
+                    <button type="button" class="btn btn-success" (click)="confirmarCargaEjecucion()" [disabled]="!archivoEjecucionTemporal">
+                        <i class="fas fa-upload me-1"></i> Cargar Ejecución
+                    </button>
                 </div>
             </div>
         </div>

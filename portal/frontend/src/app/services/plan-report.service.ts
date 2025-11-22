@@ -89,7 +89,9 @@ export class PlanReportService {
         this.addPageNumbers(doc);
 
         // ========== GUARDAR PDF ==========
-        const fileName = `informe-plan-${this.sanitizeFileName(plan.nombre)}-${new Date().toISOString().split('T')[0]}.pdf`;
+        // Fecha del nombre de archivo en zona horaria de Colombia (YYYY-MM-DD)
+        const fileNameDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+        const fileName = `informe-plan-${this.sanitizeFileName(plan.nombre)}-${fileNameDate}.pdf`;
         doc.save(fileName);
     }
 
@@ -137,7 +139,7 @@ export class PlanReportService {
         // Fecha de generación
         doc.setFontSize(10);
         doc.setTextColor(100, 100, 100);
-        doc.text(`Informe generado el: ${new Date().toLocaleString('es-CO')}`,
+        doc.text(`Informe generado el: ${new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' })}`,
             pageWidth / 2, 280, { align: 'center' });
     }
 
@@ -657,7 +659,7 @@ export class PlanReportService {
 
     private formatDate(dateString: string): string {
         const date = new Date(dateString);
-        return date.toLocaleDateString('es-CO');
+        return date.toLocaleDateString('es-CO', { timeZone: 'America/Bogota' });
     }
 
     private splitText(doc: jsPDF, text: string, maxWidth: number): string[] {

@@ -564,7 +564,7 @@ async def delete_actividad(
 # Gestión de Evidencias
 # ==============================================
 
-@router.post("/{slug}/actividades/{actividad_id}/evidencia", response_model=schemas.EvidenciaResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/{slug}/actividades/{actividad_id}/evidencia", response_model=schemas.ActividadResponse, status_code=status.HTTP_201_CREATED)
 async def create_evidencia(
     slug: str,
     actividad_id: int,
@@ -572,7 +572,7 @@ async def create_evidencia(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Registra evidencia de cumplimiento de una actividad"""
+    """Registra evidencia de cumplimiento de una actividad y retorna la actividad actualizada"""
     entity = get_entity_or_404(db, slug)
     ensure_user_can_manage_entity(current_user, entity)
     
@@ -604,11 +604,13 @@ async def create_evidencia(
     
     # Actualizar estado de la actividad a COMPLETADA
     actividad.estado = 'COMPLETADA'
+    actividad.updated_at = datetime.utcnow()
     
     db.commit()
-    db.refresh(nueva_evidencia)
+    db.refresh(actividad)
     
-    return schemas.EvidenciaResponse.model_validate(nueva_evidencia)
+    # ✅ RETORNAR LA ACTIVIDAD COMPLETA CON EVIDENCIA INCLUIDA
+    return schemas.ActividadResponse.model_validate(actividad)
 
 
 @router.get("/{slug}/actividades/{actividad_id}/evidencia", response_model=schemas.EvidenciaResponse)

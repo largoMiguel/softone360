@@ -357,21 +357,29 @@ async def upload_ejecucion_excel(
 @router.get("/{codigo_producto}", response_model=PDMEjecucionResumen)
 async def get_ejecucion_por_producto(
     codigo_producto: str,
+    anio: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
     Obtiene el resumen de ejecución presupuestal para un producto PDM específico.
+    Opcionalmente filtra por año.
     
     Retorna:
     - Lista única de fuentes (DESCRIPCIÓN FTE.)
     - Totales de cada columna presupuestal
     """
-    # Obtener todos los registros de este producto para esta entidad
-    registros = db.query(PDMEjecucionPresupuestal).filter(
+    # Construir query base
+    query = db.query(PDMEjecucionPresupuestal).filter(
         PDMEjecucionPresupuestal.codigo_producto == codigo_producto,
         PDMEjecucionPresupuestal.entity_id == current_user.entity_id
-    ).all()
+    )
+    
+    # Filtrar por año si se proporciona
+    if anio:
+        query = query.filter(PDMEjecucionPresupuestal.anio == anio)
+    
+    registros = query.all()
     
     if not registros:
         raise HTTPException(

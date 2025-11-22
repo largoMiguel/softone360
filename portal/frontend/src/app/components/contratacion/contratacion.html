@@ -498,7 +498,7 @@
                             </span>
                             <span class="chip">
                                 <i class="far fa-clock"></i>
-                                <span class="chip-text">{{ p.ultima_actualizacion | date:'dd/MM/yyyy' }}</span>
+                                <span class="chip-text">{{ p.ultima_actualizacion | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</span>
                             </span>
                         </div>
 
@@ -506,12 +506,12 @@
                         <div class="card-dates">
                             <div class="date-item">
                                 <i class="far fa-calendar"></i>
-                                <span>{{ p.fecha_de_inicio_del_contrato | date:'dd/MM/yyyy' }}</span>
+                                <span>{{ p.fecha_de_inicio_del_contrato | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</span>
                             </div>
                             <div class="date-separator">→</div>
                             <div class="date-item">
                                 <i class="far fa-calendar-check"></i>
-                                <span>{{ p.fecha_de_fin_del_contrato | date:'dd/MM/yyyy' }}</span>
+                                <span>{{ p.fecha_de_fin_del_contrato | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</span>
                             </div>
                         </div>
 
@@ -601,11 +601,11 @@
                     <div class="modal-section">
                         <div class="modal-field">
                             <span class="label">Fecha inicio</span>
-                            <span class="value">{{ selectedProceso.fecha_de_inicio_del_contrato | date:'dd/MM/yyyy' }}</span>
+                            <span class="value">{{ selectedProceso.fecha_de_inicio_del_contrato | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</span>
                         </div>
                         <div class="modal-field">
                             <span class="label">Fecha fin</span>
-                            <span class="value">{{ selectedProceso.fecha_de_fin_del_contrato | date:'dd/MM/yyyy' }}</span>
+                            <span class="value">{{ selectedProceso.fecha_de_fin_del_contrato | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</span>
                         </div>
                         <div class="modal-field">
                             <span class="label">Duración</span>
@@ -628,8 +628,7 @@
                         </div>
                         <div class="modal-field">
                             <span class="label">Última actualización</span>
-                            <span class="value">{{ selectedProceso.ultima_actualizacion | date:'dd/MM/yyyy'
-                                }}</span>
+                            <span class="value">{{ selectedProceso.ultima_actualizacion | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</span>
                         </div>
                     </div>
                     <div class="modal-section">
@@ -662,8 +661,7 @@
                         </div>
                         <div class="modal-field">
                             <span class="label">Inicio de liquidación</span>
-                            <span class="value">{{ selectedProceso.fecha_inicio_liquidacion | date:'dd/MM/yyyy'
-                                }}</span>
+                            <span class="value">{{ selectedProceso.fecha_inicio_liquidacion | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</span>
                         </div>
                     </div>
                 </div>
