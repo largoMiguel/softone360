@@ -66,13 +66,10 @@ export class PdmComponent implements OnInit, OnDestroy {
     
     // Modales
     mostrarModalActividad = false;
-    mostrarModalEvidencia = false;
     actividadEnEdicion: ActividadPDM | null = null;
-    actividadParaEvidencia: ActividadPDM | null = null;
     
     // Formularios
     formularioActividad!: FormGroup;
-    formularioEvidencia!: FormGroup;
 
     // Secretarios para dropdown
     secretarios: any[] = [];
@@ -107,6 +104,9 @@ export class PdmComponent implements OnInit, OnDestroy {
     ejecucionPresupuestal: PDMEjecucionResumen | null = null;
     cargandoEjecucion = false;
     archivoEjecucionCargado = false;
+    mostrarModalEjecucion = false;
+    anioEjecucionSeleccionado = 2025;
+    archivoEjecucionTemporal: File | null = null;
 
     // ✅ NUEVO: Indicador de carga de actividades desde backend
     cargandoActividadesBackend = false;
@@ -413,7 +413,10 @@ export class PdmComponent implements OnInit, OnDestroy {
      */
     onEjecucionFileSelected(event: Event) {
         const input = event.target as HTMLInputElement;
-        if (!input.files || input.files.length === 0) return;
+        if (!input.files || input.files.length === 0) {
+            this.archivoEjecucionTemporal = null;
+            return;
+        }
 
         const file = input.files[0];
         
@@ -421,9 +424,43 @@ export class PdmComponent implements OnInit, OnDestroy {
         const extension = file.name.split('.').pop()?.toLowerCase();
         if (extension !== 'xlsx' && extension !== 'xls' && extension !== 'csv') {
             this.showToast('Por favor seleccione un archivo válido (.xlsx, .xls o .csv)', 'error');
+            this.archivoEjecucionTemporal = null;
             return;
         }
 
+        this.archivoEjecucionTemporal = file;
+    }
+
+    /**
+     * Abre el modal para seleccionar año y archivo de ejecución
+     */
+    abrirModalEjecucion() {
+        this.mostrarModalEjecucion = true;
+        this.anioEjecucionSeleccionado = new Date().getFullYear();
+        this.archivoEjecucionTemporal = null;
+    }
+
+    /**
+     * Cierra el modal de ejecución
+     */
+    cerrarModalEjecucion() {
+        this.mostrarModalEjecucion = false;
+        this.archivoEjecucionTemporal = null;
+    }
+
+    /**
+     * Confirma y procesa la carga de ejecución presupuestal
+     */
+    confirmarCargaEjecucion() {
+        // Guardar referencia antes de que el modal limpie la variable
+        const file = this.archivoEjecucionTemporal;
+        if (!file) {
+            this.showToast('Por favor seleccione un archivo', 'error');
+            return;
+        }
+        // Cerrar modal (esto limpia archivoEjecucionTemporal)
+        this.cerrarModalEjecucion();
+        // Iniciar carga con la referencia guardada
         this.cargarArchivoEjecucion(file);
     }
 
@@ -431,14 +468,22 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Carga el archivo de ejecución presupuestal al backend
      */
     private cargarArchivoEjecucion(file: File) {
-        this.cargando = true;
-        this.pdmEjecucionService.uploadEjecucion(file).subscribe({
+        if (!file) {
+            console.error('⚠️ cargarArchivoEjecucion invocado sin archivo');
+            return;
+        }
+        // Usar bandera específica (evitar confundir con carga del Excel principal)
+        this.cargandoEjecucion = true;
+        const mensaje = `Cargando ejecución presupuestal para el año ${this.anioEjecucionSeleccionado}...`;
+        console.log('📊', mensaje, `FILE(${file.name}, size=${file.size})`);
+        
+        this.pdmEjecucionService.uploadEjecucion(file, this.anioEjecucionSeleccionado).subscribe({
             next: (response) => {
-                this.cargando = false;
+                this.cargandoEjecucion = false;
                 this.archivoEjecucionCargado = true;
                 
-                const mensaje = `Excel de ejecución cargado: ${response.registros_insertados} registros procesados`;
-                this.showToast(mensaje, 'success');
+                const msg = `Ejecución ${this.anioEjecucionSeleccionado} cargada: ${response.registros_insertados} registros. Los datos anteriores han sido actualizados.`;
+                this.showToast(msg, 'success');
                 
                 // Si hay errores, mostrarlos en consola
                 if (response.errores && response.errores.length > 0) {
@@ -449,10 +494,13 @@ export class PdmComponent implements OnInit, OnDestroy {
                 if (this.productoSeleccionado) {
                     this.cargarEjecucionPresupuestal(this.productoSeleccionado.codigo);
                 }
+                // Limpiar referencia del archivo después de procesar
+                this.archivoEjecucionTemporal = null;
             },
             error: (error) => {
                 console.error('❌ Error al cargar ejecución:', error);
-                this.cargando = false;
+                this.cargandoEjecucion = false;
+                this.archivoEjecucionTemporal = null;
                 const mensaje = error.error?.detail || 'Error al cargar el archivo de ejecución';
                 this.showToast(mensaje, 'error');
             }
@@ -588,20 +636,52 @@ export class PdmComponent implements OnInit, OnDestroy {
 
     /**
      * Carga la ejecución presupuestal para un producto PDM
+     * Filtra por el año seleccionado en actividades
      */
-    private cargarEjecucionPresupuestal(codigoProducto: string): void {
+    private cargarEjecucionPresupuestal(codigoProducto: string, anio?: number): void {
         this.cargandoEjecucion = true;
         this.ejecucionPresupuestal = null;
 
-        this.pdmEjecucionService.getEjecucionPorProducto(codigoProducto).subscribe({
+        // Usar el año seleccionado en actividades si no se proporciona uno específico
+        const anioFiltro = anio || this.anioSeleccionado;
+
+        this.pdmEjecucionService.getEjecucionPorProducto(codigoProducto, anioFiltro).subscribe({
             next: (ejecucion) => {
                 this.ejecucionPresupuestal = ejecucion;
                 this.cargandoEjecucion = false;
             },
             error: (error) => {
+                // No mostrar error 404, es normal que no haya ejecución para todos los productos
+                if (error.status !== 404) {
+                    console.warn('⚠️ Error al cargar ejecución presupuestal:', error);
+                }
                 this.ejecucionPresupuestal = null;
                 this.cargandoEjecucion = false;
             }
+        });
+    }
+
+    /**
+     * Obtiene la comparativa presupuestal entre PDM y Ejecución por año
+     * Solo muestra el año actualmente seleccionado en el tab de actividades
+     */
+    getComparativaPresupuestal(): { anio: number; pdm: number; ejecucion: number; diferencia: number; porcentaje: number }[] {
+        if (!this.productoSeleccionado) {
+            return [];
+        }
+
+        // Si no hay ejecución cargada (404 para ese año) mostrar ejecución = 0 en todos
+        const tieneEjecucion = !!this.ejecucionPresupuestal;
+        const ejecucionSeleccionada = tieneEjecucion ? Number(this.ejecucionPresupuestal!.totales.pto_definitivo || 0) : 0;
+
+        // Mostrar siempre los 4 años para que el usuario vea dónde existe ejecución
+        const anios = [2024, 2025, 2026, 2027];
+        return anios.map(anio => {
+            const pdm = this.productoSeleccionado![`total_${anio}` as keyof ResumenProducto] as number || 0;
+            const ejecucion = (anio === this.anioSeleccionado) ? ejecucionSeleccionada : 0; // Solo año activo tiene ejecución
+            const diferencia = ejecucion - pdm;
+            const porcentaje = pdm > 0 ? (ejecucion / pdm) * 100 : 0;
+            return { anio, pdm, ejecucion, diferencia, porcentaje };
         });
     }
 
@@ -1046,6 +1126,11 @@ export class PdmComponent implements OnInit, OnDestroy {
         // ✅ MEJORADO: Recargar actividades y actualizar estadísticas
         this.actualizarResumenActividades(true);
         
+        // ✅ NUEVO: Recargar ejecución presupuestal para el nuevo año
+        if (this.productoSeleccionado) {
+            this.cargarEjecucionPresupuestal(this.productoSeleccionado.codigo, anio);
+        }
+        
         // Si estamos en analytics, regenerar con datos del nuevo año
         if (this.vistaActual === 'analytics') {
             this.generarAnalytics();
@@ -1069,15 +1154,32 @@ export class PdmComponent implements OnInit, OnDestroy {
         const responsableProducto = this.productoSeleccionado.responsable_id || null;
         const responsableNombre = this.productoSeleccionado.responsable_nombre || '';
 
+        // Fechas preseleccionadas: 1 de enero y 31 de diciembre del año seleccionado
+        const fechaInicio = `${this.anioSeleccionado}-01-01`;
+        const fechaFin = `${this.anioSeleccionado}-12-31`;
+
+        // Obtener secretaria_id del usuario actual si es secretario
+        const currentUser = this.authService.getCurrentUserValue();
+        const esSecretario = currentUser?.role === 'secretario';
+        const secretariaId = esSecretario ? currentUser?.secretaria_id : null;
+
         this.formularioActividad = this.fb.group({
             nombre: ['', [Validators.required, Validators.minLength(5)]],
             descripcion: ['', [Validators.required, Validators.minLength(10)]],
-            responsable_secretaria_id: [null, Validators.required],
-            estado: ['PENDIENTE', Validators.required],
-            fecha_inicio: ['', Validators.required],
-            fecha_fin: ['', Validators.required],
-            meta_ejecutar: [0, [Validators.required, Validators.min(0.01), Validators.max(metaDisponible)]]
+            responsable_secretaria_id: [secretariaId, Validators.required],
+            estado: ['COMPLETADA', Validators.required], // Siempre COMPLETADA al tener evidencia
+            fecha_inicio: [fechaInicio, Validators.required],
+            fecha_fin: [fechaFin, Validators.required],
+            meta_ejecutar: [0, [Validators.required, Validators.min(0.01), Validators.max(metaDisponible)]],
+            // Campos de evidencia OBLIGATORIOS
+            evidencia_url: [''],
+            imagenes: [[]]
         });
+
+        // Si es secretario, deshabilitar el campo de secretaría
+        if (esSecretario) {
+            this.formularioActividad.get('responsable_secretaria_id')?.disable();
+        }
 
         // Cargar lista de secretarios
         this.cargarSecretarios();
@@ -1106,7 +1208,10 @@ export class PdmComponent implements OnInit, OnDestroy {
             estado: [actividad.estado, Validators.required],
             fecha_inicio: [actividad.fecha_inicio.split('T')[0], Validators.required],
             fecha_fin: [actividad.fecha_fin.split('T')[0], Validators.required],
-            meta_ejecutar: [actividad.meta_ejecutar, [Validators.required, Validators.min(0.01), Validators.max(validacion.disponible)]]
+            meta_ejecutar: [actividad.meta_ejecutar, [Validators.required, Validators.min(0.01), Validators.max(validacion.disponible)]],
+            // Campos de evidencia OBLIGATORIOS
+            evidencia_url: [''],
+            imagenes: [[]]
         });
 
         // Cargar lista de secretarios
@@ -1116,10 +1221,16 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Guarda una actividad (crear o actualizar)
+     * Guarda una actividad (crear o actualizar) con evidencia OBLIGATORIA
      */
     guardarActividad() {
         if (!this.formularioActividad.valid || !this.productoSeleccionado) return;
+
+        // Verificar que hay evidencia (obligatorio)
+        if (!this.tieneEvidenciaValida()) {
+            this.showToast('Debe proporcionar al menos una URL de evidencia o cargar imágenes', 'error');
+            return;
+        }
 
         // Usar getRawValue() para obtener también valores de campos deshabilitados
         const valores = this.formularioActividad.getRawValue();
@@ -1142,38 +1253,74 @@ export class PdmComponent implements OnInit, OnDestroy {
             anio: this.anioSeleccionado,
             nombre: valores.nombre,
             descripcion: valores.descripcion,
-            responsable_secretaria_id: valores.responsable_secretaria_id, // ID de la secretaría responsable
-            estado: valores.estado,
+            responsable_secretaria_id: valores.responsable_secretaria_id,
+            estado: 'COMPLETADA', // Siempre COMPLETADA porque evidencia es obligatoria
             fecha_inicio: new Date(valores.fecha_inicio).toISOString(),
             fecha_fin: new Date(valores.fecha_fin).toISOString(),
             meta_ejecutar: valores.meta_ejecutar
         };
 
         if (this.actividadEnEdicion) {
-            // Actualizar
+            // Actualizar actividad existente
             this.pdmService.actualizarActividad(this.actividadEnEdicion.id!, actividadData).subscribe({
-                next: () => {
-                    this.showToast('Actividad actualizada exitosamente', 'success');
-                    this.cerrarModalActividad();
-                    this.actualizarResumenActividades();
+                next: (actividadActualizada) => {
+                    // Siempre registrar evidencia (obligatoria)
+                    if (actividadActualizada?.id) {
+                        this.registrarEvidenciaActividad(actividadActualizada.id, valores);
+                    } else {
+                        this.showToast('Actividad actualizada exitosamente', 'success');
+                        this.cerrarModalActividad();
+                        this.actualizarResumenActividades(true);
+                    }
                 },
                 error: () => {
-                    this.showToast('Error al actualizar la actividad', 'error');
+                    this.showToast('Error al actualizar la evidencia de ejecución', 'error');
                 }
             });
         } else {
-            // Crear
+            // Crear nueva actividad
             this.pdmService.crearActividad(actividadData).subscribe({
-                next: () => {
-                    this.showToast('Actividad creada exitosamente', 'success');
-                    this.cerrarModalActividad();
-                    this.actualizarResumenActividades();
+                next: (actividadCreada) => {
+                    // Siempre registrar evidencia (obligatoria)
+                    if (actividadCreada?.id) {
+                        this.registrarEvidenciaActividad(actividadCreada.id, valores);
+                    } else {
+                        this.showToast('Evidencia de ejecución creada exitosamente', 'success');
+                        this.cerrarModalActividad();
+                        this.actualizarResumenActividades(true);
+                    }
                 },
                 error: () => {
-                    this.showToast('Error al crear la actividad', 'error');
+                    this.showToast('Error al crear la evidencia de ejecución', 'error');
                 }
             });
         }
+    }
+
+    /**
+     * Registra la evidencia de una actividad
+     */
+    private registrarEvidenciaActividad(actividadId: number, valores: any) {
+        const evidenciaData: EvidenciaActividad = {
+            descripcion: valores.descripcion, // Usar la descripción principal
+            url_evidencia: valores.evidencia_url || undefined,
+            imagenes: valores.imagenes || [],
+            fecha_registro: new Date().toISOString()
+        };
+
+        this.pdmService.registrarEvidencia(actividadId, evidenciaData).subscribe({
+            next: () => {
+                this.showToast('Evidencia de ejecución registrada exitosamente', 'success');
+                this.cerrarModalActividad();
+                // IMPORTANTE: Recargar desde backend para mostrar la evidencia inmediatamente
+                this.actualizarResumenActividades(true);
+            },
+            error: () => {
+                this.showToast('Error al registrar la evidencia de ejecución', 'error');
+                this.cerrarModalActividad();
+                this.actualizarResumenActividades(true);
+            }
+        });
     }
 
     /**
@@ -1191,11 +1338,11 @@ export class PdmComponent implements OnInit, OnDestroy {
 
         this.pdmService.eliminarActividad(actividad.id!).subscribe({
             next: () => {
-                this.showToast('Actividad eliminada exitosamente', 'success');
-                this.actualizarResumenActividades();
+                this.showToast('Evidencia de ejecución eliminada exitosamente', 'success');
+                this.actualizarResumenActividades(true);
             },
             error: () => {
-                this.showToast('Error al eliminar la actividad', 'error');
+                this.showToast('Error al eliminar la evidencia de ejecución', 'error');
             }
         });
     }
@@ -1217,25 +1364,23 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Abre el modal para registrar evidencia
+     * Verifica si el usuario puede crear evidencias (Admin o Secretario)
      */
-    abrirModalEvidencia(actividad: ActividadPDM) {
-        if (actividad.evidencia) {
-            this.showToast('Esta actividad ya tiene evidencia registrada', 'info');
-            return;
-        }
-
-        this.actividadParaEvidencia = actividad;
-        this.formularioEvidencia = this.fb.group({
-            descripcion: ['', [Validators.required, Validators.minLength(10)]],
-            url_evidencia: [''],
-            imagenes: [[]]
-        }, {
-            validators: this.validarEvidenciaRequerida
-        });
-
-        this.mostrarModalEvidencia = true;
+    puedeCrearEvidencia(): boolean {
+        const currentUser = this.authService.getCurrentUserValue();
+        return currentUser?.role === 'admin' || 
+               currentUser?.role === 'superadmin' || 
+               currentUser?.role === 'secretario';
     }
+
+    /**
+     * Verifica si el usuario puede cargar archivos de ejecución presupuestal (solo Admin)
+     */
+    puedeCargarArchivosEjecucion(): boolean {
+        const currentUser = this.authService.getCurrentUserValue();
+        return currentUser?.role === 'admin' || currentUser?.role === 'superadmin';
+    }
+
 
     /**
      * Carga la lista de secretarios de la entidad
@@ -1305,22 +1450,6 @@ export class PdmComponent implements OnInit, OnDestroy {
         this.cargandoSecretarios = false;
     }
 
-    /**
-     * Validador custom: debe haber URL o al menos una imagen
-     */
-    validarEvidenciaRequerida(group: FormGroup): {[key: string]: boolean} | null {
-        const url = group.get('url_evidencia')?.value;
-        const imagenes = group.get('imagenes')?.value || [];
-        
-        const tieneUrl = url && url.trim() !== '';
-        const tieneImagenes = imagenes.length > 0;
-        
-        if (!tieneUrl && !tieneImagenes) {
-            return { evidenciaRequerida: true };
-        }
-        
-        return null;
-    }
 
     /**
      * Maneja la carga de imágenes para evidencia
@@ -1356,47 +1485,34 @@ export class PdmComponent implements OnInit, OnDestroy {
         });
 
         Promise.all(promesas).then(imagenes => {
-            this.formularioEvidencia.patchValue({ imagenes });
+            this.formularioActividad.patchValue({ imagenes });
         }).catch(() => {
             this.showToast('Error al procesar las imágenes', 'error');
         });
     }
 
     /**
-     * Guarda la evidencia y marca la actividad como completada
+     * Elimina una imagen de la lista
      */
-    guardarEvidencia() {
-        if (!this.formularioEvidencia.valid || !this.actividadParaEvidencia) return;
-
-        const valores = this.formularioEvidencia.value;
-        const evidencia: EvidenciaActividad = {
-            descripcion: valores.descripcion,
-            url_evidencia: valores.url_evidencia || undefined,
-            imagenes: valores.imagenes || [],
-            fecha_registro: new Date().toISOString()
-        };
-
-        this.pdmService.registrarEvidencia(this.actividadParaEvidencia.id!, evidencia).subscribe({
-            next: () => {
-                this.showToast('Evidencia registrada exitosamente. Actividad completada.', 'success');
-                this.cerrarModalEvidencia();
-                // Recargar actividades desde backend para reflejar el estado actualizado
-                this.actualizarResumenActividades(true);
-            },
-            error: () => {
-                this.showToast('Error al registrar la evidencia', 'error');
-            }
-        });
+    eliminarImagen(index: number) {
+        const imagenesActuales = this.formularioActividad.get('imagenes')?.value || [];
+        imagenesActuales.splice(index, 1);
+        this.formularioActividad.patchValue({ imagenes: imagenesActuales });
     }
 
     /**
-     * Cierra el modal de evidencia
+     * Valida que haya evidencia (URL o imágenes) - OBLIGATORIO
      */
-    cerrarModalEvidencia() {
-        this.mostrarModalEvidencia = false;
-        this.actividadParaEvidencia = null;
-        this.formularioEvidencia.reset();
+    tieneEvidenciaValida(): boolean {
+        const url = this.formularioActividad.get('evidencia_url')?.value;
+        const imagenes = this.formularioActividad.get('imagenes')?.value || [];
+        
+        const tieneUrl = url && url.trim() !== '';
+        const tieneImagenes = imagenes.length > 0;
+        
+        return tieneUrl || tieneImagenes;
     }
+
 
     /**
      * Obtiene el color del badge según el estado de la actividad
@@ -1518,8 +1634,6 @@ export class PdmComponent implements OnInit, OnDestroy {
         const resumenActividades = this.pdmService.obtenerResumenActividadesPorAnio(producto, anio);
 
         // DEBUG: Log para entender qué está pasando
-        if (producto.codigo === '2201029') {
-        }
 
         // Año futuro: siempre POR_EJECUTAR
         if (anio > new Date().getFullYear()) {
@@ -1529,8 +1643,6 @@ export class PdmComponent implements OnInit, OnDestroy {
         // ✅ Basado en el avance calculado
         // Estado COMPLETADO: avance EXACTAMENTE 100%
         if (avance === 100) {
-            if (producto.codigo === '2201029') {
-            }
             return 'COMPLETADO';
         }
         
@@ -1540,8 +1652,6 @@ export class PdmComponent implements OnInit, OnDestroy {
         
         // Si tiene actividades: EN_PROGRESO
         if (resumenActividades.total_actividades > 0) {
-            if (producto.codigo === '2201029') {
-            }
             return 'EN_PROGRESO';
         }
 
