@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     # Migration secret key (para endpoint de migraciones)
     migration_secret_key: str = "change-me-in-production-migration-key-2024"
     
+    # AWS SES Email Configuration
+    aws_ses_region: str = "us-east-1"  # Región donde está configurado SES
+    email_from: str = "noreply@tudominio.com"  # Correo verificado en AWS SES
+    email_from_name: str = "Sistema PQRS"  # Nombre del remitente
+    
     @property
     def cors_origins(self) -> List[str]:
         """Convierte la cadena de orígenes permitidos en una lista"""

@@ -10,10 +10,12 @@ import os
 from app.config.database import get_db
 from app.models.pqrs import PQRS, EstadoPQRS, AsignacionAuditoria
 from app.models.user import User, UserRole
+from app.models.entity import Entity
 from app.schemas.pqrs import PQRSCreate, PQRSUpdate, PQRS as PQRSSchema, PQRSWithDetails, PQRSResponse
 from app.models.alert import Alert
 from app.utils.auth import get_current_active_user, require_admin
 from app.utils.helpers import generate_radicado
+from app.utils.email_service import email_service
 
 router = APIRouter(prefix="/pqrs", tags=["PQRS"])
 
@@ -104,6 +106,32 @@ async def create_pqrs(
         db.add(db_pqrs)
         db.commit()
         db.refresh(db_pqrs)
+
+        # Enviar correo de confirmación al ciudadano si tiene email
+        if pqrs_data.email_ciudadano:
+            try:
+                # Obtener información de la entidad para el correo
+                entity = db.query(Entity).filter(Entity.id == pqrs_data.entity_id).first()
+                entity_name = entity.name if entity else "Sistema PQRS"
+                entity_email = entity.email if entity and entity.email else None
+                
+                # Enviar correo de radicación
+                email_service.send_pqrs_radicada_notification(
+                    to_email=pqrs_data.email_ciudadano,
+                    numero_radicado=numero_radicado,
+                    tipo_solicitud=pqrs_data.tipo_solicitud.value,
+                    asunto=pqrs_data.asunto or "Sin asunto",
+                    nombre_ciudadano=pqrs_data.nombre_ciudadano or "Ciudadano",
+                    entity_name=entity_name,
+                    fecha_radicacion=db_pqrs.fecha_solicitud.strftime("%Y-%m-%d %H:%M:%S"),
+                    entity_email=entity_email  # Email de la entidad como remitente
+                )
+                print(f"✅ Correo de radicación enviado a {pqrs_data.email_ciudadano}")
+            except Exception as email_error:
+                # No interrumpir el flujo si falla el envío del correo
+                import traceback
+                print(f"⚠️ Error enviando correo de radicación: {email_error}")
+                print(f"Traceback completo: {traceback.format_exc()}")
 
         # Crear alertas: nueva PQRS para admins de la entidad
         try:
@@ -485,6 +513,33 @@ async def respond_pqrs(
     
     db.commit()
     db.refresh(pqrs)
+    
+    # Enviar correo de respuesta al ciudadano si tiene email
+    if pqrs.email_ciudadano:
+        try:
+            # Obtener información de la entidad
+            entity = db.query(Entity).filter(Entity.id == pqrs.entity_id).first()
+            entity_name = entity.name if entity else "Sistema PQRS"
+            entity_email = entity.email if entity and entity.email else None
+            
+            # Enviar correo de respuesta
+            email_service.send_pqrs_respuesta_notification(
+                to_email=pqrs.email_ciudadano,
+                numero_radicado=pqrs.numero_radicado,
+                asunto=pqrs.asunto,
+                nombre_ciudadano=pqrs.nombre_ciudadano or "Ciudadano",
+                respuesta=response_data.respuesta,
+                entity_name=entity_name,
+                fecha_respuesta=pqrs.fecha_respuesta.strftime("%Y-%m-%d %H:%M:%S"),
+                archivo_adjunto_url=pqrs.archivo_respuesta,  # Incluir archivo si existe
+                entity_email=entity_email  # Email de la entidad como remitente
+            )
+            print(f"✅ Correo de respuesta enviado a {pqrs.email_ciudadano}")
+        except Exception as email_error:
+            # No interrumpir el flujo si falla el envío del correo
+            import traceback
+            print(f"⚠️ Error enviando correo de respuesta: {email_error}")
+            print(f"Traceback completo: {traceback.format_exc()}")
     
     return pqrs
 

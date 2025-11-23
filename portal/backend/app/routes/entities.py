@@ -152,6 +152,17 @@ async def update_entity(
     # Actualizar campos si se proporcionan
     update_data = entity_data.dict(exclude_unset=True)
     
+    # Validar formato de email si se está actualizando
+    if "email" in update_data and update_data["email"]:
+        email = update_data["email"].lower().strip()
+        # Validar que sea un correo @gov.co (opcional, puedes quitar esta validación)
+        if not email.endswith(".gov.co"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El correo debe ser del dominio .gov.co"
+            )
+        update_data["email"] = email
+    
     # Verificar unicidad de código y nombre si se están cambiando
     if "code" in update_data and update_data["code"] != entity.code:
         existing = db.query(Entity).filter(Entity.code == update_data["code"]).first()
