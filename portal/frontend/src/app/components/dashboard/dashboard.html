@@ -1103,6 +1103,9 @@
                                 <i class="fas fa-circle me-1" style="font-size: 0.5rem;"></i>
                                 {{ getEstadoLabel(selectedPqrs.estado) }}
                             </span>
+                            <button class="btn btn-warning btn-sm" *ngIf="isAdmin()" (click)="abrirFormularioEdicion(selectedPqrs)" title="Editar PQRS">
+                                <i class="fas fa-edit me-1"></i>Editar
+                            </button>
                             <button class="btn btn-light btn-sm" (click)="cerrarDetalles()">
                                 <i class="fas fa-times"></i>
                             </button>
@@ -1116,36 +1119,36 @@
                         <div class="col-md-3">
                             <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                                 <div class="card-body text-white text-center">
-                                    <i class="fas fa-hashtag fa-2x mb-2 opacity-75"></i>
-                                    <h6 class="mb-1 small text-uppercase opacity-75">Radicado</h6>
-                                    <h4 class="mb-0 fw-bold">{{ selectedPqrs.numero_radicado }}</h4>
+                                    <i class="fas fa-hashtag fa-2x mb-2" style="opacity: 0.9;"></i>
+                                    <h6 class="mb-1 small text-uppercase fw-semibold">Radicado</h6>
+                                    <h4 class="mb-0 fw-bold fs-5">{{ selectedPqrs.numero_radicado }}</h4>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="card border-0 shadow-sm h-100" [ngClass]="getDiasRestantes(selectedPqrs) <= 2 ? 'bg-danger' : (getDiasRestantes(selectedPqrs) <= 5 ? 'bg-warning' : 'bg-success')">
-                                <div class="card-body text-white text-center">
-                                    <i class="fas fa-clock fa-2x mb-2 opacity-75"></i>
-                                    <h6 class="mb-1 small text-uppercase opacity-75">Días Restantes</h6>
-                                    <h4 class="mb-0 fw-bold">{{ getDiasRestantes(selectedPqrs) }}</h4>
+                            <div class="card border-0 shadow-sm h-100" [ngClass]="getDiasRestantes(selectedPqrs) <= 2 ? 'bg-danger' : (getDiasRestantes(selectedPqrs) <= 5 ? 'bg-warning text-dark' : 'bg-success')">
+                                <div class="card-body" [ngClass]="getDiasRestantes(selectedPqrs) <= 5 && getDiasRestantes(selectedPqrs) > 2 ? 'text-dark' : 'text-white'" style="text-align: center;">
+                                    <i class="fas fa-clock fa-2x mb-2" style="opacity: 0.9;"></i>
+                                    <h6 class="mb-1 small text-uppercase fw-semibold">Días Restantes</h6>
+                                    <h4 class="mb-0 fw-bold fs-5">{{ getDiasRestantes(selectedPqrs) }}</h4>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="card border-0 shadow-sm h-100 bg-info">
+                            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #17a2b8 0%, #117a8b 100%);">
                                 <div class="card-body text-white text-center">
-                                    <i class="fas fa-calendar-check fa-2x mb-2 opacity-75"></i>
-                                    <h6 class="mb-1 small text-uppercase opacity-75">Plazo Total</h6>
-                                    <h4 class="mb-0 fw-bold">{{ selectedPqrs.dias_respuesta || 15 }} días</h4>
+                                    <i class="fas fa-calendar-check fa-2x mb-2" style="opacity: 0.9;"></i>
+                                    <h6 class="mb-1 small text-uppercase fw-semibold">Plazo Total</h6>
+                                    <h4 class="mb-0 fw-bold fs-5">{{ selectedPqrs.dias_respuesta || 15 }} días</h4>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="card border-0 shadow-sm h-100" [ngClass]="estaVencida(selectedPqrs) ? 'bg-danger' : 'bg-secondary'">
+                            <div class="card border-0 shadow-sm h-100" [ngClass]="estaVencida(selectedPqrs) ? 'bg-danger' : 'bg-success'">
                                 <div class="card-body text-white text-center">
-                                    <i [ngClass]="estaVencida(selectedPqrs) ? 'fas fa-exclamation-triangle' : 'fas fa-check-circle'" class="fa-2x mb-2 opacity-75"></i>
-                                    <h6 class="mb-1 small text-uppercase opacity-75">{{ estaVencida(selectedPqrs) ? 'Días Vencidos' : 'Estado' }}</h6>
-                                    <h4 class="mb-0 fw-bold">{{ estaVencida(selectedPqrs) ? getDiasVencidos(selectedPqrs) : 'Al día' }}</h4>
+                                    <i [ngClass]="estaVencida(selectedPqrs) ? 'fas fa-exclamation-triangle' : 'fas fa-check-circle'" class="fa-2x mb-2" style="opacity: 0.9;"></i>
+                                    <h6 class="mb-1 small text-uppercase fw-semibold">{{ estaVencida(selectedPqrs) ? 'Días Vencidos' : 'Estado' }}</h6>
+                                    <h4 class="mb-0 fw-bold fs-5">{{ estaVencida(selectedPqrs) ? getDiasVencidos(selectedPqrs) : 'Al día' }}</h4>
                                 </div>
                             </div>
                         </div>
@@ -1559,50 +1562,126 @@
                         </h5>
                         <button type="button" class="btn-close btn-close-white" (click)="cancelarEdicion()"></button>
                     </div>
-                    <div class="modal-body">
+                    <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
                         <form [formGroup]="editarPqrsForm">
                             <div class="row">
+                                <!-- Tipo de Solicitud -->
                                 <div class="col-md-6 mb-3">
-                                    <label for="edit_tipo_solicitud" class="form-label">Tipo de Solicitud *</label>
-                                    <select id="edit_tipo_solicitud" formControlName="tipo_solicitud"
-                                        class="form-select" required>
+                                    <label for="edit_tipo_solicitud" class="form-label">
+                                        <i class="fas fa-file-alt me-1"></i>Tipo de Solicitud *
+                                    </label>
+                                    <select id="edit_tipo_solicitud" formControlName="tipo_solicitud" class="form-select" required>
                                         <option value="">Seleccione...</option>
                                         <option value="peticion">Petición</option>
                                         <option value="queja">Queja</option>
                                         <option value="reclamo">Reclamo</option>
                                         <option value="sugerencia">Sugerencia</option>
+                                        <option value="felicitacion">Felicitación</option>
+                                        <option value="denuncia">Denuncia</option>
                                     </select>
                                 </div>
 
+                                <!-- Canal de Llegada -->
                                 <div class="col-md-6 mb-3">
-                                    <label for="edit_cedula_ciudadano" class="form-label">Cédula del Ciudadano *</label>
-                                    <input type="text" id="edit_cedula_ciudadano" formControlName="cedula_ciudadano"
-                                        class="form-control" required>
+                                    <label for="edit_canal_llegada" class="form-label">
+                                        <i class="fas fa-inbox me-1"></i>Canal de Llegada *
+                                    </label>
+                                    <select id="edit_canal_llegada" formControlName="canal_llegada" class="form-select" required>
+                                        <option value="correo">Correo Electrónico</option>
+                                        <option value="carta">Carta</option>
+                                        <option value="buzon">Buzón</option>
+                                        <option value="fisica">Física</option>
+                                        <option value="presencial">Presencial</option>
+                                        <option value="telefono">Teléfono</option>
+                                        <option value="web">Web</option>
+                                    </select>
                                 </div>
 
+                                <!-- Medio de Respuesta -->
                                 <div class="col-md-6 mb-3">
-                                    <label for="edit_nombre_ciudadano" class="form-label">Nombre del Ciudadano *</label>
+                                    <label for="edit_medio_respuesta" class="form-label">
+                                        <i class="fas fa-reply me-1"></i>Medio de Respuesta *
+                                    </label>
+                                    <select id="edit_medio_respuesta" formControlName="medio_respuesta" class="form-select" required>
+                                        <option value="email">Email</option>
+                                        <option value="fisica">Física</option>
+                                        <option value="telefono">Teléfono</option>
+                                        <option value="ticket">Ticket</option>
+                                    </select>
+                                </div>
+
+                                <!-- Días de Respuesta -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="edit_dias_respuesta" class="form-label">
+                                        <i class="fas fa-clock me-1"></i>Días para Respuesta *
+                                    </label>
+                                    <input type="number" id="edit_dias_respuesta" formControlName="dias_respuesta" 
+                                        class="form-control" min="1" max="90" required>
+                                    <small class="text-muted">Plazo máximo para responder (1-90 días)</small>
+                                </div>
+
+                                <!-- Tipo de Persona -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="edit_tipo_persona" class="form-label">
+                                        <i class="fas fa-user-tag me-1"></i>Tipo de Persona
+                                    </label>
+                                    <select id="edit_tipo_persona" formControlName="tipo_persona" class="form-select">
+                                        <option value="">Seleccione...</option>
+                                        <option value="natural">Persona Natural</option>
+                                        <option value="juridica">Persona Jurídica</option>
+                                        <option value="nna">NNA</option>
+                                        <option value="apoderado">Apoderado</option>
+                                    </select>
+                                </div>
+
+                                <!-- Género -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="edit_genero" class="form-label">
+                                        <i class="fas fa-venus-mars me-1"></i>Género
+                                    </label>
+                                    <select id="edit_genero" formControlName="genero" class="form-select">
+                                        <option value="">Seleccione...</option>
+                                        <option value="femenino">Femenino</option>
+                                        <option value="masculino">Masculino</option>
+                                        <option value="otro">Otro</option>
+                                    </select>
+                                </div>
+
+                                <!-- Datos del Ciudadano -->
+                                <div class="col-12"><hr><h6 class="text-muted"><i class="fas fa-user me-2"></i>Datos del Solicitante</h6></div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="edit_nombre_ciudadano" class="form-label">Nombre Completo *</label>
                                     <input type="text" id="edit_nombre_ciudadano" formControlName="nombre_ciudadano"
                                         class="form-control" required>
                                 </div>
 
                                 <div class="col-md-6 mb-3">
+                                    <label for="edit_cedula_ciudadano" class="form-label">Cédula/Identificación *</label>
+                                    <input type="text" id="edit_cedula_ciudadano" formControlName="cedula_ciudadano"
+                                        class="form-control" required>
+                                </div>
+
+                                <div class="col-md-4 mb-3">
                                     <label for="edit_telefono_ciudadano" class="form-label">Teléfono</label>
                                     <input type="tel" id="edit_telefono_ciudadano" formControlName="telefono_ciudadano"
                                         class="form-control">
                                 </div>
 
-                                <div class="col-md-6 mb-3">
+                                <div class="col-md-4 mb-3">
                                     <label for="edit_email_ciudadano" class="form-label">Email</label>
                                     <input type="email" id="edit_email_ciudadano" formControlName="email_ciudadano"
                                         class="form-control">
                                 </div>
 
-                                <div class="col-md-6 mb-3">
+                                <div class="col-md-4 mb-3">
                                     <label for="edit_direccion_ciudadano" class="form-label">Dirección</label>
                                     <input type="text" id="edit_direccion_ciudadano"
                                         formControlName="direccion_ciudadano" class="form-control">
                                 </div>
+
+                                <!-- Detalles de la PQRS -->
+                                <div class="col-12"><hr><h6 class="text-muted"><i class="fas fa-file-contract me-2"></i>Detalles de la PQRS</h6></div>
 
                                 <div class="col-md-6 mb-3">
                                     <label for="edit_fecha_solicitud" class="form-label">
@@ -1611,6 +1690,17 @@
                                     <input type="datetime-local" id="edit_fecha_solicitud"
                                         formControlName="fecha_solicitud" class="form-control" required>
                                     <small class="text-muted">Esta fecha afecta el cálculo de días restantes</small>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="edit_archivo" class="form-label">
+                                        <i class="fas fa-file-pdf me-1"></i>Reemplazar Archivo Adjunto
+                                    </label>
+                                    <input type="file" id="edit_archivo" class="form-control" 
+                                        accept=".pdf,.doc,.docx,.jpg,.png" (change)="onFileSelectedEdit($event)">
+                                    <small class="text-muted" *ngIf="pqrsEditando?.archivo_adjunto">
+                                        <i class="fas fa-check-circle text-success me-1"></i>Archivo actual: {{ getFilenameFromUrl(pqrsEditando?.archivo_adjunto || '') }}
+                                    </small>
                                 </div>
 
                                 <div class="col-12 mb-3">

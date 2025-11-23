@@ -88,6 +88,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   mostrarFormularioEdicion: boolean = false;
   pqrsEditando: PQRSWithDetails | null = null;
   editarPqrsForm: FormGroup;
+  selectedFileEdit: File | null = null;
 
   // Datos para gráficos
   estadosChartData: ChartData<'doughnut'> = { labels: [], datasets: [] };
@@ -265,6 +266,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     this.editarPqrsForm = this.fb.group({
       tipo_solicitud: ['', Validators.required],
+      canal_llegada: ['web', Validators.required],
+      medio_respuesta: ['email', Validators.required],
+      tipo_persona: [''],
+      genero: [''],
+      dias_respuesta: [15, [Validators.required, Validators.min(1), Validators.max(90)]],
       cedula_ciudadano: ['', Validators.required],
       nombre_ciudadano: ['', Validators.required],
       telefono_ciudadano: [''],
@@ -887,6 +893,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // Mostrar formulario de edición
   mostrarEdicionPqrs(pqrs: PQRSWithDetails): void {
     this.pqrsEditando = pqrs;
+    this.selectedFileEdit = null;
 
     // Convertir la fecha al formato requerido por input datetime-local (YYYY-MM-DDTHH:MM)
     const fechaSolicitud = new Date(pqrs.fecha_solicitud);
@@ -894,6 +901,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     this.editarPqrsForm.patchValue({
       tipo_solicitud: pqrs.tipo_solicitud,
+      canal_llegada: pqrs.canal_llegada || 'web',
+      medio_respuesta: pqrs.medio_respuesta || 'email',
+      tipo_persona: pqrs.tipo_persona || '',
+      genero: pqrs.genero || '',
+      dias_respuesta: pqrs.dias_respuesta || 15,
       cedula_ciudadano: pqrs.cedula_ciudadano,
       nombre_ciudadano: pqrs.nombre_ciudadano,
       telefono_ciudadano: pqrs.telefono_ciudadano || '',
@@ -910,7 +922,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   cancelarEdicion(): void {
     this.mostrarFormularioEdicion = false;
     this.pqrsEditando = null;
+    this.selectedFileEdit = null;
     this.editarPqrsForm.reset();
+  }
+
+  // Alias para abrir formulario de edición desde el botón
+  abrirFormularioEdicion(pqrs: PQRSWithDetails): void {
+    this.mostrarEdicionPqrs(pqrs);
   }
 
   // Guardar cambios de edición
@@ -920,27 +938,81 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
       const formValue = this.editarPqrsForm.value;
 
-      // Convertir la fecha al formato ISO si fue modificada
-      const updateData: UpdatePQRSRequest = {
-        ...formValue,
-        fecha_solicitud: formValue.fecha_solicitud ? new Date(formValue.fecha_solicitud).toISOString() : undefined
-      };
-
-      this.pqrsService.updatePqrs(this.pqrsEditando.id, updateData).subscribe({
-        next: () => {
-          this.alertService.success('La PQRS ha sido actualizada exitosamente.', 'PQRS Actualizada');
-          this.cancelarEdicion();
-          this.loadPqrs();
-          this.isSubmitting = false;
-        },
-        error: (error) => {
-          console.error('Error actualizando PQRS:', error);
-          const msg = this.extractErrorMessage(error);
-          this.alertService.error(msg, 'Error al Actualizar');
-          this.isSubmitting = false;
-        }
-      });
+      // Si hay un nuevo archivo, subirlo primero
+      if (this.selectedFileEdit) {
+        this.pqrsService.uploadArchivo(this.pqrsEditando.id, this.selectedFileEdit).subscribe({
+          next: (uploadResponse) => {
+            // Archivo subido, ahora actualizar la PQRS con la nueva URL
+            this.actualizarPqrsConDatos(formValue, uploadResponse.archivo_url);
+          },
+          error: (error) => {
+            console.error('Error subiendo archivo:', error);
+            this.alertService.error('Error al subir el archivo. Los demás cambios se guardarán sin modificar el archivo.', 'Advertencia');
+            this.actualizarPqrsConDatos(formValue);
+          }
+        });
+      } else {
+        // No hay nuevo archivo, solo actualizar datos
+        this.actualizarPqrsConDatos(formValue);
+      }
     }
+  }
+
+  // Método auxiliar para actualizar PQRS con datos del formulario
+  private actualizarPqrsConDatos(formValue: any, archivoUrl?: string): void {
+    const updateData: UpdatePQRSRequest = {
+      tipo_solicitud: formValue.tipo_solicitud,
+      canal_llegada: formValue.canal_llegada,
+      medio_respuesta: formValue.medio_respuesta,
+      tipo_persona: formValue.tipo_persona || null,
+      genero: formValue.genero || null,
+      dias_respuesta: formValue.dias_respuesta,
+      cedula_ciudadano: formValue.cedula_ciudadano,
+      nombre_ciudadano: formValue.nombre_ciudadano,
+      telefono_ciudadano: formValue.telefono_ciudadano || null,
+      email_ciudadano: formValue.email_ciudadano || null,
+      direccion_ciudadano: formValue.direccion_ciudadano || null,
+      asunto: formValue.asunto,
+      descripcion: formValue.descripcion,
+      fecha_solicitud: formValue.fecha_solicitud ? new Date(formValue.fecha_solicitud).toISOString() : undefined,
+      archivo_adjunto: archivoUrl || undefined
+    };
+
+    this.pqrsService.updatePqrs(this.pqrsEditando!.id, updateData).subscribe({
+      next: () => {
+        this.alertService.success('La PQRS ha sido actualizada exitosamente.', 'PQRS Actualizada');
+        this.cancelarEdicion();
+        this.loadPqrs();
+        this.isSubmitting = false;
+      },
+      error: (error) => {
+        console.error('Error actualizando PQRS:', error);
+        const msg = this.extractErrorMessage(error);
+        this.alertService.error(msg, 'Error al Actualizar');
+        this.isSubmitting = false;
+      }
+    });
+  }
+
+  // Método para manejar selección de archivo en edición
+  onFileSelectedEdit(event: any): void {
+    const file = event.target.files[0];
+    if (file) {
+      // Validar tamaño (máximo 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        this.alertService.error('El archivo no puede superar 10MB', 'Error');
+        event.target.value = '';
+        return;
+      }
+      this.selectedFileEdit = file;
+    }
+  }
+
+  // Método para extraer nombre de archivo de URL
+  getFilenameFromUrl(url: string): string {
+    if (!url) return '';
+    const parts = url.split('/');
+    return parts[parts.length - 1];
   }
 
   onSubmitNuevoSecretario() {

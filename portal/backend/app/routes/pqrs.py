@@ -80,6 +80,7 @@ async def create_pqrs(
         # Crear PQRS con datos finales
         db_pqrs = PQRS(
             numero_radicado=numero_radicado,
+            canal_llegada=pqrs_data.canal_llegada,
             tipo_identificacion=pqrs_data.tipo_identificacion,
             medio_respuesta=pqrs_data.medio_respuesta,
             nombre_ciudadano=pqrs_data.nombre_ciudadano,
@@ -93,7 +94,11 @@ async def create_pqrs(
             created_by_id=current_user.id,
             assigned_to_id=assigned_to_id,
             fecha_delegacion=fecha_delegacion,
-            entity_id=pqrs_data.entity_id
+            entity_id=pqrs_data.entity_id,
+            tipo_persona=pqrs_data.tipo_persona,
+            genero=pqrs_data.genero,
+            dias_respuesta=pqrs_data.dias_respuesta or 15,
+            archivo_adjunto=pqrs_data.archivo_adjunto
         )
         
         db.add(db_pqrs)
