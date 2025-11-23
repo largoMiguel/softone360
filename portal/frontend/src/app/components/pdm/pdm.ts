@@ -752,8 +752,12 @@ export class PdmComponent implements OnInit, OnDestroy {
             this.ejecucionPresupuestal = null;
         } else if (this.vistaActual === 'productos') {
             this.vistaActual = 'dashboard';
+            // ✅ Actualizar caches al volver al dashboard
+            this.actualizarCachesFiltros();
         } else if (this.vistaActual === 'analytics') {
             this.vistaActual = 'dashboard';
+            // ✅ Actualizar caches al volver al dashboard
+            this.actualizarCachesFiltros();
         }
     }
 

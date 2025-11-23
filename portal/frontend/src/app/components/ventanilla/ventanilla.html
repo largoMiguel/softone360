@@ -270,62 +270,216 @@
     <!-- Modal Resultado Consulta -->
     <div class="modal fade show d-block" *ngIf="mostrarResultadoConsulta && pqrsConsultada"
         style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
+                <div class="modal-header bg-gradient bg-primary text-white">
                     <h5 class="modal-title">
-                        <i class="fas fa-file-alt me-2"></i>Resultado de Consulta
+                        <i class="fas fa-file-search me-2"></i>Detalle de tu PQRS
                     </h5>
                     <button type="button" class="btn-close btn-close-white"
                         (click)="cerrarResultadoConsulta()"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="result-card">
-                        <div class="result-header">
-                            <h4>PQRS N° {{ pqrsConsultada.numero_radicado }}</h4>
-                            <span [ngClass]="'badge bg-' + getEstadoColor(pqrsConsultada.estado)">
-                                {{ getEstadoLabel(pqrsConsultada.estado) }}
-                            </span>
-                        </div>
-
-                        <div class="result-section">
-                            <h6><i class="fas fa-info-circle me-2 text-primary"></i>Información General</h6>
-                            <div class="result-row">
-                                <strong>Tipo:</strong>
-                                <span>{{ pqrsConsultada.tipo_solicitud | titlecase }}</span>
+                <div class="modal-body p-4">
+                    <!-- Encabezado con Radicado y Estado -->
+                    <div class="result-card mb-4 p-4 bg-light rounded shadow-sm">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div>
+                                <h4 class="mb-2">
+                                    <i class="fas fa-ticket-alt me-2 text-primary"></i>
+                                    Radicado N° <strong>{{ pqrsConsultada.numero_radicado }}</strong>
+                                </h4>
+                                <p class="text-muted mb-0">
+                                    <i class="fas fa-calendar me-2"></i>
+                                    Radicado el {{ pqrsConsultada.fecha_solicitud | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }} 
+                                    a las {{ pqrsConsultada.fecha_solicitud | date:'HH:mm':'America/Bogota':'es-CO' }}
+                                </p>
                             </div>
-                            <div class="result-row">
-                                <strong>Asunto:</strong>
-                                <span>{{ pqrsConsultada.asunto }}</span>
-                            </div>
-                            <div class="result-row">
-                                <strong>Fecha de Solicitud:</strong>
-                                <span>{{ pqrsConsultada.fecha_solicitud | date:'dd/MM/yyyy HH:mm':'America/Bogota':'es-CO' }}</span>
-                            </div>
-                            <div class="result-row" *ngIf="pqrsConsultada.fecha_respuesta">
-                                <strong>Fecha de Respuesta:</strong>
-                                <span>{{ pqrsConsultada.fecha_respuesta | date:'dd/MM/yyyy HH:mm':'America/Bogota':'es-CO' }}</span>
+                            <div class="text-end">
+                                <span [ngClass]="'badge fs-5 px-4 py-2 bg-' + getEstadoColor(pqrsConsultada.estado)">
+                                    {{ getEstadoLabel(pqrsConsultada.estado) }}
+                                </span>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="result-section" *ngIf="pqrsConsultada.respuesta">
-                            <h6><i class="fas fa-reply me-2 text-success"></i>Respuesta</h6>
-                            <div class="alert alert-success">
-                                {{ pqrsConsultada.respuesta }}
+                    <!-- Información de la Solicitud -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-lg-6">
+                            <div class="card h-100 shadow-sm">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-clipboard-list me-2"></i>Información de la Solicitud
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <small class="text-muted text-uppercase d-block mb-1">Tipo de Solicitud</small>
+                                        <span class="badge bg-info fs-6">{{ getTipoSolicitudLabel(pqrsConsultada.tipo_solicitud) }}</span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <small class="text-muted text-uppercase d-block mb-1">Canal de Llegada</small>
+                                        <span class="badge bg-secondary">{{ getCanalLlegadaLabel(pqrsConsultada.canal_llegada) }}</span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <small class="text-muted text-uppercase d-block mb-1">Medio de Respuesta Preferido</small>
+                                        <span class="badge bg-success">{{ getMedioRespuestaLabel(pqrsConsultada.medio_respuesta) }}</span>
+                                    </div>
+                                    <div class="mb-3" *ngIf="pqrsConsultada.dias_respuesta">
+                                        <small class="text-muted text-uppercase d-block mb-1">Tiempo de Respuesta</small>
+                                        <span class="badge bg-warning text-dark fs-6">
+                                            <i class="fas fa-clock me-1"></i>{{ pqrsConsultada.dias_respuesta }} días
+                                        </span>
+                                    </div>
+                                    <div class="mb-0" *ngIf="pqrsConsultada.asunto">
+                                        <small class="text-muted text-uppercase d-block mb-1">Asunto</small>
+                                        <p class="mb-0"><strong>{{ pqrsConsultada.asunto }}</strong></p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="result-section" *ngIf="!pqrsConsultada.respuesta">
-                            <div class="alert alert-info">
-                                <i class="fas fa-clock me-2"></i>
-                                Tu PQRS está en proceso. Recibirás una respuesta pronto.
+                        <div class="col-lg-6">
+                            <div class="card h-100 shadow-sm">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-user me-2"></i>Información del Solicitante
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <small class="text-muted text-uppercase d-block mb-1">Tipo de Identificación</small>
+                                        <span class="badge bg-dark">{{ getTipoIdentificacionLabel(pqrsConsultada.tipo_identificacion) }}</span>
+                                    </div>
+                                    
+                                    <div *ngIf="pqrsConsultada.tipo_identificacion === 'personal'">
+                                        <div class="mb-2" *ngIf="pqrsConsultada.nombre_ciudadano">
+                                            <small class="text-muted text-uppercase d-block mb-1">Nombre Completo</small>
+                                            <p class="mb-0"><i class="fas fa-user-circle me-2 text-muted"></i>{{ pqrsConsultada.nombre_ciudadano }}</p>
+                                        </div>
+                                        <div class="mb-2" *ngIf="pqrsConsultada.cedula_ciudadano">
+                                            <small class="text-muted text-uppercase d-block mb-1">Identificación</small>
+                                            <p class="mb-0"><i class="fas fa-id-card me-2 text-muted"></i>{{ pqrsConsultada.cedula_ciudadano }}</p>
+                                        </div>
+                                        <div class="mb-2" *ngIf="pqrsConsultada.tipo_persona">
+                                            <small class="text-muted text-uppercase d-block mb-1">Tipo de Persona</small>
+                                            <span class="badge bg-info">{{ getTipoPersonaLabel(pqrsConsultada.tipo_persona) }}</span>
+                                        </div>
+                                        <div class="mb-2" *ngIf="pqrsConsultada.email_ciudadano">
+                                            <small class="text-muted text-uppercase d-block mb-1">Email</small>
+                                            <p class="mb-0"><i class="fas fa-envelope me-2 text-muted"></i>{{ pqrsConsultada.email_ciudadano }}</p>
+                                        </div>
+                                        <div class="mb-0" *ngIf="pqrsConsultada.telefono_ciudadano">
+                                            <small class="text-muted text-uppercase d-block mb-1">Teléfono</small>
+                                            <p class="mb-0"><i class="fas fa-phone me-2 text-muted"></i>{{ pqrsConsultada.telefono_ciudadano }}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div *ngIf="pqrsConsultada.tipo_identificacion === 'anonima'">
+                                        <div class="alert alert-secondary mb-0">
+                                            <i class="fas fa-user-secret me-2"></i>
+                                            <strong>Solicitud Anónima</strong>
+                                            <p class="mb-0 mt-2 small">Esta PQRS fue radicada de forma anónima.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Descripción de la Solicitud -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-secondary text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-align-left me-2"></i>Descripción de la Solicitud
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0" style="white-space: pre-wrap;">{{ pqrsConsultada.descripcion }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Línea de Tiempo -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-history me-2"></i>Línea de Tiempo
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="timeline">
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-primary"></div>
+                                    <div class="timeline-content">
+                                        <strong><i class="fas fa-file-signature me-2"></i>Solicitud Radicada</strong>
+                                        <p class="mb-0 text-muted">
+                                            {{ pqrsConsultada.fecha_solicitud | date:'dd/MM/yyyy HH:mm':'America/Bogota':'es-CO' }}
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div class="timeline-item" *ngIf="pqrsConsultada.fecha_delegacion">
+                                    <div class="timeline-marker bg-info"></div>
+                                    <div class="timeline-content">
+                                        <strong><i class="fas fa-user-tie me-2"></i>Asignada/Delegada</strong>
+                                        <p class="mb-0 text-muted">
+                                            {{ pqrsConsultada.fecha_delegacion | date:'dd/MM/yyyy HH:mm':'America/Bogota':'es-CO' }}
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div class="timeline-item" *ngIf="pqrsConsultada.fecha_respuesta">
+                                    <div class="timeline-marker bg-success"></div>
+                                    <div class="timeline-content">
+                                        <strong><i class="fas fa-reply me-2"></i>Respuesta Enviada</strong>
+                                        <p class="mb-0 text-muted">
+                                            {{ pqrsConsultada.fecha_respuesta | date:'dd/MM/yyyy HH:mm':'America/Bogota':'es-CO' }}
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div class="timeline-item" *ngIf="pqrsConsultada.fecha_cierre">
+                                    <div class="timeline-marker bg-secondary"></div>
+                                    <div class="timeline-content">
+                                        <strong><i class="fas fa-check-circle me-2"></i>Cerrada</strong>
+                                        <p class="mb-0 text-muted">
+                                            {{ pqrsConsultada.fecha_cierre | date:'dd/MM/yyyy HH:mm':'America/Bogota':'es-CO' }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Respuesta -->
+                    <div class="card shadow-sm" *ngIf="pqrsConsultada.respuesta">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-comment-dots me-2"></i>Respuesta
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-success border-success mb-0">
+                                <i class="fas fa-check-circle me-2"></i><strong>Tu solicitud ha sido respondida</strong>
+                                <hr>
+                                <p class="mb-0" style="white-space: pre-wrap;">{{ pqrsConsultada.respuesta }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Estado Pendiente -->
+                    <div class="card shadow-sm" *ngIf="!pqrsConsultada.respuesta">
+                        <div class="card-body">
+                            <div class="alert alert-info border-info mb-0 text-center">
+                                <i class="fas fa-hourglass-half fa-3x mb-3 text-info"></i>
+                                <h5><strong>Tu PQRS está en proceso</strong></h5>
+                                <p class="mb-0">Recibirás una respuesta a través del medio de contacto que indicaste. Te notificaremos cuando tengamos una respuesta.</p>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" (click)="cerrarResultadoConsulta()">
-                        <i class="fas fa-check me-2"></i>Cerrar
+                    <button type="button" class="btn btn-primary btn-lg" (click)="cerrarResultadoConsulta()">
+                        <i class="fas fa-check me-2"></i>Entendido
                     </button>
                 </div>
             </div>

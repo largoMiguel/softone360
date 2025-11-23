@@ -1816,6 +1816,52 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return generos[genero] || genero;
   }
 
+  getTipoSolicitudLabel(tipo: string): string {
+    const tipos: { [key: string]: string } = {
+      'peticion': 'Petición',
+      'queja': 'Queja',
+      'reclamo': 'Reclamo',
+      'sugerencia': 'Sugerencia',
+      'felicitacion': 'Felicitación',
+      'denuncia': 'Denuncia',
+      'solicitud_informacion': 'Solicitud de Información',
+      'solicitud_datos_personales': 'Solicitud de Datos Personales',
+      'agenda_cita': 'Agenda tu Cita'
+    };
+    return tipos[tipo] || tipo;
+  }
+
+  getCanalLlegadaLabel(canal: string): string {
+    const canales: { [key: string]: string } = {
+      'correo': 'Correo Electrónico',
+      'carta': 'Carta',
+      'buzon': 'Buzón de Sugerencias',
+      'fisica': 'Entrega Física',
+      'presencial': 'Presencial',
+      'telefono': 'Teléfono',
+      'web': 'Portal Web'
+    };
+    return canales[canal] || canal;
+  }
+
+  getMedioRespuestaLabel(medio: string): string {
+    const medios: { [key: string]: string } = {
+      'email': 'Correo Electrónico',
+      'fisica': 'Correspondencia Física',
+      'telefono': 'Teléfono',
+      'ticket': 'Seguimiento por Ticket'
+    };
+    return medios[medio] || medio;
+  }
+
+  getTipoIdentificacionLabel(tipo: string): string {
+    const tipos: { [key: string]: string } = {
+      'personal': 'Personal (con identificación)',
+      'anonima': 'Anónima'
+    };
+    return tipos[tipo] || tipo;
+  }
+
   // Método para descargar archivo adjunto
   descargarArchivo(pqrs: PQRSWithDetails): void {
     if (!pqrs.archivo_adjunto) {

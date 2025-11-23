@@ -1098,91 +1098,134 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <!-- Información General -->
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <div class="info-card">
-                                <h6 class="text-primary mb-3">
-                                    <i class="fas fa-info-circle me-2"></i>Información General
+                    <!-- Información General en 2 columnas -->
+                    <div class="row g-4 mb-4">
+                        <!-- Columna Izquierda: Información de la Solicitud -->
+                        <div class="col-lg-6">
+                            <div class="info-card h-100">
+                                <h6 class="text-primary mb-3 pb-2 border-bottom">
+                                    <i class="fas fa-file-alt me-2"></i>Información de la Solicitud
                                 </h6>
                                 <div class="info-row">
-                                    <strong>Número de Radicado:</strong>
-                                    <span class="badge bg-primary">{{ selectedPqrs.numero_radicado }}</span>
+                                    <strong><i class="fas fa-hashtag me-2 text-muted"></i>Radicado:</strong>
+                                    <span class="badge bg-primary fs-6">{{ selectedPqrs.numero_radicado }}</span>
                                 </div>
                                 <div class="info-row">
-                                    <strong>Tipo de Solicitud:</strong>
-                                    <span class="badge bg-light text-dark">{{ selectedPqrs.tipo_solicitud | titlecase
-                                        }}</span>
+                                    <strong><i class="fas fa-clipboard-list me-2 text-muted"></i>Tipo:</strong>
+                                    <span class="badge bg-info">{{ getTipoSolicitudLabel(selectedPqrs.tipo_solicitud) }}</span>
                                 </div>
                                 <div class="info-row">
-                                    <strong>Estado:</strong>
-                                    <span [ngClass]="'badge bg-' + getEstadoColor(selectedPqrs.estado)">
+                                    <strong><i class="fas fa-circle-notch me-2 text-muted"></i>Estado:</strong>
+                                    <span [ngClass]="'badge bg-' + getEstadoColor(selectedPqrs.estado) + ' fs-6'">
                                         {{ getEstadoLabel(selectedPqrs.estado) }}
                                     </span>
                                 </div>
                                 <div class="info-row">
-                                    <strong>Fecha de Solicitud:</strong>
-                                    <span>{{ selectedPqrs.fecha_solicitud | date:'dd/MM/yyyy HH:mm':'America/Bogota':'es-CO' }}</span>
+                                    <strong><i class="fas fa-sign-in-alt me-2 text-muted"></i>Canal de Llegada:</strong>
+                                    <span class="badge bg-secondary">{{ getCanalLlegadaLabel(selectedPqrs.canal_llegada) }}</span>
                                 </div>
-                                <div class="info-row" *ngIf="selectedPqrs.fecha_respuesta">
-                                    <strong>Fecha de Respuesta:</strong>
-                                    <span>{{ selectedPqrs.fecha_respuesta | date:'dd/MM/yyyy HH:mm':'America/Bogota':'es-CO' }}</span>
+                                <div class="info-row">
+                                    <strong><i class="fas fa-id-card me-2 text-muted"></i>Tipo de Identificación:</strong>
+                                    <span class="badge bg-dark">{{ getTipoIdentificacionLabel(selectedPqrs.tipo_identificacion) }}</span>
+                                </div>
+                                <div class="info-row">
+                                    <strong><i class="fas fa-reply-all me-2 text-muted"></i>Medio de Respuesta:</strong>
+                                    <span class="badge bg-success">{{ getMedioRespuestaLabel(selectedPqrs.medio_respuesta) }}</span>
+                                </div>
+                                <div class="info-row" *ngIf="selectedPqrs.dias_respuesta">
+                                    <strong><i class="fas fa-clock me-2 text-muted"></i>Días de Respuesta:</strong>
+                                    <span class="badge bg-warning text-dark fs-6">{{ selectedPqrs.dias_respuesta }} días</span>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="info-card">
-                                <h6 class="text-primary mb-3">
+
+                        <!-- Columna Derecha: Información del Ciudadano -->
+                        <div class="col-lg-6">
+                            <div class="info-card h-100">
+                                <h6 class="text-primary mb-3 pb-2 border-bottom">
                                     <i class="fas fa-user me-2"></i>Información del Ciudadano
                                 </h6>
-                                <div class="info-row">
-                                    <strong>Nombre:</strong>
-                                    <span>{{ selectedPqrs.nombre_ciudadano }}</span>
+                                <div *ngIf="selectedPqrs.tipo_identificacion === 'personal'">
+                                    <div class="info-row">
+                                        <strong><i class="fas fa-user-circle me-2 text-muted"></i>Nombre:</strong>
+                                        <span>{{ selectedPqrs.nombre_ciudadano }}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <strong><i class="fas fa-id-badge me-2 text-muted"></i>Cédula:</strong>
+                                        <span>{{ selectedPqrs.cedula_ciudadano }}</span>
+                                    </div>
+                                    <div class="info-row" *ngIf="selectedPqrs.tipo_persona">
+                                        <strong><i class="fas fa-users me-2 text-muted"></i>Tipo de Persona:</strong>
+                                        <span class="badge bg-info">{{ getTipoPersonaLabel(selectedPqrs.tipo_persona) }}</span>
+                                    </div>
+                                    <div class="info-row" *ngIf="selectedPqrs.genero">
+                                        <strong><i class="fas fa-venus-mars me-2 text-muted"></i>Género:</strong>
+                                        <span class="badge bg-secondary">{{ getGeneroLabel(selectedPqrs.genero) }}</span>
+                                    </div>
+                                    <div class="info-row" *ngIf="selectedPqrs.telefono_ciudadano">
+                                        <strong><i class="fas fa-phone me-2 text-muted"></i>Teléfono:</strong>
+                                        <span>{{ selectedPqrs.telefono_ciudadano }}</span>
+                                    </div>
+                                    <div class="info-row" *ngIf="selectedPqrs.email_ciudadano">
+                                        <strong><i class="fas fa-envelope me-2 text-muted"></i>Email:</strong>
+                                        <span>{{ selectedPqrs.email_ciudadano }}</span>
+                                    </div>
+                                    <div class="info-row" *ngIf="selectedPqrs.direccion_ciudadano">
+                                        <strong><i class="fas fa-map-marker-alt me-2 text-muted"></i>Dirección:</strong>
+                                        <span>{{ selectedPqrs.direccion_ciudadano }}</span>
+                                    </div>
                                 </div>
-                                <div class="info-row">
-                                    <strong>Cédula:</strong>
-                                    <span>{{ selectedPqrs.cedula_ciudadano }}</span>
-                                </div>
-                                <div class="info-row" *ngIf="selectedPqrs.telefono_ciudadano">
-                                    <strong>Teléfono:</strong>
-                                    <span>{{ selectedPqrs.telefono_ciudadano }}</span>
-                                </div>
-                                <div class="info-row" *ngIf="selectedPqrs.email_ciudadano">
-                                    <strong>Email:</strong>
-                                    <span>{{ selectedPqrs.email_ciudadano }}</span>
-                                </div>
-                                <div class="info-row" *ngIf="selectedPqrs.direccion_ciudadano">
-                                    <strong>Dirección:</strong>
-                                    <span>{{ selectedPqrs.direccion_ciudadano }}</span>
-                                </div>
-                                <div class="info-row" *ngIf="selectedPqrs.tipo_persona">
-                                    <strong>Tipo de Persona:</strong>
-                                    <span class="badge bg-info">{{ getTipoPersonaLabel(selectedPqrs.tipo_persona) }}</span>
-                                </div>
-                                <div class="info-row" *ngIf="selectedPqrs.genero">
-                                    <strong>Género:</strong>
-                                    <span class="badge bg-secondary">{{ getGeneroLabel(selectedPqrs.genero) }}</span>
+                                <div *ngIf="selectedPqrs.tipo_identificacion === 'anonima'">
+                                    <div class="alert alert-secondary mb-0">
+                                        <i class="fas fa-user-secret me-2"></i>
+                                        <strong>Solicitud Anónima</strong>
+                                        <p class="mb-0 mt-2 small">Esta PQRS fue radicada de forma anónima sin identificación del ciudadano.</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Información Adicional -->
-                    <div class="row mb-4" *ngIf="selectedPqrs.dias_respuesta || selectedPqrs.archivo_adjunto">
+                    <!-- Fechas Importantes -->
+                    <div class="row mb-4">
                         <div class="col-12">
                             <div class="info-card">
-                                <h6 class="text-primary mb-3">
-                                    <i class="fas fa-clipboard-list me-2"></i>Información Adicional
+                                <h6 class="text-primary mb-3 pb-2 border-bottom">
+                                    <i class="fas fa-calendar-alt me-2"></i>Fechas Importantes
                                 </h6>
-                                <div class="info-row" *ngIf="selectedPqrs.dias_respuesta">
-                                    <strong>Días de Respuesta:</strong>
-                                    <span class="badge bg-warning text-dark">{{ selectedPqrs.dias_respuesta }} días</span>
-                                </div>
-                                <div class="info-row" *ngIf="selectedPqrs.archivo_adjunto">
-                                    <strong>Archivo Adjunto:</strong>
-                                    <button class="btn btn-sm btn-outline-primary ms-2" (click)="descargarArchivo(selectedPqrs)">
-                                        <i class="fas fa-download me-1"></i>Descargar PDF
-                                    </button>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="text-center p-3 bg-light rounded">
+                                            <i class="fas fa-calendar-plus fa-2x text-primary mb-2"></i>
+                                            <p class="small text-muted mb-1">Solicitud</p>
+                                            <strong class="d-block">{{ selectedPqrs.fecha_solicitud | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</strong>
+                                            <small class="text-muted">{{ selectedPqrs.fecha_solicitud | date:'HH:mm':'America/Bogota':'es-CO' }}</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3" *ngIf="selectedPqrs.fecha_delegacion">
+                                        <div class="text-center p-3 bg-light rounded">
+                                            <i class="fas fa-user-tie fa-2x text-info mb-2"></i>
+                                            <p class="small text-muted mb-1">Delegación</p>
+                                            <strong class="d-block">{{ selectedPqrs.fecha_delegacion | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</strong>
+                                            <small class="text-muted">{{ selectedPqrs.fecha_delegacion | date:'HH:mm':'America/Bogota':'es-CO' }}</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3" *ngIf="selectedPqrs.fecha_respuesta">
+                                        <div class="text-center p-3 bg-light rounded">
+                                            <i class="fas fa-reply fa-2x text-success mb-2"></i>
+                                            <p class="small text-muted mb-1">Respuesta</p>
+                                            <strong class="d-block">{{ selectedPqrs.fecha_respuesta | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</strong>
+                                            <small class="text-muted">{{ selectedPqrs.fecha_respuesta | date:'HH:mm':'America/Bogota':'es-CO' }}</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3" *ngIf="selectedPqrs.fecha_cierre">
+                                        <div class="text-center p-3 bg-light rounded">
+                                            <i class="fas fa-check-circle fa-2x text-secondary mb-2"></i>
+                                            <p class="small text-muted mb-1">Cierre</p>
+                                            <strong class="d-block">{{ selectedPqrs.fecha_cierre | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</strong>
+                                            <small class="text-muted">{{ selectedPqrs.fecha_cierre | date:'HH:mm':'America/Bogota':'es-CO' }}</small>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1192,16 +1235,25 @@
                     <div class="row mb-4">
                         <div class="col-12">
                             <div class="info-card">
-                                <h6 class="text-primary mb-3">
+                                <h6 class="text-primary mb-3 pb-2 border-bottom">
                                     <i class="fas fa-align-left me-2"></i>Asunto y Descripción
                                 </h6>
-                                <div class="info-row">
-                                    <strong>Asunto:</strong>
-                                    <span>{{ selectedPqrs.asunto }}</span>
+                                <div class="mb-3" *ngIf="selectedPqrs.asunto">
+                                    <div class="alert alert-light border mb-0">
+                                        <strong><i class="fas fa-heading me-2"></i>Asunto:</strong>
+                                        <p class="mb-0 mt-2">{{ selectedPqrs.asunto }}</p>
+                                    </div>
                                 </div>
-                                <div class="info-row">
-                                    <strong>Descripción:</strong>
-                                    <p class="mt-2 mb-0">{{ selectedPqrs.descripcion }}</p>
+                                <div>
+                                    <strong class="d-block mb-2"><i class="fas fa-file-alt me-2"></i>Descripción:</strong>
+                                    <div class="border rounded p-3 bg-light">
+                                        <p class="mb-0" style="white-space: pre-wrap;">{{ selectedPqrs.descripcion }}</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3" *ngIf="selectedPqrs.archivo_adjunto">
+                                    <button class="btn btn-outline-primary btn-sm" (click)="descargarArchivo(selectedPqrs)">
+                                        <i class="fas fa-file-pdf me-2"></i>Descargar Archivo Adjunto PDF
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -1211,21 +1263,26 @@
                     <div class="row mb-4" *ngIf="selectedPqrs.assigned_to || isAdmin()">
                         <div class="col-12">
                             <div class="info-card">
-                                <h6 class="text-primary mb-3">
+                                <h6 class="text-primary mb-3 pb-2 border-bottom">
                                     <i class="fas fa-user-tie me-2"></i>Asignación
                                 </h6>
-                                <div class="info-row" *ngIf="selectedPqrs.assigned_to">
-                                    <strong>Asignado a:</strong>
-                                    <span>{{ selectedPqrs.assigned_to.full_name }}</span>
+                                <div *ngIf="selectedPqrs.assigned_to" class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <i class="fas fa-user-check fa-2x text-success me-3"></i>
+                                        <strong>Asignado a:</strong>
+                                        <span class="ms-2">{{ selectedPqrs.assigned_to.full_name }}</span>
+                                    </div>
+                                    <button class="btn btn-outline-success btn-sm" *ngIf="isAdmin()" (click)="mostrarAsignacion(selectedPqrs)" data-bs-toggle="modal" data-bs-target="#asignacionModal">
+                                        <i class="fas fa-user-edit me-1"></i>Reasignar
+                                    </button>
                                 </div>
-                                <div class="info-row" *ngIf="!selectedPqrs.assigned_to">
-                                    <span class="text-muted">No asignado</span>
-                                </div>
-                                <div class="mt-3" *ngIf="isAdmin()">
-                                    <button class="btn btn-success btn-sm" (click)="mostrarAsignacion(selectedPqrs)"
-                                        data-bs-toggle="modal" data-bs-target="#asignacionModal">
-                                        <i class="fas fa-user-plus me-1"></i>
-                                        {{ selectedPqrs.assigned_to ? 'Reasignar' : 'Asignar' }}
+                                <div *ngIf="!selectedPqrs.assigned_to" class="d-flex align-items-center justify-content-between">
+                                    <div class="alert alert-warning mb-0 flex-grow-1 me-3">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        Esta PQRS no ha sido asignada a ningún responsable.
+                                    </div>
+                                    <button class="btn btn-success btn-sm" *ngIf="isAdmin()" (click)="mostrarAsignacion(selectedPqrs)" data-bs-toggle="modal" data-bs-target="#asignacionModal">
+                                        <i class="fas fa-user-plus me-1"></i>Asignar
                                     </button>
                                 </div>
                             </div>
@@ -1236,28 +1293,30 @@
                     <div class="row mb-4" *ngIf="selectedPqrs.respuesta || (isAdmin() || isSecretario())">
                         <div class="col-12">
                             <div class="info-card">
-                                <h6 class="text-primary mb-3">
+                                <h6 class="text-primary mb-3 pb-2 border-bottom">
                                     <i class="fas fa-reply me-2"></i>Respuesta
                                 </h6>
                                 <div *ngIf="selectedPqrs.respuesta">
-                                    <div class="alert alert-success">
-                                        <strong>Respuesta:</strong>
-                                        <p class="mb-0 mt-2">{{ selectedPqrs.respuesta }}</p>
+                                    <div class="alert alert-success border-success">
+                                        <i class="fas fa-check-circle me-2"></i><strong>Respuesta Enviada</strong>
+                                        <div class="border-top border-success mt-2 pt-2">
+                                            <p class="mb-0" style="white-space: pre-wrap;">{{ selectedPqrs.respuesta }}</p>
+                                        </div>
                                     </div>
                                 </div>
                                 <div *ngIf="!selectedPqrs.respuesta && (isAdmin() || isSecretario())">
-                                    <div class="alert alert-warning">
+                                    <div class="alert alert-warning border-warning">
                                         <i class="fas fa-exclamation-triangle me-2"></i>
                                         Esta PQRS no ha sido respondida aún.
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label"><strong>Escribir Respuesta:</strong></label>
-                                        <textarea class="form-control" rows="4" [(ngModel)]="respuestaTexto"
-                                            placeholder="Escriba la respuesta detallada..."></textarea>
+                                        <textarea class="form-control" rows="5" [(ngModel)]="respuestaTexto"
+                                            placeholder="Escriba la respuesta detallada para el ciudadano..."></textarea>
                                     </div>
                                     <button class="btn btn-primary" (click)="enviarRespuesta()"
                                         [disabled]="!respuestaTexto.trim()">
-                                        <i class="fas fa-paper-plane me-1"></i>Enviar Respuesta
+                                        <i class="fas fa-paper-plane me-2"></i>Enviar Respuesta
                                     </button>
                                 </div>
                             </div>
@@ -1267,19 +1326,19 @@
                     <!-- Acciones -->
                     <div class="row">
                         <div class="col-12">
-                            <div class="d-flex gap-2 justify-content-between">
+                            <div class="d-flex gap-2 justify-content-between flex-wrap">
                                 <button class="btn btn-secondary" (click)="cerrarDetalles()">
-                                    <i class="fas fa-arrow-left me-1"></i>Volver
+                                    <i class="fas fa-arrow-left me-2"></i>Volver
                                 </button>
-                                <div class="d-flex gap-2">
+                                <div class="d-flex gap-2 flex-wrap">
                                     <button class="btn btn-warning" *ngIf="canChangeStatus()"
                                         (click)="mostrarCambioEstado(selectedPqrs)" data-bs-toggle="modal"
                                         data-bs-target="#estadoModal">
-                                        <i class="fas fa-edit me-1"></i>Cambiar Estado
+                                        <i class="fas fa-edit me-2"></i>Cambiar Estado
                                     </button>
                                     <button class="btn btn-danger" *ngIf="isAdmin()"
                                         (click)="eliminarPqrs(selectedPqrs)">
-                                        <i class="fas fa-trash me-1"></i>Eliminar
+                                        <i class="fas fa-trash me-2"></i>Eliminar
                                     </button>
                                 </div>
                             </div>
