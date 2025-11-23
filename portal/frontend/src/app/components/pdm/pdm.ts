@@ -400,6 +400,7 @@ export class PdmComponent implements OnInit, OnDestroy {
                 this.archivoExcelCargado = true;
                 this.vistaActual = 'dashboard';
                 this.cargandoDesdeBackend = false;
+                this.ultimaActualizacionCache = Date.now(); // ✅ Marcar caché como válido desde la carga inicial
                 
                 // Generar analytics iniciales
                 this.generarAnalytics();
@@ -710,9 +711,9 @@ export class PdmComponent implements OnInit, OnDestroy {
             return;
         }
         
-        // ✅ Si los datos son recientes, no recargar
+        // ✅ Si los datos son recientes, solo regenerar analytics sin recargar
         const ahora = Date.now();
-        if (ahora - this.ultimaActualizacionCache < this.TIEMPO_CACHE_MS) {
+        if (ahora - this.ultimaActualizacionCache < this.TIEMPO_CACHE_MS && this.pdmData) {
             this.generarAnalytics();
             return;
         }
@@ -757,9 +758,9 @@ export class PdmComponent implements OnInit, OnDestroy {
             return;
         }
         
-        // ✅ Si los datos son recientes, no recargar
+        // ✅ Si los datos son recientes, solo limpiar selección sin recargar
         const ahora = Date.now();
-        if (ahora - this.ultimaActualizacionCache < this.TIEMPO_CACHE_MS) {
+        if (ahora - this.ultimaActualizacionCache < this.TIEMPO_CACHE_MS && this.pdmData) {
             this.productoSeleccionado = null;
             return;
         }
