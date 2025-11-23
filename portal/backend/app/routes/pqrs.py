@@ -766,13 +766,12 @@ async def upload_archivo_respuesta(
         
         print(f"   Subiendo a S3: {file_key}")
         
-        # Subir a S3 con ACL público
+        # Subir a S3
         s3_client.put_object(
             Bucket=S3_BUCKET,
             Key=file_key,
             Body=file_content,
             ContentType=file.content_type,
-            ACL='public-read',  # Hacer el archivo público
             Metadata={
                 "pqrs_id": str(pqrs_id),
                 "numero_radicado": pqrs.numero_radicado,
