@@ -234,7 +234,7 @@
                                  filtroEstado === 'COMPLETADO' ? 'Completados' : 
                                  'Por Ejecutar' }}
                 </h5>
-                <button class="btn btn-sm btn-light" (click)="filtroEstado = ''">
+                <button class="btn btn-sm btn-light" (click)="limpiarFiltroEstado()">
                     <i class="fas fa-times me-1"></i> Cerrar
                 </button>
             </div>
@@ -323,7 +323,7 @@
                                 class="btn"
                                 [class.btn-light]="filtroAnio === anio"
                                 [class.btn-outline-light]="filtroAnio !== anio"
-                                (click)="filtroAnio = anio">
+                                (click)="cambiarAnioFiltro(anio)">
                             {{ anio }}
                         </button>
                     </div>

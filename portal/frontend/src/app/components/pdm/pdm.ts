@@ -315,6 +315,22 @@ export class PdmComponent implements OnInit, OnDestroy {
         this.getEstadisticasPorEstado();
     }
 
+    /**
+     * ✅ Cambia el año del filtro y actualiza los caches
+     */
+    cambiarAnioFiltro(anio: number): void {
+        this.filtroAnio = anio;
+        this.actualizarCachesFiltros();
+    }
+
+    /**
+     * ✅ Limpia el filtro de estado y actualiza los caches
+     */
+    limpiarFiltroEstado(): void {
+        this.filtroEstado = '';
+        this.actualizarCachesFiltros();
+    }
+
     ngOnInit(): void {
         // ✅ Cachear permisos del usuario al inicio
         const currentUser = this.authService.getCurrentUserValue();
