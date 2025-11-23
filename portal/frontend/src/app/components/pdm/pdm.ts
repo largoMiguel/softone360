@@ -2798,7 +2798,7 @@ export class PdmComponent implements OnInit, OnDestroy {
             data: data,
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
+                maintainAspectRatio: false,
                 indexAxis: 'y',
                 plugins: {
                     legend: {
@@ -2826,12 +2826,26 @@ export class PdmComponent implements OnInit, OnDestroy {
                     }
                 },
                 scales: {
+                    y: {
+                        ticks: {
+                            autoSkip: false,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
                     x: {
                         beginAtZero: true,
                         max: 100,
                         ticks: {
                             callback: (value) => value + '%'
                         }
+                    }
+                },
+                layout: {
+                    padding: {
+                        left: 10,
+                        right: 20
                     }
                 }
             }
