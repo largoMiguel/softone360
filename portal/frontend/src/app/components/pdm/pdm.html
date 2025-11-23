@@ -254,7 +254,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr *ngFor="let p of getProductosFiltrados()">
+                            <tr *ngFor="let p of productosFiltradosCache">
                                 <td><small class="fw-bold">{{ p.codigo }}</small></td>
                                 <td><small>{{ p.producto | slice:0:30 }}</small></td>
                                 <td><small>{{ p.linea_estrategica | slice:0:20 }}</small></td>
@@ -891,7 +891,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr *ngFor="let comp of getComparativaPresupuestal()">
+                                    <tr *ngFor="let comp of comparativaPresupuestalCache">
                                         <td class="small"><strong>{{ comp.anio }}</strong></td>
                                         <td class="text-end small">{{ formatearMoneda(comp.pdm) }}</td>
                                         <td class="text-end small">{{ formatearMoneda(comp.ejecucion) }}</td>

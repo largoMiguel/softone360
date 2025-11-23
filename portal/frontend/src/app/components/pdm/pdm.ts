@@ -80,6 +80,10 @@ export class PdmComponent implements OnInit, OnDestroy {
     // Secretarías agrupadas con responsables
     secretariasAgrupadas: any[] = [];
 
+    // ✅ OPTIMIZACIÓN: Variables cacheadas para evitar recálculos en templates
+    productosFiltradosCache: ResumenProducto[] = [];
+    comparativaPresupuestalCache: { anio: number; pdm: number; ejecucion: number; diferencia: number; porcentaje: number }[] = [];
+
     // Filtros
     filtroLinea = '';
     filtroSector = '';
@@ -214,10 +218,14 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * ✅ NUEVO: Obtener productos filtrados por estado (para mostrar en dashboard)
+     * ✅ OPTIMIZADO: Obtener productos filtrados por estado (para mostrar en dashboard)
+     * Cachea resultados para evitar recálculos en cada ciclo de detección de cambios
      */
     getProductosFiltrados(): ResumenProducto[] {
-        if (!this.resumenProductos) return [];
+        if (!this.resumenProductos) {
+            this.productosFiltradosCache = [];
+            return this.productosFiltradosCache;
+        }
         
         let productos = [...this.resumenProductos];
         
@@ -235,7 +243,8 @@ export class PdmComponent implements OnInit, OnDestroy {
             return codeA - codeB;
         });
         
-        return productos;
+        this.productosFiltradosCache = productos;
+        return this.productosFiltradosCache;
     }
 
     /**
@@ -401,6 +410,9 @@ export class PdmComponent implements OnInit, OnDestroy {
                 this.vistaActual = 'dashboard';
                 this.cargandoDesdeBackend = false;
                 this.ultimaActualizacionCache = Date.now(); // ✅ Marcar caché como válido desde la carga inicial
+                
+                // ✅ Actualizar caches de UI
+                this.getProductosFiltrados();
                 
                 // Generar analytics iniciales
                 this.generarAnalytics();
@@ -629,6 +641,8 @@ export class PdmComponent implements OnInit, OnDestroy {
             this.actualizarResumenActividades(false);
             // Cargar ejecución presupuestal si está disponible
             this.cargarEjecucionPresupuestal(producto.codigo);
+            // ✅ Actualizar cache de comparativa presupuestal
+            this.getComparativaPresupuestal();
         } else if (vista === 'analisis-producto') {
             this.recargarAnalisisProducto();
         }
@@ -668,6 +682,8 @@ export class PdmComponent implements OnInit, OnDestroy {
             next: (ejecucion) => {
                 this.ejecucionPresupuestal = ejecucion;
                 this.cargandoEjecucion = false;
+                // ✅ Actualizar cache de comparativa presupuestal
+                this.getComparativaPresupuestal();
             },
             error: (error) => {
                 // No mostrar error 404, es normal que no haya ejecución para todos los productos
@@ -676,6 +692,8 @@ export class PdmComponent implements OnInit, OnDestroy {
                 }
                 this.ejecucionPresupuestal = null;
                 this.cargandoEjecucion = false;
+                // ✅ Actualizar cache incluso si no hay ejecución
+                this.getComparativaPresupuestal();
             }
         });
     }
@@ -683,10 +701,12 @@ export class PdmComponent implements OnInit, OnDestroy {
     /**
      * Obtiene la comparativa presupuestal entre PDM y Ejecución por año
      * Solo muestra el año actualmente seleccionado en el tab de actividades
+     * ✅ OPTIMIZADO: Cachea resultados para evitar recálculos
      */
     getComparativaPresupuestal(): { anio: number; pdm: number; ejecucion: number; diferencia: number; porcentaje: number }[] {
         if (!this.productoSeleccionado) {
-            return [];
+            this.comparativaPresupuestalCache = [];
+            return this.comparativaPresupuestalCache;
         }
 
         // Si no hay ejecución cargada (404 para ese año) mostrar ejecución = 0
@@ -699,11 +719,10 @@ export class PdmComponent implements OnInit, OnDestroy {
         const ejecucion = ejecucionSeleccionada;
         const diferencia = ejecucion - pdm;
         const porcentaje = pdm > 0 ? (ejecucion / pdm) * 100 : 0;
-        
-        return [{ anio, pdm, ejecucion, diferencia, porcentaje }];
-    }
 
-    /**
+        this.comparativaPresupuestalCache = [{ anio, pdm, ejecucion, diferencia, porcentaje }];
+        return this.comparativaPresupuestalCache;
+    }    /**
      * Recarga el dashboard con datos frescos del backend (con caché)
      */
     private recargarDashboard(): void {
@@ -967,6 +986,7 @@ export class PdmComponent implements OnInit, OnDestroy {
             // En vista productos, solo cambiar filtro sin navegar
             this.filtroEstado = this.filtroEstado === 'PENDIENTE' ? '' : 'PENDIENTE';
         }
+        this.getProductosFiltrados(); // ✅ Actualizar cache
     }
 
     /**
@@ -980,6 +1000,7 @@ export class PdmComponent implements OnInit, OnDestroy {
         } else {
             this.filtroEstado = this.filtroEstado === 'EN_PROGRESO' ? '' : 'EN_PROGRESO';
         }
+        this.getProductosFiltrados(); // ✅ Actualizar cache
     }
 
     /**
@@ -993,6 +1014,7 @@ export class PdmComponent implements OnInit, OnDestroy {
         } else {
             this.filtroEstado = this.filtroEstado === 'COMPLETADO' ? '' : 'COMPLETADO';
         }
+        this.getProductosFiltrados(); // ✅ Actualizar cache
     }
 
     /**
@@ -1006,6 +1028,7 @@ export class PdmComponent implements OnInit, OnDestroy {
         } else {
             this.filtroEstado = this.filtroEstado === 'POR_EJECUTAR' ? '' : 'POR_EJECUTAR';
         }
+        this.getProductosFiltrados(); // ✅ Actualizar cache
     }
 
     /**
@@ -1198,6 +1221,9 @@ export class PdmComponent implements OnInit, OnDestroy {
         
         // ✅ MEJORADO: Recargar actividades y actualizar estadísticas
         this.actualizarResumenActividades(true);
+        
+        // ✅ Actualizar cache de comparativa presupuestal
+        this.getComparativaPresupuestal();
         
         // ✅ NUEVO: Recargar ejecución presupuestal para el nuevo año
         if (this.productoSeleccionado) {
