@@ -269,21 +269,21 @@ export class PdmComponent implements OnInit, OnDestroy {
 
     /**
      * Verifica datos del backend con espera para entity slug
+     * ✅ OPTIMIZADO: 10 intentos máximo (1 segundo)
      */
     private verificarDatosBackendConEspera(): void {
-        // Esperar en un pequeño intervalo a que el entity slug esté disponible
         let intentos = 0;
+        const MAX_INTENTOS = 10;
         const verificar = () => {
             intentos++;
             const slug = this.pdmService.getEntitySlug();
             
             if (slug) {
                 this.verificarDatosBackend();
-            } else if (intentos < 50) {
-                // Reintentar después de 100ms (máximo 5 segundos)
+            } else if (intentos < MAX_INTENTOS) {
                 setTimeout(verificar, 100);
             } else {
-                console.warn('⚠️ Entity slug no disponible después de 5 segundos, continuando sin datos del backend');
+                console.warn('⚠️ Timeout: Entity slug no disponible después de 1s');
                 this.cargandoDesdeBackend = false;
             }
         };
@@ -341,8 +341,8 @@ export class PdmComponent implements OnInit, OnDestroy {
                 }
             }, 500);
             
-            // Timeout de seguridad de 10 segundos
-            setTimeout(() => clearInterval(interval), 10000);
+            // ✅ OPTIMIZADO: Timeout de seguridad de 5 segundos
+            setTimeout(() => clearInterval(interval), 5000);
         }
     }
 
@@ -842,6 +842,7 @@ export class PdmComponent implements OnInit, OnDestroy {
 
     /**
      * Recarga el análisis del producto actual
+     * ✅ OPTIMIZADO: Sin timeout innecesario
      */
     private recargarAnalisisProducto(): void {
         if (!this.productoSeleccionado) {
@@ -849,10 +850,7 @@ export class PdmComponent implements OnInit, OnDestroy {
             return;
         }
         
-        // Crear gráficos con datos actuales
-        setTimeout(() => {
-            this.crearGraficosAnalisisProducto();
-        }, 100);
+        this.crearGraficosAnalisisProducto();
     }
 
     /**
@@ -1378,21 +1376,12 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Registra la evidencia de una actividad
      */
     private registrarEvidenciaActividad(actividadId: number, valores: any) {
-        console.log('🔍 registrarEvidenciaActividad - valores:', valores);
-        console.log('🔍 imagenes en formulario:', valores.imagenes);
-        console.log('🔍 imagenes length:', valores.imagenes?.length);
-        
         const evidenciaData: EvidenciaActividad = {
             descripcion: valores.descripcion,
             url_evidencia: valores.evidencia_url || undefined,
             imagenes: valores.imagenes && valores.imagenes.length > 0 ? valores.imagenes : [],
             fecha_registro: new Date().toISOString()
         };
-        
-        console.log('📤 Evidencia a enviar:', {
-            ...evidenciaData,
-            imagenes: evidenciaData.imagenes?.length ? `${evidenciaData.imagenes.length} imagen(es)` : 'sin imágenes'
-        });
 
         const actividadOriginal = this.actividadEnEdicion;
         const yaTieneEvidencia = !!actividadOriginal?.evidencia?.id;
@@ -1406,7 +1395,8 @@ export class PdmComponent implements OnInit, OnDestroy {
                 this.showToast(yaTieneEvidencia ? 'Evidencia actualizada exitosamente' : 'Evidencia de ejecución registrada exitosamente', 'success');
                 this.cerrarModalActividad();
                 this.cargandoActividadesBackend = true;
-                setTimeout(() => {
+                // ✅ OPTIMIZADO: Usar requestAnimationFrame en lugar de setTimeout
+                requestAnimationFrame(() => {
                     if (this.productoSeleccionado) {
                         this.pdmService.cargarActividadesDesdeBackend(this.productoSeleccionado.codigo, this.anioSeleccionado)
                             .subscribe({
@@ -1425,7 +1415,7 @@ export class PdmComponent implements OnInit, OnDestroy {
                                 }
                             });
                     }
-                }, 300);
+                });
             },
             error: () => {
                 this.showToast(yaTieneEvidencia ? 'Error al actualizar la evidencia' : 'Error al registrar la evidencia de ejecución', 'error');
@@ -1598,12 +1588,9 @@ export class PdmComponent implements OnInit, OnDestroy {
         });
 
         Promise.all(promesas).then(imagenesNuevas => {
-            console.log('✅ Imágenes nuevas convertidas:', imagenesNuevas.length);
-            
             // Obtener imágenes actuales del FormControl
             const imagenesControl = this.formularioActividad.get('imagenes');
             const actuales: string[] = imagenesControl?.value || [];
-            console.log('📸 Imágenes actuales en formulario:', actuales.length);
 
             // Calcular cuántas podemos agregar (máximo 4 total)
             const disponibles = 4 - actuales.length;
@@ -1618,8 +1605,6 @@ export class PdmComponent implements OnInit, OnDestroy {
             
             // Crear nuevo array con todas las imágenes
             const todasLasImagenes = [...actuales, ...aAgregar];
-            
-            console.log('📸 Total imágenes tras agregar:', todasLasImagenes.length);
             
             // Actualizar el FormControl
             imagenesControl?.setValue(todasLasImagenes);
@@ -2983,32 +2968,32 @@ export class PdmComponent implements OnInit, OnDestroy {
 
     /**
      * Filtra productos por línea estratégica desde stat-card clickeable
+     * ✅ OPTIMIZADO: requestAnimationFrame en lugar de setTimeout
      */
     filtrarPorLinea(): void {
         this.navegarA('productos');
         
-        // Scroll a los filtros
-        setTimeout(() => {
+        requestAnimationFrame(() => {
             const filtrosElement = document.querySelector('.filtros-section');
             if (filtrosElement) {
                 filtrosElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
-        }, 300);
+        });
     }
 
     /**
      * Filtra productos por iniciativa SGR desde stat-card clickeable
+     * ✅ OPTIMIZADO: requestAnimationFrame en lugar de setTimeout
      */
     filtrarPorIniciativa(): void {
         this.navegarA('productos');
         
-        // Scroll a los filtros
-        setTimeout(() => {
+        requestAnimationFrame(() => {
             const filtrosElement = document.querySelector('.filtros-section');
             if (filtrosElement) {
                 filtrosElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
-        }, 300);
+        });
     }
 
 }
