@@ -236,10 +236,52 @@ export class PdmComponent implements OnInit, OnDestroy {
         
         let productos = [...this.resumenProductos];
         
+        // Filtrar productos con meta > 0 para el año seleccionado
+        productos = productos.filter(p => {
+            const meta = this.getMetaAnio(p, this.filtroAnio);
+            return meta > 0;
+        });
+
+        // Filtros adicionales
+        if (this.filtroLinea) {
+            productos = productos.filter(p => p.linea_estrategica === this.filtroLinea);
+        }
+
+        if (this.filtroSector) {
+            productos = productos.filter(p => p.sector === this.filtroSector);
+        }
+
+        if (this.filtroODS) {
+            productos = productos.filter(p => p.ods === this.filtroODS);
+        }
+
+        if (this.filtroTipoAcumulacion) {
+            productos = productos.filter(p => p.tipo_acumulacion === this.filtroTipoAcumulacion);
+        }
+        
         // Filtrar por estado
         if (this.filtroEstado) {
             productos = productos.filter(p => 
                 this.getEstadoProductoAnio(p, this.filtroAnio) === this.filtroEstado
+            );
+        }
+        
+        // Filtro por secretaría
+        if (this.filtroSecretaria) {
+            const secretariaId = parseInt(this.filtroSecretaria, 10);
+            productos = productos.filter(p => {
+                const productoSecretariaId = p.responsable_secretaria_id || p.responsable_id;
+                return productoSecretariaId && parseInt(String(productoSecretariaId), 10) === secretariaId;
+            });
+        }
+
+        if (this.filtroBusqueda) {
+            const busqueda = this.filtroBusqueda.toLowerCase();
+            productos = productos.filter(p =>
+                p.producto.toLowerCase().includes(busqueda) ||
+                p.codigo.toLowerCase().includes(busqueda) ||
+                p.programa_mga?.toLowerCase().includes(busqueda) ||
+                p.bpin?.toLowerCase().includes(busqueda)
             );
         }
         
@@ -264,6 +306,15 @@ export class PdmComponent implements OnInit, OnDestroy {
             return codeA - codeB;
         });
     }
+
+    /**
+     * ✅ OPTIMIZACIÓN: Actualiza todos los caches cuando cambian los filtros
+     */
+    private actualizarCachesFiltros(): void {
+        this.getProductosFiltrados();
+        this.getEstadisticasPorEstado();
+    }
+
     ngOnInit(): void {
         // ✅ Cachear permisos del usuario al inicio
         const currentUser = this.authService.getCurrentUserValue();
@@ -957,7 +1008,12 @@ export class PdmComponent implements OnInit, OnDestroy {
      * ✅ OPTIMIZACIÓN: Se ejecuta cuando cambia cualquier filtro
      * Solo filtra en memoria, SIN hacer petición al backend
      */
+    /**
+     * ✅ Se ejecuta cuando cambia cualquier filtro
+     * Actualiza el cache de productos filtrados
+     */
     onCambioFiltro() {
+        this.actualizarCachesFiltros();
     }
 
     /**
@@ -965,7 +1021,7 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Solo filtra en memoria, SIN hacer petición al backend
      */
     onCambioFiltroLinea() {
-        // ✅ NO llamar a recargarSegunFiltros() - solo filtrar en memoria
+        this.actualizarCachesFiltros();
     }
 
     /**
@@ -973,7 +1029,7 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Solo filtra en memoria, SIN hacer petición al backend
      */
     onCambioFiltroSector() {
-        // ✅ NO llamar a recargarSegunFiltros() - solo filtrar en memoria
+        this.actualizarCachesFiltros();
     }
 
     /**
@@ -989,7 +1045,7 @@ export class PdmComponent implements OnInit, OnDestroy {
         
         // ✅ Establecer nuevo debounce
         this.debounceTimer = setTimeout(() => {
-            // ✅ NO llamar a recargarSegunFiltros() - solo filtrar en memoria
+            this.actualizarCachesFiltros();
             this.debounceTimer = null;
         }, this.DEBOUNCE_DELAY);
     }
