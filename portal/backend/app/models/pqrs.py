@@ -99,6 +99,24 @@ class MedioRespuesta(enum.Enum):
     TELEFONO = "telefono"
     TICKET = "ticket"
 
+class AsignacionAuditoria(Base):
+    """Registro de auditoría para rastrear cambios de asignación de PQRS"""
+    __tablename__ = "asignacion_auditoria"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    pqrs_id = Column(Integer, ForeignKey("pqrs.id", ondelete="CASCADE"), nullable=False)
+    usuario_anterior_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    usuario_nuevo_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    justificacion = Column(Text, nullable=True)
+    
+    # Timestamps
+    fecha_asignacion = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relaciones
+    pqrs = relationship("PQRS", back_populates="asignaciones_auditoria")
+    usuario_anterior = relationship("User", foreign_keys=[usuario_anterior_id])
+    usuario_nuevo = relationship("User", foreign_keys=[usuario_nuevo_id])
+
 class PQRS(Base):
     __tablename__ = "pqrs"
     
@@ -173,6 +191,8 @@ class PQRS(Base):
     )
     dias_respuesta = Column(Integer, nullable=True)  # Días para responder (manual)
     archivo_adjunto = Column(String, nullable=True)  # Ruta del archivo PDF adjunto
+    justificacion_asignacion = Column(Text, nullable=True)  # Justificación de reasignación
+    archivo_respuesta = Column(String, nullable=True)  # Ruta del archivo de respuesta adjunto
     
     # Respuesta
     respuesta = Column(Text, nullable=True)
@@ -184,3 +204,4 @@ class PQRS(Base):
     # Relaciones
     created_by = relationship("User", foreign_keys=[created_by_id], back_populates="pqrs_creadas")
     assigned_to = relationship("User", foreign_keys=[assigned_to_id], back_populates="pqrs_asignadas")
+    asignaciones_auditoria = relationship("AsignacionAuditoria", back_populates="pqrs", cascade="all, delete-orphan")

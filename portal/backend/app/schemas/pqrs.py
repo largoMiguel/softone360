@@ -20,6 +20,8 @@ class PQRSBase(BaseModel):
     genero: Optional[Genero] = None
     dias_respuesta: Optional[int] = None
     archivo_adjunto: Optional[str] = None
+    justificacion_asignacion: Optional[str] = None
+    archivo_respuesta: Optional[str] = None
 
 class PQRSCreate(PQRSBase):
     numero_radicado: Optional[str] = None
@@ -45,9 +47,24 @@ class PQRSUpdate(BaseModel):
     genero: Optional[Genero] = None
     dias_respuesta: Optional[int] = None
     archivo_adjunto: Optional[str] = None
+    justificacion_asignacion: Optional[str] = None
+    archivo_respuesta: Optional[str] = None
 
 class PQRSResponse(BaseModel):
     respuesta: str
+
+class AsignacionAuditoriaResponse(BaseModel):
+    id: int
+    pqrs_id: int
+    usuario_anterior_id: Optional[int] = None
+    usuario_nuevo_id: Optional[int] = None
+    justificacion: Optional[str] = None
+    fecha_asignacion: datetime
+    usuario_anterior: Optional[dict] = None
+    usuario_nuevo: Optional[dict] = None
+    
+    class Config:
+        from_attributes = True
 
 class PQRS(PQRSBase):
     id: int
@@ -70,6 +87,8 @@ class PQRS(PQRSBase):
     genero: Optional[Genero] = None
     dias_respuesta: Optional[int] = None
     archivo_adjunto: Optional[str] = None
+    justificacion_asignacion: Optional[str] = None
+    archivo_respuesta: Optional[str] = None
     
     class Config:
         from_attributes = True

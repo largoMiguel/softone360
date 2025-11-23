@@ -27,6 +27,8 @@ export interface PQRS {
     genero?: Genero;
     dias_respuesta?: number;
     archivo_adjunto?: string;
+    justificacion_asignacion?: string;
+    archivo_respuesta?: string;
 }
 
 export interface PQRSWithDetails extends PQRS {
@@ -60,6 +62,8 @@ export interface CreatePQRSRequest {
     genero?: Genero;
     dias_respuesta?: number;
     archivo_adjunto?: string;
+    justificacion_asignacion?: string;
+    archivo_respuesta?: string;
 }
 
 export interface UpdatePQRSRequest {
@@ -82,6 +86,8 @@ export interface UpdatePQRSRequest {
     genero?: Genero;
     dias_respuesta?: number;
     archivo_adjunto?: string;
+    justificacion_asignacion?: string;
+    archivo_respuesta?: string;
 }
 
 export interface PQRSResponse {

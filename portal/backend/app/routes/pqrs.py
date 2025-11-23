@@ -8,7 +8,7 @@ import boto3
 from botocore.exceptions import ClientError
 import os
 from app.config.database import get_db
-from app.models.pqrs import PQRS, EstadoPQRS
+from app.models.pqrs import PQRS, EstadoPQRS, AsignacionAuditoria
 from app.models.user import User, UserRole
 from app.schemas.pqrs import PQRSCreate, PQRSUpdate, PQRS as PQRSSchema, PQRSWithDetails, PQRSResponse
 from app.models.alert import Alert
@@ -206,6 +206,29 @@ async def get_pqrs(
     
     return result
 
+@router.get("/next-radicado", response_model=dict)
+async def get_next_radicado(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Obtener el próximo número de radicado que se asignará a una nueva PQRS.
+    Este es solo un preview - el radicado real se genera al crear la PQRS.
+    """
+    try:
+        next_radicado = generate_radicado(db)
+        return {
+            "next_radicado": next_radicado,
+            "format": "YYYYMMDDNNN",
+            "description": "Próximo número de radicado (puede variar si se crean otras PQRS antes)"
+        }
+    except Exception as e:
+        print(f"❌ Error generando preview de radicado: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al generar preview: {str(e)}"
+        )
+
 @router.get("/{pqrs_id}", response_model=PQRSWithDetails)
 async def get_pqrs_by_id(
     pqrs_id: int, 
@@ -312,6 +335,7 @@ async def update_pqrs(
 
 class AssignPayload(BaseModel):
     assigned_to_id: int
+    justificacion: Optional[str] = None
 
 
 @router.post("/{pqrs_id}/assign")
@@ -319,9 +343,9 @@ async def assign_pqrs(
     pqrs_id: int,
     payload: AssignPayload,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin)
+    current_user: User = Depends(get_current_active_user)  # Cambiado para permitir secretarios
 ):
-    """Asignar PQRS a un usuario (solo admin)"""
+    """Asignar PQRS a un usuario (admin o secretario asignado) - Registra justificación y crea auditoria"""
     pqrs = db.query(PQRS).filter(PQRS.id == pqrs_id).first()
     
     if not pqrs:
@@ -329,6 +353,14 @@ async def assign_pqrs(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="PQRS no encontrada"
         )
+    
+    # Validar permisos: Admin puede asignar cualquiera, Secretario solo las asignadas a él
+    if current_user.role != UserRole.ADMIN:
+        if current_user.role != UserRole.SECRETARIO or pqrs.assigned_to_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes permiso para reasignar esta PQRS"
+            )
     
     # Verificar que el usuario existe
     assigned_user = db.query(User).filter(User.id == payload.assigned_to_id).first()
@@ -338,10 +370,33 @@ async def assign_pqrs(
             detail="Usuario no encontrado"
         )
     
+    # Guardar usuario anterior para auditoria
+    usuario_anterior_id = pqrs.assigned_to_id
+    
+    # Es reasignación si ya tenía alguien asignado O si es un secretario quien asigna
+    es_reasignacion = usuario_anterior_id is not None or current_user.role == UserRole.SECRETARIO
+    
+    # Validar justificación obligatoria para reasignaciones
+    if es_reasignacion and not payload.justificacion:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La justificación es obligatoria para reasignaciones"
+        )
+    
+    # Actualizar asignación
     pqrs.assigned_to_id = payload.assigned_to_id
+    pqrs.justificacion_asignacion = payload.justificacion
     if not pqrs.fecha_delegacion:
         pqrs.fecha_delegacion = datetime.utcnow()
     
+    # Crear registro de auditoría
+    auditoria = AsignacionAuditoria(
+        pqrs_id=pqrs_id,
+        usuario_anterior_id=usuario_anterior_id,
+        usuario_nuevo_id=payload.assigned_to_id,
+        justificacion=payload.justificacion
+    )
+    db.add(auditoria)
     db.commit()
 
     # Crear alerta para el usuario asignado
@@ -359,6 +414,47 @@ async def assign_pqrs(
         db.rollback()
     
     return {"message": f"PQRS asignada a {assigned_user.full_name}"}
+
+@router.get("/{pqrs_id}/historial-asignaciones")
+async def get_asignacion_historial(
+    pqrs_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Obtener historial de asignaciones de una PQRS"""
+    pqrs = db.query(PQRS).filter(PQRS.id == pqrs_id).first()
+    
+    if not pqrs:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="PQRS no encontrada"
+        )
+    
+    # Verificar permisos
+    if current_user.role != UserRole.ADMIN and pqrs.assigned_to_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos para ver esta información"
+        )
+    
+    historial = db.query(AsignacionAuditoria).filter(
+        AsignacionAuditoria.pqrs_id == pqrs_id
+    ).order_by(AsignacionAuditoria.fecha_asignacion.desc()).all()
+    
+    return [{
+        "id": h.id,
+        "pqrs_id": h.pqrs_id,
+        "usuario_anterior": {
+            "id": h.usuario_anterior.id,
+            "full_name": h.usuario_anterior.full_name
+        } if h.usuario_anterior else None,
+        "usuario_nuevo": {
+            "id": h.usuario_nuevo.id,
+            "full_name": h.usuario_nuevo.full_name
+        } if h.usuario_nuevo else None,
+        "justificacion": h.justificacion,
+        "fecha_asignacion": h.fecha_asignacion
+    } for h in historial]
 
 @router.post("/{pqrs_id}/respond", response_model=PQRSSchema)
 async def respond_pqrs(
@@ -548,27 +644,101 @@ async def upload_archivo_pqrs(
         )
 
 
-@router.get("/next-radicado", response_model=dict)
-async def get_next_radicado(
+@router.post("/{pqrs_id}/upload-respuesta", response_model=dict)
+async def upload_archivo_respuesta(
+    pqrs_id: int,
+    file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Obtener el próximo número de radicado que se asignará a una nueva PQRS.
-    Este es solo un preview - el radicado real se genera al crear la PQRS.
+    Subir archivo adjunto para la respuesta oficial de una PQRS.
+    Solo admin y secretario asignado pueden subir.
     """
+    # Validar que la PQRS existe
+    pqrs = db.query(PQRS).filter(PQRS.id == pqrs_id).first()
+    if not pqrs:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"PQRS con ID {pqrs_id} no encontrada"
+        )
+    
+    # Validar permisos: admin o secretario asignado
+    if current_user.role != UserRole.ADMIN and pqrs.assigned_to_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos para subir archivos de respuesta a esta PQRS"
+        )
+    
+    # Validar tipo de archivo
+    allowed_types = [
+        "application/pdf",
+        "application/x-pdf",
+        "application/octet-stream",
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ]
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Tipo de archivo no permitido: {file.content_type}"
+        )
+    
+    # Validar tamaño (10MB máximo)
+    file_content = await file.read()
+    if len(file_content) > 10 * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El archivo no debe superar 10 MB"
+        )
+    
     try:
-        next_radicado = generate_radicado(db)
+        # Generar nombre único para el archivo de respuesta
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'pdf'
+        file_key = f"pqrs/{pqrs.entity_id}/respuesta_{pqrs.numero_radicado}_{timestamp}.{file_extension}"
+        
+        # Subir a S3 con ACL público
+        s3_client.put_object(
+            Bucket=S3_BUCKET,
+            Key=file_key,
+            Body=file_content,
+            ContentType=file.content_type,
+            ACL='public-read',  # Hacer el archivo público
+            Metadata={
+                "pqrs_id": str(pqrs_id),
+                "numero_radicado": pqrs.numero_radicado,
+                "tipo": "respuesta",
+                "uploaded_by": current_user.username
+            }
+        )
+        
+        # Actualizar PQRS con la URL del archivo de respuesta
+        file_url = f"https://{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/{file_key}"
+        pqrs.archivo_respuesta = file_url
+        db.commit()
+        
         return {
-            "next_radicado": next_radicado,
-            "format": "YYYYMMDDNNN",
-            "description": "Próximo número de radicado (puede variar si se crean otras PQRS antes)"
+            "message": "Archivo de respuesta subido exitosamente",
+            "archivo_url": file_url,
+            "file_key": file_key
         }
-    except Exception as e:
-        print(f"❌ Error generando preview de radicado: {e}")
+        
+    except ClientError as e:
+        print(f"❌ Error subiendo archivo de respuesta a S3: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al generar preview: {str(e)}"
+            detail=f"Error al subir el archivo: {str(e)}"
+        )
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error procesando el archivo: {str(e)}"
         )
 
 

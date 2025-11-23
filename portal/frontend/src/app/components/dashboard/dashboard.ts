@@ -91,6 +91,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   pqrsEditando: PQRSWithDetails | null = null;
   editarPqrsForm: FormGroup;
   selectedFileEdit: File | null = null;
+  selectedFileRespuesta: File | null = null;
+  justificacionAsignacion: string = '';
 
   // Datos para gráficos
   estadosChartData: ChartData<'doughnut'> = { labels: [], datasets: [] };
@@ -692,7 +694,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.selectedPqrs = pqrs;
     this.selectedEstado = pqrs.estado || '';
   }
-
   confirmarAsignacion(): void {
     if (!this.selectedPqrs || !this.selectedSecretarioId) {
       this.alertService.warning('Por favor selecciona una secretaría para continuar');
@@ -715,12 +716,25 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // Asignar al primer usuario disponible (o implementar lógica de rotación)
     const usuarioAsignado = usuariosDisponibles[0];
 
-    this.pqrsService.assignPqrs(this.selectedPqrs.id, usuarioAsignado.id).subscribe({
+    this.pqrsService.assignPqrs(this.selectedPqrs.id, usuarioAsignado.id, this.justificacionAsignacion).subscribe({
       next: (response) => {
         this.alertService.success(
           `La PQRS N° ${this.selectedPqrs?.numero_radicado} ha sido asignada exitosamente a la secretaría "${nombreSecretaria}".`
         );
-        this.loadPqrs();
+        
+        // Actualizar PQRS en lista local
+        if (this.selectedPqrs) {
+          const index = this.pqrsList.findIndex(p => p.id === this.selectedPqrs!.id);
+          if (index !== -1) {
+            this.pqrsList[index].assigned_to_id = usuarioAsignado.id;
+            this.pqrsList[index].justificacion_asignacion = this.justificacionAsignacion;
+          }
+          // Actualizar selectedPqrs también
+          this.selectedPqrs.assigned_to_id = usuarioAsignado.id;
+          this.selectedPqrs.justificacion_asignacion = this.justificacionAsignacion;
+        }
+        
+        this.justificacionAsignacion = '';
 
         const closeButton = document.querySelector('#asignacionModal .btn-close') as HTMLElement;
         if (closeButton) {
@@ -997,8 +1011,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
     };
 
     this.pqrsService.updatePqrs(this.pqrsEditando!.id, updateData).subscribe({
-      next: () => {
+      next: (pqrsActualizada) => {
         this.alertService.success('La PQRS ha sido actualizada exitosamente.', 'PQRS Actualizada');
+        
+        // Actualizar selectedPqrs con los nuevos datos para que el botón de descarga aparezca
+        if (this.selectedPqrs && this.selectedPqrs.id === pqrsActualizada.id) {
+          this.selectedPqrs = { ...this.selectedPqrs, ...pqrsActualizada };
+        }
+        
         this.cancelarEdicion();
         this.loadPqrs();
         this.isSubmitting = false;
@@ -1026,11 +1046,36 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Seleccionar archivo para respuesta
+  onFileSelectedRespuesta(event: any): void {
+    const file = event.target.files[0];
+    if (file) {
+      // Validar tamaño (máximo 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        this.alertService.error('El archivo no puede superar 10MB', 'Error');
+        event.target.value = '';
+        return;
+      }
+      this.selectedFileRespuesta = file;
+    }
+  }
+
   // Método para extraer nombre de archivo de URL
   getFilenameFromUrl(url: string): string {
     if (!url) return '';
     const parts = url.split('/');
     return parts[parts.length - 1];
+  }
+
+  // Método para obtener URL del archivo de respuesta
+  getArchivoRespuestaUrl(archivo: string): string {
+    if (!archivo) return '';
+    // Si ya es una URL completa, retornarla directamente
+    if (archivo.startsWith('http://') || archivo.startsWith('https://')) {
+      return archivo;
+    }
+    // Si es solo el nombre del archivo, construir la URL de S3
+    return `https://softone360-pqrs-archivos.s3.us-east-1.amazonaws.com/${archivo}`;
   }
 
   onSubmitNuevoSecretario() {
@@ -1083,33 +1128,74 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   enviarRespuesta() {
     if (this.selectedPqrs && this.respuestaTexto.trim()) {
-      const updateData: UpdatePQRSRequest = {
-        respuesta: this.respuestaTexto.trim(),
-        estado: 'resuelto' as EstadoPQRS
-      };
-
-      this.pqrsService.updatePqrs(this.selectedPqrs.id, updateData).subscribe({
-        next: (response) => {
-          // console.log('Respuesta enviada exitosamente:', response);
-          // Actualizar el selectedPqrs con la respuesta
-          if (this.selectedPqrs) {
-            this.selectedPqrs.respuesta = this.respuestaTexto.trim();
-            this.selectedPqrs.estado = 'resuelto';
+      // Si hay archivo seleccionado, primero subirlo
+      if (this.selectedFileRespuesta) {
+        this.pqrsService.uploadArchivoRespuesta(this.selectedPqrs.id, this.selectedFileRespuesta).subscribe({
+          next: (uploadResponse) => {
+            console.log('Archivo de respuesta subido:', uploadResponse);
+            // Después de subir el archivo, actualizar la PQRS con la respuesta
+            this.actualizarRespuestaPqrs();
+            this.selectedFileRespuesta = null;
+          },
+          error: (error) => {
+            console.error('Error subiendo archivo de respuesta:', error);
+            this.alertService.error(
+              'Error al subir el archivo adjunto. Intente nuevamente.',
+              'Error'
+            );
           }
-          this.alertService.success(
-            `La respuesta ha sido enviada exitosamente y el estado de la PQRS N° ${this.selectedPqrs?.numero_radicado} ha cambiado a "Resuelto".`,
-            'Respuesta Enviada'
-          );
-          this.respuestaTexto = '';
-          this.loadPqrs();
-        },
-        error: (error) => {
-          console.error('Error enviando respuesta:', error);
-          const msg = this.extractErrorMessage(error);
-          this.alertService.error(msg, 'Error al Enviar Respuesta');
-        }
-      });
+        });
+      } else {
+        // Si no hay archivo, solo actualizar la respuesta
+        this.actualizarRespuestaPqrs();
+      }
     }
+  }
+
+  private actualizarRespuestaPqrs() {
+    if (!this.selectedPqrs) return;
+
+    const updateData: UpdatePQRSRequest = {
+      respuesta: this.respuestaTexto.trim(),
+      estado: 'resuelto' as EstadoPQRS
+    };
+
+    this.pqrsService.updatePqrs(this.selectedPqrs.id, updateData).subscribe({
+      next: (response) => {
+        this.alertService.success(
+          `La respuesta ha sido enviada exitosamente y el estado de la PQRS N° ${this.selectedPqrs?.numero_radicado} ha cambiado a "Resuelto".`,
+          'Respuesta Enviada'
+        );
+        this.respuestaTexto = '';
+        
+        // Recargar la PQRS actualizada desde el servidor para obtener todos los campos
+        if (this.selectedPqrs) {
+          this.pqrsService.getPqrsById(this.selectedPqrs.id).subscribe({            next: (pqrsActualizada) => {
+              // Actualizar en lista local
+              const index = this.pqrsList.findIndex(p => p.id === pqrsActualizada.id);
+              if (index !== -1) {
+                this.pqrsList[index] = pqrsActualizada;
+              }
+              this.selectedPqrs = pqrsActualizada;
+              this.updateCharts();
+            },
+            error: (err) => {
+              console.error('Error recargando PQRS:', err);
+              // Si falla, al menos actualizar lo básico
+              if (this.selectedPqrs) {
+                this.selectedPqrs.respuesta = this.respuestaTexto.trim();
+                this.selectedPqrs.estado = 'resuelto';
+              }
+            }
+          });
+        }
+      },
+      error: (error) => {
+        console.error('Error enviando respuesta:', error);
+        const msg = this.extractErrorMessage(error);
+        this.alertService.error(msg, 'Error al Enviar Respuesta');
+      }
+    });
   }
 
   isAdmin(): boolean {
@@ -1122,6 +1208,25 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   canChangeStatus(): boolean {
     return this.isAdmin() || this.isSecretario();
+  }
+
+  isEstadoResuelto(): boolean {
+    return this.selectedPqrs?.estado === 'resuelto';
+  }
+
+  esReasignacion(): boolean {
+    // Es reasignación si la PQRS ya tiene un usuario asignado
+    // O si el usuario actual es secretario (siempre será reasignación para secretarios)
+    return !!(this.selectedPqrs?.assigned_to_id) || this.isSecretario();
+  }
+
+  mostrarBotonRechazar(): boolean {
+    // Secretario puede rechazar/reasignar si la PQRS está asignada a él y no está resuelta
+    return this.isSecretario() && 
+           !!this.selectedPqrs && 
+           !!this.currentUser &&
+           this.selectedPqrs.assigned_to_id === this.currentUser.id && 
+           !this.isEstadoResuelto();
   }
 
   canEditPqrs(pqrs: PQRSWithDetails): boolean {

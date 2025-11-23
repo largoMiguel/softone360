@@ -5,12 +5,14 @@ Incluye una ruta segura para resetear la contraseña del superadmin cuando se re
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from app.config.database import get_db
 from app.models.entity import Entity
 from app.models.user import User, UserRole
 from app.models.secretaria import Secretaria
 from passlib.context import CryptContext
 from app.utils.migration_005 import run_migration_005
+from app.utils.migration_006 import run_migration_006
 
 router = APIRouter(prefix="/setup", tags=["Setup"])
 
@@ -223,4 +225,82 @@ async def execute_migration_005():
             detail=f"Error ejecutando migración 005: {str(e)}"
         )
 
+@router.post("/run-migration-006")
+async def execute_migration_006():
+    """
+    Ejecuta la migración 006 para agregar tabla asignacion_auditoria y campos justificacion_asignacion y archivo_respuesta.
+    """
+    try:
+        result = run_migration_006()
+        return {
+            "status": "success",
+            **result
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error ejecutando migración 006: {str(e)}"
+        )
 
+@router.get("/check-database")
+async def check_database_status(db: Session = Depends(get_db)):
+    """
+    Endpoint de diagnóstico para verificar el estado de la base de datos
+    """
+    try:
+        # Verificar tablas existentes
+        result = db.execute(text("""
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public'
+            ORDER BY table_name
+        """))
+        tables = [row[0] for row in result.fetchall()]
+        
+        # Verificar columnas de tabla pqrs
+        result = db.execute(text("""
+            SELECT column_name, data_type, is_nullable
+            FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = 'pqrs'
+            ORDER BY ordinal_position
+        """))
+        pqrs_columns = [{"name": row[0], "type": row[1], "nullable": row[2]} for row in result.fetchall()]
+        
+        # Verificar columnas de tabla asignacion_auditoria si existe
+        asignacion_columns = None
+        if 'asignacion_auditoria' in tables:
+            result = db.execute(text("""
+                SELECT column_name, data_type, is_nullable
+                FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = 'asignacion_auditoria'
+                ORDER BY ordinal_position
+            """))
+            asignacion_columns = [{"name": row[0], "type": row[1], "nullable": row[2]} for row in result.fetchall()]
+        
+        # Intentar importar modelo
+        model_import_ok = True
+        import_error = None
+        try:
+            from app.models.pqrs import AsignacionAuditoria
+        except Exception as e:
+            model_import_ok = False
+            import_error = str(e)
+        
+        return {
+            "status": "success",
+            "diagnostics": {
+                "tables_in_database": tables,
+                "asignacion_auditoria_exists": 'asignacion_auditoria' in tables,
+                "pqrs_columns": pqrs_columns,
+                "asignacion_auditoria_columns": asignacion_columns,
+                "model_import_ok": model_import_ok,
+                "import_error": import_error
+            }
+        }
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc()
+        }
