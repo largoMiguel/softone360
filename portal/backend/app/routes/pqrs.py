@@ -4,6 +4,7 @@ import json
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import datetime
+import pytz
 import boto3
 from botocore.exceptions import ClientError
 import os
@@ -16,8 +17,27 @@ from app.models.alert import Alert
 from app.utils.auth import get_current_active_user, require_admin
 from app.utils.helpers import generate_radicado
 from app.utils.email_service import email_service
+from app.config.settings import settings
 
 router = APIRouter(prefix="/pqrs", tags=["PQRS"])
+
+# Función helper para obtener hora de Colombia
+def get_colombia_time():
+    """Retorna la hora actual en zona horaria de Colombia (UTC-5)"""
+    colombia_tz = pytz.timezone(settings.timezone)
+    return datetime.now(colombia_tz)
+
+def format_colombia_datetime(dt: datetime) -> str:
+    """Formatea un datetime UTC a string en hora de Colombia"""
+    if dt is None:
+        return ""
+    # Si dt ya tiene timezone, convertir a Colombia, sino asumir UTC
+    colombia_tz = pytz.timezone(settings.timezone)
+    if dt.tzinfo is None:
+        # Asumir que es UTC
+        dt = pytz.utc.localize(dt)
+    dt_colombia = dt.astimezone(colombia_tz)
+    return dt_colombia.strftime("%Y-%m-%d %H:%M:%S")
 
 @router.post("/", response_model=PQRSSchema)
 async def create_pqrs(
@@ -123,7 +143,7 @@ async def create_pqrs(
                     asunto=pqrs_data.asunto or "Sin asunto",
                     nombre_ciudadano=pqrs_data.nombre_ciudadano or "Ciudadano",
                     entity_name=entity_name,
-                    fecha_radicacion=db_pqrs.fecha_solicitud.strftime("%Y-%m-%d %H:%M:%S"),
+                    fecha_radicacion=format_colombia_datetime(db_pqrs.fecha_solicitud),
                     entity_email=entity_email  # Email de la entidad como remitente
                 )
                 print(f"✅ Correo de radicación enviado a {pqrs_data.email_ciudadano}")
@@ -522,6 +542,23 @@ async def respond_pqrs(
             entity_name = entity.name if entity else "Sistema PQRS"
             entity_email = entity.email if entity and entity.email else None
             
+            # Generar URL pre-firmada para archivo de respuesta si existe
+            archivo_url = None
+            if pqrs.archivo_respuesta:
+                try:
+                    # Extraer la key del archivo de la URL
+                    file_key = pqrs.archivo_respuesta.split(f"{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/")[1]
+                    # Generar URL pre-firmada válida por 7 días (para que el ciudadano tenga tiempo de descargar)
+                    archivo_url = s3_client.generate_presigned_url(
+                        'get_object',
+                        Params={'Bucket': S3_BUCKET, 'Key': file_key},
+                        ExpiresIn=604800  # 7 días en segundos
+                    )
+                    print(f"📎 URL pre-firmada generada para archivo de respuesta (válida por 7 días)")
+                except Exception as e:
+                    print(f"⚠️ Error generando URL pre-firmada: {e}")
+                    archivo_url = pqrs.archivo_respuesta  # Usar URL directa como fallback
+            
             # Enviar correo de respuesta
             email_service.send_pqrs_respuesta_notification(
                 to_email=pqrs.email_ciudadano,
@@ -530,8 +567,8 @@ async def respond_pqrs(
                 nombre_ciudadano=pqrs.nombre_ciudadano or "Ciudadano",
                 respuesta=response_data.respuesta,
                 entity_name=entity_name,
-                fecha_respuesta=pqrs.fecha_respuesta.strftime("%Y-%m-%d %H:%M:%S"),
-                archivo_adjunto_url=pqrs.archivo_respuesta,  # Incluir archivo si existe
+                fecha_respuesta=format_colombia_datetime(pqrs.fecha_respuesta),
+                archivo_adjunto_url=archivo_url,  # URL pre-firmada o None
                 entity_email=entity_email  # Email de la entidad como remitente
             )
             print(f"✅ Correo de respuesta enviado a {pqrs.email_ciudadano}")

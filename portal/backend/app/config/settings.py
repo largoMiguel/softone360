@@ -42,6 +42,12 @@ class Settings(BaseSettings):
     email_from: str = "noreply@tudominio.com"  # Correo verificado en AWS SES
     email_from_name: str = "Sistema PQRS"  # Nombre del remitente
     
+    # Frontend URL (para links en emails)
+    frontend_url: str = "http://softone360-frontend-useast1.s3-website-us-east-1.amazonaws.com"
+    
+    # Timezone
+    timezone: str = "America/Bogota"  # UTC-5 (Colombia)
+    
     @property
     def cors_origins(self) -> List[str]:
         """Convierte la cadena de orígenes permitidos en una lista"""

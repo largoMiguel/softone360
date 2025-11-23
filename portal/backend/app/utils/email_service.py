@@ -6,6 +6,7 @@ import boto3
 from botocore.exceptions import ClientError
 from typing import Optional, List
 from app.config.settings import settings
+import urllib.parse
 
 
 class EmailService:
@@ -145,7 +146,12 @@ class EmailService:
                     
                     <div class="info-box">
                         <p><strong>Número de Radicado:</strong></p>
-                        <p class="radicado">{numero_radicado}</p>
+                        <p class="radicado">
+                            <a href="{settings.frontend_url}/#/portal-ciudadano?radicado={urllib.parse.quote(numero_radicado)}" 
+                               style="color: #2563eb; text-decoration: none;">
+                                {numero_radicado}
+                            </a>
+                        </p>
                     </div>
                     
                     <div class="info-box">
@@ -267,11 +273,16 @@ class EmailService:
                     
                     <div class="info-box">
                         <p><strong>Número de Radicado:</strong></p>
-                        <p class="radicado">{numero_radicado}</p>
+                        <p class="radicado">
+                            <a href="{settings.frontend_url}/#/portal-ciudadano?radicado={urllib.parse.quote(numero_radicado)}" 
+                               style="color: #10b981; text-decoration: none;">
+                                {numero_radicado}
+                            </a>
+                        </p>
                     </div>
                     
                     <div class="info-box">
-                        <p><strong>Asunto:</strong> {asunto}</p>
+                        <p><strong>Asunto:</strong> {asunto}
                         <p><strong>Fecha de Respuesta:</strong> {fecha_respuesta}</p>
                     </div>
                     
