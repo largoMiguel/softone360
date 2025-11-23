@@ -625,8 +625,8 @@ export class PdmComponent implements OnInit, OnDestroy {
             // Inicializar vista de actividades para el año actual
             const anioActual = new Date().getFullYear();
             this.anioSeleccionado = [2024, 2025, 2026, 2027].includes(anioActual) ? anioActual : 2024;
-            // Cargar actividades desde backend al abrir el detalle del producto
-            this.actualizarResumenActividades(true);
+            // ✅ CORREGIDO: Usar caché en navegación, no forzar backend
+            this.actualizarResumenActividades(false);
             // Cargar ejecución presupuestal si está disponible
             this.cargarEjecucionPresupuestal(producto.codigo);
         } else if (vista === 'analisis-producto') {
@@ -1121,7 +1121,7 @@ export class PdmComponent implements OnInit, OnDestroy {
 
     /**
      * Carga las actividades desde el backend para el producto seleccionado
-     * ✅ Con indicador visual de carga
+     * ✅ Con indicador visual de carga y timeouts optimizados
      */
     private cargarActividadesDesdeBackend() {
         if (!this.productoSeleccionado) return;
@@ -1132,17 +1132,19 @@ export class PdmComponent implements OnInit, OnDestroy {
         // Verificar que el entity slug esté disponible
         const slug = this.pdmService.getEntitySlug();
         if (!slug) {
-            console.warn('⚠️ Entity slug no disponible aún, esperando...');
+            console.warn('⚠️ Entity slug no disponible, esperando inicialización...');
             let intentos = 0;
+            const MAX_INTENTOS = 5; // Reducido de 30 a 5 intentos (500ms total)
             const reintentar = () => {
                 intentos++;
                 const slugActual = this.pdmService.getEntitySlug();
                 if (slugActual) {
+                    console.log('✅ Entity slug disponible, cargando actividades');
                     this.cargarActividadesDesdeBackend();
-                } else if (intentos < 30) {
+                } else if (intentos < MAX_INTENTOS) {
                     setTimeout(reintentar, 100);
                 } else {
-                    console.error('❌ No se puede cargar del backend sin entity slug');
+                    console.error('❌ Timeout: Entity slug no disponible después de 500ms');
                     this.cargandoActividadesBackend = false;
                 }
             };
