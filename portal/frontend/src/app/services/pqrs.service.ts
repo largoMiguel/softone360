@@ -88,4 +88,11 @@ export class PqrsService {
             `${this.baseUrl}${pqrsId}/archivo/download-url`
         );
     }
+
+    // Obtener el próximo número de radicado
+    getNextRadicado(): Observable<{ next_radicado: string; format: string; description: string }> {
+        return this.http.get<{ next_radicado: string; format: string; description: string }>(
+            `${this.baseUrl}next-radicado`
+        );
+    }
 }

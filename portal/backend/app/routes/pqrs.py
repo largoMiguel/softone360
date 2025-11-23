@@ -476,11 +476,21 @@ async def upload_archivo_pqrs(
             detail="No tienes permisos para subir archivos a esta PQRS"
         )
     
-    # Validar tipo de archivo
-    if not file.content_type == "application/pdf":
+    # Validar tipo de archivo (permitir varios tipos MIME de PDF y documentos)
+    allowed_types = [
+        "application/pdf",
+        "application/x-pdf",
+        "application/octet-stream",  # Algunos navegadores usan esto
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ]
+    if file.content_type not in allowed_types:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Solo se permiten archivos PDF"
+            detail=f"Tipo de archivo no permitido: {file.content_type}. Permitidos: PDF, imágenes, Word"
         )
     
     # Validar tamaño (10MB máximo)
@@ -494,14 +504,16 @@ async def upload_archivo_pqrs(
     try:
         # Generar nombre único para el archivo
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        file_key = f"pqrs/{pqrs.entity_id}/{pqrs.numero_radicado}_{timestamp}.pdf"
+        # Obtener extensión del archivo original
+        file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'pdf'
+        file_key = f"pqrs/{pqrs.entity_id}/{pqrs.numero_radicado}_{timestamp}.{file_extension}"
         
         # Subir a S3
         s3_client.put_object(
             Bucket=S3_BUCKET,
             Key=file_key,
             Body=file_content,
-            ContentType="application/pdf",
+            ContentType=file.content_type,
             Metadata={
                 "pqrs_id": str(pqrs_id),
                 "numero_radicado": pqrs.numero_radicado,
@@ -516,6 +528,7 @@ async def upload_archivo_pqrs(
         
         return {
             "message": "Archivo subido exitosamente",
+            "archivo_url": file_url,
             "file_url": file_url,
             "file_key": file_key
         }
@@ -532,6 +545,30 @@ async def upload_archivo_pqrs(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error procesando el archivo: {str(e)}"
+        )
+
+
+@router.get("/next-radicado", response_model=dict)
+async def get_next_radicado(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Obtener el próximo número de radicado que se asignará a una nueva PQRS.
+    Este es solo un preview - el radicado real se genera al crear la PQRS.
+    """
+    try:
+        next_radicado = generate_radicado(db)
+        return {
+            "next_radicado": next_radicado,
+            "format": "YYYYMMDDNNN",
+            "description": "Próximo número de radicado (puede variar si se crean otras PQRS antes)"
+        }
+    except Exception as e:
+        print(f"❌ Error generando preview de radicado: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al generar preview: {str(e)}"
         )
 
 

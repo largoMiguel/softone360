@@ -62,6 +62,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   totalPasos: number = 4;
   tipo: string = 'personal';
   medio: string = 'email';
+  nextRadicado: string = '';
+  loadingRadicado: boolean = false;
 
   // Alertas (campana en navbar)
   showAlertsPanel = false;
@@ -509,6 +511,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
         error: () => (this.secretariasSugeridas = [])
       });
     }
+    // Cargar próximo radicado al abrir formulario de nueva PQRS
+    if (view === 'nueva-pqrs') {
+      this.loadNextRadicado();
+    }
   }
 
   private updateQueryParamV(view?: string) {
@@ -519,6 +525,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
       qp['v'] = view;
     }
     this.router.navigate([], { relativeTo: this.route, queryParams: qp, replaceUrl: true });
+  }
+
+  loadNextRadicado() {
+    this.loadingRadicado = true;
+    this.pqrsService.getNextRadicado().subscribe({
+      next: (data) => {
+        this.nextRadicado = data.next_radicado;
+        this.loadingRadicado = false;
+      },
+      error: (error) => {
+        console.error('Error cargando próximo radicado:', error);
+        this.nextRadicado = '';
+        this.loadingRadicado = false;
+      }
+    });
   }
 
   loadPqrs() {
@@ -821,16 +842,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
       if (!formData.genero || formData.genero.trim() === '') {
         formData.genero = null;
       }
-      if (!formData.dias_respuesta) {
+      // dias_respuesta: Si no se especifica, enviar null (backend usará 15 por defecto)
+      if (!formData.dias_respuesta || formData.dias_respuesta === '' || formData.dias_respuesta === 0) {
         formData.dias_respuesta = null;
       }
 
-      // Si hay archivo seleccionado, guardamos su nombre
-      if (this.selectedFile) {
-        formData.archivo_adjunto = this.selectedFile.name;
-      } else {
-        formData.archivo_adjunto = null;
-      }
+      // NO enviar archivo_adjunto al crear PQRS (se actualiza después del upload)
+      formData.archivo_adjunto = null;
 
       this.pqrsService.createPqrs(formData).subscribe({
         next: (response) => {
