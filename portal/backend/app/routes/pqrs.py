@@ -718,48 +718,47 @@ async def upload_archivo_respuesta(
         # Validar que la PQRS existe
         pqrs = db.query(PQRS).filter(PQRS.id == pqrs_id).first()
         if not pqrs:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"PQRS con ID {pqrs_id} no encontrada"
-        )
-    
-    # Validar permisos: admin o secretario asignado
-    if current_user.role != UserRole.ADMIN and pqrs.assigned_to_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tienes permisos para subir archivos de respuesta a esta PQRS"
-        )
-    
-    # Validar tipo de archivo
-    allowed_types = [
-        "application/pdf",
-        "application/x-pdf",
-        "application/octet-stream",
-        "image/jpeg",
-        "image/jpg",
-        "image/png",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    ]
-    if file.content_type not in allowed_types:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Tipo de archivo no permitido: {file.content_type}"
-        )
-    
-    # Validar tamaño (10MB máximo)
-    file_content = await file.read()
-    file_size_mb = len(file_content) / (1024 * 1024)
-    print(f"   Tamaño del archivo: {file_size_mb:.2f} MB")
-    
-    if len(file_content) > 10 * 1024 * 1024:
-        print(f"❌ Archivo muy grande: {file_size_mb:.2f} MB > 10 MB")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El archivo no debe superar 10 MB"
-        )
-    
-    try:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"PQRS con ID {pqrs_id} no encontrada"
+            )
+        
+        # Validar permisos: admin o secretario asignado
+        if current_user.role != UserRole.ADMIN and pqrs.assigned_to_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes permisos para subir archivos de respuesta a esta PQRS"
+            )
+        
+        # Validar tipo de archivo
+        allowed_types = [
+            "application/pdf",
+            "application/x-pdf",
+            "application/octet-stream",
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        ]
+        if file.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Tipo de archivo no permitido: {file.content_type}"
+            )
+        
+        # Validar tamaño (10MB máximo)
+        file_content = await file.read()
+        file_size_mb = len(file_content) / (1024 * 1024)
+        print(f"   Tamaño del archivo: {file_size_mb:.2f} MB")
+        
+        if len(file_content) > 10 * 1024 * 1024:
+            print(f"❌ Archivo muy grande: {file_size_mb:.2f} MB > 10 MB")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El archivo no debe superar 10 MB"
+            )
+        
         # Generar nombre único para el archivo de respuesta
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'pdf'
