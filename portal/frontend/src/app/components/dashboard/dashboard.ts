@@ -1191,11 +1191,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.pqrsList.filter(p => p.tipo_solicitud === tipo).length;
   }
 
-  // Calcula los días restantes para responder una PQRS (15 días hábiles desde la fecha de solicitud)
-  // Calcula los días restantes para responder una PQRS (15 días hábiles desde la fecha de solicitud)
+  // Calcula los días restantes para responder una PQRS usando el campo dias_respuesta
   getDiasRestantes(pqrs: PQRSWithDetails): number {
     // Si ya está resuelta o cerrada, no hay días restantes
     if (pqrs.estado === 'resuelto' || pqrs.estado === 'cerrado') return 0;
+
+    // Usar dias_respuesta de la PQRS o 15 días por defecto si no está definido
+    const diasMaximosRespuesta = pqrs.dias_respuesta || 15;
 
     // Fecha de solicitud (inicio del conteo)
     const fechaSolicitud = new Date(pqrs.fecha_solicitud);
@@ -1213,17 +1215,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // Convertir a días (positivo si hoy es después, negativo si es antes)
     const diasTranscurridos = Math.floor(diferenciaMs / (1000 * 60 * 60 * 24));
 
-    // Calcular días restantes (15 días totales - días que ya pasaron)
-    const diasRestantes = 15 - diasTranscurridos;
+    // Calcular días restantes usando los días asignados a la PQRS
+    const diasRestantes = diasMaximosRespuesta - diasTranscurridos;
 
     // Si el resultado es negativo, significa que ya se venció (retornar 0)
     // Si es positivo, retornar los días que quedan
     return Math.max(0, diasRestantes);
   }
 
-  // Obtiene los días vencidos (cuando ya pasaron los 15 días)
+  // Obtiene los días vencidos usando el campo dias_respuesta de la PQRS
   getDiasVencidos(pqrs: PQRSWithDetails): number {
     if (pqrs.estado === 'resuelto' || pqrs.estado === 'cerrado') return 0;
+
+    // Usar dias_respuesta de la PQRS o 15 días por defecto
+    const diasMaximosRespuesta = pqrs.dias_respuesta || 15;
 
     const fechaSolicitud = new Date(pqrs.fecha_solicitud);
     const hoy = new Date();
@@ -1234,8 +1239,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const diferenciaMs = hoyNormalizado.getTime() - fechaSolicitudNormalizada.getTime();
     const diasTranscurridos = Math.floor(diferenciaMs / (1000 * 60 * 60 * 24));
 
-    // Si pasaron más de 15 días, retornar cuántos días de vencimiento lleva
-    const diasVencidos = diasTranscurridos - 15;
+    // Si pasaron más días que los asignados, retornar cuántos días de vencimiento lleva
+    const diasVencidos = diasTranscurridos - diasMaximosRespuesta;
 
     return Math.max(0, diasVencidos);
   }

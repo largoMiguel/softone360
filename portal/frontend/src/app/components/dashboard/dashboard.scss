@@ -1180,3 +1180,118 @@ form {
         min-height: 300px;
     }
 }
+
+// ===== NUEVO DISEÑO PROFESIONAL PARA MODAL DE DETALLE PQRS =====
+
+// Timeline Moderna
+.timeline-modern {
+    position: relative;
+    padding: 0;
+
+    .timeline-item-modern {
+        position: relative;
+        padding-left: 3.5rem;
+        padding-bottom: 2.5rem;
+
+        &:last-child {
+            padding-bottom: 0;
+
+            &::before {
+                display: none;
+            }
+        }
+
+        &::before {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 35px;
+            height: calc(100% - 20px);
+            width: 3px;
+            background: linear-gradient(180deg, #e9ecef 0%, #dee2e6 100%);
+            border-radius: 2px;
+        }
+
+        .timeline-marker-modern {
+            position: absolute;
+            left: 0;
+            top: 8px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 4px solid #fff;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.15);
+            z-index: 10;
+        }
+
+        .timeline-content-modern {
+            background: white;
+            padding: 1.25rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border-left: 4px solid #e9ecef;
+            transition: all 0.3s ease;
+
+            &:hover {
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+                transform: translateX(5px);
+            }
+
+            h6 {
+                font-size: 1rem;
+                font-weight: 600;
+                color: #2c3e50;
+            }
+
+            p {
+                margin: 0;
+                font-size: 0.875rem;
+                color: #6c757d;
+            }
+        }
+    }
+}
+
+// Avatar Circle
+.avatar-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+// KPI Cards hover effect
+.card.border-0.shadow-sm {
+    transition: all 0.3s ease;
+
+    &:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+    }
+}
+
+// Gradientes modernos para badges
+.badge.bg-gradient {
+    background: linear-gradient(135deg, var(--bs-badge-bg) 0%, color-mix(in srgb, var(--bs-badge-bg) 80%, black) 100%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+}
+
+// Cards con bordes y sombras suaves
+.card.border-0.shadow-sm {
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    
+    .card-header {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border-bottom: 2px solid #e9ecef;
+    }
+}
