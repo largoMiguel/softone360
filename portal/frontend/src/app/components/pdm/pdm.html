@@ -537,8 +537,7 @@
                                         class="form-select form-select-sm" 
                                         [value]="producto.responsable_secretaria_id || ''"
                                         (change)="asignarResponsable(producto, $event)"
-                                        [disabled]="cargandoSecretarios"
-                                        title="Secretarias: {{secretariasAgrupadas | json}}">
+                                        [disabled]="cargandoSecretarios">
                                         <option value="">Asignar secretaría responsable...</option>
                                         <option *ngFor="let secretaria of secretariasAgrupadas" 
                                                 [value]="secretaria.id"
