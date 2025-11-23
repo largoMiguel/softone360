@@ -2157,17 +2157,27 @@ export class PdmComponent implements OnInit, OnDestroy {
      * CRÍTICO: Ahora también sincroniza actividades antes de generar gráficos
      */
     verAnalytics(): void {
-        // ✅ CRÍTICO: Mostrar indicador de carga
         this.vistaActual = 'analytics';
-        this.cargandoDesdeBackend = true;
         
         if (!this.datosEnBackend) {
             // Sin datos en backend, usar lo que hay en memoria
-            this.generarAnalytics();
             this.cargandoDesdeBackend = false;
+            this.generarAnalytics();
             setTimeout(() => this.crearGraficos(), 100);
             return;
         }
+        
+        // ✅ Si los datos son recientes, usar caché sin recargar
+        const ahora = Date.now();
+        if (ahora - this.ultimaActualizacionCache < this.TIEMPO_CACHE_MS && this.pdmData) {
+            this.cargandoDesdeBackend = false;
+            this.generarAnalytics();
+            setTimeout(() => this.crearGraficos(), 100);
+            return;
+        }
+        
+        // Si no hay caché válido, recargar desde el servidor
+        this.cargandoDesdeBackend = true;
         
         // Cargar datos base
         this.pdmService.cargarDatosPDMDesdeBackend().subscribe({
@@ -2186,6 +2196,7 @@ export class PdmComponent implements OnInit, OnDestroy {
                     
                     // Generar analytics con datos actualizados
                     this.generarAnalytics();
+                    this.ultimaActualizacionCache = Date.now(); // ✅ Actualizar timestamp del caché
                     
                     setTimeout(() => {
                         this.crearGraficos();
