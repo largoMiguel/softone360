@@ -511,6 +511,8 @@ export class PdmComponent implements OnInit, OnDestroy {
                     );
                     this.estadisticas = this.pdmService.calcularEstadisticas(this.pdmData!);
                     this.generarAnalytics();
+                    // ✅ CRÍTICO: Actualizar caches después de cargar actividades
+                    this.actualizarCachesFiltros();
                 });
                 
                 this.showToast(`Datos cargados desde el servidor. ${this.resumenProductos.length} productos disponibles.`, 'success');
@@ -842,6 +844,8 @@ export class PdmComponent implements OnInit, OnDestroy {
                     );
                     this.estadisticas = this.pdmService.calcularEstadisticas(this.pdmData!);
                     this.generarAnalytics();
+                    // ✅ CRÍTICO: Actualizar caches después de cargar actividades
+                    this.actualizarCachesFiltros();
                     this.cargandoDesdeBackend = false;
                     this.ultimaActualizacionCache = Date.now(); // ✅ Actualizar timestamp del caché
                     this.showToast('Datos y actividades actualizados desde el servidor', 'success');
@@ -889,6 +893,8 @@ export class PdmComponent implements OnInit, OnDestroy {
                     this.resumenProductos = this.pdmService.generarResumenProductos(data);
                     this.estadisticas = this.pdmService.calcularEstadisticas(data);
                     this.generarAnalytics();
+                    // ✅ CRÍTICO: Actualizar caches después de cargar actividades
+                    this.actualizarCachesFiltros();
                     this.ultimaActualizacionCache = Date.now(); // ✅ Actualizar timestamp del caché
                 });
                 
