@@ -97,6 +97,10 @@ export class PdmComponent implements OnInit, OnDestroy {
     private debounceTimer: any = null;
     private readonly DEBOUNCE_DELAY = 300; // ms
     
+    // ✅ OPTIMIZACIÓN: Cache para reducir llamadas al backend
+    private ultimaActualizacionCache: number = 0;
+    private readonly TIEMPO_CACHE_MS = 30000; // 30 segundos
+    
     // Modal BPIN
     mostrarModalBPIN = false;
     proyectoBPIN: any = null;
@@ -699,10 +703,17 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Recarga el dashboard con datos frescos del backend
+     * Recarga el dashboard con datos frescos del backend (con caché)
      */
     private recargarDashboard(): void {
         if (!this.datosEnBackend) {
+            return;
+        }
+        
+        // ✅ Si los datos son recientes, no recargar
+        const ahora = Date.now();
+        if (ahora - this.ultimaActualizacionCache < this.TIEMPO_CACHE_MS) {
+            this.generarAnalytics();
             return;
         }
         
@@ -724,6 +735,7 @@ export class PdmComponent implements OnInit, OnDestroy {
                     this.estadisticas = this.pdmService.calcularEstadisticas(this.pdmData!);
                     this.generarAnalytics();
                     this.cargandoDesdeBackend = false;
+                    this.ultimaActualizacionCache = Date.now(); // ✅ Actualizar timestamp del caché
                     this.showToast('Datos y actividades actualizados desde el servidor', 'success');
                 });
             },
@@ -736,11 +748,18 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Recarga la lista de productos con datos frescos del backend
+     * Recarga la lista de productos con datos frescos del backend (con caché)
      * IMPORTANTE: Ahora también sincroniza actividades de todos los productos
      */
     private recargarProductos(): void {
         if (!this.datosEnBackend) {
+            this.productoSeleccionado = null;
+            return;
+        }
+        
+        // ✅ Si los datos son recientes, no recargar
+        const ahora = Date.now();
+        if (ahora - this.ultimaActualizacionCache < this.TIEMPO_CACHE_MS) {
             this.productoSeleccionado = null;
             return;
         }
@@ -761,6 +780,8 @@ export class PdmComponent implements OnInit, OnDestroy {
                     // IMPORTANTE: Recalcular avance DESPUÉS de sincronizar actividades
                     this.resumenProductos = this.pdmService.generarResumenProductos(data);
                     this.estadisticas = this.pdmService.calcularEstadisticas(data);
+                    this.generarAnalytics();
+                    this.ultimaActualizacionCache = Date.now(); // ✅ Actualizar timestamp del caché
                 });
                 
                 this.cargandoDesdeBackend = false;
@@ -770,6 +791,13 @@ export class PdmComponent implements OnInit, OnDestroy {
                 this.cargandoDesdeBackend = false;
             }
         });
+    }
+    
+    /**
+     * Invalida el caché forzando una recarga en la próxima navegación
+     */
+    private invalidarCache(): void {
+        this.ultimaActualizacionCache = 0;
     }
 
     /**
@@ -1312,6 +1340,7 @@ export class PdmComponent implements OnInit, OnDestroy {
                     if (actividadActualizada?.id) {
                         this.registrarEvidenciaActividad(actividadActualizada.id, valores);
                     } else {
+                        this.invalidarCache(); // ✅ Invalidar caché después de actualizar
                         this.showToast('Actividad actualizada exitosamente', 'success');
                         this.cerrarModalActividad();
                         this.actualizarResumenActividades(true);
@@ -1329,6 +1358,7 @@ export class PdmComponent implements OnInit, OnDestroy {
                     if (actividadCreada?.id) {
                         this.registrarEvidenciaActividad(actividadCreada.id, valores);
                     } else {
+                        this.invalidarCache(); // ✅ Invalidar caché después de crear
                         this.showToast('Evidencia de ejecución creada exitosamente', 'success');
                         this.cerrarModalActividad();
                         this.actualizarResumenActividades(true);
@@ -1417,6 +1447,7 @@ export class PdmComponent implements OnInit, OnDestroy {
 
         this.pdmService.eliminarActividad(actividad.id!).subscribe({
             next: () => {
+                this.invalidarCache(); // ✅ Invalidar caché después de eliminar
                 this.showToast('Evidencia de ejecución eliminada exitosamente', 'success');
                 this.actualizarResumenActividades(true);
             },

@@ -1230,8 +1230,11 @@ export class PdmService {
                 actividadesCompletadas += resumen.actividades_completadas;
             });
 
+            // Obtener el nombre real de la secretaría del primer producto
+            const nombreSecretaria = prods[0]?.responsable_secretaria_nombre || 'Sin Secretaría';
+
             porSecretaria.push({
-                nombre_secretaria: secretaria,
+                nombre_secretaria: nombreSecretaria,
                 total_productos: totalProductos,
                 productos_completados: completados,
                 productos_en_progreso: enProgreso,
