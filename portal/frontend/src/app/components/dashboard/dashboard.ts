@@ -1155,12 +1155,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private actualizarRespuestaPqrs() {
     if (!this.selectedPqrs) return;
 
-    const updateData: UpdatePQRSRequest = {
-      respuesta: this.respuestaTexto.trim(),
-      estado: 'resuelto' as EstadoPQRS
+    const responseData: PQRSResponse = {
+      respuesta: this.respuestaTexto.trim()
     };
 
-    this.pqrsService.updatePqrs(this.selectedPqrs.id, updateData).subscribe({
+    this.pqrsService.respondPqrs(this.selectedPqrs.id, responseData).subscribe({
       next: (response) => {
         this.alertService.success(
           `La respuesta ha sido enviada exitosamente y el estado de la PQRS N° ${this.selectedPqrs?.numero_radicado} ha cambiado a "Resuelto".`,

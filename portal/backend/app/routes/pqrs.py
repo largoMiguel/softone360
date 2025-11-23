@@ -710,9 +710,14 @@ async def upload_archivo_respuesta(
     Subir archivo adjunto para la respuesta oficial de una PQRS.
     Solo admin y secretario asignado pueden subir.
     """
-    # Validar que la PQRS existe
-    pqrs = db.query(PQRS).filter(PQRS.id == pqrs_id).first()
-    if not pqrs:
+    try:
+        print(f"📎 Iniciando upload de archivo de respuesta para PQRS ID: {pqrs_id}")
+        print(f"   Usuario: {current_user.username}")
+        print(f"   Archivo: {file.filename}, Content-Type: {file.content_type}")
+        
+        # Validar que la PQRS existe
+        pqrs = db.query(PQRS).filter(PQRS.id == pqrs_id).first()
+        if not pqrs:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"PQRS con ID {pqrs_id} no encontrada"
@@ -744,7 +749,11 @@ async def upload_archivo_respuesta(
     
     # Validar tamaño (10MB máximo)
     file_content = await file.read()
+    file_size_mb = len(file_content) / (1024 * 1024)
+    print(f"   Tamaño del archivo: {file_size_mb:.2f} MB")
+    
     if len(file_content) > 10 * 1024 * 1024:
+        print(f"❌ Archivo muy grande: {file_size_mb:.2f} MB > 10 MB")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="El archivo no debe superar 10 MB"
@@ -755,6 +764,8 @@ async def upload_archivo_respuesta(
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'pdf'
         file_key = f"pqrs/{pqrs.entity_id}/respuesta_{pqrs.numero_radicado}_{timestamp}.{file_extension}"
+        
+        print(f"   Subiendo a S3: {file_key}")
         
         # Subir a S3 con ACL público
         s3_client.put_object(
@@ -776,6 +787,8 @@ async def upload_archivo_respuesta(
         pqrs.archivo_respuesta = file_url
         db.commit()
         
+        print(f"✅ Archivo de respuesta subido exitosamente: {file_url}")
+        
         return {
             "message": "Archivo de respuesta subido exitosamente",
             "archivo_url": file_url,
@@ -784,12 +797,16 @@ async def upload_archivo_respuesta(
         
     except ClientError as e:
         print(f"❌ Error subiendo archivo de respuesta a S3: {e}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al subir el archivo: {str(e)}"
         )
     except Exception as e:
-        print(f"❌ Error inesperado: {e}")
+        print(f"❌ Error inesperado en upload-respuesta: {e}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
