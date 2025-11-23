@@ -137,6 +137,11 @@ class EvidenciaActividadBase(BaseModel):
 class EvidenciaCreate(EvidenciaActividadBase):
     pass
 
+class EvidenciaUpdate(BaseModel):
+    descripcion: Optional[str] = None
+    url_evidencia: Optional[str] = None
+    imagenes: Optional[List[str]] = Field(None, max_items=4)
+
 
 class EvidenciaResponse(EvidenciaActividadBase):
     id: int

@@ -337,12 +337,11 @@ export class SoftAdminComponent implements OnInit {
             next: (updatedUser) => {
                 this.alertService.success('Usuario actualizado exitosamente');
                 
-                // ✅ Si el usuario actualizado es el usuario actualmente logueado, actualizar el localStorage
+                // ✅ Si el usuario actualizado es el usuario actualmente logueado, actualizar
                 const currentUser = this.authService.getCurrentUserValue();
                 if (currentUser && currentUser.id === updatedUser.id) {
-                    // Actualizar el usuario en localStorage y en el AuthService
-                    localStorage.setItem('user', JSON.stringify(updatedUser));
-                    this.authService['currentUserSubject'].next(updatedUser);
+                    // Actualizar el usuario usando el método del AuthService
+                    this.authService.updateCurrentUser(updatedUser);
                 }
                 
                 if (this.selectedEntity) {

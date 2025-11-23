@@ -1,7 +1,7 @@
 import { Component, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { BaseChartDirective } from 'ng2-charts';
 import { Chart, ChartConfiguration, ChartData, ChartType, registerables } from 'chart.js';
 import { ContratacionService } from '../../services/contratacion.service';
@@ -24,6 +24,9 @@ Chart.register(...registerables);
 })
 export class ContratacionComponent implements OnInit, OnDestroy {
     @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
+
+    // ============ TIPO SECOP ============
+    tipoSecop: 'secop1' | 'secop2' = 'secop2';
 
     // ============ VISTAS (como en PDM) ============
     vistaActual: 'dashboard' | 'lista' | 'detalle' = 'dashboard';
@@ -154,17 +157,34 @@ export class ContratacionComponent implements OnInit, OnDestroy {
         public entityContext: EntityContextService,
         private authService: AuthService,
         private aiReport: AiReportService,
-        private router: Router
+        private router: Router,
+        private route: ActivatedRoute
     ) {
         this.currentUser = this.authService.getCurrentUserValue();
     }
 
     ngOnInit(): void {
+        // Detectar tipo SECOP desde query params y reaccionar a cambios
+        const urlParams = new URLSearchParams(window.location.search);
+        const tipoParam = urlParams.get('tipo') as 'secop1' | 'secop2' | null;
+        this.tipoSecop = tipoParam || 'secop2';
+
+        // Suscribirse a cambios en query params para cambiar entre SECOP I/II sin recargar componente
+        this.subs.add(
+            this.route.queryParamMap.subscribe(params => {
+                const t = (params.get('tipo') as 'secop1' | 'secop2' | null) || 'secop2';
+                if (t !== this.tipoSecop) {
+                    this.tipoSecop = t;
+                    this.fetch();
+                }
+            })
+        );
+
         // Relanzar carga cuando cambia la entidad
         const sub = this.entityContext.currentEntity$.pipe(
             filter(e => !!e)
         ).subscribe(entity => {
-            // Usar el NIT de la entidad para consultas SECOP
+            // Usar el NIT de la entidad para consultas SECOP (I y II)
             const nit = entity!.nit || '891801994'; // NIT de ejemplo si no tiene
             this.filtro.entidad = nit;
             this.fetch();
@@ -253,18 +273,20 @@ export class ContratacionComponent implements OnInit, OnDestroy {
     fetch(): void {
         this.loading = true;
         this.errorMsg = '';
-        this.contratacionService.fetchProcesos(this.filtro).subscribe({
+        const nombreEntidad = this.entityContext.currentEntity?.name || 'BOYACÁ - ALCALDÍA MUNICIPIO DE CHIQUIZA';
+        this.contratacionService.fetchProcesos(this.filtro, false, this.tipoSecop, nombreEntidad).subscribe({
             next: (rows) => {
                 this.procesos = rows;
                 if (rows.length === 0) {
-                    this.errorMsg = `No se encontraron datos de contratación para el NIT "${this.filtro.entidad}" en el rango de fechas seleccionado. Verifica que el NIT de la entidad esté configurado correctamente en el super admin.`;
+                    const identificador = `NIT "${this.filtro.entidad}"`;
+                    this.errorMsg = `No se encontraron datos de contratación ${this.tipoSecop.toUpperCase()} para ${identificador} en el rango de fechas seleccionado.`;
                 }
                 this.applyLocalFilters();
                 this.loading = false;
             },
             error: (err) => {
-                console.error('[Contratación] Error al cargar datos:', err);
-                this.errorMsg = 'No se pudo cargar la información de contratación. Verifica la conexión con el servidor.';
+                console.error(`[Contratación ${this.tipoSecop.toUpperCase()}] Error al cargar datos:`, err);
+                this.errorMsg = `No se pudo cargar la información de contratación ${this.tipoSecop.toUpperCase()}. Verifica la conexión con el servidor.`;
                 this.loading = false;
             }
         });
@@ -791,6 +813,19 @@ export class ContratacionComponent implements OnInit, OnDestroy {
 
     // Acciones UI
     buscar(): void {
+        // Normalizar fechas: asignar por defecto si faltan
+        if (!this.filtro.fechaDesde) {
+            this.filtro.fechaDesde = '2025-01-01';
+        }
+        if (!this.filtro.fechaHasta) {
+            this.filtro.fechaHasta = new Date().toISOString().split('T')[0];
+        }
+        // Si el usuario invierte el rango, corregir
+        if (this.filtro.fechaDesde > this.filtro.fechaHasta) {
+            const tmp = this.filtro.fechaDesde;
+            this.filtro.fechaDesde = this.filtro.fechaHasta;
+            this.filtro.fechaHasta = tmp;
+        }
         this.fetch();
     }
 
@@ -1116,7 +1151,8 @@ export class ContratacionComponent implements OnInit, OnDestroy {
         // Encabezado
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(16);
-        doc.text(`Informe de Contratación Pública - SECOP II`, margin, y); y += 22;
+        const secopLabel = this.tipoSecop === 'secop1' ? 'SECOP I' : 'SECOP II';
+        doc.text(`Informe de Contratación Pública - ${secopLabel}`, margin, y); y += 22;
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(11);
         doc.text(`Entidad: ${entityName}  |  NIT: ${nit}`, margin, y); y += 16;

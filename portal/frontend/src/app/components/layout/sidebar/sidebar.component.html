@@ -60,8 +60,13 @@
             </div>
             <ul class="list-unstyled ms-1">
                 <li>
-                    <a class="menu-link" [class.active]="isActiveRouteContratacion()" (click)="goContratacion()">
-                        <i class="fas fa-angle-right me-2"></i>Ingresar
+                    <a class="menu-link" [class.active]="isActiveRouteContratacion('secop2')" (click)="goContratacion('secop2')">
+                        <i class="fas fa-angle-right me-2"></i>SECOP II
+                    </a>
+                </li>
+                <li>
+                    <a class="menu-link" [class.active]="isActiveRouteContratacion('secop1')" (click)="goContratacion('secop1')">
+                        <i class="fas fa-angle-right me-2"></i>SECOP I
                     </a>
                 </li>
             </ul>

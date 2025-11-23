@@ -46,10 +46,6 @@ export class PortalCiudadanoComponent implements OnInit {
     tiposIdentificacion = TIPOS_IDENTIFICACION;
     mediosRespuesta = MEDIOS_RESPUESTA;
 
-    // Para tracking de tipo y medio seleccionados
-    tipo: string = 'personal';
-    medio: string = 'ticket';
-
     // Entidad actual (para branding por slug)
     currentEntity$!: Observable<Entity | null>;
     currentEntity: Entity | null = null;
@@ -118,7 +114,6 @@ export class PortalCiudadanoComponent implements OnInit {
 
         // Listener para tipo_identificacion
         this.nuevaPqrsForm.get('tipo_identificacion')?.valueChanges.subscribe(tipo => {
-            this.tipo = tipo;
             const nombreControl = this.nuevaPqrsForm.get('nombre_ciudadano');
             const cedulaControl = this.nuevaPqrsForm.get('cedula_ciudadano');
             const asuntoControl = this.nuevaPqrsForm.get('asunto');
@@ -141,7 +136,6 @@ export class PortalCiudadanoComponent implements OnInit {
 
         // Listener para medio_respuesta
         this.nuevaPqrsForm.get('medio_respuesta')?.valueChanges.subscribe(medio => {
-            this.medio = medio;
             const emailControl = this.nuevaPqrsForm.get('email_ciudadano');
             const direccionControl = this.nuevaPqrsForm.get('direccion_ciudadano');
             const telefonoControl = this.nuevaPqrsForm.get('telefono_ciudadano');
@@ -290,7 +284,15 @@ export class PortalCiudadanoComponent implements OnInit {
         if (!this.showNuevaPqrsForm) {
             this.nuevaPqrsForm.reset({
                 tipo_identificacion: 'personal',
-                medio_respuesta: 'ticket'
+                tipo_solicitud: '',
+                asunto: '',
+                descripcion: '',
+                medio_respuesta: 'ticket',
+                nombre_ciudadano: '',
+                cedula_ciudadano: '',
+                email_ciudadano: '',
+                telefono_ciudadano: '',
+                direccion_ciudadano: ''
             });
         }
     }
@@ -339,7 +341,15 @@ export class PortalCiudadanoComponent implements OnInit {
                     );
                     this.nuevaPqrsForm.reset({
                         tipo_identificacion: 'personal',
-                        medio_respuesta: 'ticket'
+                        tipo_solicitud: '',
+                        asunto: '',
+                        descripcion: '',
+                        medio_respuesta: 'ticket',
+                        nombre_ciudadano: '',
+                        cedula_ciudadano: '',
+                        email_ciudadano: '',
+                        telefono_ciudadano: '',
+                        direccion_ciudadano: ''
                     });
                     this.showNuevaPqrsForm = false;
                     this.loadMisPqrs(); // Recargar lista

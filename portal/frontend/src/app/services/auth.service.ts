@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, BehaviorSubject, tap } from 'rxjs';
 import { User, LoginRequest, LoginResponse, CreateUserRequest } from '../models/user.model';
 import { environment } from '../../environments/environment';
+import { NavigationStateService } from './navigation-state.service';
 
 @Injectable({
     providedIn: 'root'
@@ -11,6 +12,7 @@ export class AuthService {
     private baseUrl = `${environment.apiUrl}/auth/`;
     private currentUserSubject = new BehaviorSubject<User | null>(null);
     public currentUser$ = this.currentUserSubject.asObservable();
+    private navState = inject(NavigationStateService);
 
     constructor(private http: HttpClient) {
         // Verificar si hay un usuario guardado en localStorage
@@ -42,17 +44,15 @@ export class AuthService {
     }
 
     logout(): void {
-        // 1. Limpiar token y usuario del localStorage
+        // 1. Limpiar token y usuario del localStorage (mantener solo lo esencial)
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        localStorage.removeItem('pdm_actividades'); // PDM cache
-        localStorage.removeItem('entity_context'); // Entity context
         
         // 2. Limpiar el BehaviorSubject del usuario actual
         this.currentUserSubject.next(null);
         
-        // 3. Limpiar sessionStorage también (por si hay datos ahí)
-        sessionStorage.clear();
+        // 3. Limpiar estado de navegación en memoria
+        this.navState.clearAll();
     }
 
     getCurrentUser(): Observable<User> {
@@ -118,6 +118,14 @@ export class AuthService {
 
     getCurrentUserValue(): User | null {
         return this.currentUserSubject.value;
+    }
+
+    /**
+     * Actualiza el usuario actual en memoria y localStorage
+     */
+    updateCurrentUser(user: User): void {
+        localStorage.setItem('user', JSON.stringify(user));
+        this.currentUserSubject.next(user);
     }
 
     getAuthHeaders(): HttpHeaders {

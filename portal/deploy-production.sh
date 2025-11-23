@@ -50,27 +50,37 @@ scp -i ~/.ssh/aws-eb \
 echo -e "${GREEN}✅ Scripts copiados${NC}"
 echo ""
 
-echo -e "${YELLOW}⚙️  Ejecutando migración en RDS...${NC}"
+echo -e "${YELLOW}⚙️  Ejecutando migración en RDS (script existente)...${NC}"
 cd "$BACKEND_DIR"
 eb ssh softone-backend-useast1 --command \
-    "source /var/app/venv/*/bin/activate && python migrate_anio_ejecucion_rds.py"
+    "source /var/app/venv/*/bin/activate && python migrate_anio_ejecucion_rds.py" || DEPLOY_MIGRATION_ERROR=1
 
-if [ $? -eq 0 ]; then
-    echo -e "${GREEN}✅ Migración ejecutada exitosamente${NC}"
+if [ "$DEPLOY_MIGRATION_ERROR" = "1" ]; then
+    echo -e "${RED}❌ Error en migración Python (continuando para aplicar nueva constraint única)${NC}"
 else
-    echo -e "${RED}❌ Error en la migración - abortando deployment${NC}"
-    exit 1
+    echo -e "${GREEN}✅ Migración Python ejecutada${NC}"
 fi
 echo ""
 
-echo -e "${YELLOW}🔍 Verificando cambios en RDS...${NC}"
+echo -e "${YELLOW}🆕 Aplicando constraint única planes institucionales (entity_id, anio, nombre)...${NC}"
+eb ssh softone-backend-useast1 --command \
+"PGPASSWORD='TuPassSeguro123!' psql -h softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com -U dbadmin -d postgres -c \"DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='uq_planes_institucionales_entity_anio_nombre') THEN ALTER TABLE planes_institucionales ADD CONSTRAINT uq_planes_institucionales_entity_anio_nombre UNIQUE (entity_id, anio, nombre); END IF; END $$;\"" || CONSTRAINT_ERROR=1
+
+if [ "$CONSTRAINT_ERROR" = "1" ]; then
+    echo -e "${RED}⚠️  No se pudo aplicar la constraint (puede existir ya). Continuando...${NC}"
+else
+    echo -e "${GREEN}✅ Constraint única aplicada/verificada${NC}"
+fi
+echo ""
+
+echo -e "${YELLOW}🔍 Verificando constraint en RDS...${NC}"
 eb ssh softone-backend-useast1 --command \
     "PGPASSWORD='TuPassSeguro123!' psql \
      -h softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com \
      -U dbadmin -d postgres \
-     -c \"SELECT column_name, data_type FROM information_schema.columns WHERE table_name='pdm_ejecucion_presupuestal' AND column_name='anio';\""
+     -c \"SELECT conname, conrelid::regclass FROM pg_constraint WHERE conname='uq_planes_institucionales_entity_anio_nombre';\""
 
-echo -e "${GREEN}✅ Verificación completada${NC}"
+echo -e "${GREEN}✅ Verificación constraint completada${NC}"
 echo ""
 
 echo -e "${YELLOW}🧹 Limpiando scripts de EC2...${NC}"

@@ -796,7 +796,10 @@
                                         <!-- Mostrar Evidencia si existe -->
                                         <div *ngIf="actividad.evidencia" class="mt-3 p-3 bg-light rounded">
                                             <h6 class="text-success"><i class="fas fa-check-circle me-1"></i> Evidencia de Cumplimiento</h6>
-                                            <p class="mb-2"><strong>Descripción:</strong> {{ actividad.evidencia.descripcion }}</p>
+                                            <!-- Mostrar descripción de evidencia solo si difiere de la de la actividad -->
+                                            <p class="mb-2" *ngIf="actividad.evidencia.descripcion && actividad.evidencia.descripcion.trim().toLowerCase() !== actividad.descripcion.trim().toLowerCase()">
+                                                <strong>Descripción evidencia:</strong> {{ actividad.evidencia.descripcion }}
+                                            </p>
                                             <p class="mb-2 small text-muted">
                                                 <i class="fas fa-clock me-1"></i> Registrado el {{ actividad.evidencia.fecha_registro | date:'dd/MM/yyyy HH:mm':'America/Bogota':'es-CO' }}
                                             </p>

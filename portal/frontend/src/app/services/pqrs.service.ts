@@ -74,4 +74,18 @@ export class PqrsService {
         const url = `${environment.apiUrl}/pqrs/public/consultar/${numeroRadicado}`;
         return this.http.get<PQRS>(url);
     }
+
+    // Upload de archivo adjunto
+    uploadArchivo(pqrsId: number, file: File): Observable<any> {
+        const formData = new FormData();
+        formData.append('file', file);
+        return this.http.post(`${this.baseUrl}${pqrsId}/upload`, formData);
+    }
+
+    // Obtener URL de descarga del archivo adjunto
+    getArchivoDownloadUrl(pqrsId: number): Observable<{ download_url: string; expires_in: number; filename: string }> {
+        return this.http.get<{ download_url: string; expires_in: number; filename: string }>(
+            `${this.baseUrl}${pqrsId}/archivo/download-url`
+        );
+    }
 }

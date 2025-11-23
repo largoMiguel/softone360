@@ -57,6 +57,11 @@ class TipoSolicitud(enum.Enum):
     QUEJA = "queja"
     RECLAMO = "reclamo"
     SUGERENCIA = "sugerencia"
+    FELICITACION = "felicitacion"
+    DENUNCIA = "denuncia"
+    SOLICITUD_INFORMACION = "solicitud_informacion"
+    SOLICITUD_DATOS_PERSONALES = "solicitud_datos_personales"
+    AGENDA_CITA = "agenda_cita"
 
 class EstadoPQRS(enum.Enum):
     PENDIENTE = "pendiente"
@@ -67,6 +72,26 @@ class EstadoPQRS(enum.Enum):
 class TipoIdentificacion(enum.Enum):
     PERSONAL = "personal"
     ANONIMA = "anonima"
+
+class CanalLlegada(enum.Enum):
+    CORREO = "correo"
+    CARTA = "carta"
+    BUZON = "buzon"
+    FISICA = "fisica"
+    PRESENCIAL = "presencial"
+    TELEFONO = "telefono"
+    WEB = "web"
+
+class TipoPersona(enum.Enum):
+    NATURAL = "natural"
+    JURIDICA = "juridica"
+    NNA = "nna"  # Niños, Niñas y Adolescentes
+    APODERADO = "apoderado"
+
+class Genero(enum.Enum):
+    FEMENINO = "femenino"
+    MASCULINO = "masculino"
+    OTRO = "otro"
 
 class MedioRespuesta(enum.Enum):
     EMAIL = "email"
@@ -79,6 +104,13 @@ class PQRS(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     numero_radicado = Column(String, unique=True, index=True, nullable=False)
+    
+    # Canal por el que llegó la PQRS
+    canal_llegada = Column(
+        EnumType(CanalLlegada),
+        nullable=False,
+        default=CanalLlegada.WEB
+    )
     
     # Tipo de identificación (personal o anónima)
     # Use enum values (e.g., 'personal') instead of member names to avoid lookup issues
@@ -129,6 +161,18 @@ class PQRS(Base):
     
     # Relación con entidad (CASCADE: elimina PQRS cuando se elimina entidad)
     entity_id = Column(Integer, ForeignKey("entities.id", ondelete="CASCADE"), nullable=False)
+    
+    # Nuevos campos agregados
+    tipo_persona = Column(
+        EnumType(TipoPersona),
+        nullable=True  # Opcional para PQRS anónimas
+    )
+    genero = Column(
+        EnumType(Genero),
+        nullable=True  # Opcional para PQRS anónimas
+    )
+    dias_respuesta = Column(Integer, nullable=True)  # Días para responder (manual)
+    archivo_adjunto = Column(String, nullable=True)  # Ruta del archivo PDF adjunto
     
     # Respuesta
     respuesta = Column(Text, nullable=True)

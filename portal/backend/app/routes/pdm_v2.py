@@ -564,7 +564,7 @@ async def delete_actividad(
 # Gestión de Evidencias
 # ==============================================
 
-@router.post("/{slug}/actividades/{actividad_id}/evidencia", response_model=schemas.ActividadResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/{slug}/actividades/{actividad_id}/evidencia", response_model=schemas.EvidenciaResponse, status_code=status.HTTP_201_CREATED)
 async def create_evidencia(
     slug: str,
     actividad_id: int,
@@ -572,7 +572,7 @@ async def create_evidencia(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Registra evidencia de cumplimiento de una actividad y retorna la actividad actualizada"""
+    """Registra evidencia de cumplimiento de una actividad"""
     entity = get_entity_or_404(db, slug)
     ensure_user_can_manage_entity(current_user, entity)
     
@@ -604,13 +604,11 @@ async def create_evidencia(
     
     # Actualizar estado de la actividad a COMPLETADA
     actividad.estado = 'COMPLETADA'
-    actividad.updated_at = datetime.utcnow()
     
     db.commit()
-    db.refresh(actividad)
+    db.refresh(nueva_evidencia)
     
-    # ✅ RETORNAR LA ACTIVIDAD COMPLETA CON EVIDENCIA INCLUIDA
-    return schemas.ActividadResponse.model_validate(actividad)
+    return schemas.EvidenciaResponse.model_validate(nueva_evidencia)
 
 
 @router.get("/{slug}/actividades/{actividad_id}/evidencia", response_model=schemas.EvidenciaResponse)
@@ -632,6 +630,37 @@ async def get_evidencia(
     if not evidencia:
         raise HTTPException(status_code=404, detail="Evidencia no encontrada")
     
+    return schemas.EvidenciaResponse.model_validate(evidencia)
+
+@router.put("/{slug}/actividades/{actividad_id}/evidencia", response_model=schemas.EvidenciaResponse)
+async def update_evidencia(
+    slug: str,
+    actividad_id: int,
+    evidencia_update: schemas.EvidenciaUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Actualiza la evidencia de una actividad existente.
+    Permite cambiar descripcion, url_evidencia e imagenes.
+    """
+    entity = get_entity_or_404(db, slug)
+    ensure_user_can_manage_entity(current_user, entity)
+
+    evidencia = db.query(PdmActividadEvidencia).filter(
+        PdmActividadEvidencia.actividad_id == actividad_id,
+        PdmActividadEvidencia.entity_id == entity.id
+    ).first()
+
+    if not evidencia:
+        raise HTTPException(status_code=404, detail="Evidencia no encontrada")
+
+    update_dict = evidencia_update.model_dump(exclude_unset=True)
+    for key, value in update_dict.items():
+        setattr(evidencia, key, value)
+
+    db.commit()
+    db.refresh(evidencia)
+
     return schemas.EvidenciaResponse.model_validate(evidencia)
 
 

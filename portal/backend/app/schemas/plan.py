@@ -6,6 +6,23 @@ from app.models.plan import (
     EstadoPlan, EstadoComponente
 )
 
+# Lista fija de nombres permitidos para Plan Institucional
+ALLOWED_PLAN_NOMBRES = [
+    "Plan Institucional de Archivos de la Entidad ­PINAR",
+    "Plan Anual de Adquisiciones",
+    "Plan Anual de Vacantes",
+    "Plan de Previsión de Recursos Humanos",
+    "Plan Estratégico de Talento Humano",
+    "Plan Institucional de Capacitación",
+    "Plan de Incentivos Institucionales",
+    "Plan de Trabajo Anual en Seguridad y Salud en el Trabajo",
+    "Plan Anticorrupción y de Atención al Ciudadano",
+    "Plan Estratégico de Tecnologías de la Información y las Comunicaciones -­ PETI",
+    "Plan de Tratamiento de Riesgos de Seguridad y Privacidad de la Información",
+    "Plan de Seguridad y Privacidad de la Información",
+    "Plan Integral de Seguridad y Convivencia Ciudadana"
+]
+
 
 # ==================== SCHEMAS PARA PLAN INSTITUCIONAL ====================
 
@@ -27,6 +44,13 @@ class PlanInstitucionalBase(BaseModel):
             raise ValueError('La fecha de fin debe ser posterior a la fecha de inicio')
         return v
 
+    @field_validator('nombre', mode='before')
+    @classmethod
+    def validar_nombre(cls, v):
+        if v not in ALLOWED_PLAN_NOMBRES:
+            raise ValueError('Nombre de plan no permitido')
+        return v
+
 
 class PlanInstitucionalCreate(PlanInstitucionalBase):
     """Schema para crear un plan institucional"""
@@ -44,11 +68,26 @@ class PlanInstitucionalUpdate(BaseModel):
     responsable_elaboracion: Optional[str] = Field(None, min_length=3, max_length=200)
     responsable_aprobacion: Optional[str] = Field(None, max_length=200)
 
+    @field_validator('nombre', mode='before')
+    @classmethod
+    def validar_nombre_update(cls, v):
+        if v is not None and v not in ALLOWED_PLAN_NOMBRES:
+            raise ValueError('Nombre de plan no permitido')
+        return v
 
-class PlanInstitucional(PlanInstitucionalBase):
+
+class PlanInstitucional(BaseModel):
     """Schema de respuesta para plan institucional"""
     id: int
     entity_id: int
+    anio: int
+    nombre: str  # Sin validación en respuesta para permitir datos legacy
+    descripcion: str
+    fecha_inicio: date
+    fecha_fin: date
+    estado: EstadoPlan
+    responsable_elaboracion: str
+    responsable_aprobacion: Optional[str] = None
     porcentaje_avance: Decimal
     created_at: datetime
     updated_at: Optional[datetime] = None

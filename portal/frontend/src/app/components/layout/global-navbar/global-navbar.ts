@@ -6,6 +6,7 @@ import { AuthService } from '../../../services/auth.service';
 import { NotificationsService, AlertItem } from '../../../services/notifications.service';
 import { AlertsEventsService } from '../../../services/alerts-events.service';
 import { SidebarService } from '../../../services/sidebar.service';
+import { NavigationStateService } from '../../../services/navigation-state.service';
 
 @Component({
     selector: 'app-global-navbar',
@@ -21,6 +22,7 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
     private refreshInterval: any;
 
     private router = inject(Router);
+    private navState = inject(NavigationStateService);
 
     constructor(
         public entityContext: EntityContextService,
@@ -139,12 +141,12 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
         if (alert.type === 'PDM_PRODUCT_ASSIGNED' || alert.type === 'PDM_NEW_ACTIVITY') {
             // Alerta de PDM - redirigir al módulo PDM y luego abrir el producto/actividad
             await this.router.navigate([`/${slug}/pdm`]);
-            // Guardar en sessionStorage que debe abrir un producto o actividad
+            // Usar servicio de navegación en lugar de sessionStorage
             if (data.actividad_id) {
                 // ✅ Si hay ID de actividad, priorizar ir a la actividad
-                sessionStorage.setItem('pdm_open_actividad', data.actividad_id);
+                this.navState.setPdmOpenActividad(data.actividad_id);
             } else if (data.producto_codigo) {
-                sessionStorage.setItem('pdm_open_producto', data.producto_codigo);
+                this.navState.setPdmOpenProducto(data.producto_codigo);
             }
             setTimeout(() => this.alertsEvents.requestOpen(alert), 100);
         } else if (alert.type === 'PLAN_COMPONENT_ASSIGNED' || alert.type === 'PLAN_NEW_ACTIVITY') {

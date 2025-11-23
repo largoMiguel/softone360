@@ -17,8 +17,14 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/contratacion", tags=["Contratación"])
 
-# Dataset de contratos (jbjy-vk9h)
+# Dataset de contratos SECOP II (jbjy-vk9h) - Solo procesos CON contrato
 DATOS_GOV_BASE_URL = "https://www.datos.gov.co/resource/jbjy-vk9h.json"
+
+# Dataset de procesos SECOP II (p6dx-8zbt) - Procesos SIN contrato
+DATOS_GOV_PROCESOS_URL = "https://www.datos.gov.co/resource/p6dx-8zbt.json"
+
+# Dataset de contratos SECOP I (f789-7hwg)
+DATOS_GOV_SECOP1_URL = "https://www.datos.gov.co/resource/f789-7hwg.json"
 
 
 @router.get("/proxy")
@@ -79,6 +85,140 @@ async def proxy_datos_gov(
         raise HTTPException(
             status_code=504,
             detail="Timeout al consultar datos.gov.co"
+        )
+    except Exception as e:
+        logger.error(f"❌ Error: {str(e)} - Usuario: {current_user.email}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error interno: {str(e)}"
+        )
+
+
+@router.get("/proxy-secop1")
+@limiter.limit(RATE_LIMITS["contratacion_proxy"])
+async def proxy_datos_gov_secop1(
+    request: Request,
+    query: Optional[str] = Query(None, alias="$query"),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Proxy para consultar el API de datos.gov.co (SECOP I).
+    Evita problemas de CORS haciendo la petición desde el servidor.
+    ✅ Protecciones:
+    - Autenticación requerida
+    - Rate limiting: 100 req/hora
+    - Caching: 1 hora
+    """
+    try:
+        # Generar clave de caché
+        cache_key = f"datos_gov_secop1:{query}"
+        
+        # Intentar obtener del caché
+        cached_data = cache_manager.get(cache_key)
+        if cached_data:
+            logger.info(f"📦 Datos.gov SECOP I proxy (cached) - Usuario: {current_user.email}")
+            return cached_data
+        
+        params = {}
+        if query:
+            params["$query"] = query
+        
+        # Construir URL completa
+        url = DATOS_GOV_SECOP1_URL
+        if params:
+            url = f"{url}?{urlencode(params)}"
+        
+        # Hacer petición al API externo
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+            
+            data = response.json()
+            
+            # Cachear resultado (1 hora)
+            cache_manager.set(cache_key, data, ttl_seconds=3600)
+            
+            logger.info(f"✅ Datos.gov SECOP I proxy (fresh) - Usuario: {current_user.email}")
+            return data
+            
+    except httpx.HTTPStatusError as e:
+        logger.error(f"❌ HTTP Error {e.response.status_code} - Usuario: {current_user.email}")
+        raise HTTPException(
+            status_code=e.response.status_code,
+            detail=f"Error al consultar datos.gov.co SECOP I: {e.response.text}"
+        )
+    except httpx.TimeoutException:
+        logger.error(f"❌ Timeout en datos.gov SECOP I - Usuario: {current_user.email}")
+        raise HTTPException(
+            status_code=504,
+            detail="Timeout al consultar datos.gov.co SECOP I"
+        )
+    except Exception as e:
+        logger.error(f"❌ Error: {str(e)} - Usuario: {current_user.email}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error interno: {str(e)}"
+        )
+
+
+@router.get("/proxy-secop2-procesos")
+@limiter.limit(RATE_LIMITS["contratacion_proxy"])
+async def proxy_datos_gov_secop2_procesos(
+    request: Request,
+    query: Optional[str] = Query(None, alias="$query"),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Proxy para consultar procesos SECOP II SIN contrato (dataset p6dx-8zbt).
+    Complementa el dataset principal de contratos.
+    ✅ Protecciones:
+    - Autenticación requerida
+    - Rate limiting: 100 req/hora
+    - Caching: 1 hora
+    """
+    try:
+        # Generar clave de caché
+        cache_key = f"datos_gov_secop2_procesos:{query}"
+        
+        # Intentar obtener del caché
+        cached_data = cache_manager.get(cache_key)
+        if cached_data:
+            logger.info(f"📦 Datos.gov SECOP II Procesos proxy (cached) - Usuario: {current_user.email}")
+            return cached_data
+        
+        params = {}
+        if query:
+            params["$query"] = query
+        
+        # Construir URL completa
+        url = DATOS_GOV_PROCESOS_URL
+        if params:
+            url = f"{url}?{urlencode(params)}"
+        
+        # Hacer petición al API externo
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+            
+            data = response.json()
+            
+            # Cachear resultado (1 hora)
+            cache_manager.set(cache_key, data, ttl_seconds=3600)
+            
+            logger.info(f"✅ Datos.gov SECOP II Procesos proxy (fresh) - Usuario: {current_user.email}")
+            return data
+            
+    except httpx.HTTPStatusError as e:
+        logger.error(f"❌ HTTP Error {e.response.status_code} - Usuario: {current_user.email}")
+        raise HTTPException(
+            status_code=e.response.status_code,
+            detail=f"Error al consultar datos.gov.co SECOP II Procesos: {e.response.text}"
+        )
+    except httpx.TimeoutException:
+        logger.error(f"❌ Timeout en datos.gov SECOP II Procesos - Usuario: {current_user.email}")
+        raise HTTPException(
+            status_code=504,
+            detail="Timeout al consultar datos.gov.co SECOP II Procesos"
         )
     except Exception as e:
         logger.error(f"❌ Error: {str(e)} - Usuario: {current_user.email}")

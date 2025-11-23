@@ -279,6 +279,18 @@ def crear_plan(
             detail="El usuario no tiene una entidad asignada"
         )
     
+    # Validar unicidad (entity_id, anio, nombre)
+    existente = db.query(PlanInstitucional).filter(
+        PlanInstitucional.entity_id == current_user.entity_id,
+        PlanInstitucional.anio == plan_data.anio,
+        PlanInstitucional.nombre == plan_data.nombre
+    ).first()
+    if existente:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Ya existe un plan con este nombre y año para la entidad"
+        )
+
     # Crear el plan
     plan_dict = plan_data.model_dump(exclude={'entity_id'})
     plan_dict['entity_id'] = current_user.entity_id

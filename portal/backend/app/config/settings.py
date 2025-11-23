@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     # luego del .env, y finalmente del default
     allowed_origins: str = os.getenv(
         "ALLOWED_ORIGINS",
-        "http://localhost:4200,https://pqrs-frontend.onrender.com,https://softone-stratek.onrender.com,http://softone360-frontend-useast1.s3-website-us-east-1.amazonaws.com"
+        "http://localhost:4200,https://pqrs-frontend.onrender.com,https://softone-stratek.onrender.com,http://softone360-frontend-useast1.s3-website-us-east-1.amazonaws.com,https://softone360-frontend-useast1.s3-website-us-east-1.amazonaws.com,https://softone360-frontend-useast1.s3.amazonaws.com,http://softone360-frontend-useast1.s3.amazonaws.com"
     )
 
     # Superadmin (para seed/control inicial)

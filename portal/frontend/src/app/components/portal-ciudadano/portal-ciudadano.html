@@ -265,7 +265,7 @@
                         </div>
 
                         <!-- Campos Personales (Solo si tipo_identificacion es 'personal') -->
-                        <div *ngIf="tipo === 'personal'">
+                        <div *ngIf="nuevaPqrsForm.get('tipo_identificacion')?.value === 'personal'">
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="nombre_ciudadano" class="form-label">
@@ -273,7 +273,7 @@
                                     </label>
                                     <input type="text" class="form-control" id="nombre_ciudadano"
                                         formControlName="nombre_ciudadano" placeholder="Ingrese su nombre completo"
-                                        [required]="tipo === 'personal'">
+                                        [required]="nuevaPqrsForm.get('tipo_identificacion')?.value === 'personal'">
                                 </div>
                                 <div class="col-md-6">
                                     <label for="cedula_ciudadano" class="form-label">
@@ -281,7 +281,7 @@
                                     </label>
                                     <input type="text" class="form-control" id="cedula_ciudadano"
                                         formControlName="cedula_ciudadano" placeholder="Número de identificación"
-                                        [required]="tipo === 'personal'">
+                                        [required]="nuevaPqrsForm.get('tipo_identificacion')?.value === 'personal'">
                                 </div>
                             </div>
                         </div>
@@ -337,36 +337,36 @@
                         </div>
 
                         <!-- Campo Email (Solo si medio_respuesta es 'email') -->
-                        <div class="mb-3" *ngIf="medio === 'email'">
+                        <div class="mb-3" *ngIf="nuevaPqrsForm.get('medio_respuesta')?.value === 'email'">
                             <label for="email_ciudadano" class="form-label">
                                 <i class="fas fa-envelope me-2"></i>Correo Electrónico *
                             </label>
                             <input type="email" class="form-control" id="email_ciudadano"
                                 formControlName="email_ciudadano" placeholder="correo@ejemplo.com"
-                                [required]="medio === 'email'">
+                                [required]="nuevaPqrsForm.get('medio_respuesta')?.value === 'email'">
                             <div class="form-text">Ingrese el correo donde recibirá la respuesta</div>
                         </div>
 
                         <!-- Campo Dirección (Solo si medio_respuesta es 'fisica') -->
-                        <div class="mb-3" *ngIf="medio === 'fisica'">
+                        <div class="mb-3" *ngIf="nuevaPqrsForm.get('medio_respuesta')?.value === 'fisica'">
                             <label for="direccion_ciudadano" class="form-label">
                                 <i class="fas fa-home me-2"></i>Dirección *
                             </label>
                             <textarea class="form-control" id="direccion_ciudadano"
                                 formControlName="direccion_ciudadano" rows="2"
                                 placeholder="Dirección completa de correspondencia"
-                                [required]="medio === 'fisica'"></textarea>
+                                [required]="nuevaPqrsForm.get('medio_respuesta')?.value === 'fisica'"></textarea>
                             <div class="form-text">Ingrese la dirección donde recibirá la respuesta física</div>
                         </div>
 
                         <!-- Campo Teléfono (Solo si medio_respuesta es 'telefono') -->
-                        <div class="mb-3" *ngIf="medio === 'telefono'">
+                        <div class="mb-3" *ngIf="nuevaPqrsForm.get('medio_respuesta')?.value === 'telefono'">
                             <label for="telefono_ciudadano" class="form-label">
                                 <i class="fas fa-phone me-2"></i>Teléfono *
                             </label>
                             <input type="tel" class="form-control" id="telefono_ciudadano"
                                 formControlName="telefono_ciudadano" placeholder="Número de contacto"
-                                [required]="medio === 'telefono'">
+                                [required]="nuevaPqrsForm.get('medio_respuesta')?.value === 'telefono'">
                             <div class="form-text">Ingrese el número donde recibirá la llamada de respuesta</div>
                         </div>
 

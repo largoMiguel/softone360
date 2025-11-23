@@ -165,6 +165,44 @@ export class PlanesInstitucionalesV2Component implements OnInit, OnDestroy {
         }, 60000);
     }
 
+    // Lista fija de nombres permitidos (sin modificar el orden solicitado)
+    PLAN_NOMBRES: string[] = [
+        'Plan Institucional de Archivos de la Entidad ­PINAR',
+        'Plan Anual de Adquisiciones',
+        'Plan Anual de Vacantes',
+        'Plan de Previsión de Recursos Humanos',
+        'Plan Estratégico de Talento Humano',
+        'Plan Institucional de Capacitación',
+        'Plan de Incentivos Institucionales',
+        'Plan de Trabajo Anual en Seguridad y Salud en el Trabajo',
+        'Plan Anticorrupción y de Atención al Ciudadano',
+        'Plan Estratégico de Tecnologías de la Información y las Comunicaciones -­ PETI',
+        'Plan de Tratamiento de Riesgos de Seguridad y Privacidad de la Información',
+        'Plan de Seguridad y Privacidad de la Información',
+        'Plan Integral de Seguridad y Convivencia Ciudadana'
+    ];
+
+    // Obtener nombres disponibles para un año específico (excluyendo los ya usados)
+    getNombresDisponibles(): string[] {
+        const anioSeleccionado = this.planForm.anio;
+        if (!anioSeleccionado) return this.PLAN_NOMBRES;
+
+        // Obtener nombres ya usados en el año seleccionado
+        const nombresUsados = this.planes
+            .filter(p => p.anio === anioSeleccionado)
+            .map(p => p.nombre);
+
+        // Si estamos editando, permitir el nombre actual
+        if (this.modoEdicion && this.planForm.nombre) {
+            return this.PLAN_NOMBRES.filter(n => 
+                n === this.planForm.nombre || !nombresUsados.includes(n)
+            );
+        }
+
+        // Filtrar nombres que no han sido usados
+        return this.PLAN_NOMBRES.filter(n => !nombresUsados.includes(n));
+    }
+
     ngOnDestroy(): void {
         // Limpiar el intervalo de auto-refresh
         if (this.refreshInterval) {

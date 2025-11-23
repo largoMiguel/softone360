@@ -8,6 +8,9 @@
                     <span *ngIf="vistaActual === 'dashboard'">Análisis de Contratación</span>
                     <span *ngIf="vistaActual === 'lista'">Listado de Contratos</span>
                     <span *ngIf="vistaActual === 'detalle'">Detalle del Contrato</span>
+                    <span class="badge ms-2" [class.bg-primary]="tipoSecop === 'secop2'" [class.bg-success]="tipoSecop === 'secop1'">
+                        {{ tipoSecop === 'secop1' ? 'SECOP I' : 'SECOP II' }}
+                    </span>
                 </h2>
             </div>
             <div class="header-actions">
@@ -20,7 +23,7 @@
             </div>
         </div>
         <p class="page-subtitle" *ngIf="vistaActual === 'dashboard'">
-            KPIs, alertas y análisis de los procesos de contratación
+            KPIs, alertas y análisis de los procesos de contratación {{ tipoSecop === 'secop1' ? 'SECOP I' : 'SECOP II' }}
         </p>
     </div>
 
@@ -34,6 +37,30 @@
 
     <!-- VISTA: DASHBOARD -->
     <div *ngIf="vistaActual === 'dashboard' && !loading" class="vista-dashboard">
+        <!-- Filtro global por rango de fechas -->
+        <div class="global-filters mb-3 p-3 border rounded bg-light">
+            <div class="row g-2 align-items-end">
+                <div class="col-6 col-md-auto">
+                    <label class="form-label mb-1">Desde</label>
+                    <input type="date" class="form-control form-control-sm" [(ngModel)]="filtro.fechaDesde">
+                </div>
+                <div class="col-6 col-md-auto">
+                    <label class="form-label mb-1">Hasta</label>
+                    <input type="date" class="form-control form-control-sm" [(ngModel)]="filtro.fechaHasta">
+                </div>
+                <div class="col-6 col-md-auto">
+                    <button class="btn btn-sm btn-primary mt-3" (click)="buscar()" title="Aplicar rango">
+                        <i class="fas fa-search me-1"></i>Buscar
+                    </button>
+                </div>
+                <div class="col-6 col-md-auto">
+                    <button class="btn btn-sm btn-outline-secondary mt-3" (click)="limpiar()" title="Restablecer rango">
+                        <i class="fas fa-broom me-1"></i>Limpiar
+                    </button>
+                </div>
+            </div>
+            <small class="text-muted">Filtra por fecha de firma del contrato (SECOP {{ tipoSecop === 'secop1' ? 'I' : 'II' }}). Si el rango es inválido se auto-ajusta.</small>
+        </div>
         <!-- Alertas -->
         <div class="row g-3 mb-4">
             <!-- Alerta Contratos Vencidos -->
@@ -55,8 +82,9 @@
                             <div class="card p-3 border-danger">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
-                                        <h6 class="mb-1">{{ c.referencia_del_proceso }}</h6>
-                                        <small class="text-muted">{{ c.proveedor_adjudicado }}</small>
+                                        <h6 class="mb-1">{{ c.referencia_del_contrato || c.referencia_del_proceso }}</h6>
+                                        <p class="mb-1 small"><strong>Objeto:</strong> {{ (c.objeto_del_contrato || c.descripcion_del_proceso || 'N/D') | slice:0:80 }}{{ (c.objeto_del_contrato || c.descripcion_del_proceso || '').length > 80 ? '...' : '' }}</p>
+                                        <small class="text-muted">Proveedor: {{ c.proveedor_adjudicado }}</small>
                                         <div class="mt-2">
                                             <span class="badge" [ngClass]="'bg-' + getEstadoBadgeClass(c.estado_contrato)">{{ c.estado_contrato }}</span>
                                         </div>
@@ -90,8 +118,9 @@
                             <div class="card p-3 border-warning">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
-                                        <h6 class="mb-1">{{ c.referencia_del_proceso }}</h6>
-                                        <small class="text-muted">{{ c.proveedor_adjudicado }}</small>
+                                        <h6 class="mb-1">{{ c.referencia_del_contrato || c.referencia_del_proceso }}</h6>
+                                        <p class="mb-1 small"><strong>Objeto:</strong> {{ (c.objeto_del_contrato || c.descripcion_del_proceso || 'N/D') | slice:0:80 }}{{ (c.objeto_del_contrato || c.descripcion_del_proceso || '').length > 80 ? '...' : '' }}</p>
+                                        <small class="text-muted">Proveedor: {{ c.proveedor_adjudicado }}</small>
                                         <div class="mt-2">
                                             <span class="badge bg-warning text-dark">Seguimiento Intensivo</span>
                                         </div>
@@ -550,8 +579,8 @@
     <!-- Modal de Detalle Minimalista -->
     <div class="modal-overlay" *ngIf="showModal && selectedProceso" (click)="closeModal()">
         <div class="modal-wrapper" (click)="$event.stopPropagation()">
-            <div class="modal-content-custom">
-                <div class="modal-header-custom">
+            <div class="modal-content-custom" style="max-height: 90vh; display: flex; flex-direction: column;">
+                <div class="modal-header-custom" style="flex-shrink: 0;">
                     <div class="modal-title-section">
                         <i class="fas fa-file-contract"></i>
                         <div>
@@ -566,7 +595,7 @@
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body" style="overflow-y: auto; flex: 1;">
                     <div class="modal-section">
                         <div class="modal-field">
                             <span class="label">Proveedor</span>
@@ -665,7 +694,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-actions">
+                <div class="modal-actions" style="flex-shrink: 0;">
                     <button class="btn btn-outline-secondary" (click)="closeModal()">
                         <i class="fas fa-times"></i>
                         <span>Cerrar</span>

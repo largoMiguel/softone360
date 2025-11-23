@@ -11,7 +11,7 @@ import { ReportService } from '../../services/report.service';
 import { SecretariasService } from '../../services/secretarias.service';
 import { User } from '../../models/user.model';
 import { EntityContextService } from '../../services/entity-context.service';
-import { PQRSWithDetails, ESTADOS_PQRS, EstadoPQRS, UpdatePQRSRequest, PQRSResponse, TIPOS_IDENTIFICACION, MEDIOS_RESPUESTA } from '../../models/pqrs.model';
+import { PQRSWithDetails, ESTADOS_PQRS, EstadoPQRS, UpdatePQRSRequest, PQRSResponse, TIPOS_IDENTIFICACION, MEDIOS_RESPUESTA, CANALES_LLEGADA, TIPOS_SOLICITUD, TIPOS_PERSONA, GENEROS } from '../../models/pqrs.model';
 import { BaseChartDirective } from 'ng2-charts';
 import { Chart, ChartConfiguration, ChartData, ChartType, registerables } from 'chart.js';
 import { Subscription, combineLatest, filter } from 'rxjs';
@@ -42,6 +42,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
   estadosColor = ESTADOS_PQRS;
   tiposIdentificacion = TIPOS_IDENTIFICACION;
   mediosRespuesta = MEDIOS_RESPUESTA;
+  canalesLlegada = CANALES_LLEGADA;
+  tiposSolicitud = TIPOS_SOLICITUD;
+  tiposPersona = TIPOS_PERSONA;
+  generos = GENEROS;
   activeView = 'dashboard';
   nuevaPqrsForm: FormGroup;
   nuevoSecretarioForm: FormGroup;
@@ -52,6 +56,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   selectedEstado: string = '';
   private subscriptions = new Subscription();
   private refreshInterval: any;
+  
+  // Control de pasos del formulario PQRS
+  pasoActual: number = 1;
+  totalPasos: number = 4;
+  tipo: string = 'personal';
+  medio: string = 'email';
 
   // Alertas (campana en navbar)
   showAlertsPanel = false;
@@ -173,6 +183,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.alerts$ = this.notificationsService.alertsStream;
     this.unreadCount$ = this.notificationsService.unreadCountStream;
     this.nuevaPqrsForm = this.fb.group({
+      canal_llegada: ['web', Validators.required],
       tipo_identificacion: ['personal', Validators.required],
       medio_respuesta: ['email', Validators.required],
       tipo_solicitud: ['', Validators.required],
@@ -182,7 +193,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
       email_ciudadano: [''],
       direccion_ciudadano: [''],
       asunto: [''],
-      descripcion: ['', Validators.required]
+      descripcion: ['', Validators.required],
+      tipo_persona: [''],
+      genero: [''],
+      dias_respuesta: ['', [Validators.min(1), Validators.max(365)]],
+      archivo_adjunto: ['']
     });
 
     // Escuchar cambios en tipo_identificacion para ajustar validaciones
@@ -210,6 +225,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     // Escuchar cambios en medio_respuesta para ajustar validaciones
     this.nuevaPqrsForm.get('medio_respuesta')?.valueChanges.subscribe(medio => {
+      this.medio = medio; // Actualizar variable para controlar campos condicionales
       const emailControl = this.nuevaPqrsForm.get('email_ciudadano');
       const direccionControl = this.nuevaPqrsForm.get('direccion_ciudadano');
       const telefonoControl = this.nuevaPqrsForm.get('telefono_ciudadano');
@@ -792,17 +808,66 @@ export class DashboardComponent implements OnInit, OnDestroy {
         formData.cedula_ciudadano = null;
       }
 
+      // Convertir strings vacías a null para nuevos campos opcionales
+      if (!formData.tipo_persona || formData.tipo_persona.trim() === '') {
+        formData.tipo_persona = null;
+      }
+      if (!formData.genero || formData.genero.trim() === '') {
+        formData.genero = null;
+      }
+      if (!formData.dias_respuesta) {
+        formData.dias_respuesta = null;
+      }
+
+      // Si hay archivo seleccionado, guardamos su nombre
+      if (this.selectedFile) {
+        formData.archivo_adjunto = this.selectedFile.name;
+      } else {
+        formData.archivo_adjunto = null;
+      }
+
       this.pqrsService.createPqrs(formData).subscribe({
         next: (response) => {
-          // console.log('PQRS creada exitosamente:', response);
-          this.alertService.success(
-            `La PQRS ha sido creada exitosamente con el radicado N° ${response.numero_radicado}.\n\nPuedes consultarla en cualquier momento usando este número.`,
-            'PQRS Creada'
-          );
-          this.nuevaPqrsForm.reset();
-          this.isSubmitting = false;
-          this.setActiveView('dashboard');
-          this.loadPqrs();
+          // Si hay archivo seleccionado, subirlo ahora
+          if (this.selectedFile && response.id) {
+            this.pqrsService.uploadArchivo(response.id, this.selectedFile).subscribe({
+              next: (uploadResponse) => {
+                console.log('✅ Archivo subido exitosamente:', uploadResponse);
+                this.alertService.success(
+                  `La PQRS ha sido creada exitosamente con el radicado N° ${response.numero_radicado}.\n\nArchivo adjunto subido correctamente.\n\nPuedes consultarla en cualquier momento usando este número.`,
+                  'PQRS Creada'
+                );
+                this.nuevaPqrsForm.reset();
+                this.selectedFile = null;
+                this.isSubmitting = false;
+                this.setActiveView('dashboard');
+                this.loadPqrs();
+              },
+              error: (uploadError) => {
+                console.error('❌ Error subiendo archivo:', uploadError);
+                this.alertService.warning(
+                  `La PQRS fue creada con el radicado N° ${response.numero_radicado}, pero hubo un error al subir el archivo adjunto.\n\nPuedes intentar subirlo nuevamente desde la vista de edición.`,
+                  'PQRS Creada con Advertencia'
+                );
+                this.nuevaPqrsForm.reset();
+                this.selectedFile = null;
+                this.isSubmitting = false;
+                this.setActiveView('dashboard');
+                this.loadPqrs();
+              }
+            });
+          } else {
+            // Sin archivo adjunto
+            this.alertService.success(
+              `La PQRS ha sido creada exitosamente con el radicado N° ${response.numero_radicado}.\n\nPuedes consultarla en cualquier momento usando este número.`,
+              'PQRS Creada'
+            );
+            this.nuevaPqrsForm.reset();
+            this.selectedFile = null;
+            this.isSubmitting = false;
+            this.setActiveView('dashboard');
+            this.loadPqrs();
+          }
         },
         error: (error) => {
           console.error('Error creando PQRS:', error);
@@ -1676,5 +1741,100 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.guardandoModulos = false;
     }
   }
+  
+  // Métodos para navegación de pasos del formulario PQRS
+  siguientePaso(): void {
+    if (this.pasoActual < this.totalPasos) {
+      this.pasoActual++;
+    }
+  }
+  
+  pasoAnterior(): void {
+    if (this.pasoActual > 1) {
+      this.pasoActual--;
+    }
+  }
+  
+  irAPaso(paso: number): void {
+    if (paso >= 1 && paso <= this.totalPasos) {
+      this.pasoActual = paso;
+    }
+  }
+  
+  selectedFile: File | null = null;
+
+  onFileSelected(event: any): void {
+    const file = event.target.files[0];
+    if (file && file.type === 'application/pdf') {
+      if (file.size > 10 * 1024 * 1024) { // 10 MB
+        this.alertService.error('El archivo no debe superar 10 MB', 'Error');
+        event.target.value = '';
+        return;
+      }
+      this.selectedFile = file;
+      this.alertService.success('Archivo seleccionado: ' + file.name, 'Éxito');
+    } else {
+      this.alertService.error('Solo se permiten archivos PDF', 'Error');
+      event.target.value = '';
+    }
+  }
+
+  resetearFormularioPqrs(): void {
+    this.nuevaPqrsForm.reset({
+      canal_llegada: 'web',
+      tipo_identificacion: 'personal',
+      medio_respuesta: 'email'
+    });
+    this.pasoActual = 1;
+    this.tipo = 'personal';
+    this.medio = 'email';
+    this.selectedFile = null;
+  }
+  
+  seleccionarTipoIdentificacion(tipoValue: string): void {
+    this.nuevaPqrsForm.patchValue({tipo_identificacion: tipoValue});
+    this.tipo = tipoValue;
+  }
+
+  // Métodos helper para labels de nuevos campos
+  getTipoPersonaLabel(tipo: string): string {
+    const tipos: { [key: string]: string } = {
+      'natural': 'Persona Natural',
+      'juridica': 'Persona Jurídica',
+      'nna': 'Niños, Niñas y Adolescentes',
+      'apoderado': 'Apoderado'
+    };
+    return tipos[tipo] || tipo;
+  }
+
+  getGeneroLabel(genero: string): string {
+    const generos: { [key: string]: string } = {
+      'femenino': 'Femenino',
+      'masculino': 'Masculino',
+      'otro': 'Otro'
+    };
+    return generos[genero] || genero;
+  }
+
+  // Método para descargar archivo adjunto
+  descargarArchivo(pqrs: PQRSWithDetails): void {
+    if (!pqrs.archivo_adjunto) {
+      this.alertService.error('Esta PQRS no tiene archivo adjunto', 'Error');
+      return;
+    }
+
+    this.pqrsService.getArchivoDownloadUrl(pqrs.id).subscribe({
+      next: (response) => {
+        // Abrir la URL de descarga en una nueva pestaña
+        window.open(response.download_url, '_blank');
+        this.alertService.success('Descargando archivo...', 'Éxito');
+      },
+      error: (error) => {
+        console.error('Error obteniendo URL de descarga:', error);
+        this.alertService.error('Error al obtener el archivo. Por favor intenta nuevamente.', 'Error');
+      }
+    });
+  }
 }
+
 

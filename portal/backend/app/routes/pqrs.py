@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from pydantic import BaseModel
 import json
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import datetime
+import boto3
+from botocore.exceptions import ClientError
+import os
 from app.config.database import get_db
 from app.models.pqrs import PQRS, EstadoPQRS
 from app.models.user import User, UserRole
@@ -390,7 +393,7 @@ async def delete_pqrs(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
 ):
-    """Eliminar PQRS (solo admin)"""
+    """Eliminar PQRS (solo admin) - también elimina el archivo adjunto de S3 si existe"""
     pqrs = db.query(PQRS).filter(PQRS.id == pqrs_id).first()
     
     if not pqrs:
@@ -398,6 +401,17 @@ async def delete_pqrs(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="PQRS no encontrada"
         )
+    
+    # Eliminar archivo de S3 si existe
+    if pqrs.archivo_adjunto:
+        try:
+            # Extraer la key del archivo de la URL
+            file_key = pqrs.archivo_adjunto.split(f"{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/")[1]
+            s3_client.delete_object(Bucket=S3_BUCKET, Key=file_key)
+            print(f"✅ Archivo eliminado de S3: {file_key}")
+        except Exception as e:
+            print(f"⚠️ Error eliminando archivo de S3: {e}")
+            # Continuar con la eliminación de la PQRS aunque falle la eliminación del archivo
     
     db.delete(pqrs)
     db.commit()
@@ -423,3 +437,160 @@ async def consultar_pqrs_public(
         )
     
     return pqrs
+
+
+# Configuración S3
+S3_BUCKET = "softone360-pqrs-archivos"
+S3_REGION = "us-east-1"
+s3_client = boto3.client('s3', region_name=S3_REGION)
+
+
+@router.post("/{pqrs_id}/upload", response_model=dict)
+async def upload_archivo_pqrs(
+    pqrs_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Subir archivo PDF adjunto a una PQRS.
+    El archivo se almacena en S3 y se guarda la URL en la base de datos.
+    """
+    # Validar que la PQRS existe
+    pqrs = db.query(PQRS).filter(PQRS.id == pqrs_id).first()
+    if not pqrs:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"PQRS con ID {pqrs_id} no encontrada"
+        )
+    
+    # Validar permisos: admin o creador de la PQRS
+    if current_user.role != UserRole.ADMIN and current_user.entity_id != pqrs.entity_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos para subir archivos a esta PQRS"
+        )
+    
+    # Validar tipo de archivo
+    if not file.content_type == "application/pdf":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Solo se permiten archivos PDF"
+        )
+    
+    # Validar tamaño (10MB máximo)
+    file_content = await file.read()
+    if len(file_content) > 10 * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El archivo no debe superar 10 MB"
+        )
+    
+    try:
+        # Generar nombre único para el archivo
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_key = f"pqrs/{pqrs.entity_id}/{pqrs.numero_radicado}_{timestamp}.pdf"
+        
+        # Subir a S3
+        s3_client.put_object(
+            Bucket=S3_BUCKET,
+            Key=file_key,
+            Body=file_content,
+            ContentType="application/pdf",
+            Metadata={
+                "pqrs_id": str(pqrs_id),
+                "numero_radicado": pqrs.numero_radicado,
+                "uploaded_by": current_user.username
+            }
+        )
+        
+        # Actualizar PQRS con la URL del archivo
+        file_url = f"https://{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/{file_key}"
+        pqrs.archivo_adjunto = file_url
+        db.commit()
+        
+        return {
+            "message": "Archivo subido exitosamente",
+            "file_url": file_url,
+            "file_key": file_key
+        }
+        
+    except ClientError as e:
+        print(f"❌ Error subiendo archivo a S3: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al subir el archivo: {str(e)}"
+        )
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error procesando el archivo: {str(e)}"
+        )
+
+
+@router.get("/{pqrs_id}/archivo/download-url", response_model=dict)
+async def get_archivo_download_url(
+    pqrs_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Generar URL de descarga temporal (presigned URL) para el archivo adjunto de una PQRS.
+    La URL es válida por 1 hora.
+    """
+    # Buscar PQRS
+    pqrs = db.query(PQRS).filter(PQRS.id == pqrs_id).first()
+    if not pqrs:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"PQRS con ID {pqrs_id} no encontrada"
+        )
+    
+    # Validar que tiene archivo adjunto
+    if not pqrs.archivo_adjunto:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Esta PQRS no tiene archivo adjunto"
+        )
+    
+    # Validar permisos
+    if current_user.role != UserRole.ADMIN and current_user.entity_id != pqrs.entity_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos para acceder a este archivo"
+        )
+    
+    try:
+        # Extraer la key del archivo de la URL
+        file_key = pqrs.archivo_adjunto.split(f"{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/")[1]
+        
+        # Generar presigned URL válida por 1 hora
+        presigned_url = s3_client.generate_presigned_url(
+            'get_object',
+            Params={
+                'Bucket': S3_BUCKET,
+                'Key': file_key
+            },
+            ExpiresIn=3600  # 1 hora
+        )
+        
+        return {
+            "download_url": presigned_url,
+            "expires_in": 3600,
+            "filename": file_key.split('/')[-1]
+        }
+        
+    except ClientError as e:
+        print(f"❌ Error generando presigned URL: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al generar URL de descarga: {str(e)}"
+        )
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error procesando la solicitud: {str(e)}"
+        )

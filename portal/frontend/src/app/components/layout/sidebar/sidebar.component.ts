@@ -65,8 +65,9 @@ export class SidebarComponent {
         if (!this.slug) return; this.router.navigate([`/${this.slug}/planes-institucionales`]);
         this.sidebar.close();
     }
-    goContratacion() {
-        if (!this.slug) return; this.router.navigate([`/${this.slug}/contratacion`]);
+    goContratacion(tipo: 'secop1' | 'secop2' = 'secop2') {
+        if (!this.slug) return; 
+        this.router.navigate([`/${this.slug}/contratacion`], { queryParams: { tipo } });
         this.sidebar.close();
     }
     goPdmUpload() {
@@ -82,7 +83,13 @@ export class SidebarComponent {
     isActiveUrl(regex: RegExp): boolean { return regex.test(this.router.url); }
     isActiveRoutePlanesDashboard(): boolean { return /\/planes-dashboard(\/?|\?|$)/.test(this.router.url); }
     isActiveRoutePlanes(): boolean { return /\/planes-institucionales(\/?|\?|$)/.test(this.router.url); }
-    isActiveRouteContratacion(): boolean { return /\/contratacion(\/?|\?|$)/.test(this.router.url); }
+    isActiveRouteContratacion(tipo?: 'secop1' | 'secop2'): boolean {
+        const isRoute = /\/contratacion(\/?|\?|$)/.test(this.router.url);
+        if (!isRoute || !tipo) return isRoute;
+        const m = this.router.url.match(/\btipo=([^&#]+)/);
+        const currentTipo = m?.[1] || 'secop2';
+        return currentTipo === tipo;
+    }
     isActiveRoutePdm(): boolean { return /\/pdm(\/?|\?|$)/.test(this.router.url); }
     isActiveRoutePdmDashboard(): boolean { return /\/pdm-dashboard(\/?|\?|$)/.test(this.router.url); }
     isActiveView(view: 'dashboard' | 'mis-pqrs' | 'nueva-pqrs' | 'usuarios'): boolean {

@@ -6,6 +6,7 @@ import { PdmService } from '../../services/pdm.service';
 import { PdmEjecucionService } from '../../services/pdm-ejecucion.service';
 import { AlertsService, Alert } from '../../services/alerts.service';
 import { AuthService } from '../../services/auth.service';
+import { NavigationStateService } from '../../services/navigation-state.service';
 import {
     PDMData,
     ResumenProducto,
@@ -42,6 +43,7 @@ export class PdmComponent implements OnInit, OnDestroy {
     private alertsService = inject(AlertsService);
     private authService = inject(AuthService);
     private location = inject(Location);
+    private navState = inject(NavigationStateService);
 
     // Listener para navegación
     private popstateListener: (() => void) | null = null;
@@ -293,16 +295,16 @@ export class PdmComponent implements OnInit, OnDestroy {
         // Para actividades: { actividad_id: number, producto_codigo: string }
         // Para productos: { producto_codigo: string }
         
-        // Buscar si hay datos de producto o actividad en sessionStorage
-        const productoCodigo = sessionStorage.getItem('pdm_open_producto');
-        const actividadId = sessionStorage.getItem('pdm_open_actividad');
+        // Usar servicio de navegación en lugar de sessionStorage
+        const productoCodigo = this.navState.getPdmOpenProducto();
+        const actividadId = this.navState.getPdmOpenActividad();
         
         if (productoCodigo || actividadId) {
             if (productoCodigo) {
-                sessionStorage.removeItem('pdm_open_producto');
+                this.navState.clearPdmOpenProducto();
             }
             if (actividadId) {
-                sessionStorage.removeItem('pdm_open_actividad');
+                this.navState.clearPdmOpenActividad();
             }
             
             // Esperar a que se carguen los datos
@@ -319,8 +321,8 @@ export class PdmComponent implements OnInit, OnDestroy {
                             if (actividad) {
                                 // Abrir el producto y marcar la actividad para desplazarse
                                 this.navegarA('detalle', producto);
-                                // Guardar ID de actividad para que el componente de detalle la destace
-                                sessionStorage.setItem('pdm_scroll_to_actividad', actividadId);
+                                // Guardar ID de actividad para que el componente de detalle la destaque
+                                this.navState.setPdmScrollToActividad(actividadId);
                                 break;
                             }
                         }
@@ -632,6 +634,8 @@ export class PdmComponent implements OnInit, OnDestroy {
      */
     volver() {
         if (this.vistaActual === 'analisis-producto') {
+            // Asegurar liberar recursos de charts para evitar bloqueos
+            this.destruirGraficosAnalisisProducto();
             this.vistaActual = 'detalle';
         } else if (this.vistaActual === 'detalle') {
             this.vistaActual = 'productos';
@@ -680,19 +684,18 @@ export class PdmComponent implements OnInit, OnDestroy {
             return [];
         }
 
-        // Si no hay ejecución cargada (404 para ese año) mostrar ejecución = 0 en todos
+        // Si no hay ejecución cargada (404 para ese año) mostrar ejecución = 0
         const tieneEjecucion = !!this.ejecucionPresupuestal;
         const ejecucionSeleccionada = tieneEjecucion ? Number(this.ejecucionPresupuestal!.totales.pto_definitivo || 0) : 0;
 
-        // Mostrar siempre los 4 años para que el usuario vea dónde existe ejecución
-        const anios = [2024, 2025, 2026, 2027];
-        return anios.map(anio => {
-            const pdm = this.productoSeleccionado![`total_${anio}` as keyof ResumenProducto] as number || 0;
-            const ejecucion = (anio === this.anioSeleccionado) ? ejecucionSeleccionada : 0; // Solo año activo tiene ejecución
-            const diferencia = ejecucion - pdm;
-            const porcentaje = pdm > 0 ? (ejecucion / pdm) * 100 : 0;
-            return { anio, pdm, ejecucion, diferencia, porcentaje };
-        });
+        // Mostrar SOLO el año seleccionado
+        const anio = this.anioSeleccionado;
+        const pdm = this.productoSeleccionado![`total_${anio}` as keyof ResumenProducto] as number || 0;
+        const ejecucion = ejecucionSeleccionada;
+        const diferencia = ejecucion - pdm;
+        const porcentaje = pdm > 0 ? (ejecucion / pdm) * 100 : 0;
+        
+        return [{ anio, pdm, ejecucion, diferencia, porcentaje }];
     }
 
     /**
@@ -1250,9 +1253,9 @@ export class PdmComponent implements OnInit, OnDestroy {
             fecha_inicio: [actividad.fecha_inicio.split('T')[0], Validators.required],
             fecha_fin: [actividad.fecha_fin.split('T')[0], Validators.required],
             meta_ejecutar: [actividad.meta_ejecutar, [Validators.required, Validators.min(0.01), Validators.max(validacion.disponible)]],
-            // Campos de evidencia OBLIGATORIOS
-            evidencia_url: [''],
-            imagenes: [[]]
+            // Prefill evidencia si existe
+            evidencia_url: [actividad.evidencia?.url_evidencia || ''],
+            imagenes: [actividad.evidencia?.imagenes ? [...actividad.evidencia.imagenes] : []]
         });
 
         // Cargar lista de secretarios
@@ -1342,46 +1345,58 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Registra la evidencia de una actividad
      */
     private registrarEvidenciaActividad(actividadId: number, valores: any) {
+        console.log('🔍 registrarEvidenciaActividad - valores:', valores);
+        console.log('🔍 imagenes en formulario:', valores.imagenes);
+        console.log('🔍 imagenes length:', valores.imagenes?.length);
+        
         const evidenciaData: EvidenciaActividad = {
             descripcion: valores.descripcion,
             url_evidencia: valores.evidencia_url || undefined,
-            imagenes: valores.imagenes || [],
+            imagenes: valores.imagenes && valores.imagenes.length > 0 ? valores.imagenes : [],
             fecha_registro: new Date().toISOString()
         };
+        
+        console.log('📤 Evidencia a enviar:', {
+            ...evidenciaData,
+            imagenes: evidenciaData.imagenes?.length ? `${evidenciaData.imagenes.length} imagen(es)` : 'sin imágenes'
+        });
 
-        this.pdmService.registrarEvidencia(actividadId, evidenciaData).subscribe({
+        const actividadOriginal = this.actividadEnEdicion;
+        const yaTieneEvidencia = !!actividadOriginal?.evidencia?.id;
+
+        const accion$ = yaTieneEvidencia
+            ? this.pdmService.actualizarEvidenciaEnBackend(actividadId, evidenciaData)
+            : this.pdmService.registrarEvidencia(actividadId, evidenciaData);
+
+        accion$.subscribe({
             next: () => {
-                this.showToast('Evidencia de ejecución registrada exitosamente', 'success');
-                
-                // ✅ Recalcular avances ANTES de cerrar el modal
-                if (this.productoSeleccionado) {
-                    // Actualizar resumen de actividades del año actual
-                    this.resumenAnioActual = this.pdmService.obtenerResumenActividadesPorAnio(
-                        this.productoSeleccionado,
-                        this.anioSeleccionado
-                    );
-                    // Recalcular avance general
-                    this.avanceProducto = this.pdmService.calcularAvanceProducto(this.productoSeleccionado);
-                    // ✅ Recalcular porcentaje_ejecucion y asignar
-                    const nuevoAvance = this.pdmService.calcularAvanceRealProducto(
-                        this.productoSeleccionado.codigo,
-                        this.productoSeleccionado.detalle_completo as any
-                    );
-                    this.productoSeleccionado.porcentaje_ejecucion = Math.min(100, Number(nuevoAvance.toFixed(2)));
-                    // Actualizar en la lista también
-                    const idx = this.resumenProductos.findIndex(p => p.codigo === this.productoSeleccionado!.codigo);
-                    if (idx !== -1) {
-                        this.resumenProductos[idx] = { ...this.resumenProductos[idx], porcentaje_ejecucion: this.productoSeleccionado.porcentaje_ejecucion };
-                    }
-                }
-                
-                // Cerrar modal después de actualizar todo
+                this.showToast(yaTieneEvidencia ? 'Evidencia actualizada exitosamente' : 'Evidencia de ejecución registrada exitosamente', 'success');
                 this.cerrarModalActividad();
+                this.cargandoActividadesBackend = true;
+                setTimeout(() => {
+                    if (this.productoSeleccionado) {
+                        this.pdmService.cargarActividadesDesdeBackend(this.productoSeleccionado.codigo, this.anioSeleccionado)
+                            .subscribe({
+                                next: (actividades) => {
+                                    this.pdmService.sincronizarActividadesProducto(
+                                        this.productoSeleccionado!.codigo,
+                                        actividades
+                                    );
+                                    this.actualizarResumenActividades(false);
+                                    this.cargandoActividadesBackend = false;
+                                },
+                                error: (error) => {
+                                    console.warn('⚠️ Error refetch evidencia:', error);
+                                    this.cargandoActividadesBackend = false;
+                                    this.actualizarResumenActividades(false);
+                                }
+                            });
+                    }
+                }, 300);
             },
             error: () => {
-                this.showToast('Error al registrar la evidencia de ejecución', 'error');
+                this.showToast(yaTieneEvidencia ? 'Error al actualizar la evidencia' : 'Error al registrar la evidencia de ejecución', 'error');
                 this.cerrarModalActividad();
-                // Recargar de todas formas
                 this.actualizarResumenActividades(true);
             }
         });
@@ -1548,9 +1563,40 @@ export class PdmComponent implements OnInit, OnDestroy {
             });
         });
 
-        Promise.all(promesas).then(imagenes => {
-            this.formularioActividad.patchValue({ imagenes });
-        }).catch(() => {
+        Promise.all(promesas).then(imagenesNuevas => {
+            console.log('✅ Imágenes nuevas convertidas:', imagenesNuevas.length);
+            
+            // Obtener imágenes actuales del FormControl
+            const imagenesControl = this.formularioActividad.get('imagenes');
+            const actuales: string[] = imagenesControl?.value || [];
+            console.log('📸 Imágenes actuales en formulario:', actuales.length);
+
+            // Calcular cuántas podemos agregar (máximo 4 total)
+            const disponibles = 4 - actuales.length;
+            
+            if (disponibles <= 0) {
+                this.showToast('Ya tienes el máximo de 4 imágenes. Elimina alguna para agregar nuevas.', 'error');
+                return;
+            }
+
+            // Tomar solo las que caben
+            const aAgregar = imagenesNuevas.slice(0, disponibles);
+            
+            // Crear nuevo array con todas las imágenes
+            const todasLasImagenes = [...actuales, ...aAgregar];
+            
+            console.log('📸 Total imágenes tras agregar:', todasLasImagenes.length);
+            
+            // Actualizar el FormControl
+            imagenesControl?.setValue(todasLasImagenes);
+            
+            if (aAgregar.length < imagenesNuevas.length) {
+                this.showToast(`Se agregaron ${aAgregar.length} de ${imagenesNuevas.length} imágenes (máximo 4 total)`, 'info');
+            } else {
+                this.showToast(`${aAgregar.length} imagen(es) agregada(s)`, 'success');
+            }
+        }).catch((error) => {
+            console.error('❌ Error al procesar imágenes:', error);
             this.showToast('Error al procesar las imágenes', 'error');
         });
     }

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Date, ForeignKey, Enum as SQLEnum, Numeric, DateTime
+from sqlalchemy import Column, Integer, String, Text, Date, ForeignKey, Enum as SQLEnum, Numeric, DateTime, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from datetime import datetime
@@ -66,6 +66,9 @@ class PlanInstitucional(Base):
     Representa el nivel más alto de planificación estratégica.
     """
     __tablename__ = "planes_institucionales"
+    __table_args__ = (
+        UniqueConstraint('entity_id', 'anio', 'nombre', name='uq_planes_institucionales_entity_anio_nombre'),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     anio = Column(Integer, nullable=False, index=True)

@@ -1,5 +1,6 @@
 """
-Endpoint temporal para crear datos iniciales en producción.
+Endpoint temporal para crear datos iniciales en producción y utilidades de mantenimiento.
+Incluye una ruta segura para resetear la contraseña del superadmin cuando se requiera.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -9,6 +10,7 @@ from app.models.entity import Entity
 from app.models.user import User, UserRole
 from app.models.secretaria import Secretaria
 from passlib.context import CryptContext
+from app.utils.migration_005 import run_migration_005
 
 router = APIRouter(prefix="/setup", tags=["Setup"])
 
@@ -203,3 +205,22 @@ async def list_users(db: Session = Depends(get_db)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error listando usuarios: {str(e)}"
         )
+
+@router.post("/run-migration-005")
+async def execute_migration_005():
+    """
+    Ejecuta la migración 005 para agregar campos tipo_persona, genero, dias_respuesta y archivo_adjunto.
+    """
+    try:
+        result = run_migration_005()
+        return {
+            "status": "success",
+            **result
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error ejecutando migración 005: {str(e)}"
+        )
+
+

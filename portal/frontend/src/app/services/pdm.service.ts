@@ -34,7 +34,8 @@ export class PdmService {
     private http = inject(HttpClient);
     private authService = inject(AuthService);
     
-    // Almacenamiento local de actividades (se sincroniza con backend)
+    // Almacenamiento EN MEMORIA de actividades (NO se guarda en localStorage por cuota excedida)
+    // Cada vista carga sus propias actividades del servidor cuando las necesita
     private actividadesSubject = new BehaviorSubject<ActividadPDM[]>([]);
     public actividades$ = this.actividadesSubject.asObservable();
     
@@ -49,8 +50,8 @@ export class PdmService {
         // Obtener slug de la entidad del AuthService
         this.refreshEntitySlug();
         
-        // Cargar actividades desde storage (fallback si no hay conexión)
-        this.cargarActividadesDesdeStorage();
+        // NO cargar desde localStorage - usar solo memoria
+        // Cada vista cargará del servidor cuando lo necesite
     }
 
     /**
@@ -534,29 +535,22 @@ export class PdmService {
     // ==================== GESTIÓN DE ACTIVIDADES ====================
 
     /**
-     * Carga actividades desde localStorage
+     * NO carga desde localStorage (desactivado por cuota excedida)
+     * Las actividades se cargan del servidor cuando cada vista las necesita
      */
     private cargarActividadesDesdeStorage() {
-        try {
-            const stored = localStorage.getItem(this.STORAGE_KEY);
-            if (stored) {
-                const actividades = JSON.parse(stored) as ActividadPDM[];
-                this.actividadesSubject.next(actividades);
-            }
-        } catch (error) {
-            console.error('Error al cargar actividades desde localStorage:', error);
-        }
+        // DESACTIVADO: No usar localStorage
+        return;
     }
 
     /**
      * Guarda actividades en localStorage
      */
     private guardarActividadesEnStorage(actividades: ActividadPDM[]) {
-        try {
-            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(actividades));
-        } catch (error) {
-            console.error('Error al guardar actividades en localStorage:', error);
-        }
+        // DESACTIVADO: No guardar en localStorage porque excede la cuota (15+ MB)
+        // Las actividades se mantienen solo en memoria (BehaviorSubject)
+        // Cada vista carga del servidor cuando las necesita
+        return;
     }
 
     /**
@@ -565,11 +559,16 @@ export class PdmService {
     resetPdmCache(): void {
         this.actividadesSubject.next([]);
         this.entitySlug = '';
-        localStorage.removeItem(this.STORAGE_KEY);
+        // Limpiar localStorage legacy si existe
+        try {
+            localStorage.removeItem(this.STORAGE_KEY);
+        } catch (e) {
+            // Ignorar
+        }
     }
 
     /**
-     * Obtiene todas las actividades
+     * Obtiene todas las actividades EN MEMORIA
      */
     obtenerActividades(): ActividadPDM[] {
         return this.actividadesSubject.value;
@@ -839,25 +838,38 @@ export class PdmService {
         // Intentar registrar en el backend primero
         if (this.entitySlug) {
             return this.registrarEvidenciaEnBackend(actividadId, evidenciaConFecha).pipe(
-                switchMap((actividadActualizada: ActividadPDM) => {
-                    // ✅ El backend ahora retorna la ACTIVIDAD COMPLETA con evidencia incluida
+                switchMap((evidenciaResp: any) => {
+                    // Mapear evidencia de backend al modelo del frontend
+                    const evidenciaLocal: EvidenciaActividad = {
+                        id: evidenciaResp?.id || evidenciaConFecha.id,
+                        actividad_id: evidenciaResp?.actividad_id || actividadId,
+                        descripcion: evidenciaResp?.descripcion || evidenciaConFecha.descripcion,
+                        url_evidencia: evidenciaResp?.url_evidencia || evidenciaConFecha.url_evidencia,
+                        imagenes: evidenciaResp?.imagenes || evidenciaConFecha.imagenes || [],
+                        fecha_registro: evidenciaResp?.fecha_registro || evidenciaConFecha.fecha_registro
+                    };
+
+                    // Actualizar estado local de la actividad
                     const actividades = this.actividadesSubject.value;
                     const index = actividades.findIndex(a => a.id === actividadId);
-                    
-                    const nuevasActividades = [...actividades];
                     if (index !== -1) {
-                        nuevasActividades[index] = actividadActualizada;
-                    } else {
-                        nuevasActividades.push(actividadActualizada);
+                        const nuevasActividades = [...actividades];
+                        nuevasActividades[index] = {
+                            ...nuevasActividades[index],
+                            evidencia: evidenciaLocal,
+                            estado: 'COMPLETADA',
+                            fecha_actualizacion: new Date().toISOString()
+                        };
+                        this.actividadesSubject.next(nuevasActividades);
+                        this.guardarActividadesEnStorage(nuevasActividades);
+                        return of(nuevasActividades[index]);
                     }
-                    
-                    this.actividadesSubject.next(nuevasActividades);
-                    this.guardarActividadesEnStorage(nuevasActividades);
-                    
-                    return of(actividadActualizada);
+                    // Si no se encontró en local, intentar refrescar la actividad desde backend
+                    return of(null);
                 }),
                 catchError(error => {
-                    console.warn('⚠️ Error al registrar evidencia:', error);
+                    console.warn('⚠️ Error al registrar evidencia en backend, guardando solo local:', error);
+                    // Fallback: actualizar solo localmente
                     return this.actualizarActividad(actividadId, {
                         evidencia: evidenciaConFecha,
                         estado: 'COMPLETADA'
@@ -1466,6 +1478,21 @@ export class PdmService {
         ).pipe(
             catchError(error => {
                 console.error('Error al registrar evidencia:', error);
+                throw error;
+            })
+        );
+    }
+
+    actualizarEvidenciaEnBackend(actividadId: number, evidencia: Partial<EvidenciaActividad>): Observable<any> {
+        if (!this.entitySlug) {
+            throw new Error('No hay slug de entidad disponible');
+        }
+        return this.http.put(
+            `${this.API_URL}/${this.entitySlug}/actividades/${actividadId}/evidencia`,
+            evidencia
+        ).pipe(
+            catchError(error => {
+                console.error('Error al actualizar evidencia:', error);
                 throw error;
             })
         );

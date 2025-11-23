@@ -1,4 +1,5 @@
 export interface ProcesoContratacion {
+    // ============ CAMPOS SECOP II (existentes) ============
     // Información de la entidad
     nombre_entidad?: string;
     nit_entidad?: string;
@@ -64,6 +65,86 @@ export interface ProcesoContratacion {
     precio_base?: number | string;
     nombre_del_proveedor?: string;
     estado_resumen?: string;
+
+    // ============ CAMPOS SECOP II PROCESOS (p6dx-8zbt) ============
+    descripci_n_del_procedimiento?: string;
+    estado_del_procedimiento?: string;
+    id_del_proceso?: string;
+    fecha_de_publicacion_del?: string;
+
+    // ============ CAMPOS SECOP I (nuevos) ============
+    uid?: string;
+    anno_cargue_secop?: string;
+    anno_firma_contrato?: string;
+    nivel_entidad?: string;
+    orden_entidad?: string;
+    nit_de_la_entidad?: string;
+    c_digo_de_la_entidad?: string;
+    id_modalidad?: string;
+    estado_del_proceso?: string;
+    causal_de_otras_formas_de?: string;
+    id_regimen_de_contratacion?: string;
+    nombre_regimen_de_contratacion?: string;
+    id_objeto_a_contratar?: string;
+    objeto_a_contratar?: string;
+    detalle_del_objeto_a_contratar?: string;
+    municipio_de_obtencion?: string;
+    municipio_de_entrega?: string;
+    municipios_ejecucion?: string;
+    fecha_de_cargue_en_el_secop?: string;
+    numero_de_constancia?: string;
+    numero_de_proceso?: string;
+    numero_de_contrato?: string;
+    cuantia_proceso?: number | string;
+    id_grupo?: string;
+    nombre_grupo?: string;
+    id_familia?: string;
+    nombre_familia?: string;
+    id_clase?: string;
+    nombre_clase?: string;
+    id_adjudicacion?: string;
+    tipo_identifi_del_contratista?: string;
+    identificacion_del_contratista?: string;
+    nom_razon_social_contratista?: string;
+    dpto_y_muni_contratista?: string;
+    tipo_doc_representante_legal?: string;
+    identific_representante_legal?: string;
+    nombre_del_represen_legal?: string;
+    fecha_de_firma_del_contrato?: string;
+    fecha_ini_ejec_contrato?: string;
+    plazo_de_ejec_del_contrato?: string;
+    rango_de_ejec_del_contrato?: string;
+    tiempo_adiciones_en_dias?: string;
+    tiempo_adiciones_en_meses?: string;
+    fecha_fin_ejec_contrato?: string;
+    compromiso_presupuestal?: string;
+    cuantia_contrato?: number | string;
+    valor_total_de_adiciones?: number | string;
+    valor_contrato_con_adiciones?: number | string;
+    objeto_del_contrato_a_la?: string;
+    proponentes_seleccionados?: string;
+    calificacion_definitiva?: string;
+    id_sub_unidad_ejecutora?: string;
+    nombre_sub_unidad_ejecutora?: string;
+    ruta_proceso_en_secop_i?: string | { url?: string };
+    moneda?: string;
+    es_postconflicto?: string;
+    marcacion_adiciones?: string;
+    posicion_rubro?: string;
+    nombre_rubro?: string;
+    valor_rubro?: number | string;
+    sexo_replegal?: string;
+    pilar_acuerdo_paz?: string;
+    punto_acuerdo_paz?: string;
+    municipio_entidad?: string;
+    departamento_entidad?: string;
+    fecha_liquidacion?: string;
+    cumpledecreto248?: string;
+    incluyebienesdecreto248?: string;
+    cumple_sentencia_t302?: string;
+    es_mipyme?: string;
+    tama_o_mipyme?: string;
+    codigo_bpin?: string;
 }
 
 export interface FiltroContratacion {

@@ -816,13 +816,16 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Nombre *</label>
-                            <input type="text" class="form-control" [(ngModel)]="planForm.nombre" name="nombre" required
+                            <select class="form-select" [(ngModel)]="planForm.nombre" name="nombre" required
                                 #nombreCtrl="ngModel"
                                 [ngClass]="{'is-invalid': nombreCtrl.invalid && nombreCtrl.touched}">
-                            <div class="invalid-feedback" *ngIf="nombreCtrl.invalid && nombreCtrl.touched">El
-                                nombre
-                                es
-                                obligatorio</div>
+                                <option value="" disabled selected>Seleccione un plan...</option>
+                                <option *ngFor="let n of getNombresDisponibles()" [value]="n">{{ n }}</option>
+                            </select>
+                            <div class="invalid-feedback" *ngIf="nombreCtrl.invalid && nombreCtrl.touched">El nombre es obligatorio</div>
+                            <div class="form-text text-muted" *ngIf="!modoEdicion && getNombresDisponibles().length === 0">
+                                Ya se han creado todos los planes disponibles para el año {{ planForm.anio }}
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Descripción *</label>
