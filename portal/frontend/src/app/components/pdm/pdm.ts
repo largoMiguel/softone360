@@ -23,7 +23,7 @@ import {
 } from '../../models/pdm.model';
 import { PDMEjecucionResumen } from '../../models/pdm-ejecucion.model';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
-import { forkJoin, of } from 'rxjs';
+import { forkJoin, of, Subscription } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 
 // Registrar los componentes de Chart.js
@@ -83,6 +83,13 @@ export class PdmComponent implements OnInit, OnDestroy {
     // ✅ OPTIMIZACIÓN: Variables cacheadas para evitar recálculos en templates
     productosFiltradosCache: ResumenProducto[] = [];
     comparativaPresupuestalCache: { anio: number; pdm: number; ejecucion: number; diferencia: number; porcentaje: number }[] = [];
+    estadisticasPorEstadoCache = { pendiente: 0, en_progreso: 0, completado: 0, por_ejecutar: 0, total: 0 };
+    metaEjecutadaTotalCache: number = 0;
+    puedeCrearEvidenciaCache: boolean = false;
+    puedeCargarArchivosEjecucionCache: boolean = false;
+
+    // ✅ OPTIMIZACIÓN: Gestión de subscripciones para evitar memory leaks
+    private subscriptions = new Subscription();
 
     // Filtros
     filtroLinea = '';
@@ -258,6 +265,14 @@ export class PdmComponent implements OnInit, OnDestroy {
         });
     }
     ngOnInit(): void {
+        // ✅ Cachear permisos del usuario al inicio
+        const currentUser = this.authService.getCurrentUserValue();
+        this.puedeCrearEvidenciaCache = currentUser?.role === 'admin' || 
+                                        currentUser?.role === 'superadmin' || 
+                                        currentUser?.role === 'secretario';
+        this.puedeCargarArchivosEjecucionCache = currentUser?.role === 'admin' || 
+                                                  currentUser?.role === 'superadmin';
+        
         // Esperar a que el entity slug esté disponible antes de verificar datos
         this.verificarDatosBackendConEspera();
         this.cargarSecretarios();
@@ -364,6 +379,9 @@ export class PdmComponent implements OnInit, OnDestroy {
             clearTimeout(this.debounceTimer);
         }
         
+        // ✅ Unsubscribe de todas las subscripciones
+        this.subscriptions.unsubscribe();
+        
         this.destruirGraficos();
         
         // Remover el listener de popstate
@@ -413,6 +431,7 @@ export class PdmComponent implements OnInit, OnDestroy {
                 
                 // ✅ Actualizar caches de UI
                 this.getProductosFiltrados();
+                this.getEstadisticasPorEstado();
                 
                 // Generar analytics iniciales
                 this.generarAnalytics();
@@ -643,6 +662,8 @@ export class PdmComponent implements OnInit, OnDestroy {
             this.cargarEjecucionPresupuestal(producto.codigo);
             // ✅ Actualizar cache de comparativa presupuestal
             this.getComparativaPresupuestal();
+            // ✅ Actualizar cache de meta ejecutada total
+            this.obtenerMetaEjecutadaTotal();
         } else if (vista === 'analisis-producto') {
             this.recargarAnalisisProducto();
         }
@@ -1495,19 +1516,19 @@ export class PdmComponent implements OnInit, OnDestroy {
     /**
      * Verifica si el usuario puede crear evidencias (Admin o Secretario)
      */
+    /**
+     * ✅ OPTIMIZADO: Usa cache en lugar de llamar getCurrentUserValue() cada vez
+     */
     puedeCrearEvidencia(): boolean {
-        const currentUser = this.authService.getCurrentUserValue();
-        return currentUser?.role === 'admin' || 
-               currentUser?.role === 'superadmin' || 
-               currentUser?.role === 'secretario';
+        return this.puedeCrearEvidenciaCache;
     }
 
     /**
      * Verifica si el usuario puede cargar archivos de ejecución presupuestal (solo Admin)
+     * ✅ OPTIMIZADO: Usa cache en lugar de llamar getCurrentUserValue() cada vez
      */
     puedeCargarArchivosEjecucion(): boolean {
-        const currentUser = this.authService.getCurrentUserValue();
-        return currentUser?.role === 'admin' || currentUser?.role === 'superadmin';
+        return this.puedeCargarArchivosEjecucionCache;
     }
 
 
@@ -1843,6 +1864,10 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Calcula las estadísticas por estado para el año seleccionado
      * Solo considera productos cuya meta sea mayor a 0 para el año filtrado
      */
+    /**
+     * ✅ OPTIMIZADO: Obtiene estadísticas de productos por estado
+     * Cachea resultados para evitar recálculos en cada ciclo de detección de cambios
+     */
     getEstadisticasPorEstado(): {
         pendiente: number;
         en_progreso: number;
@@ -1871,13 +1896,15 @@ export class PdmComponent implements OnInit, OnDestroy {
             }
         });
 
-        return {
+        this.estadisticasPorEstadoCache = {
             pendiente,
             en_progreso,
             completado,
             por_ejecutar,
             total: productos.length
         };
+        
+        return this.estadisticasPorEstadoCache;
     }
 
     /**
@@ -1977,10 +2004,12 @@ export class PdmComponent implements OnInit, OnDestroy {
 
     /**
      * Obtiene la meta ejecutada total sumando todos los años
+     * ✅ OPTIMIZADO: Cachea resultado
      */
     obtenerMetaEjecutadaTotal(): number {
         const anios = [2024, 2025, 2026, 2027];
-        return anios.reduce((total, anio) => total + this.obtenerMetaEjecutada(anio), 0);
+        this.metaEjecutadaTotalCache = anios.reduce((total, anio) => total + this.obtenerMetaEjecutada(anio), 0);
+        return this.metaEjecutadaTotalCache;
     }
 
     /**
