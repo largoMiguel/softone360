@@ -101,6 +101,7 @@ class EmailService:
         asunto: str,
         nombre_ciudadano: str,
         entity_name: str,
+        entity_slug: str,
         fecha_radicacion: str,
         entity_email: Optional[str] = None
     ) -> bool:
@@ -114,6 +115,7 @@ class EmailService:
             asunto: Asunto de la PQRS
             nombre_ciudadano: Nombre del ciudadano
             entity_name: Nombre de la entidad
+            entity_slug: Slug de la entidad para el link
             fecha_radicacion: Fecha de radicación
             entity_email: Email de la entidad (opcional, se usa como remitente)
         """
@@ -147,7 +149,7 @@ class EmailService:
                     <div class="info-box">
                         <p><strong>Número de Radicado:</strong></p>
                         <p class="radicado">
-                            <a href="{settings.frontend_url}/#/portal-ciudadano?radicado={urllib.parse.quote(numero_radicado)}" 
+                            <a href="{settings.frontend_url}/#/{entity_slug}/portal-ciudadano?radicado={urllib.parse.quote(numero_radicado)}" 
                                style="color: #2563eb; text-decoration: none;">
                                 {numero_radicado}
                             </a>
@@ -215,6 +217,7 @@ class EmailService:
         nombre_ciudadano: str,
         respuesta: str,
         entity_name: str,
+        entity_slug: str,
         fecha_respuesta: str,
         archivo_adjunto_url: Optional[str] = None,
         entity_email: Optional[str] = None
@@ -229,6 +232,7 @@ class EmailService:
             nombre_ciudadano: Nombre del ciudadano
             respuesta: Texto de la respuesta
             entity_name: Nombre de la entidad
+            entity_slug: Slug de la entidad para el link
             fecha_respuesta: Fecha de respuesta
             archivo_adjunto_url: URL del archivo adjunto (opcional)
             entity_email: Email de la entidad (opcional, se usa como remitente)
@@ -274,7 +278,7 @@ class EmailService:
                     <div class="info-box">
                         <p><strong>Número de Radicado:</strong></p>
                         <p class="radicado">
-                            <a href="{settings.frontend_url}/#/portal-ciudadano?radicado={urllib.parse.quote(numero_radicado)}" 
+                            <a href="{settings.frontend_url}/#/{entity_slug}/portal-ciudadano?radicado={urllib.parse.quote(numero_radicado)}" 
                                style="color: #10b981; text-decoration: none;">
                                 {numero_radicado}
                             </a>

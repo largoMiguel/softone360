@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { EntityContextService } from '../../services/entity-context.service';
 import { AuthService } from '../../services/auth.service';
 import { PqrsService } from '../../services/pqrs.service';
@@ -41,6 +41,9 @@ export class PortalCiudadanoComponent implements OnInit {
     misPqrs: PQRSWithDetails[] = [];
     selectedPqrs: PQRSWithDetails | null = null;
     showDetails = false;
+    
+    // Consulta por radicado (desde email)
+    radicadoConsulta: string = '';
 
     // Constantes para el formulario
     tiposIdentificacion = TIPOS_IDENTIFICACION;
@@ -54,6 +57,7 @@ export class PortalCiudadanoComponent implements OnInit {
         private authService: AuthService,
         private pqrsService: PqrsService,
         private router: Router,
+        private route: ActivatedRoute,
         private fb: FormBuilder,
         private alertService: AlertService,
         private entityContext: EntityContextService
@@ -96,6 +100,15 @@ export class PortalCiudadanoComponent implements OnInit {
         // Suscribirse al contexto de entidad
         this.currentEntity$.subscribe(entity => {
             this.currentEntity = entity;
+        });
+        
+        // Leer query param 'radicado' si existe (desde email)
+        this.route.queryParams.subscribe(params => {
+            if (params['radicado']) {
+                this.radicadoConsulta = params['radicado'];
+                // Auto-consultar el radicado
+                this.consultarPorRadicado();
+            }
         });
 
         // Verificar si ya está autenticado
@@ -404,4 +417,34 @@ export class PortalCiudadanoComponent implements OnInit {
     pqrsEnabled(): boolean {
         return this.entityContext.currentEntity?.enable_pqrs ?? false;
     }
+    
+    // Consultar PQRS por número de radicado (endpoint público)
+    consultarPorRadicado() {
+        if (!this.radicadoConsulta || !this.radicadoConsulta.trim()) {
+            this.alertService.warning('Por favor ingrese un número de radicado', 'Radicado Requerido');
+            return;
+        }
+        
+        this.isLoading = true;
+        this.pqrsService.consultarPqrsByRadicado(this.radicadoConsulta.trim()).subscribe({
+            next: (pqrs) => {
+                this.selectedPqrs = pqrs;
+                this.showDetails = true;
+                this.isLoading = false;
+                this.alertService.success(
+                    `PQRS encontrada: ${pqrs.numero_radicado}`,
+                    'Consulta Exitosa'
+                );
+            },
+            error: (error) => {
+                this.isLoading = false;
+                console.error('Error consultando PQRS:', error);
+                this.alertService.error(
+                    'No se encontró ninguna PQRS con ese número de radicado',
+                    'PQRS No Encontrada'
+                );
+            }
+        });
+    }
 }
+

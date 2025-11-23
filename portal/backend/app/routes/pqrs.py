@@ -134,6 +134,7 @@ async def create_pqrs(
                 entity = db.query(Entity).filter(Entity.id == pqrs_data.entity_id).first()
                 entity_name = entity.name if entity else "Sistema PQRS"
                 entity_email = entity.email if entity and entity.email else None
+                entity_slug = entity.slug if entity else "portal"
                 
                 # Enviar correo de radicación
                 email_service.send_pqrs_radicada_notification(
@@ -143,6 +144,7 @@ async def create_pqrs(
                     asunto=pqrs_data.asunto or "Sin asunto",
                     nombre_ciudadano=pqrs_data.nombre_ciudadano or "Ciudadano",
                     entity_name=entity_name,
+                    entity_slug=entity_slug,
                     fecha_radicacion=format_colombia_datetime(db_pqrs.fecha_solicitud),
                     entity_email=entity_email  # Email de la entidad como remitente
                 )
@@ -541,6 +543,7 @@ async def respond_pqrs(
             entity = db.query(Entity).filter(Entity.id == pqrs.entity_id).first()
             entity_name = entity.name if entity else "Sistema PQRS"
             entity_email = entity.email if entity and entity.email else None
+            entity_slug = entity.slug if entity else "portal"
             
             # Generar URL pre-firmada para archivo de respuesta si existe
             archivo_url = None
@@ -567,6 +570,7 @@ async def respond_pqrs(
                 nombre_ciudadano=pqrs.nombre_ciudadano or "Ciudadano",
                 respuesta=response_data.respuesta,
                 entity_name=entity_name,
+                entity_slug=entity_slug,
                 fecha_respuesta=format_colombia_datetime(pqrs.fecha_respuesta),
                 archivo_adjunto_url=archivo_url,  # URL pre-firmada o None
                 entity_email=entity_email  # Email de la entidad como remitente
