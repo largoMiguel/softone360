@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { AlertService } from '../../services/alert.service';
 import { EntityContextService } from '../../services/entity-context.service';
+import { SidebarService } from '../../services/sidebar.service';
 
 @Component({
   selector: 'app-login',
@@ -23,7 +24,8 @@ export class LoginComponent implements OnInit {
     private authService: AuthService,
     private router: Router,
     private alertService: AlertService,
-    private entityContext: EntityContextService
+    private entityContext: EntityContextService,
+    private sidebarService: SidebarService
   ) {
     this.loginForm = this.fb.group({
       username: ['', [Validators.required]],
@@ -68,6 +70,8 @@ export class LoginComponent implements OnInit {
               } else {
                 // Usuario administrativo válido (admin o secretario)
                 this.isLoading = false;
+                // Abrir el sidebar para que el usuario elija dónde ir
+                this.sidebarService.open();
                 const slug = user.entity?.slug;
                 this.router.navigate(slug ? ['/', slug, 'dashboard'] : ['/'], { replaceUrl: true });
               }

@@ -298,8 +298,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ngOnInit() {
     // Sincronizar la vista activa con el query param ?v de la URL (controlado por la barra global)
     const qpSub = this.route.queryParamMap.subscribe(params => {
-      const v = (params.get('v') || 'dashboard') as string;
+      const v = (params.get('v') || 'welcome') as string;
       const allowed: Record<string, true> = {
+        'welcome': true,
         'dashboard': true,
         'mis-pqrs': true,
         'nueva-pqrs': true,
@@ -308,7 +309,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       if (allowed[v]) {
         this.activeView = v;
       } else if (!params.has('v')) {
-        this.activeView = 'dashboard';
+        this.activeView = 'welcome';
       }
     });
     this.subscriptions.add(qpSub);
@@ -501,7 +502,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   setActiveView(view: string) {
     this.activeView = view;
     // Actualizar ?v= en la URL para mantener sincronizada la pestaña global
-    const topViews = new Set(['dashboard', 'mis-pqrs', 'nueva-pqrs', 'usuarios']);
+    const topViews = new Set(['dashboard', 'mis-pqrs', 'nueva-pqrs', 'usuarios', 'welcome']);
     if (topViews.has(view)) {
       this.updateQueryParamV(view);
     }
@@ -519,9 +520,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  navigateTo(route: string) {
+    const slug = this.entityContext.currentEntity?.slug;
+    if (!slug) return;
+    this.router.navigate([`/${slug}/${route}`]);
+  }
+
   private updateQueryParamV(view?: string) {
     const qp: any = { ...this.route.snapshot.queryParams };
-    if (!view || view === 'dashboard') {
+    if (!view || view === 'dashboard' || view === 'welcome') {
       delete qp['v'];
     } else {
       qp['v'] = view;

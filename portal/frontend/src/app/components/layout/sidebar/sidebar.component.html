@@ -5,6 +5,17 @@
     </button>
 
     <div class="menu px-3 py-2">
+        <!-- Inicio -->
+        <div class="menu-group">
+            <ul class="list-unstyled">
+                <li>
+                    <a class="menu-link" [class.active]="isActiveView('welcome')" (click)="goDashboard('welcome')">
+                        <i class="fas fa-home me-2"></i>Inicio
+                    </a>
+                </li>
+            </ul>
+        </div>
+
         <!-- Dashboard Group -->
         <div class="menu-group" *ngIf="canAccessPqrs()">
             <div class="menu-title">

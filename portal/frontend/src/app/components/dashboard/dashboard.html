@@ -5,6 +5,80 @@
 
         <!-- Tabs movidas a la barra global -->
 
+        <!-- Vista de Bienvenida -->
+        <div *ngIf="activeView === 'welcome'" class="welcome-view">
+            <div class="row justify-content-center">
+                <div class="col-lg-10 col-xl-8">
+                    <div class="card shadow-lg border-0 mt-5">
+                        <div class="card-body text-center p-5">
+                            <div class="mb-4">
+                                <i class="fas fa-hand-sparkles fa-4x text-primary"></i>
+                            </div>
+                            <h2 class="mb-3">¡Bienvenido al Portal Administrativo!</h2>
+                            <p class="text-muted mb-4" *ngIf="currentUser">
+                                Hola <strong>{{ currentUser.full_name }}</strong>, selecciona una opción del menú lateral para comenzar.
+                            </p>
+                            <div class="alert alert-info mb-4">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Utiliza el menú de la izquierda para navegar entre las diferentes secciones del sistema.
+                            </div>
+
+                            <!-- Accesos rápidos -->
+                            <div class="row g-3 mt-4" *ngIf="canAccessPqrs() || canAccessPlanes() || canAccessContratacion() || canAccessPdm()">
+                                <div class="col-12">
+                                    <h5 class="text-muted mb-3">Accesos Rápidos</h5>
+                                </div>
+                                
+                                <!-- PQRS -->
+                                <div class="col-md-6 col-lg-3" *ngIf="canAccessPqrs()">
+                                    <div class="card h-100 quick-access-card" (click)="setActiveView('dashboard')">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-chart-pie fa-3x text-primary mb-3"></i>
+                                            <h6>Resumen PQRS</h6>
+                                            <small class="text-muted">Ver estadísticas</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Planes -->
+                                <div class="col-md-6 col-lg-3" *ngIf="canAccessPlanes()">
+                                    <div class="card h-100 quick-access-card" (click)="navigateTo('planes-dashboard')">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-tasks fa-3x text-success mb-3"></i>
+                                            <h6>Planes</h6>
+                                            <small class="text-muted">Gestión de planes</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Contratación -->
+                                <div class="col-md-6 col-lg-3" *ngIf="canAccessContratacion()">
+                                    <div class="card h-100 quick-access-card" (click)="navigateTo('contratacion')">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-file-contract fa-3x text-warning mb-3"></i>
+                                            <h6>Contratación</h6>
+                                            <small class="text-muted">SECOP I y II</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- PDM -->
+                                <div class="col-md-6 col-lg-3" *ngIf="canAccessPdm()">
+                                    <div class="card h-100 quick-access-card" (click)="navigateTo('pdm-dashboard')">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-project-diagram fa-3x text-info mb-3"></i>
+                                            <h6>PDM</h6>
+                                            <small class="text-muted">Plan de Desarrollo</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal Selector de Fechas y Filtros -->
         <div class="modal fade show d-block" *ngIf="mostrarSelectorFechas" style="background-color: rgba(0,0,0,0.5);">
             <div class="modal-dialog modal-dialog-centered modal-lg">

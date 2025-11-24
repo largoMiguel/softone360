@@ -49,10 +49,16 @@ export class SidebarComponent {
     canAccessPdm(): boolean { return this.pdmEnabled() && this.userHasModule('pdm'); }
 
     // ===== Navegación =====
-    goDashboard(view: 'dashboard' | 'mis-pqrs' | 'nueva-pqrs' | 'usuarios' = 'dashboard') {
+    goDashboard(view: 'welcome' | 'dashboard' | 'mis-pqrs' | 'nueva-pqrs' | 'usuarios' = 'dashboard') {
         if (!this.slug) return;
         const queryParams: any = {};
-        if (view && view !== 'dashboard') queryParams.v = view;
+        if (view === 'welcome') {
+            queryParams.v = 'welcome';
+        } else if (view === 'dashboard') {
+            queryParams.v = 'dashboard';
+        } else {
+            queryParams.v = view;
+        }
         this.router.navigate([`/${this.slug}/dashboard`], { queryParams });
         this.sidebar.close(); // autocerrar siempre tras navegar
     }
@@ -92,11 +98,11 @@ export class SidebarComponent {
     }
     isActiveRoutePdm(): boolean { return /\/pdm(\/?|\?|$)/.test(this.router.url); }
     isActiveRoutePdmDashboard(): boolean { return /\/pdm-dashboard(\/?|\?|$)/.test(this.router.url); }
-    isActiveView(view: 'dashboard' | 'mis-pqrs' | 'nueva-pqrs' | 'usuarios'): boolean {
+    isActiveView(view: 'welcome' | 'dashboard' | 'mis-pqrs' | 'nueva-pqrs' | 'usuarios'): boolean {
         const url = this.router.url;
         if (!/\/(dashboard)(\b|\?)/.test(url)) return false;
         const m = url.match(/\bv=([^&#]+)/);
-        const v = m?.[1] || 'dashboard';
+        const v = m?.[1] || 'welcome';
         return v === view;
     }
 }

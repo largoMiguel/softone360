@@ -3,8 +3,8 @@ import { BehaviorSubject } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class SidebarService {
-    // Sidebar cerrado por defecto al iniciar sesión
-    private _open$ = new BehaviorSubject<boolean>(false);
+    // Sidebar abierto por defecto para que el usuario elija dónde ir
+    private _open$ = new BehaviorSubject<boolean>(true);
     readonly open$ = this._open$.asObservable();
 
     get isOpen(): boolean { return this._open$.value; }
