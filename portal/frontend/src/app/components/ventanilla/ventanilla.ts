@@ -1,6 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { EntityContextService } from '../../services/entity-context.service';
 import { FormsModule } from '@angular/forms';
 import { PqrsService } from '../../services/pqrs.service';
@@ -15,7 +15,7 @@ import { Entity } from '../../models/entity.model';
     templateUrl: './ventanilla.html',
     styleUrl: './ventanilla.scss'
 })
-export class VentanillaComponent {
+export class VentanillaComponent implements OnInit {
     // Modal states
     mostrarModalRadicacion = false;
     mostrarModalConsulta = false;
@@ -44,11 +44,26 @@ export class VentanillaComponent {
 
     constructor(
         private router: Router,
+        private route: ActivatedRoute,
         private pqrsService: PqrsService,
         private alertService: AlertService,
         private entityContext: EntityContextService
     ) {
         this.currentEntity$ = this.entityContext.currentEntity$;
+    }
+
+    ngOnInit() {
+        // Leer query param 'radicado' si existe (desde email)
+        this.route.queryParams.subscribe(params => {
+            if (params['radicado']) {
+                this.numeroRadicado = params['radicado'];
+                // Auto-abrir modal y consultar
+                this.mostrarModalConsulta = true;
+                setTimeout(() => {
+                    this.consultarPqrs();
+                }, 300);
+            }
+        });
     }
 
     navigateToLogin() {

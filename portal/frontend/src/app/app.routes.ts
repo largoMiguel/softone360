@@ -33,10 +33,11 @@ export const routes: Routes = [
     // Rutas por entidad (con slug). Ej: /chiquiza-boyaca/
     {
         path: ':slug',
-        canActivate: [ensureEntityGuard, sessionRedirectGuard],
+        canActivate: [ensureEntityGuard],
         resolve: { entity: entityResolver },
         children: [
-            { path: '', component: VentanillaComponent },
+            { path: '', component: VentanillaComponent, canActivate: [sessionRedirectGuard] },
+            { path: 'ventanilla', component: VentanillaComponent },
             // El portal ciudadano no requiere permisos por módulos ni autenticación
             { path: 'portal-ciudadano', component: PortalCiudadanoComponent, canActivate: [ciudadanoGuard, pqrsEnabledGuard] },
             { path: 'dashboard', component: DashboardComponent, canActivate: [adminPortalGuard, enforceUserEntityGuard] },
