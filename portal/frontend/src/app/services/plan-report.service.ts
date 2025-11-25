@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import type jsPDF from 'jspdf';
 import { PlanInstitucional, Meta } from '../models/plan.model';
 
 interface PlanAnalysis {
@@ -15,17 +14,36 @@ interface PlanAnalysis {
     providedIn: 'root'
 })
 export class PlanReportService {
+    // Caché de librerías PDF cargadas dinámicamente
+    private pdfLibsPromise?: Promise<{ jsPDF: any; autoTable: any }>;
+    private _autoTable: any;
+
+    private async loadPdfLibs(): Promise<{ jsPDF: any; autoTable: any }> {
+        if (!this.pdfLibsPromise) {
+            this.pdfLibsPromise = Promise.all([
+                import('jspdf'),
+                import('jspdf-autotable')
+            ]).then(([jsPdfMod, autoTableMod]) => {
+                const jsPDFClass = jsPdfMod.default;
+                const autoTableFn = (autoTableMod as any).default || (autoTableMod as any);
+                this._autoTable = autoTableFn;
+                return { jsPDF: jsPDFClass, autoTable: autoTableFn };
+            });
+        }
+        return this.pdfLibsPromise;
+    }
 
     /**
      * Genera un reporte PDF completo del plan institucional
      */
-    generatePlanPDFReport(
+    async generatePlanPDFReport(
         plan: PlanInstitucional,
         metas: Meta[],
         aiAnalysis: PlanAnalysis,
         graficos?: { avanceGlobal: string; distribucion: string } | null,
         periodoTexto?: string
-    ): void {
+    ): Promise<void> {
+        const { jsPDF } = await this.loadPdfLibs();
         const doc = new jsPDF();
         let yPos = 20;
 
@@ -286,7 +304,7 @@ export class PlanReportService {
             ? Math.round(metas.reduce((sum, m) => sum + this.getPorcentajeAvance(m), 0) / metas.length)
             : 0;
 
-        autoTable(doc, {
+        this._autoTable(doc, {
             startY: yPos,
             head: [['Indicador', 'Cantidad', 'Porcentaje']],
             body: [
@@ -330,7 +348,7 @@ export class PlanReportService {
             this.getEstadoTexto(meta.estado)
         ]);
 
-        autoTable(doc, {
+        this._autoTable(doc, {
             startY: yPos,
             head: [['Meta', 'Indicador', 'Avance', '%', 'Estado']],
             body: tableData,
@@ -418,7 +436,7 @@ export class PlanReportService {
             this.getEstadoTexto(meta.estado)
         ]);
 
-        autoTable(doc, {
+        this._autoTable(doc, {
             startY: yPos,
             head: [['Meta', 'Responsable', 'F. Inicio', 'F. Fin', 'Avance', 'Estado']],
             body: tableData,
@@ -543,7 +561,7 @@ export class PlanReportService {
             metasEstado.map(m => m.nombre).join(', ') || 'N/A'
         ]);
 
-        autoTable(doc, {
+        this._autoTable(doc, {
             startY: yPos,
             head: [['Estado', 'Cantidad', 'Metas']],
             body: tableData,

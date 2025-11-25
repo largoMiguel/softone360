@@ -33,30 +33,8 @@ $dark: #212529;
     padding-top: 0 !important;
 }
 
-// ===== ANIMATIONS =====
-@keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(30px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-20px); }
-}
-
-@keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-}
-
-.animate {
-    opacity: 0;
-    transition: all 0.6s ease-out;
-    &.animate-in {
-        opacity: 1;
-        animation: fadeInUp 0.8s ease-out forwards;
-    }
-}
+// Animaciones simplificadas (eliminadas keyframes para reducir peso)
+.animate { opacity:0; transition:opacity .4s ease-out; &.animate-in { opacity:1; } }
 
 // ===== NAVBAR - FULLY RESPONSIVE =====
 .showcase-navbar {
@@ -114,26 +92,7 @@ $dark: #212529;
 
 // ===== HERO SECTION - MOBILE FIRST =====
 .hero-section {
-    position: relative;
-    min-height: 100vh;
-    background: linear-gradient(135deg, #216ba8 0%, #1a5487 50%, #134165 100%);
-    color: white;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    padding: clamp(80px, 10vh, 140px) 1rem clamp(60px, 8vh, 120px);
-
-    .hero-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background:
-            radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
-        pointer-events: none;
-    }
+    position:relative; min-height:100vh; background:#216ba8; color:#fff; overflow:hidden; display:flex; align-items:center; padding: clamp(80px,10vh,140px) 1rem clamp(60px,8vh,120px);
 
     .container {
         position: relative;
@@ -233,39 +192,7 @@ $dark: #212529;
         }
     }
 
-    .hero-illustration {
-        position: relative;
-        text-align: center;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 300px;
-
-        .illustration-icon {
-            font-size: clamp(8rem, 25vw, 20rem);
-            opacity: 0.1;
-            animation: float 6s ease-in-out infinite;
-        }
-
-        @media (max-width: 768px) {
-            display: none;
-        }
-    }
-
-    .hero-wave {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        overflow: hidden;
-        line-height: 0;
-
-        svg {
-            display: block;
-            width: 100%;
-            height: clamp(60px, 8vw, 120px);
-        }
-    }
+    // Ilustración y wave eliminadas para reducir estilos
 }
 
 // ===== SECTION HEADERS =====
@@ -288,55 +215,12 @@ $dark: #212529;
 }
 
 // ===== FEATURES SECTION - GRID RESPONSIVE =====
-.features-section {
-    padding: clamp(30px, 4vw, 50px) 1rem;
-}
-
+.features-section { padding:clamp(30px,4vw,50px) 1rem; }
 .feature-card {
-    background: white;
-    padding: clamp(20px, 2.5vw, 35px);
-    border-radius: 16px;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-
-    &:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
-    }
-
-    .feature-icon {
-        width: clamp(50px, 7vw, 70px);
-        height: clamp(50px, 7vw, 70px);
-        border-radius: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: clamp(12px, 1.5vw, 20px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-        flex-shrink: 0;
-
-        i {
-            font-size: clamp(1.5rem, 2.5vw, 2rem);
-            color: white;
-        }
-    }
-
-    .feature-title {
-        font-size: clamp(1rem, 1.8vw, 1.25rem);
-        font-weight: 700;
-        margin-bottom: clamp(8px, 1.2vw, 12px);
-        color: $dark;
-    }
-
-    .feature-description {
-        color: #6c757d;
-        line-height: 1.6;
-        font-size: clamp(0.85rem, 1.1vw, 1rem);
-        flex-grow: 1;
-    }
+  background:#fff; padding:clamp(20px,2.5vw,35px); border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,.08); display:flex; flex-direction:column; height:100%;
+  .feature-icon { width:clamp(50px,7vw,70px); height:clamp(50px,7vw,70px); border-radius:16px; display:flex; align-items:center; justify-content:center; margin-bottom:clamp(12px,1.5vw,20px); box-shadow:0 6px 14px rgba(0,0,0,.08); flex-shrink:0; i { font-size:clamp(1.5rem,2.5vw,2rem); color:#fff; } }
+  .feature-title { font-size:clamp(1rem,1.8vw,1.25rem); font-weight:700; margin-bottom:clamp(8px,1.2vw,12px); color:$dark; }
+  .feature-description { color:#6c757d; line-height:1.6; font-size:clamp(.85rem,1.1vw,1rem); flex-grow:1; }
 }
 
 // ===== MODULES SECTION - FLEX RESPONSIVE =====
@@ -374,21 +258,8 @@ $dark: #212529;
         }
     }
 
-    .module-visual {
-        padding: clamp(30px, 3vw, 60px);
-        border-radius: 20px;
-        text-align: center;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: clamp(250px, 40vw, 400px);
-
-        .module-icon {
-            font-size: clamp(6rem, 20vw, 12rem);
-            opacity: 0.3;
-            animation: pulse 3s ease-in-out infinite;
-        }
-    }
+    .module-visual { padding:clamp(30px,3vw,60px); border-radius:20px; text-align:center; display:flex; align-items:center; justify-content:center; min-height:clamp(250px,40vw,400px); }
+    .module-visual .module-icon { font-size:clamp(6rem,20vw,12rem); opacity:.2; }
 
     .module-content {
         padding: clamp(15px, 1.5vw, 20px);
@@ -445,36 +316,10 @@ $dark: #212529;
     padding: clamp(30px, 4vw, 50px) 1rem;
 }
 
-.benefit-card {
-    background: white;
-    padding: clamp(20px, 2.5vw, 40px) clamp(15px, 1.5vw, 30px);
-    border-radius: 16px;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s ease;
-    text-align: center;
+.benefit-card { background:#fff; padding:clamp(20px,2.5vw,40px) clamp(15px,1.5vw,30px); border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,.08); text-align:center;
 
-    &:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
-    }
-
-    .benefit-icon {
-        width: clamp(60px, 9vw, 80px);
-        height: clamp(60px, 9vw, 80px);
-        margin: 0 auto clamp(12px, 1.5vw, 25px);
-        background: linear-gradient(135deg, $primary, #134165);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 8px 20px rgba(33, 107, 168, 0.3);
-        flex-shrink: 0;
-
-        i {
-            font-size: clamp(1.5rem, 2.8vw, 2.5rem);
-            color: white;
-        }
-    }
+    .benefit-icon { width:clamp(60px,9vw,80px); height:clamp(60px,9vw,80px); margin:0 auto clamp(12px,1.5vw,25px); background:$primary; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+    .benefit-icon i { font-size:clamp(1.5rem,2.8vw,2.5rem); color:#fff; }
 
     .benefit-title {
         font-size: clamp(1rem, 1.8vw, 1.25rem);
@@ -495,35 +340,10 @@ $dark: #212529;
     padding: clamp(30px, 4vw, 50px) 1rem;
 }
 
-.use-case-card {
-    background: white;
-    padding: clamp(20px, 2.5vw, 40px);
-    border-radius: 16px;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s ease;
+.use-case-card { background:#fff; padding:clamp(20px,2.5vw,40px); border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,.08);
 
-    &:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
-    }
-
-    .use-case-icon {
-        width: clamp(60px, 9vw, 90px);
-        height: clamp(60px, 9vw, 90px);
-        margin-bottom: clamp(12px, 1.5vw, 25px);
-        background: linear-gradient(135deg, $success, #1e7e34);
-        border-radius: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3);
-        flex-shrink: 0;
-
-        i {
-            font-size: clamp(1.75rem, 3.2vw, 3rem);
-            color: white;
-        }
-    }
+    .use-case-icon { width:clamp(60px,9vw,90px); height:clamp(60px,9vw,90px); margin-bottom:clamp(12px,1.5vw,25px); background:$success; border-radius:20px; display:flex; align-items:center; justify-content:center; }
+    .use-case-icon i { font-size:clamp(1.75rem,3.2vw,3rem); color:#fff; }
 
     .use-case-title {
         font-size: clamp(1.05rem, 1.9vw, 1.5rem);
@@ -588,13 +408,7 @@ $dark: #212529;
     padding: clamp(30px, 4vw, 50px) 1rem;
 }
 
-.cta-box {
-    background: linear-gradient(135deg, $primary 0%, #134165 100%);
-    padding: clamp(30px, 3.5vw, 60px) clamp(20px, 2.5vw, 50px);
-    border-radius: 20px;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
-    color: white;
-}
+.cta-box { background:$primary; padding:clamp(30px,3.5vw,60px) clamp(20px,2.5vw,50px); border-radius:20px; color:#fff; }
 
 .cta-title {
     font-size: clamp(1.25rem, 2.5vw, 2rem);
@@ -710,8 +524,7 @@ $dark: #212529;
         flex-direction: column;
 
         &:not(.portal-disabled):hover {
-            transform: translateY(-10px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
         }
 
         &.portal-disabled {
@@ -781,7 +594,6 @@ $dark: #212529;
     align-items: center;
     justify-content: center;
     z-index: 9999;
-    animation: fadeIn 0.3s ease;
 
     .modal-content {
         background: white;
@@ -792,7 +604,6 @@ $dark: #212529;
         display: flex;
         flex-direction: column;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-        animation: slideUp 0.3s ease;
 
         .modal-header {
             padding: 1.5rem 2rem;
@@ -884,42 +695,9 @@ $dark: #212529;
     }
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes slideUp {
-    from { 
-        opacity: 0;
-        transform: translateY(50px);
-    }
-    to { 
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
 // Responsive
 @media (max-width: 768px) {
-    .portales-section {
-        .portal-card {
-            padding: 1.125rem;
-
-            .portal-logo {
-                min-height: 150px;
-                max-height: 187px;
-            }
-
-            .portal-title {
-                font-size: 1.05rem;
-            }
-            
-            .portal-description {
-                font-size: 0.85rem;
-            }
-        }
-    }
+    .portales-section .portal-card { padding:1.125rem; .portal-logo { min-height:150px; max-height:187px; } .portal-title { font-size:1.05rem; } .portal-description { font-size:.85rem; } }
 
     .modal-overlay {
         .modal-content {

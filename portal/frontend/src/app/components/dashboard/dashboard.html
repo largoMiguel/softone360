@@ -1530,9 +1530,9 @@
                                                     <i class="fas fa-file-pdf text-success fa-2x"></i>
                                                     <div class="flex-grow-1">
                                                         <strong class="d-block">Documento de Respuesta Adjunto</strong>
-                                                        <small class="text-muted">{{ getFilenameFromUrl(selectedPqrs?.archivo_respuesta || '') }}</small>
+                                                        <small class="text-muted">{{ getFilenameFromUrl(selectedPqrs.archivo_respuesta || '') }}</small>
                                                     </div>
-                                                    <a [href]="getArchivoRespuestaUrl(selectedPqrs?.archivo_respuesta || '')" 
+                                                    <a [href]="getArchivoRespuestaUrl(selectedPqrs.archivo_respuesta || '')" 
                                                        target="_blank" 
                                                        class="btn btn-success">
                                                         <i class="fas fa-download me-2"></i>Descargar
@@ -1692,7 +1692,7 @@
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                         <button type="button" class="btn btn-primary" (click)="confirmarAsignacion()"
-                            [disabled]="!selectedSecretarioId || (esReasignacion() && !justificacionAsignacion?.trim())">
+                            [disabled]="!selectedSecretarioId || (esReasignacion() && !justificacionAsignacion.trim())">
                             <i class="fas fa-check me-1"></i>{{ esReasignacion() ? 'Reasignar PQRS' : 'Asignar PQRS' }}
                         </button>
                     </div>

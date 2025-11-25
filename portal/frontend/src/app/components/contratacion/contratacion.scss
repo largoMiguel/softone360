@@ -132,22 +132,11 @@
         }
     }
 
-    .kpi-primary .kpi-icon {
-        background: linear-gradient(135deg, #216ba8 0%, #1a5686 100%);
-    }
-
-    .kpi-success .kpi-icon {
-        background: linear-gradient(135deg, #28a745 0%, #20883a 100%);
-    }
-
-    .kpi-info .kpi-icon {
-        background: linear-gradient(135deg, #17a2b8 0%, #128293 100%);
-    }
-
-    .kpi-warning .kpi-icon {
-        background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
-        color: #212529;
-    }
+        // Íconos KPI (gradientes simplificados a colores planos para reducir CSS)
+        .kpi-primary .kpi-icon { background:#216ba8; }
+        .kpi-success .kpi-icon { background:#28a745; }
+        .kpi-info .kpi-icon { background:#17a2b8; }
+        .kpi-warning .kpi-icon { background:#ffc107; color:#212529; }
 
     // Panel de detalle de KPI
     .detail-item {
@@ -417,23 +406,8 @@
 
     // Header moderno
     .modern-header {
-        background: linear-gradient(135deg, #216ba8 0%, #1a5686 100%);
-        border-radius: 20px;
-        padding: 2rem;
-        box-shadow: 0 10px 40px rgba(33, 107, 168, 0.2);
-        position: relative;
-        overflow: hidden;
-
-        &::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 40%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-            animation: pulse 4s ease-in-out infinite;
-        }
+        background:#216ba8; border-radius:20px; padding:2rem; box-shadow:0 10px 40px rgba(33,107,168,.2); position:relative; overflow:hidden;
+        // Eliminado pseudo-elemento animado para reducir animaciones y repintados
 
         .header-content {
             display: flex;
@@ -509,19 +483,7 @@
         }
     }
 
-    @keyframes pulse {
-
-        0%,
-        100% {
-            transform: scale(1);
-            opacity: 1;
-        }
-
-        50% {
-            transform: scale(1.05);
-            opacity: 0.8;
-        }
-    }
+    // (Animación pulse removida)
 
     // Grid de contratos moderno
     .contracts-grid {
@@ -533,51 +495,9 @@
 
     // Card moderna de contrato
     .contract-card-modern {
-        background: white;
-        border-radius: 16px;
-        padding: 1.5rem;
-        cursor: pointer;
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        overflow: hidden;
-        border: 2px solid transparent;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-
-        &::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 4px;
-            height: 100%;
-            background: linear-gradient(135deg, #216ba8 0%, #17a2b8 100%);
-            transform: scaleY(0);
-            transition: transform 0.3s ease;
-        }
-
-        &:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 12px 40px rgba(33, 107, 168, 0.15);
-            border-color: rgba(33, 107, 168, 0.3);
-
-            &::before {
-                transform: scaleY(1);
-            }
-
-            .expand-indicator i {
-                animation: bounce 0.6s ease infinite;
-            }
-        }
-
-        // Estado de foco/activo (cuando se abre en modal)
-        &.expanded {
-            border-color: #216ba8;
-            box-shadow: 0 16px 48px rgba(33, 107, 168, 0.2);
-
-            &::before {
-                transform: scaleY(1);
-            }
-        }
+        background:#fff; border-radius:16px; padding:1.5rem; cursor:pointer; transition:box-shadow .3s ease, transform .3s ease; position:relative; overflow:hidden; border:2px solid transparent; box-shadow:0 2px 8px rgba(0,0,0,.06);
+        &:hover { transform:translateY(-6px); box-shadow:0 10px 32px rgba(33,107,168,.15); border-color:rgba(33,107,168,.3); }
+        &.expanded { border-color:#216ba8; box-shadow:0 14px 40px rgba(33,107,168,.2); }
 
         // Header
         .card-header-modern {
@@ -936,14 +856,7 @@
     }
 }
 
-.modal-header-custom {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1.25rem 1.5rem;
-    border-bottom: 2px solid #e9ecef;
-    background: linear-gradient(to right, #f8fbff 0%, #ffffff 100%);
-}
+.modal-header-custom { display:flex; align-items:center; justify-content:space-between; padding:1.25rem 1.5rem; border-bottom:2px solid #e9ecef; background:#f8fbff; }
 
 .modal-title-section {
     display: flex;
@@ -1031,13 +944,7 @@
     color: #28a745;
 }
 
-.modal-description {
-    margin-bottom: 1.5rem;
-    padding: 1rem;
-    background: linear-gradient(135deg, #f8fbff 0%, #f0f6ff 100%);
-    border-left: 4px solid #216ba8;
-    border-radius: 10px;
-}
+.modal-description { margin-bottom:1.5rem; padding:1rem; background:#f8fbff; border-left:4px solid #216ba8; border-radius:10px; }
 
 .modal-description .label {
     font-size: 0.8rem;
@@ -1055,13 +962,7 @@
     font-size: 0.9rem;
 }
 
-.modal-actions {
-    display: flex;
-    gap: 0.75rem;
-    padding: 1.25rem 1.5rem;
-    border-top: 2px solid #e9ecef;
-    background: linear-gradient(to right, #ffffff 0%, #f8fbff 100%);
-}
+.modal-actions { display:flex; gap:.75rem; padding:1.25rem 1.5rem; border-top:2px solid #e9ecef; background:#f8fbff; }
 
 .modal-actions .btn {
     flex: 1;
@@ -1093,172 +994,4 @@
     }
 }
 
-// Estilos de la Navbar
-.navbar-brand-section {
-    display: flex;
-    align-items: center;
-    gap: 0;
-}
-
-.entity-logo-wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: white;
-    border-radius: 10px;
-    padding: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-
-    .entity-logo {
-        height: 50px;
-        width: auto;
-        max-width: 100px;
-        object-fit: contain;
-    }
-}
-
-.navbar-divider {
-    width: 2px;
-    height: 50px;
-    background: rgba(255, 255, 255, 0.3);
-    margin: 0 1rem;
-}
-
-.entity-info {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-
-    .entity-name {
-        color: white;
-        font-size: 1.1rem;
-        font-weight: 700;
-        margin: 0;
-        line-height: 1.2;
-    }
-
-    .entity-subtitle {
-        color: rgba(255, 255, 255, 0.85);
-        font-size: 0.8rem;
-        font-weight: 400;
-    }
-}
-
-.software-logo-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-
-    .software-logo {
-        height: 35px;
-        width: auto;
-        max-width: 80px;
-        object-fit: contain;
-        background: white;
-        border-radius: 8px;
-        padding: 4px 8px;
-        margin-bottom: 4px;
-    }
-
-    .software-name {
-        color: rgba(255, 255, 255, 0.9);
-        font-size: 0.7rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-}
-
-.user-dropdown {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.5rem 1rem;
-    border-radius: 10px;
-    transition: background-color 0.3s ease;
-
-    &:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-    }
-
-    .user-avatar {
-        font-size: 2rem;
-        color: white;
-        line-height: 1;
-    }
-
-    .user-info {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-
-        .user-name {
-            font-weight: 600;
-            font-size: 0.95rem;
-            line-height: 1.2;
-        }
-
-        .user-role {
-            font-size: 0.75rem;
-            opacity: 0.85;
-            line-height: 1;
-        }
-    }
-}
-
-// Responsive Navbar
-@media (max-width: 992px) {
-    .navbar-divider {
-        display: none;
-    }
-
-    .software-logo-wrapper {
-        display: none;
-    }
-
-    .entity-info {
-        .entity-name {
-            font-size: 0.95rem;
-        }
-
-        .entity-subtitle {
-            font-size: 0.7rem;
-        }
-    }
-
-    .entity-logo-wrapper {
-        .entity-logo {
-            height: 40px;
-            max-width: 80px;
-        }
-    }
-}
-
-@media (max-width: 576px) {
-    .navbar-brand-section {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-    }
-
-    .entity-info {
-        .entity-name {
-            font-size: 0.85rem;
-        }
-
-        .entity-subtitle {
-            font-size: 0.65rem;
-        }
-    }
-
-    .user-dropdown {
-        .user-info {
-            display: none;
-        }
-
-        .user-avatar {
-            font-size: 1.5rem;
-        }
-    }
-}
+// Navbar styles removed (duplicated from global)

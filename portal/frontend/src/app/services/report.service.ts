@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { PQRSWithDetails } from '../models/pqrs.model';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import type jsPDF from 'jspdf';
 
 @Injectable({
     providedIn: 'root'
@@ -10,17 +9,36 @@ export class ReportService {
 
     constructor() { }
 
+    private pdfLibsPromise?: Promise<{ jsPDF: any; autoTable: any }>;
+    private _autoTable: any;
+
+    private async loadPdfLibs(): Promise<{ jsPDF: any; autoTable: any }> {
+        if (!this.pdfLibsPromise) {
+            this.pdfLibsPromise = Promise.all([
+                import('jspdf'),
+                import('jspdf-autotable')
+            ]).then(([jsPdfMod, autoTableMod]) => {
+                const jsPDFClass = jsPdfMod.default;
+                const autoTableFn = (autoTableMod as any).default || (autoTableMod as any);
+                this._autoTable = autoTableFn;
+                return { jsPDF: jsPDFClass, autoTable: autoTableFn };
+            });
+        }
+        return this.pdfLibsPromise;
+    }
+
     /**
      * Genera un reporte en formato PDF con análisis de IA, gráficos y tablas
      */
-    generatePDFReport(
+    async generatePDFReport(
         pqrsList: PQRSWithDetails[],
         charts: { estados: string; tipos: string; tendencias: string },
         aiAnalysis: any,
         analytics: any,
         fechaInicio: string,
         fechaFin: string
-    ): void {
+    ): Promise<void> {
+        const { jsPDF } = await this.loadPdfLibs();
         const doc = new jsPDF('p', 'mm', 'letter');
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
@@ -125,7 +143,7 @@ export class ReportService {
             ['Tiempo Promedio de Respuesta', `${analytics.tiempoPromedioRespuesta} días`]
         ];
 
-        autoTable(doc, {
+        this._autoTable(doc, {
             startY: yPosition,
             head: [['Indicador', 'Valor']],
             body: indicadores,
@@ -155,7 +173,7 @@ export class ReportService {
             tiposData.push([this.capitalizeFirst(tipo), cantidad.toString(), `${porcentaje}%`]);
         });
 
-        autoTable(doc, {
+        this._autoTable(doc, {
             startY: yPosition,
             head: [['Tipo', 'Cantidad', 'Porcentaje']],
             body: tiposData,
@@ -186,7 +204,7 @@ export class ReportService {
             ['Cerrada', analytics.cerradas.toString(), `${((analytics.cerradas / analytics.totalPqrs) * 100).toFixed(1)}%`]
         ];
 
-        autoTable(doc, {
+        this._autoTable(doc, {
             startY: yPosition,
             head: [['Estado', 'Cantidad', 'Porcentaje']],
             body: estadosData,
@@ -328,7 +346,7 @@ export class ReportService {
             pqrs.assigned_to?.full_name || 'Sin asignar'
         ]);
 
-        autoTable(doc, {
+        this._autoTable(doc, {
             startY: yPosition,
             head: [['Radicado', 'Tipo', 'Estado', 'Fecha', 'Asignado a']],
             body: pqrsData,
@@ -374,7 +392,7 @@ export class ReportService {
             `${((stats.resueltas / stats.total) * 100).toFixed(1)}%`
         ]);
 
-        autoTable(doc, {
+        this._autoTable(doc, {
             startY: yPosition,
             head: [['Secretario', 'Total', 'Pendientes', 'Resueltas', 'Eficiencia']],
             body: secretariosData,

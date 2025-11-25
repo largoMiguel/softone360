@@ -1,27 +1,10 @@
-.dashboard-container {
-    .dashboard-container {
-
-        min-height: 100vh;
-        min-height: 100vh;
-
-        background-color: #f8f9fa;
-        background-color: #f8f9fa;
-
-    }
-}
+// Contenedor principal (deduplicado)
+.dashboard-container { min-height: 100vh; background-color: #f8f9fa; }
 
 
 
-.navbar-brand {
-    .navbar-brand {
-
-        font-weight: bold;
-        font-weight: 600;
-
-        color: #216ba8 !important;
-    }
-
-}
+// Marca navbar (deduplicado)
+.navbar-brand { font-weight: 600; color: #216ba8 !important; }
 
 .card {
 
@@ -629,51 +612,10 @@
     }
 }
 
-// Estilos para formulario de crear secretario
-form {
-    .form-label {
-        font-weight: 500;
-        margin-bottom: 0.5rem;
-        color: #495057;
-
-        i {
-            font-size: 0.9rem;
-        }
-    }
-
-    .form-control,
-    .form-select {
-        border-radius: 8px;
-        border: 1px solid #dee2e6;
-        padding: 0.625rem 0.875rem;
-        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-
-        &:focus {
-            border-color: #198754;
-            box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.15);
-        }
-
-        &.is-invalid {
-            border-color: #dc3545;
-        }
-    }
-
-    .text-danger {
-        margin-top: 0.25rem;
-        font-size: 0.875rem;
-    }
-
-    .alert-info {
-        background-color: #d1ecf1;
-        border-color: #bee5eb;
-        color: #0c5460;
-        border-radius: 8px;
-    }
-
-    button[type="submit"] {
-        min-width: 150px;
-    }
-}
+// Form styles (simplified)
+form .form-label { font-weight:500; margin-bottom:.5rem; color:#495057; }
+form .form-control, form .form-select { border-radius:8px; border:1px solid #dee2e6; padding:.625rem .875rem; }
+form .form-control:focus, form .form-select:focus { border-color:#198754; box-shadow:0 0 0 .25rem rgba(25,135,84,.15); }
 
 // Logo del navbar
 .navbar-logo {
@@ -881,83 +823,14 @@ form {
 // Estilos para Formulario PQRS Paso a Paso
 // ========================================
 
-// Indicador de pasos
-.step-indicator {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 0;
-    margin-bottom: 2rem;
-
-    .step {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.5rem;
-        flex: 0 0 auto;
-
-        &.active .step-circle {
-            background-color: #216ba8;
-            color: white;
-            transform: scale(1.1);
-        }
-
-        &.completed .step-circle {
-            background-color: #28a745;
-            color: white;
-
-            &::after {
-                content: '\f00c';
-                font-family: 'Font Awesome 5 Free';
-                font-weight: 900;
-                position: absolute;
-                font-size: 0.9rem;
-            }
-        }
-    }
-
-    .step-circle {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        background-color: #e9ecef;
-        color: #6c757d;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        font-size: 1.25rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        position: relative;
-        border: 3px solid transparent;
-
-        &:hover {
-            border-color: #216ba8;
-            transform: scale(1.05);
-        }
-    }
-
-    .step-label {
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #6c757d;
-        text-align: center;
-        max-width: 100px;
-        white-space: nowrap;
-    }
-
-    .step-line {
-        width: 60px;
-        height: 3px;
-        background-color: #e9ecef;
-        transition: background-color 0.3s ease;
-
-        &.active {
-            background-color: #28a745;
-        }
-    }
-}
+// Indicador de pasos (comprimido)
+.step-indicator { display:flex; justify-content:center; align-items:center; gap:0; margin-bottom:2rem; }
+.step-indicator .step { display:flex; flex-direction:column; align-items:center; gap:.5rem; flex:0 0 auto; }
+.step-indicator .step.active .step-circle { background-color:#216ba8; color:#fff; transform:scale(1.1); }
+.step-indicator .step.completed .step-circle { background-color:#28a745; color:#fff; }
+.step-indicator .step-circle { width:50px; height:50px; border-radius:50%; background-color:#e9ecef; color:#6c757d; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:1.25rem; cursor:pointer; transition:.3s; position:relative; border:3px solid transparent; }
+.step-indicator .step-label { font-size:.875rem; font-weight:500; color:#6c757d; text-align:center; max-width:100px; white-space:nowrap; }
+.step-indicator .step-line { width:60px; height:3px; background-color:#e9ecef; transition:.3s; &.active { background-color:#28a745; } }
 
 // Container de cada paso
 .paso-container {
@@ -965,185 +838,10 @@ form {
     min-height: 400px;
 }
 
-// Cards de canal de llegada
-.canal-card {
-    background: white;
-    border: 2px solid #e9ecef;
-    border-radius: 10px;
-    padding: 1rem 0.75rem;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 120px;
-
-    i {
-        color: #216ba8;
-        transition: transform 0.3s ease;
-        font-size: 2rem !important;
-    }
-
-    h5 {
-        margin-top: 0.5rem;
-        color: #495057;
-        font-weight: 600;
-        font-size: 0.875rem;
-    }
-
-    &:hover {
-        border-color: #216ba8;
-        box-shadow: 0 4px 12px rgba(33, 107, 168, 0.15);
-        transform: translateY(-4px);
-
-        i {
-            transform: scale(1.1);
-        }
-    }
-
-    &.selected {
-        border-color: #216ba8;
-        background: linear-gradient(135deg, rgba(33, 107, 168, 0.05), rgba(33, 107, 168, 0.1));
-        box-shadow: 0 0 0 4px rgba(33, 107, 168, 0.1);
-
-        i {
-            color: #216ba8;
-            transform: scale(1.15);
-        }
-
-        h5 {
-            color: #216ba8;
-        }
-    }
-}
-
-// Cards de tipo de identificación
-.tipo-id-card {
-    background: white;
-    border: 2px solid #e9ecef;
-    border-radius: 10px;
-    padding: 1.25rem 1rem;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 140px;
-
-    i {
-        transition: transform 0.3s ease;
-        font-size: 2.5rem !important;
-    }
-
-    h5 {
-        margin-top: 0.5rem;
-        color: #495057;
-        font-weight: 600;
-        font-size: 0.95rem;
-    }
-
-    p {
-        margin-top: 0.25rem;
-        margin-bottom: 0;
-        font-size: 0.8rem;
-    }
-
-    &:hover {
-        border-color: #216ba8;
-        box-shadow: 0 6px 16px rgba(33, 107, 168, 0.15);
-        transform: translateY(-4px);
-
-        i {
-            transform: scale(1.1);
-        }
-    }
-
-    &.selected {
-        border-color: #216ba8;
-        background: linear-gradient(135deg, rgba(33, 107, 168, 0.05), rgba(33, 107, 168, 0.1));
-        box-shadow: 0 0 0 4px rgba(33, 107, 168, 0.1);
-
-        i {
-            transform: scale(1.15);
-        }
-
-        h5 {
-            color: #216ba8;
-        }
-
-        p {
-            color: #216ba8;
-        }
-    }
-}
-
-// Cards de tipo de solicitud
-.tipo-solicitud-card {
-    background: white;
-    border: 2px solid #e9ecef;
-    border-radius: 10px;
-    padding: 1rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    min-height: 110px;
-
-    h5 {
-        color: #495057;
-        font-weight: 600;
-        font-size: 0.875rem;
-        margin-bottom: 0.5rem;
-    }
-
-    p {
-        color: #6c757d;
-        font-size: 0.75rem;
-        line-height: 1.4;
-        flex: 1;
-        margin-bottom: 0;
-    }
-
-    &:hover {
-        border-color: #216ba8;
-        box-shadow: 0 4px 12px rgba(33, 107, 168, 0.15);
-        transform: translateY(-2px);
-    }
-
-    &.selected {
-        border-color: #216ba8;
-        background: linear-gradient(135deg, rgba(33, 107, 168, 0.05), rgba(33, 107, 168, 0.1));
-        box-shadow: 0 0 0 4px rgba(33, 107, 168, 0.1);
-
-        h5 {
-            color: #216ba8;
-        }
-
-        p {
-            color: #495057;
-        }
-    }
-}
-
-// Animación de aparición
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
+// Cards de canal/tipo (comprimidas)
+.canal-card, .tipo-id-card, .tipo-solicitud-card { background:#fff; border:2px solid #e9ecef; border-radius:10px; padding:1rem; text-align:center; cursor:pointer; transition:.3s; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:120px; }
+.canal-card:hover, .tipo-id-card:hover, .tipo-solicitud-card:hover { border-color:#216ba8; box-shadow:0 4px 12px rgba(33,107,168,.15); }
+.canal-card.selected, .tipo-id-card.selected, .tipo-solicitud-card.selected { border-color:#216ba8; background:rgba(33,107,168,.05); box-shadow:0 0 0 4px rgba(33,107,168,.1); }
 
 // Responsive para formulario paso a paso
 @media (max-width: 768px) {
@@ -1183,74 +881,11 @@ form {
 
 // ===== NUEVO DISEÑO PROFESIONAL PARA MODAL DE DETALLE PQRS =====
 
-// Timeline Moderna
-.timeline-modern {
-    position: relative;
-    padding: 0;
-
-    .timeline-item-modern {
-        position: relative;
-        padding-left: 3.5rem;
-        padding-bottom: 2.5rem;
-
-        &:last-child {
-            padding-bottom: 0;
-
-            &::before {
-                display: none;
-            }
-        }
-
-        &::before {
-            content: '';
-            position: absolute;
-            left: 12px;
-            top: 35px;
-            height: calc(100% - 20px);
-            width: 3px;
-            background: linear-gradient(180deg, #e9ecef 0%, #dee2e6 100%);
-            border-radius: 2px;
-        }
-
-        .timeline-marker-modern {
-            position: absolute;
-            left: 0;
-            top: 8px;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            border: 4px solid #fff;
-            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.15);
-            z-index: 10;
-        }
-
-        .timeline-content-modern {
-            background: white;
-            padding: 1.25rem;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            border-left: 4px solid #e9ecef;
-            transition: all 0.3s ease;
-
-            &:hover {
-                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-                transform: translateX(5px);
-            }
-
-            h6 {
-                font-size: 1rem;
-                font-weight: 600;
-                color: #2c3e50;
-            }
-
-            p {
-                margin: 0;
-                font-size: 0.875rem;
-                color: #6c757d;
-            }
-        }
-    }
-}
+// Timeline simplificada
+.timeline-modern { position:relative; padding:0; }
+.timeline-modern .timeline-item-modern { position:relative; padding-left:3.5rem; padding-bottom:2.5rem; &:last-child { padding-bottom:0; } }
+.timeline-modern .timeline-marker-modern { position:absolute; left:0; top:8px; width:28px; height:28px; border-radius:50%; border:4px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,.15); z-index:10; }
+.timeline-modern .timeline-content-modern { background:#fff; padding:1.25rem; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.08); border-left:4px solid #e9ecef; }
 
 // Avatar Circle
 .avatar-circle {
@@ -1288,96 +923,14 @@ form {
 
 // Cards con bordes y sombras suaves
 .card.border-0.shadow-sm {
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    
+    border: 1px solid rgba(0,0,0,0.05);
     .card-header {
-        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        background: linear-gradient(135deg,#ffffff 0%,#f8f9fa 100%);
         border-bottom: 2px solid #e9ecef;
     }
-}// Tarjetas de acceso rápido en vista de bienvenida
-.quick-access-card {
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: 2px solid #e9ecef;
-
-    &:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15) !important;
-        border-color: #216ba8;
-
-        .card-body {
-            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-
-            i {
-                transform: scale(1.1);
-            }
-        }
-    }
-
-    .card-body {
-        transition: all 0.3s ease;
-
-        i {
-            transition: transform 0.3s ease;
-        }
-    }
 }
-
-.welcome-view {
-    animation: fadeIn 0.5s ease-in;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-// Tarjetas de acceso rápido en vista de bienvenida
-.quick-access-card {
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: 2px solid #e9ecef;
-
-    &:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
-        border-color: #216ba8;
-
-        .card-body {
-            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-
-            i {
-                transform: scale(1.1);
-            }
-        }
-    }
-
-    .card-body {
-        transition: all 0.3s ease;
-
-        i {
-            transition: transform 0.3s ease;
-        }
-    }
-}
-
-.welcome-view {
-    animation: fadeIn 0.5s ease-in;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
+// Tarjetas de acceso rápido (única definición)
+.quick-access-card { cursor:pointer; transition:.3s; border:2px solid #e9ecef; }
+.quick-access-card:hover { transform:translateY(-8px); box-shadow:0 12px 24px rgba(0,0,0,.15); border-color:#216ba8; }
+.welcome-view { animation: fadeIn .5s ease-in; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(20px);} to { opacity:1; transform:translateY(0);} }
