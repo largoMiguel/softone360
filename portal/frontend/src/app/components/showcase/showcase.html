@@ -192,19 +192,12 @@
             <div class="row align-items-center" [class.flex-row-reverse]="i % 2 !== 0">
                 <div class="col-lg-6 animate">
                     <div class="module-visual"
-                        [class.clickable]="module.actionMethod"
-                        (click)="module.actionMethod ? onModuleClick(module) : null"
                         [style.background]="'linear-gradient(135deg, ' + module.color + '22, ' + module.color + '44)'">
                         <i [class]="module.image + ' module-icon'" [style.color]="module.color"></i>
-                        <div *ngIf="module.actionMethod" class="module-overlay">
-                            <i class="fas fa-arrow-right overlay-icon"></i>
-                        </div>
                     </div>
                 </div>
                 <div class="col-lg-6 animate">
-                    <div class="module-content"
-                        [class.clickable]="module.actionMethod"
-                        (click)="module.actionMethod ? onModuleClick(module) : null">
+                    <div class="module-content">
                         <div class="module-badge" [style.background]="module.color">
                             <i [class]="module.icon + ' me-2'"></i>Módulo
                         </div>
@@ -216,9 +209,6 @@
                                 {{ feat }}
                             </li>
                         </ul>
-                        <button *ngIf="module.actionMethod" class="btn btn-outline-primary mt-3">
-                            <i class="fas fa-arrow-right me-2"></i>Ir al Módulo
-                        </button>
                     </div>
                 </div>
             </div>
