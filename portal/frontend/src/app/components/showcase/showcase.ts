@@ -22,7 +22,7 @@ interface Module {
     image: string;
     color: string;
     route?: string;  // Ruta opcional para navegación
-    action?: () => void;  // Acción opcional al hacer clic
+    actionMethod?: string;  // Nombre del método a ejecutar
 }
 
 interface Stat {
@@ -94,7 +94,7 @@ export class ShowcaseComponent implements OnInit {
             features: ['Actividades y Productos', 'Presupuestos', 'Seguimiento de Indicadores', 'Reportes Automáticos'],
             image: 'fas fa-chart-bar',
             color: '#216ba8',
-            action: () => this.navegarAPDM()  // ✅ Acción al hacer clic
+            actionMethod: 'navegarAPDM'  // ✅ Método al hacer clic
         },
         {
             name: 'PQRS y Peticiones',
@@ -279,6 +279,16 @@ export class ShowcaseComponent implements OnInit {
             setTimeout(() => {
                 this.router.navigate(['/login']);
             }, 2000);
+        }
+    }
+
+    onModuleClick(module: Module): void {
+        if (module.actionMethod) {
+            // Ejecutar el método dinámicamente
+            const method = (this as any)[module.actionMethod];
+            if (method && typeof method === 'function') {
+                method.call(this);
+            }
         }
     }
 
