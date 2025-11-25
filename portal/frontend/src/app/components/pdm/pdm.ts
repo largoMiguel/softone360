@@ -1685,6 +1685,8 @@ export class PdmComponent implements OnInit, OnDestroy {
 
     /**
      * Maneja la carga de imágenes para evidencia
+     * ✅ CORREGIDO: Validar tamaño considerando el aumento por Base64 encoding (~33%)
+     * Límite ajustado a 1.5MB para que al convertir a Base64 no exceda ~2MB
      */
     onImagenesSeleccionadas(event: Event) {
         const input = event.target as HTMLInputElement;
@@ -1692,17 +1694,21 @@ export class PdmComponent implements OnInit, OnDestroy {
 
         const files = Array.from(input.files);
         
-        // Validar cantidad
+        // Validar cantidad (máximo 4 imágenes)
         if (files.length > 4) {
             this.showToast('Máximo 4 imágenes permitidas', 'error');
             return;
         }
 
-        // Validar tamaño (2MB por imagen)
-        const maxSize = 2 * 1024 * 1024; // 2MB
+        // ✅ Validar tamaño ANTES de Base64 (1.5MB = ~2MB después de Base64)
+        // Base64 aumenta el tamaño en ~33%, por eso validamos 1.5MB en lugar de 2MB
+        const maxSize = 1.5 * 1024 * 1024; // 1.5MB
         const archivosGrandes = files.filter(f => f.size > maxSize);
         if (archivosGrandes.length > 0) {
-            this.showToast('Cada imagen debe pesar máximo 2MB', 'error');
+            const tamañosExcedidos = archivosGrandes.map(f => `${f.name}: ${(f.size / (1024 * 1024)).toFixed(2)}MB`).join(', ');
+            this.showToast(`Las siguientes imágenes exceden el límite de 1.5MB: ${tamañosExcedidos}. Por favor, comprime las imágenes antes de subirlas.`, 'error');
+            // Limpiar el input para que el usuario pueda seleccionar otros archivos
+            input.value = '';
             return;
         }
 

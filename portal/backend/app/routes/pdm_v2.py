@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
 from datetime import datetime
+import base64
 
 from app.config.database import get_db
 from app.models.entity import Entity
@@ -27,6 +28,80 @@ router = APIRouter(prefix="/pdm/v2", tags=["PDM V2"])
 
 # ==============================================
 # Helpers
+# ==============================================
+
+def validar_imagenes_evidencia(imagenes: List[str]) -> None:
+    """
+    Valida las imágenes de evidencia en formato Base64.
+    
+    Validaciones:
+    - Máximo 4 imágenes
+    - Cada imagen no debe exceder 2.5MB en Base64 (~2MB original)
+    
+    Raises:
+        HTTPException: Si alguna validación falla
+    """
+    if not imagenes:
+        return
+    
+    # Validar cantidad máxima
+    if len(imagenes) > 4:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Máximo 4 imágenes permitidas. Se recibieron {len(imagenes)} imágenes."
+        )
+    
+    # Validar tamaño de cada imagen
+    MAX_SIZE_MB = 2.5  # ~2MB original después de decodificar Base64
+    MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
+    
+    for idx, imagen_b64 in enumerate(imagenes, 1):
+        try:
+            # Verificar formato Base64
+            if not imagen_b64 or not isinstance(imagen_b64, str):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Imagen {idx}: Formato inválido. Debe ser una cadena Base64."
+                )
+            
+            # Extraer datos Base64 (puede venir con prefijo data:image/...)
+            if ',' in imagen_b64:
+                imagen_b64 = imagen_b64.split(',', 1)[1]
+            
+            # Calcular tamaño en bytes
+            tamaño_bytes = len(imagen_b64)
+            tamaño_mb = tamaño_bytes / (1024 * 1024)
+            
+            # Validar tamaño
+            if tamaño_bytes > MAX_SIZE_BYTES:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Imagen {idx}: Tamaño excedido ({tamaño_mb:.2f}MB). Máximo permitido: {MAX_SIZE_MB}MB. "
+                           f"Por favor, comprime la imagen antes de subirla."
+                )
+            
+            # Opcional: Validar que sea Base64 válido
+            try:
+                base64.b64decode(imagen_b64, validate=True)
+            except Exception:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Imagen {idx}: Formato Base64 inválido."
+                )
+                
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Imagen {idx}: Error al validar - {str(e)}"
+            )
+    
+    print(f"✅ Validación exitosa: {len(imagenes)} imagen(es) válida(s)")
+
+
+# ==============================================
+# Helpers - Original
 # ==============================================
 
 def get_entity_or_404(db: Session, slug: str) -> Entity:
@@ -572,7 +647,12 @@ async def create_evidencia(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Registra evidencia de cumplimiento de una actividad"""
+    """Registra evidencia de cumplimiento de una actividad
+    
+    ✅ VALIDACIONES:
+    - Máximo 4 imágenes
+    - Cada imagen máximo 2.5MB en Base64 (~2MB original)
+    """
     entity = get_entity_or_404(db, slug)
     ensure_user_can_manage_entity(current_user, entity)
     
@@ -592,6 +672,10 @@ async def create_evidencia(
     
     if evidencia_existente:
         raise HTTPException(status_code=400, detail="La actividad ya tiene evidencia registrada")
+    
+    # ✅ VALIDAR IMÁGENES antes de guardar
+    if evidencia.imagenes:
+        validar_imagenes_evidencia(evidencia.imagenes)
     
     nueva_evidencia = PdmActividadEvidencia(
         actividad_id=actividad_id,
@@ -642,6 +726,10 @@ async def update_evidencia(
 ):
     """Actualiza la evidencia de una actividad existente.
     Permite cambiar descripcion, url_evidencia e imagenes.
+    
+    ✅ VALIDACIONES:
+    - Máximo 4 imágenes
+    - Cada imagen máximo 2.5MB en Base64 (~2MB original)
     """
     entity = get_entity_or_404(db, slug)
     ensure_user_can_manage_entity(current_user, entity)
@@ -654,7 +742,11 @@ async def update_evidencia(
     if not evidencia:
         raise HTTPException(status_code=404, detail="Evidencia no encontrada")
 
+    # ✅ VALIDAR IMÁGENES antes de actualizar
     update_dict = evidencia_update.model_dump(exclude_unset=True)
+    if 'imagenes' in update_dict and update_dict['imagenes']:
+        validar_imagenes_evidencia(update_dict['imagenes'])
+    
     for key, value in update_dict.items():
         setattr(evidencia, key, value)
 
