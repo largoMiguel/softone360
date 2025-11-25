@@ -26,6 +26,9 @@
                 <button *ngIf="vistaActual !== 'dashboard' && archivoExcelCargado" class="btn btn-outline-secondary me-2" (click)="volver()">
                     <i class="fas fa-arrow-left"></i> Volver
                 </button>
+                <button *ngIf="archivoExcelCargado && vistaActual === 'dashboard'" class="btn btn-outline-info me-2" (click)="exportarExcel()" title="Exportar PDM completo a Excel">
+                    <i class="fas fa-file-excel"></i> Exportar Excel
+                </button>
                 <label *ngIf="archivoExcelCargado && vistaActual === 'dashboard' && puedeCargarArchivosEjecucion()" class="btn btn-outline-success me-2" (click)="abrirModalEjecucion()" title="Cargar Excel de Ejecución Presupuestal (Solo Admin)">
                     <i class="fas fa-file-invoice-dollar"></i> Cargar Ejecución
                 </label>
@@ -1269,9 +1272,12 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" (click)="cerrarModalActividad()">Cancelar</button>
-                        <button type="submit" class="btn btn-success" [disabled]="!formularioActividad.valid || !tieneEvidenciaValida()">
-                            <i class="fas fa-check me-1"></i> {{ actividadEnEdicion ? 'Actualizar' : 'Registrar' }} Evidencia de Ejecución
+                        <button type="button" class="btn btn-secondary" (click)="cerrarModalActividad()" [disabled]="guardandoEvidencia">Cancelar</button>
+                        <button type="submit" class="btn btn-success" [disabled]="!formularioActividad.valid || !tieneEvidenciaValida() || guardandoEvidencia">
+                            <span *ngIf="guardandoEvidencia" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <i *ngIf="!guardandoEvidencia" class="fas fa-check me-1"></i>
+                            <span *ngIf="guardandoEvidencia">{{ actividadEnEdicion ? 'Actualizando' : 'Guardando' }}...</span>
+                            <span *ngIf="!guardandoEvidencia">{{ actividadEnEdicion ? 'Actualizar' : 'Registrar' }} Evidencia de Ejecución</span>
                         </button>
                     </div>
                 </form>

@@ -127,6 +127,7 @@ export class PdmComponent implements OnInit, OnDestroy {
 
     // ✅ NUEVO: Indicador de carga de actividades desde backend
     cargandoActividadesBackend = false;
+    guardandoEvidencia = false;  // 🔄 Loading para guardar/actualizar evidencia
 
     // Modal Análisis Producto
     mostrarModalAnalisisProducto = false;
@@ -1472,11 +1473,13 @@ export class PdmComponent implements OnInit, OnDestroy {
                     } else {
                         this.invalidarCache(); // ✅ Invalidar caché después de actualizar
                         this.showToast('Actividad actualizada exitosamente', 'success');
+                        this.guardandoEvidencia = false;
                         this.cerrarModalActividad();
                         this.actualizarResumenActividades(true);
                     }
                 },
                 error: () => {
+                    this.guardandoEvidencia = false;
                     this.showToast('Error al actualizar la evidencia de ejecución', 'error');
                 }
             });
@@ -1490,11 +1493,13 @@ export class PdmComponent implements OnInit, OnDestroy {
                     } else {
                         this.invalidarCache(); // ✅ Invalidar caché después de crear
                         this.showToast('Evidencia de ejecución creada exitosamente', 'success');
+                        this.guardandoEvidencia = false;
                         this.cerrarModalActividad();
                         this.actualizarResumenActividades(true);
                     }
                 },
                 error: () => {
+                    this.guardandoEvidencia = false;
                     this.showToast('Error al crear la evidencia de ejecución', 'error');
                 }
             });
@@ -1522,6 +1527,7 @@ export class PdmComponent implements OnInit, OnDestroy {
         accion$.subscribe({
             next: () => {
                 this.showToast(yaTieneEvidencia ? 'Evidencia actualizada exitosamente' : 'Evidencia de ejecución registrada exitosamente', 'success');
+                this.guardandoEvidencia = false;
                 this.cerrarModalActividad();
                 this.cargandoActividadesBackend = true;
                 // ✅ OPTIMIZADO: Usar requestAnimationFrame en lugar de setTimeout
@@ -1547,11 +1553,110 @@ export class PdmComponent implements OnInit, OnDestroy {
                 });
             },
             error: () => {
+                this.guardandoEvidencia = false;
                 this.showToast(yaTieneEvidencia ? 'Error al actualizar la evidencia' : 'Error al registrar la evidencia de ejecución', 'error');
                 this.cerrarModalActividad();
                 this.actualizarResumenActividades(true);
             }
         });
+    }
+
+    /**
+     * Exporta el PDM completo a un archivo Excel
+     */
+    exportarExcel() {
+        if (!this.resumenProductos || this.resumenProductos.length === 0) {
+            this.showToast('No hay datos para exportar', 'info');
+            return;
+        }
+
+        try {
+            // Importar dinámicamente la librería XLSX
+            import('xlsx').then((XLSX) => {
+                const workbook = XLSX.utils.book_new();
+
+                // 📊 Hoja 1: Resumen de Productos
+                const productosData = this.resumenProductos.map(p => ({
+                    'Código': p.codigo,
+                    'Producto': p.producto,
+                    'Unidad de Medida': p.unidad_medida,
+                    'Meta 2024': p.programacion_2024,
+                    'Meta 2025': p.programacion_2025,
+                    'Meta 2026': p.programacion_2026,
+                    'Meta 2027': p.programacion_2027,
+                    'Presupuesto 2024': p.total_2024,
+                    'Presupuesto 2025': p.total_2025,
+                    'Presupuesto 2026': p.total_2026,
+                    'Presupuesto 2027': p.total_2027,
+                    'Línea Estratégica': p.linea_estrategica,
+                    'ODS': p.ods,
+                    'Sector': p.sector,
+                    'BPIN': p.bpin || 'N/A'
+                }));
+                const wsProductos = XLSX.utils.json_to_sheet(productosData);
+                XLSX.utils.book_append_sheet(workbook, wsProductos, 'Productos');
+
+                // 📋 Hoja 2: Actividades y Evidencias
+                const actividadesData: any[] = [];
+                this.resumenProductos.forEach(producto => {
+                    const actividades = this.pdmService.obtenerActividadesPorProducto(producto.codigo);
+                    actividades.forEach((act: ActividadPDM) => {
+                        actividadesData.push({
+                            'Código Producto': producto.codigo,
+                            'Producto': producto.producto,
+                            'Año': act.anio,
+                            'Nombre Actividad': act.nombre,
+                            'Descripción': act.descripcion,
+                            'Estado': act.estado,
+                            'Secretaría': act.responsable_secretaria_nombre || 'Sin asignar',
+                            'Meta a Ejecutar': act.meta_ejecutar,
+                            'Fecha Inicio': act.fecha_inicio,
+                            'Fecha Fin': act.fecha_fin,
+                            'Tiene Evidencia': act.evidencia ? 'Sí' : 'No',
+                            'URL Evidencia': act.evidencia?.url_evidencia || '',
+                            'Descripción Evidencia': act.evidencia?.descripcion || '',
+                            'Cantidad Imágenes': act.evidencia?.imagenes?.length || 0,
+                            'Fecha Registro Evidencia': act.evidencia?.fecha_registro || ''
+                        });
+                    });
+                });
+                if (actividadesData.length > 0) {
+                    const wsActividades = XLSX.utils.json_to_sheet(actividadesData);
+                    XLSX.utils.book_append_sheet(workbook, wsActividades, 'Actividades');
+                }
+
+                // 📈 Hoja 3: Resumen por Secretaría
+                if (this.analisisPorSecretaria && this.analisisPorSecretaria.length > 0) {
+                    const secretariasData = this.analisisPorSecretaria.map(s => ({
+                        'Secretaría': s.nombre_secretaria,
+                        'Total Productos': s.total_productos,
+                        'Completados': s.productos_completados,
+                        'En Progreso': s.productos_en_progreso,
+                        'Pendientes': s.productos_pendientes,
+                        'Por Ejecutar': s.productos_por_ejecutar,
+                        'Avance %': s.porcentaje_avance_promedio.toFixed(2),
+                        'Total Actividades': s.total_actividades,
+                        'Actividades Completadas': s.actividades_completadas,
+                        'Presupuesto Total': s.presupuesto_total
+                    }));
+                    const wsSecretarias = XLSX.utils.json_to_sheet(secretariasData);
+                    XLSX.utils.book_append_sheet(workbook, wsSecretarias, 'Por Secretaría');
+                }
+
+                // 💾 Generar y descargar el archivo
+                const fecha = new Date().toISOString().split('T')[0];
+                const nombreArchivo = `PDM_Completo_${fecha}.xlsx`;
+                XLSX.writeFile(workbook, nombreArchivo);
+                
+                this.showToast('Excel exportado exitosamente', 'success');
+            }).catch(error => {
+                console.error('Error al importar XLSX:', error);
+                this.showToast('Error al exportar el archivo Excel', 'error');
+            });
+        } catch (error) {
+            console.error('Error al exportar Excel:', error);
+            this.showToast('Error al generar el archivo Excel', 'error');
+        }
     }
 
     /**
