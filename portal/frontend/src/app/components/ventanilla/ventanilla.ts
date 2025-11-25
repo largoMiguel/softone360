@@ -17,26 +17,12 @@ import { Entity } from '../../models/entity.model';
 })
 export class VentanillaComponent implements OnInit {
     // Modal states
-    mostrarModalRadicacion = false;
     mostrarModalConsulta = false;
     mostrarResultadoConsulta = false;
-
-    // Formulario de radicación
-    radicacionForm = {
-        tipo_solicitud: '',
-        cedula_ciudadano: '',
-        nombre_ciudadano: '',
-        telefono_ciudadano: '',
-        email_ciudadano: '',
-        direccion_ciudadano: '',
-        asunto: '',
-        descripcion: ''
-    };
 
     // Consulta
     numeroRadicado = '';
     pqrsConsultada: any = null;
-    isSubmitting = false;
     isConsulting = false;
 
     // Entidad actual (si la ruta incluye slug)
@@ -84,19 +70,6 @@ export class VentanillaComponent implements OnInit {
         this.mostrarModalConsulta = true;
     }
 
-    navigateToRadicacion() {
-        if (!this.pqrsEnabled()) {
-            this.alertService.warning('El módulo de PQRS está desactivado para esta entidad.', 'Módulo desactivado');
-            return;
-        }
-        this.mostrarModalRadicacion = true;
-    }
-
-    cerrarModalRadicacion() {
-        this.mostrarModalRadicacion = false;
-        this.resetFormularioRadicacion();
-    }
-
     cerrarModalConsulta() {
         this.mostrarModalConsulta = false;
         this.numeroRadicado = '';
@@ -106,89 +79,6 @@ export class VentanillaComponent implements OnInit {
         this.mostrarResultadoConsulta = false;
         this.pqrsConsultada = null;
         this.numeroRadicado = '';
-    }
-
-    resetFormularioRadicacion() {
-        this.radicacionForm = {
-            tipo_solicitud: '',
-            cedula_ciudadano: '',
-            nombre_ciudadano: '',
-            telefono_ciudadano: '',
-            email_ciudadano: '',
-            direccion_ciudadano: '',
-            asunto: '',
-            descripcion: ''
-        };
-    }
-
-    generarNumeroRadicado(): string {
-        // Ya no se genera en frontend. El backend asigna el número secuencial (YYYYMMDDNNN).
-        // Esta función se mantiene por compatibilidad pero no se usa.
-        return '';
-    }
-
-    submitRadicacion() {
-        // Validar campos requeridos
-        if (!this.radicacionForm.tipo_solicitud || !this.radicacionForm.cedula_ciudadano ||
-            !this.radicacionForm.nombre_ciudadano || !this.radicacionForm.asunto ||
-            !this.radicacionForm.descripcion) {
-            this.alertService.warning('Por favor completa todos los campos obligatorios marcados con *', 'Campos Requeridos');
-            return;
-        }
-
-        // Validar que hay una entidad actual
-        const currentEntity = this.entityContext.currentEntity;
-        if (!currentEntity) {
-            this.alertService.error('No se pudo determinar la entidad actual', 'Error');
-            return;
-        }
-
-        this.isSubmitting = true;
-
-        // Construir objeto PQRS con todos los campos requeridos
-        const pqrsData: any = {
-            tipo_identificacion: 'personal',  // Ventanilla siempre es personal (requiere cédula)
-            medio_respuesta: this.radicacionForm.email_ciudadano ? 'email' : 'ticket',  // Email si lo tiene, sino ticket
-            tipo_solicitud: this.radicacionForm.tipo_solicitud,
-            nombre_ciudadano: this.radicacionForm.nombre_ciudadano,
-            cedula_ciudadano: this.radicacionForm.cedula_ciudadano,
-            asunto: this.radicacionForm.asunto,
-            descripcion: this.radicacionForm.descripcion,
-            telefono_ciudadano: this.radicacionForm.telefono_ciudadano || null,
-            email_ciudadano: this.radicacionForm.email_ciudadano || null,
-            direccion_ciudadano: this.radicacionForm.direccion_ciudadano || null,
-            entity_id: currentEntity.id  // Agregar entity_id desde el contexto
-        };
-
-        // Convertir strings vacíos a null para campos opcionales
-        if (!pqrsData.telefono_ciudadano || pqrsData.telefono_ciudadano.trim() === '') {
-            pqrsData.telefono_ciudadano = null;
-        }
-        if (!pqrsData.email_ciudadano || pqrsData.email_ciudadano.trim() === '') {
-            pqrsData.email_ciudadano = null;
-        }
-        if (!pqrsData.direccion_ciudadano || pqrsData.direccion_ciudadano.trim() === '') {
-            pqrsData.direccion_ciudadano = null;
-        }
-
-        this.pqrsService.createPqrs(pqrsData).subscribe({
-            next: (response) => {
-                this.alertService.success(
-                    `Tu PQRS ha sido radicada exitosamente.\n\nNúmero de radicado: ${response.numero_radicado}\n\nGuarda este número para consultar el estado de tu solicitud.`,
-                    'PQRS Radicada'
-                );
-                this.cerrarModalRadicacion();
-                this.isSubmitting = false;
-            },
-            error: (error) => {
-                // console.error('Error radicando PQRS:', error);
-                this.alertService.error(
-                    'No se pudo radicar la PQRS. Por favor, intenta nuevamente o contacta con la administración.',
-                    'Error al Radicar'
-                );
-                this.isSubmitting = false;
-            }
-        });
     }
 
     consultarPqrs() {

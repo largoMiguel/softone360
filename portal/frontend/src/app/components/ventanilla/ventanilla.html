@@ -33,7 +33,7 @@
 
             <div class="row g-4">
                 <!-- Portal Ciudadano -->
-                <div class="col-md-4" *ngIf="pqrsEnabled()">
+                <div class="col-md-6" *ngIf="pqrsEnabled()">
                     <div class="service-card" (click)="navigateToPortalCiudadano()">
                         <div class="service-icon service-icon-secondary">
                             <i class="fas fa-user-circle"></i>
@@ -48,24 +48,8 @@
                     </div>
                 </div>
 
-                <!-- Radicar PQRS -->
-                <div class="col-md-4" *ngIf="pqrsEnabled()">
-                    <div class="service-card" (click)="navigateToRadicacion()">
-                        <div class="service-icon service-icon-success">
-                            <i class="fas fa-file-signature"></i>
-                        </div>
-                        <h4 class="service-title">Radicar PQRS</h4>
-                        <p class="service-description">
-                            Presenta tu petición, queja, reclamo o sugerencia sin necesidad de registro.
-                        </p>
-                        <button class="btn btn-success w-100">
-                            <i class="fas fa-paper-plane me-2"></i>Radicar
-                        </button>
-                    </div>
-                </div>
-
                 <!-- Consultar Estado -->
-                <div class="col-md-4" *ngIf="pqrsEnabled()">
+                <div class="col-md-6" *ngIf="pqrsEnabled()">
                     <div class="service-card" (click)="navigateToConsulta()">
                         <div class="service-icon service-icon-info">
                             <i class="fas fa-search"></i>
@@ -137,97 +121,6 @@
             </p>
         </div>
     </footer>
-
-    <!-- Modal Radicar PQRS -->
-    <div class="modal fade show d-block" *ngIf="mostrarModalRadicacion" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title">
-                        <i class="fas fa-file-signature me-2"></i>Radicar Nueva PQRS
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" (click)="cerrarModalRadicacion()"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="text-muted mb-3">
-                        <i class="fas fa-info-circle me-2"></i>
-                        Completa el siguiente formulario para radicar tu solicitud. Los campos marcados con * son
-                        obligatorios.
-                    </p>
-
-                    <form>
-                        <div class="mb-3">
-                            <label for="tipo_solicitud" class="form-label">Tipo de Solicitud *</label>
-                            <select id="tipo_solicitud" class="form-select" [(ngModel)]="radicacionForm.tipo_solicitud"
-                                name="tipo_solicitud" required>
-                                <option value="">Seleccione...</option>
-                                <option value="peticion">Petición</option>
-                                <option value="queja">Queja</option>
-                                <option value="reclamo">Reclamo</option>
-                                <option value="sugerencia">Sugerencia</option>
-                            </select>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="cedula_ciudadano" class="form-label">Cédula *</label>
-                                <input id="cedula_ciudadano" type="text" class="form-control"
-                                    [(ngModel)]="radicacionForm.cedula_ciudadano" name="cedula_ciudadano" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="nombre_ciudadano" class="form-label">Nombre Completo *</label>
-                                <input id="nombre_ciudadano" type="text" class="form-control"
-                                    [(ngModel)]="radicacionForm.nombre_ciudadano" name="nombre_ciudadano" required>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="telefono_ciudadano" class="form-label">Teléfono</label>
-                                <input id="telefono_ciudadano" type="tel" class="form-control"
-                                    [(ngModel)]="radicacionForm.telefono_ciudadano" name="telefono_ciudadano">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="email_ciudadano" class="form-label">Email</label>
-                                <input id="email_ciudadano" type="email" class="form-control"
-                                    [(ngModel)]="radicacionForm.email_ciudadano" name="email_ciudadano">
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="direccion_ciudadano" class="form-label">Dirección</label>
-                            <input id="direccion_ciudadano" type="text" class="form-control"
-                                [(ngModel)]="radicacionForm.direccion_ciudadano" name="direccion_ciudadano">
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="asunto" class="form-label">Asunto *</label>
-                            <input id="asunto" type="text" class="form-control" [(ngModel)]="radicacionForm.asunto"
-                                name="asunto" required placeholder="Resumen breve del motivo">
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="descripcion" class="form-label">Descripción *</label>
-                            <textarea id="descripcion" class="form-control" rows="4"
-                                [(ngModel)]="radicacionForm.descripcion" name="descripcion" required
-                                placeholder="Describe detalladamente tu solicitud..."></textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" (click)="cerrarModalRadicacion()">
-                        <i class="fas fa-times me-2"></i>Cancelar
-                    </button>
-                    <button type="button" class="btn btn-success" (click)="submitRadicacion()"
-                        [disabled]="isSubmitting">
-                        <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-2"></span>
-                        <i *ngIf="!isSubmitting" class="fas fa-paper-plane me-2"></i>
-                        {{ isSubmitting ? 'Radicando...' : 'Radicar PQRS' }}
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Modal Consultar PQRS -->
     <div class="modal fade show d-block" *ngIf="mostrarModalConsulta" style="background-color: rgba(0,0,0,0.5);">
