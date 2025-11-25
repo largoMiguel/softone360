@@ -361,6 +361,63 @@ async def get_pdm_data(
                 prod_response = schemas.ProductoResponse.model_validate(p)
                 # Agregar el nombre de la secretaría responsable al response
                 prod_response.responsable_nombre = responsable_nombre
+
+                # ===============================
+                # Cálculo de avance de metas del cuatrienio
+                # Cada año con programacion_X > 0 se considera una meta.
+                # Una meta anual se cumple si suma(meta_ejecutar de actividades COMPLETADAS del año) >= programacion_X.
+                # Avance general = metas_cumplidas / metas_totales * 100.
+                # ===============================
+                programaciones_por_anio = {
+                    2024: p.programacion_2024 or 0,
+                    2025: p.programacion_2025 or 0,
+                    2026: p.programacion_2026 or 0,
+                    2027: p.programacion_2027 or 0,
+                }
+
+                detalle_metas = []
+                metas_totales = 0
+                metas_cumplidas = 0
+                puede_agregar_actividad_anio = {}
+
+                actividades_por_anio = {}
+                for act in actividades:
+                    actividades_por_anio.setdefault(act.anio, []).append(act)
+
+                for anio, programado in programaciones_por_anio.items():
+                    if programado and programado > 0:
+                        metas_totales += 1
+                        lista_acts = actividades_por_anio.get(anio, [])
+                        ejecutado = sum(a.meta_ejecutar for a in lista_acts if a.estado == 'COMPLETADA')
+                        cumplida = ejecutado >= programado and ejecutado > 0
+                        if cumplida:
+                            metas_cumplidas += 1
+                        detalle_metas.append({
+                            "anio": anio,
+                            "programado": programado,
+                            "ejecutado": ejecutado,
+                            "cumplida": cumplida
+                        })
+                        # Puede agregar actividad si la meta del año no está cumplida
+                        puede_agregar_actividad_anio[str(anio)] = not cumplida
+                    else:
+                        lista_acts = actividades_por_anio.get(anio, [])
+                        ejecutado = sum(a.meta_ejecutar for a in lista_acts if a.estado == 'COMPLETADA') if lista_acts else 0
+                        detalle_metas.append({
+                            "anio": anio,
+                            "programado": 0,
+                            "ejecutado": ejecutado,
+                            "cumplida": False
+                        })
+                        puede_agregar_actividad_anio[str(anio)] = False
+
+                avance_general_porcentaje = (metas_cumplidas / metas_totales * 100) if metas_totales > 0 else 0
+                prod_response.metas_totales = metas_totales
+                prod_response.metas_cumplidas = metas_cumplidas
+                prod_response.avance_general_porcentaje = round(avance_general_porcentaje, 2)
+                prod_response.detalle_metas = detalle_metas
+                prod_response.puede_agregar_actividad_anio = puede_agregar_actividad_anio
+
                 productos_validos.append(prod_response)
                 
                 # Recolectar líneas estratégicas únicas

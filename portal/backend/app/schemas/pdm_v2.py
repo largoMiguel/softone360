@@ -90,6 +90,12 @@ class ProductoResponse(ProductoPlanIndicativoBase):
     responsable_secretaria_id: Optional[int] = None  # ✅ ID de la secretaría responsable
     responsable_secretaria_nombre: Optional[str] = None  # ✅ Nombre de la secretaría responsable
     actividades: List['ActividadResponseConEvidencia'] = []  # Incluir actividades asociadas CON evidencias
+    # Campos calculados de avance de metas en el cuatrienio
+    metas_totales: Optional[int] = None  # Número de años con meta programada (>0)
+    metas_cumplidas: Optional[int] = None  # Número de años cuya meta anual se considera cumplida
+    avance_general_porcentaje: Optional[float] = None  # (metas_cumplidas / metas_totales) * 100
+    detalle_metas: Optional[List[Dict[str, Any]]] = None  # Lista por año: {anio, programado, ejecutado, cumplida}
+    puede_agregar_actividad_anio: Optional[Dict[str, bool]] = None  # {"2024": bool, ...}
     created_at: datetime
     updated_at: Optional[datetime] = None
 

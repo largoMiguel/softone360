@@ -953,15 +953,19 @@ export class PdmService {
         const avancePorAnio: { [anio: number]: ResumenActividadesPorAnio } = {};
 
         let sumaAvances = 0;
+        let totalAniosConMeta = 0;
 
         anios.forEach(anio => {
             const resumen = this.obtenerResumenActividadesPorAnio(producto, anio);
             avancePorAnio[anio] = resumen;
-            sumaAvances += resumen.porcentaje_avance;
+            if (resumen.meta_programada > 0) {
+                sumaAvances += resumen.porcentaje_avance;
+                totalAniosConMeta++;
+            }
         });
 
-        // El avance total es el promedio de los 4 años
-        const porcentajeAvanceTotal = sumaAvances / anios.length;
+        // El avance total es el promedio solo de los años con meta programada
+        const porcentajeAvanceTotal = totalAniosConMeta > 0 ? (sumaAvances / totalAniosConMeta) : 0;
 
         return {
             codigo_producto: producto.codigo,
