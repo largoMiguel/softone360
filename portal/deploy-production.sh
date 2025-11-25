@@ -127,7 +127,7 @@ echo -e "${GREEN}✅ Frontend compilado${NC}"
 echo ""
 
 echo -e "${YELLOW}📤 Subiendo a S3...${NC}"
-aws s3 sync dist/pqrs-frontend/ s3://softone-frontend-useast1/ --delete
+aws s3 sync dist/pqrs-frontend/browser/ s3://softone360-frontend-useast1/ --delete
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ Frontend subido a S3${NC}"

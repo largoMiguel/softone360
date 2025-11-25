@@ -133,9 +133,29 @@ aws s3 sync . s3://softone360-frontend-useast1/ --delete
 
 ---
 
-## 🔄 Ajustar Horarios de Apagado RDS (Opcional)
+## 🔄 Horarios de Apagado RDS (Configurado)
 
-Si deseas cambiar las ventanas de apagado/encendido:
+**Horarios actuales (Hora Colombia UTC-5):**
+- 🌙 **Apagado:** Medianoche (00:00 Colombia / 05:00 UTC)
+- ☀️ **Encendido:** 5:00 AM (05:00 Colombia / 10:00 UTC)
+
+Para modificar los horarios:
+
+```bash
+# Apagar a medianoche Colombia (05:00 UTC)
+aws events put-rule \
+  --name stop-softone-db-nightly \
+  --schedule-expression "cron(0 5 * * ? *)" \
+  --region us-east-1
+
+# Encender a las 5 AM Colombia (10:00 UTC)
+aws events put-rule \
+  --name start-softone-db-morning \
+  --schedule-expression "cron(0 10 * * ? *)" \
+  --region us-east-1
+```
+
+**Otros ejemplos:**
 
 ```bash
 # Ejemplo: Apagar a las 21:00 Colombia (02:00 UTC)
