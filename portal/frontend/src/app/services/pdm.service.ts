@@ -967,6 +967,13 @@ export class PdmService {
         // El avance total es el promedio solo de los años con meta programada
         const porcentajeAvanceTotal = totalAniosConMeta > 0 ? (sumaAvances / totalAniosConMeta) : 0;
 
+        // DEBUG: Log para verificar el cálculo
+        console.log(`🔍 calcularAvanceProducto(${producto.codigo}):`, {
+            totalAniosConMeta,
+            sumaAvances,
+            porcentajeAvanceTotal: porcentajeAvanceTotal.toFixed(2) + '%'
+        });
+
         return {
             codigo_producto: producto.codigo,
             avance_por_anio: avancePorAnio,
@@ -1024,8 +1031,17 @@ export class PdmService {
             }
         });
 
+        // DEBUG: Log para verificar el cálculo
+        const resultado = totalAniosConMeta > 0 ? (sumaAvances / totalAniosConMeta) : 0;
+        console.log(`🔍 calcularAvanceRealProducto(${codigoProducto}):`, {
+            metas,
+            totalAniosConMeta,
+            sumaAvances,
+            resultado: resultado.toFixed(2) + '%'
+        });
+
         // Retornar el promedio solo de los años con meta programada
-        return totalAniosConMeta > 0 ? (sumaAvances / totalAniosConMeta) : 0;
+        return resultado;
     }
 
     /**
