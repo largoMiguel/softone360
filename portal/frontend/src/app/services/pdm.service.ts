@@ -1006,6 +1006,7 @@ export class PdmService {
         ];
         
         let sumaAvances = 0;
+        let totalAniosConMeta = 0;
 
         anios.forEach((anio, index) => {
             const metaProgramada = metas[index];
@@ -1015,16 +1016,16 @@ export class PdmService {
                 .filter(a => a.evidencia !== undefined && a.evidencia !== null)
                 .reduce((sum, a) => sum + a.meta_ejecutar, 0);
             
-            const porcentajeAvance = metaProgramada > 0 
-                ? (metaEjecutada / metaProgramada) * 100 
-                : 0;
-            
-            // Topar avance anual en 100%
-            sumaAvances += Math.min(100, porcentajeAvance);
+            if (metaProgramada > 0) {
+                const porcentajeAvance = (metaEjecutada / metaProgramada) * 100;
+                // Topar avance anual en 100%
+                sumaAvances += Math.min(100, porcentajeAvance);
+                totalAniosConMeta++;
+            }
         });
 
-        // Retornar el promedio de los 4 años
-        return sumaAvances / anios.length;
+        // Retornar el promedio solo de los años con meta programada
+        return totalAniosConMeta > 0 ? (sumaAvances / totalAniosConMeta) : 0;
     }
 
     /**
