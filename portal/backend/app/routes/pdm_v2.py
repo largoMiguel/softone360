@@ -36,7 +36,7 @@ def validar_imagenes_evidencia(imagenes: List[str]) -> None:
     
     Validaciones:
     - Máximo 4 imágenes
-    - Cada imagen no debe exceder 2.5MB en Base64 (~2MB original)
+    - Cada imagen no debe exceder 1.5MB en Base64 (~1MB original)
     
     Raises:
         HTTPException: Si alguna validación falla
@@ -52,7 +52,7 @@ def validar_imagenes_evidencia(imagenes: List[str]) -> None:
         )
     
     # Validar tamaño de cada imagen
-    MAX_SIZE_MB = 2.5  # ~2MB original después de decodificar Base64
+    MAX_SIZE_MB = 1.5  # ~1MB original después de decodificar Base64
     MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
     
     for idx, imagen_b64 in enumerate(imagenes, 1):
@@ -651,7 +651,7 @@ async def create_evidencia(
     
     ✅ VALIDACIONES:
     - Máximo 4 imágenes
-    - Cada imagen máximo 2.5MB en Base64 (~2MB original)
+    - Cada imagen máximo 1.5MB en Base64 (~1MB original)
     """
     entity = get_entity_or_404(db, slug)
     ensure_user_can_manage_entity(current_user, entity)
@@ -729,7 +729,7 @@ async def update_evidencia(
     
     ✅ VALIDACIONES:
     - Máximo 4 imágenes
-    - Cada imagen máximo 2.5MB en Base64 (~2MB original)
+    - Cada imagen máximo 1.5MB en Base64 (~1MB original)
     """
     entity = get_entity_or_404(db, slug)
     ensure_user_can_manage_entity(current_user, entity)
