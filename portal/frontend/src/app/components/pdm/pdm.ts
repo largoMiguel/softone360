@@ -1700,13 +1700,13 @@ export class PdmComponent implements OnInit, OnDestroy {
             return;
         }
 
-        // ✅ Validar tamaño ANTES de Base64 (1MB = ~1.33MB después de Base64)
-        // Base64 aumenta el tamaño en ~33%, 4 imágenes × 1MB = ~5.3MB total en Base64
-        const maxSize = 1 * 1024 * 1024; // 1MB por imagen
+        // ✅ Validar tamaño ANTES de Base64 (2MB = ~2.66MB después de Base64)
+        // Base64 aumenta el tamaño en ~33%, 4 imágenes × 2MB = ~10.64MB total en Base64
+        const maxSize = 2 * 1024 * 1024; // 2MB por imagen
         const archivosGrandes = files.filter(f => f.size > maxSize);
         if (archivosGrandes.length > 0) {
             const tamañosExcedidos = archivosGrandes.map(f => `${f.name}: ${(f.size / (1024 * 1024)).toFixed(2)}MB`).join(', ');
-            this.showToast(`Las siguientes imágenes exceden el límite de 1MB: ${tamañosExcedidos}. Por favor, comprime las imágenes antes de subirlas.`, 'error');
+            this.showToast(`Las siguientes imágenes exceden el límite de 2MB: ${tamañosExcedidos}. Por favor, comprime las imágenes antes de subirlas.`, 'error');
             // Limpiar el input para que el usuario pueda seleccionar otros archivos
             input.value = '';
             return;
