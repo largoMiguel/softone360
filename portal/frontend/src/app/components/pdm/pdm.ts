@@ -1984,6 +1984,18 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
+     * Obtiene el número de años con metas programadas > 0
+     */
+    getAniosConMetas(producto: ResumenProducto): number {
+        let count = 0;
+        if (producto.programacion_2024 > 0) count++;
+        if (producto.programacion_2025 > 0) count++;
+        if (producto.programacion_2026 > 0) count++;
+        if (producto.programacion_2027 > 0) count++;
+        return count;
+    }
+
+    /**
      * Determina el estado de un producto para un año específico
      * - Año pasado sin completar = PENDIENTE
      * - Año actual sin avance = PENDIENTE

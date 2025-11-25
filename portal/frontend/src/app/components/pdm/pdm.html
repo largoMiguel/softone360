@@ -639,7 +639,8 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="text-muted small">Metas Programadas</label>
-                                <h4 class="text-info">{{ formatearNumero(productoSeleccionado.programacion_2024 + productoSeleccionado.programacion_2025 + productoSeleccionado.programacion_2026 + productoSeleccionado.programacion_2027) }}</h4>
+                                <h4 class="text-info">{{ getAniosConMetas(productoSeleccionado) }}</h4>
+                                <small class="text-muted">años con metas</small>
                             </div>
                             <div class="col-md-4">
                                 <label class="text-muted small">% de Avance</label>
