@@ -445,6 +445,7 @@ export class PdmService {
     generarResumenProductos(pdmData: PDMData): ResumenProducto[] {
         
         if (pdmData.productos_plan_indicativo.length > 0) {
+            console.log('📊 generarResumenProductos: Procesando', pdmData.productos_plan_indicativo.length, 'productos');
         }
         
         const resumen = pdmData.productos_plan_indicativo.map(producto => {
@@ -452,6 +453,11 @@ export class PdmService {
             
             // Calcular avance real basado en metas ejecutadas con evidencia
             const porcentajeEjecucion = this.calcularAvanceRealProducto(producto.codigo_producto, producto);
+            
+            console.log(`📦 Producto ${producto.codigo_producto}:`, {
+                metas: [producto.programacion_2024, producto.programacion_2025, producto.programacion_2026, producto.programacion_2027],
+                porcentajeEjecucion: porcentajeEjecucion.toFixed(2) + '%'
+            });
 
             return {
                 codigo: producto.codigo_producto,

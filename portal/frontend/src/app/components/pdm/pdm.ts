@@ -1232,6 +1232,7 @@ export class PdmComponent implements OnInit, OnDestroy {
             this.productoSeleccionado.codigo,
             this.productoSeleccionado.detalle_completo as any
         );
+        console.log('🔄 actualizarResumenActividades - Nuevo avance calculado:', nuevoAvance.toFixed(2) + '%');
         this.productoSeleccionado.porcentaje_ejecucion = Math.min(100, Number(nuevoAvance.toFixed(2)));
         const idx = this.resumenProductos.findIndex(p => p.codigo === this.productoSeleccionado!.codigo);
         if (idx !== -1) {
@@ -2396,6 +2397,7 @@ export class PdmComponent implements OnInit, OnDestroy {
      * ✅ NUEVO: Ver análisis detallado del producto
      */
     verAnalisisProducto(producto: ResumenProducto): void {
+        console.log('👁️ verAnalisisProducto:', producto.codigo, '- Avance actual:', producto.porcentaje_ejecucion + '%');
         this.navegarA('analisis-producto', producto);
     }
 
