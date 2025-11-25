@@ -382,16 +382,70 @@ $dark: #212529;
         align-items: center;
         justify-content: center;
         min-height: clamp(250px, 40vw, 400px);
+        position: relative;
+        transition: all 0.3s ease;
+
+        &.clickable {
+            cursor: pointer;
+            
+            &:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+                
+                .module-icon {
+                    transform: scale(1.1);
+                }
+                
+                .module-overlay {
+                    opacity: 1;
+                }
+            }
+        }
 
         .module-icon {
             font-size: clamp(6rem, 20vw, 12rem);
             opacity: 0.3;
             animation: pulse 3s ease-in-out infinite;
+            transition: transform 0.3s ease;
+        }
+
+        .module-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+
+            .overlay-icon {
+                font-size: 3rem;
+                color: white;
+                filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+            }
         }
     }
 
     .module-content {
         padding: clamp(15px, 1.5vw, 20px);
+        transition: all 0.3s ease;
+
+        &.clickable {
+            cursor: pointer;
+            
+            &:hover {
+                transform: translateX(10px);
+                
+                .module-title {
+                    color: $primary;
+                }
+            }
+        }
     }
 
     .module-badge {

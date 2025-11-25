@@ -21,6 +21,8 @@ interface Module {
     features: string[];
     image: string;
     color: string;
+    route?: string;  // Ruta opcional para navegación
+    action?: () => void;  // Acción opcional al hacer clic
 }
 
 interface Stat {
@@ -91,7 +93,8 @@ export class ShowcaseComponent implements OnInit {
             description: 'Gestione el PDM de su entidad con seguimiento de actividades, productos y presupuestos. Incluye análisis de cumplimiento y reportes ejecutivos con visualizaciones profesionales.',
             features: ['Actividades y Productos', 'Presupuestos', 'Seguimiento de Indicadores', 'Reportes Automáticos'],
             image: 'fas fa-chart-bar',
-            color: '#216ba8'
+            color: '#216ba8',
+            action: () => this.navegarAPDM()  // ✅ Acción al hacer clic
         },
         {
             name: 'PQRS y Peticiones',
@@ -256,6 +259,27 @@ export class ShowcaseComponent implements OnInit {
     irATalento(): void {
         // Por el momento no hace nada
         this.mostrarAlerta('info', 'Próximamente', 'Módulo de Talento Humano próximamente');
+    }
+
+    navegarAPDM(): void {
+        // Verificar si el usuario está autenticado
+        if (this.authService.isAuthenticated()) {
+            const user = this.authService.getCurrentUserValue();
+            
+            if (user?.entity?.slug) {
+                // Redirigir al PDM de la entidad del usuario
+                this.router.navigate(['/', user.entity.slug, 'pdm']);
+            } else {
+                // Si no tiene entidad asignada, mostrar alerta
+                this.mostrarAlerta('warning', 'Acceso Denegado', 'Debe iniciar sesión para acceder al Plan de Desarrollo Municipal.');
+            }
+        } else {
+            // Si no está autenticado, redirigir al login
+            this.mostrarAlerta('info', 'Inicio de Sesión Requerido', 'Debe iniciar sesión para acceder al Plan de Desarrollo Municipal.');
+            setTimeout(() => {
+                this.router.navigate(['/login']);
+            }, 2000);
+        }
     }
 
     mostrarAlerta(tipo: 'error' | 'warning' | 'success' | 'info', title: string, mensaje: string): void {
