@@ -451,13 +451,9 @@ export class PdmService {
         const resumen = pdmData.productos_plan_indicativo.map(producto => {
             const totalCuatrienio = producto.total_2024 + producto.total_2025 + producto.total_2026 + producto.total_2027;
             
-            // Calcular avance real basado en metas ejecutadas con evidencia
-            const porcentajeEjecucion = this.calcularAvanceRealProducto(producto.codigo_producto, producto);
-            
-            console.log(`📦 Producto ${producto.codigo_producto}:`, {
-                metas: [producto.programacion_2024, producto.programacion_2025, producto.programacion_2026, producto.programacion_2027],
-                porcentajeEjecucion: porcentajeEjecucion.toFixed(2) + '%'
-            });
+            // ✅ OPTIMIZACIÓN: porcentaje_ejecucion ya viene calculado del backend
+            // No es necesario llamar calcularAvanceRealProducto() aquí
+            const porcentajeEjecucion = (producto as any).porcentaje_ejecucion || 0;
 
             return {
                 codigo: producto.codigo_producto,

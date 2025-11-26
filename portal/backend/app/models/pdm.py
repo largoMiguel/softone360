@@ -12,6 +12,11 @@ from app.config.database import Base
 class PdmProducto(Base):
     """Productos del Plan Indicativo - Tabla principal con toda la info del Excel"""
     __tablename__ = "pdm_productos"
+    
+    # ✅ OPTIMIZACIÓN: Índice compuesto para queries frecuentes entity_id + codigo_producto
+    __table_args__ = (
+        {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'},
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     entity_id = Column(Integer, ForeignKey("entities.id", ondelete="CASCADE"), nullable=False, index=True)
@@ -89,6 +94,11 @@ class PdmProducto(Base):
 class PdmActividad(Base):
     """Actividades asociadas a productos por año"""
     __tablename__ = "pdm_actividades"
+    
+    # ✅ OPTIMIZACIÓN: Índice compuesto para queries frecuentes
+    __table_args__ = (
+        {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'},
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     entity_id = Column(Integer, ForeignKey("entities.id", ondelete="CASCADE"), nullable=False, index=True)

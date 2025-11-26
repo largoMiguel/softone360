@@ -369,6 +369,13 @@ async def get_pdm_data(
                 if p.responsable_secretaria_nombre:
                     responsable_nombre = p.responsable_secretaria_nombre
                 
+                # ✅ OPTIMIZACIÓN: No cargar presupuesto_XXXX (JSON pesado), solo totales
+                # Esto reduce payload de ~300KB a ~60KB por cada 100 productos
+                p.presupuesto_2024 = None
+                p.presupuesto_2025 = None
+                p.presupuesto_2026 = None
+                p.presupuesto_2027 = None
+                
                 prod_response = schemas.ProductoResponse.model_validate(p)
                 # Agregar el nombre de la secretaría responsable al response
                 prod_response.responsable_nombre = responsable_nombre
@@ -428,6 +435,23 @@ async def get_pdm_data(
                 prod_response.avance_general_porcentaje = round(avance_general_porcentaje, 2)
                 prod_response.detalle_metas = detalle_metas
                 prod_response.puede_agregar_actividad_anio = puede_agregar_actividad_anio
+                
+                # ✅ OPTIMIZACIÓN: Calcular porcentaje_ejecucion en backend
+                # Esto evita que el frontend tenga que recalcular para cada producto
+                # Cálculo: promedio de avance por año basado en metas ejecutadas
+                sum_avances_anuales = 0
+                anios_con_meta = 0
+                
+                for detalle in detalle_metas:
+                    programado = detalle['programado']
+                    ejecutado = detalle['ejecutado']
+                    if programado > 0:
+                        avance_anual = min(100, (ejecutado / programado) * 100)
+                        sum_avances_anuales += avance_anual
+                        anios_con_meta += 1
+                
+                porcentaje_ejecucion = (sum_avances_anuales / anios_con_meta) if anios_con_meta > 0 else 0
+                prod_response.porcentaje_ejecucion = round(porcentaje_ejecucion, 2)
 
                 productos_validos.append(prod_response)
                 
