@@ -195,6 +195,11 @@ async def upload_ejecucion_excel(
             return _df.rename(columns=rename_to_canonical)
 
         df_renamed = build_renamed(df)
+        try:
+            print("🧭 Columnas detectadas (normalizadas):",
+                  [ _normalize_text(c) for c in list(df_renamed.columns) ])
+        except Exception:
+            pass
 
         # Verificar columnas requeridas, y si faltan, intentar detectar fila de cabecera
         present_norm = [alias.get(x, x) for x in set(df_renamed.columns.map(_normalize_text))]
@@ -244,6 +249,12 @@ async def upload_ejecucion_excel(
             (df_renamed['SECTOR'].notna()) &
             (df_renamed['SECTOR'].astype(str).str.strip() != '')
         ].copy()
+        try:
+            # Métricas rápidas para depuración
+            total_definitivo = df_filtrado['PTO DEFINITIVO'].apply(limpiar_numero).sum()
+            print(f"📈 Registros filtrados: {len(df_filtrado)} | Suma PTO DEFINITIVO: {total_definitivo}")
+        except Exception:
+            pass
         
         registros_procesados = len(df_filtrado)
         registros_insertados = 0

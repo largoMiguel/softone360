@@ -4,7 +4,7 @@ import { BehaviorSubject } from 'rxjs';
 @Injectable({ providedIn: 'root' })
 export class SidebarService {
     // Sidebar abierto por defecto para que el usuario elija dónde ir
-    private _open$ = new BehaviorSubject<boolean>(true);
+    private _open$ = new BehaviorSubject<boolean>(false);
     readonly open$ = this._open$.asObservable();
 
     get isOpen(): boolean { return this._open$.value; }

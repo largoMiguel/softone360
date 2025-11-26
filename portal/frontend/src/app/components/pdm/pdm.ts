@@ -2662,21 +2662,26 @@ export class PdmComponent implements OnInit, OnDestroy {
         const metasTotales: number[] = [];
         const metasEjecutadas: number[] = [];
 
-        // Calcular metas totales y ejecutadas por año
+        // Calcular METAS como conteos (no presupuesto)
+        // - Meta Total: número de productos con programacion_anio > 0
+        // - Meta Ejecutada: número de productos con evidencia que cumple (según resumen anual)
         anios.forEach(anio => {
-            let metaTotal = 0;
-            let metaEjecutada = 0;
+            let totalProductosConMeta = 0;
+            let totalProductosCumplidos = 0;
 
             this.resumenProductos.forEach(producto => {
                 const metaAnio = this.getMetaAnio(producto, anio);
-                const avanceAnio = this.getAvanceAnio(producto, anio);
-                
-                metaTotal += metaAnio;
-                metaEjecutada += (metaAnio * avanceAnio / 100);
+                if (metaAnio && metaAnio > 0) {
+                    totalProductosConMeta += 1;
+                    const resumenAnual = this.pdmService.obtenerResumenActividadesPorAnio(producto, anio);
+                    if (resumenAnual.meta_ejecutada >= resumenAnual.meta_programada && resumenAnual.meta_programada > 0) {
+                        totalProductosCumplidos += 1;
+                    }
+                }
             });
 
-            metasTotales.push(metaTotal);
-            metasEjecutadas.push(metaEjecutada);
+            metasTotales.push(totalProductosConMeta);
+            metasEjecutadas.push(totalProductosCumplidos);
         });
         
         this.chartMetasEjecutadas = new Chart(ctx, {
@@ -2718,7 +2723,7 @@ export class PdmComponent implements OnInit, OnDestroy {
                         beginAtZero: true,
                         title: {
                             display: true,
-                            text: 'Valor de Meta',
+                            text: 'Número de Metas (productos)',
                             font: {
                                 size: 14,
                                 weight: 'bold'
@@ -2759,7 +2764,7 @@ export class PdmComponent implements OnInit, OnDestroy {
                                 const value = context.parsed.y || 0;
                                 const total = metasTotales[context.dataIndex];
                                 const porcentaje = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
-                                return `${label}: ${value.toLocaleString('es-CO')} (${porcentaje}% del total)`;
+                                return `${label}: ${value} (${porcentaje}% del total)`;
                             }
                         }
                     }
@@ -3084,13 +3089,19 @@ export class PdmComponent implements OnInit, OnDestroy {
                         callbacks: {
                             label: (context) => {
                                 const item = secretariasOrdenadas[context.dataIndex];
+                                const completados = item.productos_completados ?? 0;
+                                const enProgreso = item.productos_en_progreso ?? 0;
+                                const pendientes = item.productos_pendientes ?? 0;
+                                const porEjecutar = item.productos_por_ejecutar ?? 0;
+                                const actividades = `${(item.actividades_completadas ?? 0)}/${(item.total_actividades ?? 0)}`;
                                 return [
                                     `Avance: ${item.porcentaje_avance_promedio.toFixed(1)}%`,
                                     `Productos: ${item.total_productos}`,
-                                    `Completados: ${item.completados}`,
-                                    `En Progreso: ${item.en_progreso}`,
-                                    `Pendientes: ${item.pendientes}`,
-                                    `Actividades: ${item.actividades_completadas}/${item.total_actividades}`
+                                    `Completados: ${completados}`,
+                                    `En Progreso: ${enProgreso}`,
+                                    `Pendientes: ${pendientes}`,
+                                    `Por Ejecutar: ${porEjecutar}`,
+                                    `Actividades: ${actividades}`
                                 ];
                             }
                         }

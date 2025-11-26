@@ -49,6 +49,28 @@ def migrate():
             print("📋 Columnas actuales en la tabla:")
             for col in columnas:
                 print(f"   • {col[0]} ({col[1]})")
+
+            # Asegurar columna 'anio' si no existe
+            has_anio = any(col[0] == 'anio' for col in columnas)
+            if not has_anio:
+                print("🔨 Agregando columna faltante 'anio' (INTEGER)...")
+                cursor.execute("""
+                    ALTER TABLE pdm_ejecucion_presupuestal
+                    ADD COLUMN anio INTEGER;
+                """)
+                conn.commit()
+                print("   ✅ Columna 'anio' agregada\n")
+
+            # Asegurar índice por 'anio'
+            try:
+                cursor.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_pdm_ejecucion_anio
+                    ON pdm_ejecucion_presupuestal(anio)
+                """)
+                conn.commit()
+                print("   ✅ Índice en 'anio' creado")
+            except Exception as e:
+                print(f"   ⚠️ No se pudo crear índice en 'anio': {e}")
             
             cursor.close()
             conn.close()
@@ -74,6 +96,7 @@ def migrate():
                 sector VARCHAR(100),
                 dependencia VARCHAR(200),
                 bpin VARCHAR(50),
+                anio INTEGER,
                 CONSTRAINT fk_pdm_ejecucion_entity 
                     FOREIGN KEY (entity_id) 
                     REFERENCES entities(id) 
