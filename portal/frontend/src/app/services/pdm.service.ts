@@ -448,6 +448,19 @@ export class PdmService {
             console.log('📊 generarResumenProductos: Procesando', pdmData.productos_plan_indicativo.length, 'productos');
         }
         
+            // ✅ CRÍTICO: Extraer TODAS las actividades de los productos y cargarlas en el BehaviorSubject
+            const todasActividades: ActividadPDM[] = [];
+            pdmData.productos_plan_indicativo.forEach(producto => {
+                if ((producto as any).actividades && Array.isArray((producto as any).actividades)) {
+                    todasActividades.push(...(producto as any).actividades);
+                }
+            });
+        
+            if (todasActividades.length > 0) {
+                console.log('📦 generarResumenProductos: Cargando', todasActividades.length, 'actividades en memoria');
+                this.actividadesSubject.next(todasActividades);
+            }
+        
         const resumen = pdmData.productos_plan_indicativo.map(producto => {
             const totalCuatrienio = producto.total_2024 + producto.total_2025 + producto.total_2026 + producto.total_2027;
             
