@@ -504,17 +504,8 @@ export class PdmComponent implements OnInit, OnDestroy {
                 // Generar analytics iniciales
                 this.generarAnalytics();
                 
-                // ✅ Sincronizar actividades de TODOS los productos y recalcular avances
-                this.cargarActividadesTodosProductos().then(() => {
-                    // Recalcular avances y analytics tras sincronización
-                    this.resumenProductos = this.ordenarProductosPorCodigo(
-                        this.pdmService.generarResumenProductos(this.pdmData!)
-                    );
-                    this.estadisticas = this.pdmService.calcularEstadisticas(this.pdmData!);
-                    this.generarAnalytics();
-                    // ✅ CRÍTICO: Actualizar caches después de cargar actividades
-                    this.actualizarCachesFiltros();
-                });
+                // ✅ OPTIMIZACIÓN: Las actividades ya vienen del backend, solo actualizar caches
+                this.actualizarCachesFiltros();
                 
                 this.showToast(`Datos cargados desde el servidor. ${this.resumenProductos.length} productos disponibles.`, 'success');
             },
@@ -841,20 +832,13 @@ export class PdmComponent implements OnInit, OnDestroy {
                 );
                 this.estadisticas = this.pdmService.calcularEstadisticas(data);
                 this.productoSeleccionado = null;
+                this.generarAnalytics();
                 
-                // ✅ Sincronizar actividades de todos los productos y recalcular
-                this.cargarActividadesTodosProductos().then(() => {
-                    this.resumenProductos = this.ordenarProductosPorCodigo(
-                        this.pdmService.generarResumenProductos(this.pdmData!)
-                    );
-                    this.estadisticas = this.pdmService.calcularEstadisticas(this.pdmData!);
-                    this.generarAnalytics();
-                    // ✅ CRÍTICO: Actualizar caches después de cargar actividades
-                    this.actualizarCachesFiltros();
-                    this.cargandoDesdeBackend = false;
-                    this.ultimaActualizacionCache = Date.now(); // ✅ Actualizar timestamp del caché
-                    this.showToast('Datos y actividades actualizados desde el servidor', 'success');
-                });
+                // ✅ OPTIMIZACIÓN: Actividades ya vienen del backend
+                this.actualizarCachesFiltros();
+                this.cargandoDesdeBackend = false;
+                this.ultimaActualizacionCache = Date.now();
+                this.showToast('Datos actualizados desde el servidor', 'success');
             },
             error: (error) => {
                 console.warn('⚠️ Error al recargar dashboard:', error);
@@ -892,17 +876,12 @@ export class PdmComponent implements OnInit, OnDestroy {
                 this.productoSeleccionado = null;
                 this.limpiarFiltros();
                 
-                // ✅ CRÍTICO: Cargar actividades de TODOS los productos
-                this.cargarActividadesTodosProductos().then(() => {
-                    // IMPORTANTE: Recalcular avance DESPUÉS de sincronizar actividades
-                    this.resumenProductos = this.pdmService.generarResumenProductos(data);
-                    this.estadisticas = this.pdmService.calcularEstadisticas(data);
-                    this.generarAnalytics();
-                    // ✅ CRÍTICO: Actualizar caches después de cargar actividades
-                    this.actualizarCachesFiltros();
-                    this.ultimaActualizacionCache = Date.now(); // ✅ Actualizar timestamp del caché
-                });
-                
+                // ✅ OPTIMIZACIÓN: Actividades ya vienen del backend
+                this.resumenProductos = this.pdmService.generarResumenProductos(data);
+                this.estadisticas = this.pdmService.calcularEstadisticas(data);
+                this.generarAnalytics();
+                this.actualizarCachesFiltros();
+                this.ultimaActualizacionCache = Date.now();
                 this.cargandoDesdeBackend = false;
             },
             error: (error) => {

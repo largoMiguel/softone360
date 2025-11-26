@@ -336,17 +336,28 @@ async def get_pdm_data(
         
         print(f"📊 Encontrados {len(productos)} productos para entidad {slug}")
         
+        # ✅ OPTIMIZACIÓN: Cargar TODAS las actividades de una sola vez
+        todas_actividades = db.query(PdmActividad).filter(
+            PdmActividad.entity_id == entity.id
+        ).all()
+        
+        # Crear un diccionario para acceso rápido: codigo_producto -> [actividades]
+        actividades_por_codigo = {}
+        for act in todas_actividades:
+            if act.codigo_producto not in actividades_por_codigo:
+                actividades_por_codigo[act.codigo_producto] = []
+            actividades_por_codigo[act.codigo_producto].append(act)
+        
+        print(f"📦 Cargadas {len(todas_actividades)} actividades en total")
+        
         # Validar cada producto antes de retornar
         productos_validos = []
         lineas_set = set()  # Usar set para líneas únicas
         
         for p in productos:
             try:
-                # Cargar actividades del producto usando el codigo_producto
-                actividades = db.query(PdmActividad).filter(
-                    PdmActividad.entity_id == entity.id,
-                    PdmActividad.codigo_producto == p.codigo_producto
-                ).all()
+                # Obtener actividades del diccionario (O(1) en lugar de query)
+                actividades = actividades_por_codigo.get(p.codigo_producto, [])
                 
                 # Asignar actividades al producto (para que Pydantic pueda validarlo)
                 p.actividades = actividades
