@@ -96,6 +96,7 @@ class ProductoResponse(ProductoPlanIndicativoBase):
     avance_general_porcentaje: Optional[float] = None  # (metas_cumplidas / metas_totales) * 100
     detalle_metas: Optional[List[Dict[str, Any]]] = None  # Lista por año: {anio, programado, ejecutado, cumplida}
     puede_agregar_actividad_anio: Optional[Dict[str, bool]] = None  # {"2024": bool, ...}
+    porcentaje_ejecucion: Optional[float] = None  # ✅ Porcentaje de ejecución calculado en backend
     created_at: datetime
     updated_at: Optional[datetime] = None
 
