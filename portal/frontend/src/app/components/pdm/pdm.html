@@ -594,6 +594,14 @@
                             <p class="fw-bold">{{ productoSeleccionado.producto }}</p>
                         </div>
 
+                        <!-- Código Indicador (SisPT) -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="text-muted small">Código Indicador (SisPT)</label>
+                                <p class="fw-bold">{{ productoSeleccionado.detalle_completo?.codigo_indicador_producto || 'N/A' }}</p>
+                            </div>
+                        </div>
+
                         <div class="row mb-3">
                             <div class="col-md-4">
                                 <label class="text-muted small">Línea Estratégica</label>
@@ -889,16 +897,18 @@
                                 <thead>
                                     <tr>
                                         <th class="text-muted small">Año</th>
-                                        <th class="text-muted small text-end">PDM</th>
-                                        <th class="text-muted small text-end">Ejecución</th>
-                                        <th class="text-muted small text-end">%</th>
+                                        <th class="text-muted small text-end">Presupuesto PDM</th>
+                                        <th class="text-muted small text-end">Pto. Definitivo</th>
+                                        <th class="text-muted small text-end">Pagos Reales</th>
+                                        <th class="text-muted small text-end">% Ejecutado</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr *ngFor="let comp of comparativaPresupuestalCache">
                                         <td class="small"><strong>{{ comp.anio }}</strong></td>
                                         <td class="text-end small">{{ formatearMoneda(comp.pdm) }}</td>
-                                        <td class="text-end small">{{ formatearMoneda(comp.ejecucion) }}</td>
+                                        <td class="text-end small text-muted">{{ formatearMoneda(comp.ptoDefinitivo) }}</td>
+                                        <td class="text-end small"><strong class="text-primary">{{ formatearMoneda(comp.pagos) }}</strong></td>
                                         <td class="text-end small">
                                             <span [class.text-success]="comp.porcentaje >= 95" 
                                                   [class.text-warning]="comp.porcentaje >= 70 && comp.porcentaje < 95"
@@ -912,7 +922,7 @@
                         </div>
                         <div class="alert alert-info small mt-3 mb-0" role="alert">
                             <i class="fas fa-info-circle me-2"></i>
-                            <strong>Nota:</strong> La ejecución muestra el presupuesto definitivo total. Para ver desglose por año, cargue archivos de ejecución separados por cada año.
+                            <strong>Nota:</strong> El <strong>Pto. Definitivo</strong> es el presupuesto real asignado al producto (después de adiciones y reducciones). Los <strong class="text-primary">Pagos Reales</strong> son lo efectivamente ejecutado. El <strong>% Ejecutado</strong> se calcula: <code>Pagos / Pto. Definitivo</code>.
                         </div>
                     </div>
                 </div>
@@ -1724,7 +1734,7 @@
                             <div class="col-md-6">
                                 <label class="text-muted small">Estado del Proyecto</label>
                                 <p>
-                                    <span class="badge" [class.bg-success]="proyectoBPIN.estadoproyecto === 'VIABLE'" 
+                                    <span class="badge text-dark" [class.bg-success]="proyectoBPIN.estadoproyecto === 'VIABLE'" 
                                           [class.bg-warning]="proyectoBPIN.estadoproyecto === 'EN ESTUDIO'"
                                           [class.bg-info]="proyectoBPIN.estadoproyecto === 'ACTIVO'">
                                         {{ proyectoBPIN.estadoproyecto }}

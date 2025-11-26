@@ -70,8 +70,7 @@ export class LoginComponent implements OnInit {
               } else {
                 // Usuario administrativo válido (admin o secretario)
                 this.isLoading = false;
-                // Abrir el sidebar para que el usuario elija dónde ir
-                this.sidebarService.open();
+                // Sidebar permanece cerrado - el usuario lo abrirá si lo necesita
                 const slug = user.entity?.slug;
                 this.router.navigate(slug ? ['/', slug, 'dashboard'] : ['/'], { replaceUrl: true });
               }

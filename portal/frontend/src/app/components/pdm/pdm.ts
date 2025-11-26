@@ -82,7 +82,7 @@ export class PdmComponent implements OnInit, OnDestroy {
 
     // ✅ OPTIMIZACIÓN: Variables cacheadas para evitar recálculos en templates
     productosFiltradosCache: ResumenProducto[] = [];
-    comparativaPresupuestalCache: { anio: number; pdm: number; ejecucion: number; diferencia: number; porcentaje: number }[] = [];
+    comparativaPresupuestalCache: { anio: number; pdm: number; ptoDefinitivo: number; pagos: number; porcentaje: number }[] = [];
     estadisticasPorEstadoCache = { pendiente: 0, en_progreso: 0, completado: 0, por_ejecutar: 0, total: 0 };
     metaEjecutadaTotalCache: number = 0;
     puedeCrearEvidenciaCache: boolean = false;
@@ -789,7 +789,7 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Solo muestra el año actualmente seleccionado en el tab de actividades
      * ✅ OPTIMIZADO: Cachea resultados para evitar recálculos
      */
-    getComparativaPresupuestal(): { anio: number; pdm: number; ejecucion: number; diferencia: number; porcentaje: number }[] {
+    getComparativaPresupuestal(): { anio: number; pdm: number; ptoDefinitivo: number; pagos: number; porcentaje: number }[] {
         if (!this.productoSeleccionado) {
             this.comparativaPresupuestalCache = [];
             return this.comparativaPresupuestalCache;
@@ -797,16 +797,16 @@ export class PdmComponent implements OnInit, OnDestroy {
 
         // Si no hay ejecución cargada (404 para ese año) mostrar ejecución = 0
         const tieneEjecucion = !!this.ejecucionPresupuestal;
-        const ejecucionSeleccionada = tieneEjecucion ? Number(this.ejecucionPresupuestal!.totales.pto_definitivo || 0) : 0;
+        const ptoDefinitivo = tieneEjecucion ? Number(this.ejecucionPresupuestal!.totales.pto_definitivo || 0) : 0;
+        const pagos = tieneEjecucion ? Number(this.ejecucionPresupuestal!.totales.pagos || 0) : 0;
 
         // Mostrar SOLO el año seleccionado
         const anio = this.anioSeleccionado;
         const pdm = this.productoSeleccionado![`total_${anio}` as keyof ResumenProducto] as number || 0;
-        const ejecucion = ejecucionSeleccionada;
-        const diferencia = ejecucion - pdm;
-        const porcentaje = pdm > 0 ? (ejecucion / pdm) * 100 : 0;
+        // El porcentaje se calcula: PAGOS / PTO. DEFINITIVO (lo ejecutado del presupuesto real asignado)
+        const porcentaje = ptoDefinitivo > 0 ? (pagos / ptoDefinitivo) * 100 : 0;
 
-        this.comparativaPresupuestalCache = [{ anio, pdm, ejecucion, diferencia, porcentaje }];
+        this.comparativaPresupuestalCache = [{ anio, pdm, ptoDefinitivo, pagos, porcentaje }];
         return this.comparativaPresupuestalCache;
     }    /**
      * Recarga el dashboard con datos frescos del backend (con caché)
