@@ -3,7 +3,7 @@ Rutas API para PDM - Versión 2
 Alineadas con la estructura del frontend
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from typing import List
 from datetime import datetime
@@ -336,8 +336,10 @@ async def get_pdm_data(
         
         print(f"📊 Encontrados {len(productos)} productos para entidad {slug}")
         
-        # ✅ OPTIMIZACIÓN: Cargar TODAS las actividades de una sola vez
-        todas_actividades = db.query(PdmActividad).filter(
+        # ✅ OPTIMIZACIÓN: Cargar TODAS las actividades de una sola vez CON evidencias
+        todas_actividades = db.query(PdmActividad).options(
+            joinedload(PdmActividad.evidencia)
+        ).filter(
             PdmActividad.entity_id == entity.id
         ).all()
         
@@ -584,7 +586,9 @@ async def get_actividades_por_producto(
         entity = get_entity_or_404(db, slug)
         ensure_user_can_manage_entity(current_user, entity)
         
-        query = db.query(PdmActividad).filter(
+        query = db.query(PdmActividad).options(
+            joinedload(PdmActividad.evidencia)
+        ).filter(
             PdmActividad.entity_id == entity.id,
             PdmActividad.codigo_producto == codigo_producto
         )
@@ -623,7 +627,9 @@ async def get_mis_actividades(
     ensure_user_can_manage_entity(current_user, entity)
     
     # Incluir actividades asignadas a la secretaría del usuario
-    query = db.query(PdmActividad).filter(
+    query = db.query(PdmActividad).options(
+        joinedload(PdmActividad.evidencia)
+    ).filter(
         PdmActividad.entity_id == entity.id,
         PdmActividad.responsable_secretaria_id == current_user.secretaria_id
     )
