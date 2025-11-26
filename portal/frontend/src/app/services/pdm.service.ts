@@ -470,7 +470,10 @@ export class PdmService {
 
             return {
                 codigo: producto.codigo_producto,
-                producto: producto.indicador_producto_mga || producto.personalizacion_indicador,
+                // Producto principal: usar producto_mga si existe, si no, indicador o personalización
+                producto: producto.producto_mga || producto.indicador_producto_mga || producto.personalizacion_indicador || '',
+                producto_mga: producto.producto_mga || null,
+                indicador_producto_mga: producto.indicador_producto_mga || null,
                 linea_estrategica: producto.linea_estrategica,
                 sector: producto.sector_mga,
                 programa_mga: producto.programa_mga,

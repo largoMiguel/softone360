@@ -589,9 +589,15 @@
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="text-muted small">Producto / Indicador</label>
-                            <p class="fw-bold">{{ productoSeleccionado.producto }}</p>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="text-muted small">Producto (MGA)</label>
+                                <p class="fw-bold">{{ productoSeleccionado.producto_mga || productoSeleccionado.detalle_completo?.producto_mga || 'N/D' }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="text-muted small">Indicador de Producto (MGA)</label>
+                                <p class="fw-bold">{{ productoSeleccionado.indicador_producto_mga || productoSeleccionado.detalle_completo?.indicador_producto_mga || 'N/D' }}</p>
+                            </div>
                         </div>
 
                         <!-- Código Indicador (SisPT) -->

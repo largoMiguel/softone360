@@ -180,7 +180,11 @@ export interface PDMData {
 // Interfaz para resumen de producto con presupuesto por año
 export interface ResumenProducto {
     codigo: string;
+    // Nombre del producto (MGA) original
     producto: string;
+    // Separación explícita para evitar ambigüedad en la UI
+    producto_mga?: string | null;
+    indicador_producto_mga?: string | null;
     linea_estrategica: string;
     sector: string;
     programa_mga: string;
