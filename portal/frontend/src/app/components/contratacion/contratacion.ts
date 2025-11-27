@@ -665,8 +665,8 @@ export class ContratacionComponent implements OnInit, OnDestroy {
 
     // ===== Listado en tarjetas =====
     getKey(p: ProcesoContratacion): string {
-        const ref = (p.referencia_del_contrato || p.referencia_del_proceso);
-        return (p.id_contrato as any) || ref || `${p.nit_entidad || ''}-${p.documento_proveedor || ''}-${p.fecha_de_firma || ''}`;
+        const ref = (p.referencia_del_contrato || p.referencia_del_proceso || '').toString();
+        return ref || `${p.nit_entidad || ''}-${p.documento_proveedor || ''}-${p.fecha_de_firma || ''}`;
     }
 
     isExpanded(key: string): boolean {
@@ -688,7 +688,7 @@ export class ContratacionComponent implements OnInit, OnDestroy {
 
     // Registros provenientes de SECOP II Procesos (sin contrato)
     isSinContrato(p: ProcesoContratacion): boolean {
-        return !!p.sin_contrato || (!!p.referencia_del_proceso && !p.id_contrato);
+        return !!p.sin_contrato;
     }
 
     // Normaliza si un contrato está contratado/en ejecución (activo)

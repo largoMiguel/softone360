@@ -18,7 +18,8 @@ export class ContratacionService {
      * 
      * Para SECOP II:
      * - Consulta DOS datasets: procesos CON contrato (jbjy-vk9h) y procesos SIN contrato (p6dx-8zbt)
-     * - Fusiona los resultados sin duplicar usando id_contrato o referencia_del_contrato como clave única
+    * - Fusiona los resultados sin duplicar usando referencias oficiales:
+    *   referencia_del_contrato (jbjy-vk9h) y referencia_del_proceso (p6dx-8zbt)
      * 
      * Para SECOP I:
      * - Consulta un solo dataset (f789-7hwg)
@@ -66,7 +67,7 @@ export class ContratacionService {
      * Estrategia de fusión:
      * 1. Obtener procesos CON contrato (dataset principal jbjy-vk9h)
      * 2. Obtener procesos SIN contrato (dataset complementario p6dx-8zbt)
-     * 3. Crear un Map usando id_contrato o referencia_del_contrato como clave única
+    * 3. Crear un Map usando EXCLUSIVAMENTE referencias oficiales como clave única
      * 4. Priorizar datos del dataset CON contrato (más completo)
      * 5. Agregar procesos SIN contrato solo si no existen en el Map
      */
