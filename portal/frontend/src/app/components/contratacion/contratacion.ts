@@ -305,7 +305,7 @@ export class ContratacionComponent implements OnInit, OnDestroy {
         const cf = this.columnFilters;
         if (cf.referencia) {
             const needle = cf.referencia.toLowerCase();
-            data = data.filter(p => (p.referencia_del_contrato || '').toLowerCase().includes(needle));
+            data = data.filter(p => ((p.referencia_del_contrato || p.referencia_del_proceso || '').toString().toLowerCase().includes(needle)));
         }
         if (cf.estado) {
             data = data.filter(p => (p.estado_contrato || '') === cf.estado);
@@ -343,8 +343,9 @@ export class ContratacionComponent implements OnInit, OnDestroy {
             data = data.filter(p => !p.ultima_actualizacion || new Date(p.ultima_actualizacion) <= d);
         }
 
-        // Orden por referencia
-        data.sort((a, b) => (a.referencia_del_contrato || '').localeCompare(b.referencia_del_contrato || ''));
+        // Orden por referencia unificada (contrato o proceso)
+        const refOf = (p: ProcesoContratacion) => (p.referencia_del_contrato || p.referencia_del_proceso || '').toString();
+        data.sort((a, b) => refOf(a).localeCompare(refOf(b)));
 
         this.procesosFiltrados = data;
         // reset página al aplicar filtros
@@ -664,7 +665,8 @@ export class ContratacionComponent implements OnInit, OnDestroy {
 
     // ===== Listado en tarjetas =====
     getKey(p: ProcesoContratacion): string {
-        return (p.id_contrato as any) || p.referencia_del_contrato || `${p.nit_entidad || ''}-${p.documento_proveedor || ''}-${p.fecha_de_firma || ''}`;
+        const ref = (p.referencia_del_contrato || p.referencia_del_proceso);
+        return (p.id_contrato as any) || ref || `${p.nit_entidad || ''}-${p.documento_proveedor || ''}-${p.fecha_de_firma || ''}`;
     }
 
     isExpanded(key: string): boolean {
@@ -680,7 +682,7 @@ export class ContratacionComponent implements OnInit, OnDestroy {
     trackByContrato = (_: number, p: ProcesoContratacion) => this.getKey(p);
 
     async copyReferencia(p: ProcesoContratacion): Promise<void> {
-        const ref = p.referencia_del_contrato || '';
+        const ref = (p.referencia_del_contrato || p.referencia_del_proceso || '').toString();
         try { await navigator.clipboard?.writeText(ref); } catch { /* noop */ }
     }
 
@@ -1216,7 +1218,7 @@ export class ContratacionComponent implements OnInit, OnDestroy {
             'Referencia', 'Estado', 'Modalidad', 'Tipo', 'Valor contrato', 'Valor pagado', 'Proveedor', 'Fecha inicio', 'Fecha fin'
         ];
         const body = this.procesosFiltrados.slice(0, 20).map(p => [
-            p.referencia_del_contrato || '-',
+            (p.referencia_del_contrato || p.referencia_del_proceso || '-').toString(),
             p.estado_contrato || '-',
             p.modalidad_de_contratacion || '-',
             p.tipo_de_contrato || '-',
