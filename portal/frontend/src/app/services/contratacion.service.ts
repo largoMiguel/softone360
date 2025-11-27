@@ -173,7 +173,8 @@ export class ContratacionService {
             referencia_del_contrato: proceso.referencia_del_contrato || referenciaProceso || proceso.id_del_proceso || proceso.proceso_de_compra,
             descripcion_del_proceso: proceso.descripcion_del_proceso || (proceso as any).descripci_n_del_procedimiento,
             estado_contrato: proceso.estado_contrato || (proceso as any).estado_del_procedimiento || 'Sin contrato',
-            fecha_de_inicio_del_contrato: proceso.fecha_de_inicio_del_contrato || (proceso as any).fecha_de_publicacion_del,
+            // Para procesos sin contrato, la fecha de referencia para filtros/orden es fecha_de_publicacion_del_proceso
+            fecha_de_inicio_del_contrato: proceso.fecha_de_inicio_del_contrato || (proceso as any).fecha_de_publicacion_del_proceso,
             // Valores por defecto para procesos sin contrato
             valor_del_contrato: proceso.valor_del_contrato || 0,
             valor_pagado: proceso.valor_pagado || 0
@@ -228,10 +229,10 @@ export class ContratacionService {
             where.push(`nit_entidad='${filtro.entidad}'`);
         }
         if (filtro.fechaDesde) {
-            where.push(`fecha_de_publicacion_del>='${filtro.fechaDesde}T00:00:00.000'`);
+            where.push(`fecha_de_publicacion_del_proceso>='${filtro.fechaDesde}T00:00:00.000'`);
         }
         if (filtro.fechaHasta) {
-            where.push(`fecha_de_publicacion_del<='${filtro.fechaHasta}T23:59:59.999'`);
+            where.push(`fecha_de_publicacion_del_proceso<='${filtro.fechaHasta}T23:59:59.999'`);
         }
 
         const whereClause = where.length > 0 ? ` WHERE ${where.join(' AND ')}` : '';
