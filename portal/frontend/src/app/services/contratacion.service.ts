@@ -130,23 +130,30 @@ export class ContratacionService {
 
     /**
      * Obtiene una clave única para identificar un proceso/contrato
-     * Prioridad: id_contrato > referencia_del_contrato > id_del_proceso
+     * Prioridad solicitada: referencia_del_contrato (jbjy-vk9h) > referencia_del_proceso (p6dx-8zbt) > id_del_proceso > proceso_de_compra
+     * Nota: se normaliza (trim + uppercase) para evitar duplicados por casing/espacios.
      */
     private getUniqueKey(proceso: ProcesoContratacion): string | null {
-        // Para dataset CON contrato (jbjy-vk9h)
-        if (proceso.id_contrato) {
-            return `contrato-${proceso.id_contrato}`;
+        const normalizeRef = (v?: string) => (v || '').toString().trim().toUpperCase();
+
+        const refContrato = normalizeRef(proceso.referencia_del_contrato);
+        if (refContrato) {
+            return `REFC-${refContrato}`;
         }
-        if (proceso.referencia_del_contrato) {
-            return `ref-${proceso.referencia_del_contrato}`;
+
+        const refProceso = normalizeRef((proceso as any).referencia_del_proceso as string);
+        if (refProceso) {
+            return `REFP-${refProceso}`;
         }
-        
-        // Para dataset SIN contrato (p6dx-8zbt)
-        if (proceso.id_del_proceso) {
-            return `proceso-${proceso.id_del_proceso}`;
+
+        const idProceso = normalizeRef(proceso.id_del_proceso as string);
+        if (idProceso) {
+            return `IDP-${idProceso}`;
         }
-        if (proceso.proceso_de_compra) {
-            return `compra-${proceso.proceso_de_compra}`;
+
+        const procCompra = normalizeRef(proceso.proceso_de_compra as string);
+        if (procCompra) {
+            return `PC-${procCompra}`;
         }
 
         return null; // Si no tiene ningún identificador, se omite
@@ -157,13 +164,14 @@ export class ContratacionService {
      * para que sean compatibles en la UI
      */
     private normalizarProceso(proceso: ProcesoContratacion): ProcesoContratacion {
+        const referenciaProceso = (proceso as any).referencia_del_proceso as string | undefined;
         return {
             ...proceso,
-            // Mapear campos específicos del dataset de procesos
-            referencia_del_contrato: proceso.referencia_del_contrato || proceso.id_del_proceso || proceso.proceso_de_compra,
-            descripcion_del_proceso: proceso.descripcion_del_proceso || proceso.descripci_n_del_procedimiento,
-            estado_contrato: proceso.estado_contrato || proceso.estado_del_procedimiento || 'Sin contrato',
-            fecha_de_inicio_del_contrato: proceso.fecha_de_inicio_del_contrato || proceso.fecha_de_publicacion_del,
+            // Mapear campos específicos del dataset de procesos -> compatibilidad con UI (usa referencia_del_contrato)
+            referencia_del_contrato: proceso.referencia_del_contrato || referenciaProceso || proceso.id_del_proceso || proceso.proceso_de_compra,
+            descripcion_del_proceso: proceso.descripcion_del_proceso || (proceso as any).descripci_n_del_procedimiento,
+            estado_contrato: proceso.estado_contrato || (proceso as any).estado_del_procedimiento || 'Sin contrato',
+            fecha_de_inicio_del_contrato: proceso.fecha_de_inicio_del_contrato || (proceso as any).fecha_de_publicacion_del,
             // Valores por defecto para procesos sin contrato
             valor_del_contrato: proceso.valor_del_contrato || 0,
             valor_pagado: proceso.valor_pagado || 0
