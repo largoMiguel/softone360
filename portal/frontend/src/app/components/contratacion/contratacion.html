@@ -468,7 +468,7 @@
                         <div class="card-header-modern">
                             <div class="card-reference">
                                 <i class="fas fa-file-contract"></i>
-                                <span class="ref-code">{{ p.referencia_del_contrato || 'N/D' }}</span>
+                                <span class="ref-code">{{ (p.referencia_del_contrato || p.referencia_del_proceso) || 'N/D' }}</span>
                             </div>
                             <span class="badge status-badge" [ngClass]="getEstadoBadgeClass(p)">
                                 <span class="badge-dot"></span>
@@ -584,7 +584,7 @@
                     <div class="modal-title-section">
                         <i class="fas fa-file-contract"></i>
                         <div>
-                            <span class="modal-title">{{ selectedProceso.referencia_del_contrato || 'N/D' }}</span>
+                            <span class="modal-title">{{ (selectedProceso.referencia_del_contrato || selectedProceso.referencia_del_proceso) || 'N/D' }}</span>
                             <span class="badge status-badge" [ngClass]="getEstadoBadgeClass(selectedProceso!)">
                                 <span class="badge-dot"></span>
                                 {{ getEstadoDisplay(selectedProceso!) }}

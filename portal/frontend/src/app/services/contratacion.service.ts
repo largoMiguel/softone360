@@ -97,6 +97,8 @@ export class ContratacionService {
             )
         }).pipe(
             map(({ conContrato, sinContrato }) => {
+                console.log('[ContratacionService] Query SECOP II CON contrato:', queryConContrato);
+                console.log('[ContratacionService] Query SECOP II SIN contrato:', querySinContrato);
                 console.log(`[ContratacionService] SECOP II - Con contrato: ${conContrato.length}, Sin contrato: ${sinContrato.length}`);
 
                 // Map para deduplicación usando clave única
