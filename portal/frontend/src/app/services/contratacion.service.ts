@@ -166,18 +166,26 @@ export class ContratacionService {
      * para que sean compatibles en la UI
      */
     private normalizarProceso(proceso: ProcesoContratacion): ProcesoContratacion {
-        const referenciaProceso = (proceso as any).referencia_del_proceso as string | undefined;
+        const p: any = proceso as any;
+        const referenciaProceso = p.referencia_del_proceso as string | undefined;
+        const adjudicado = (p.adjudicado || '').toString().trim().toLowerCase() === 'si';
+        const valorTotalAdjudicacion = p.valor_total_adjudicacion ?? null;
+        const precioBase = p.precio_base ?? 0;
+        const proveedor = p.nombre_del_proveedor || p.nombre_del_adjudicador || '';
         return {
             ...proceso,
             // Mapear campos específicos del dataset de procesos -> compatibilidad con UI (usa referencia_del_contrato)
             referencia_del_contrato: proceso.referencia_del_contrato || referenciaProceso || proceso.id_del_proceso || proceso.proceso_de_compra,
-            descripcion_del_proceso: proceso.descripcion_del_proceso || (proceso as any).descripci_n_del_procedimiento,
-            estado_contrato: proceso.estado_contrato || (proceso as any).estado_del_procedimiento || 'Sin contrato',
-            // Para procesos sin contrato, la fecha de referencia para filtros/orden es fecha_de_publicacion_del_proceso
-            fecha_de_inicio_del_contrato: proceso.fecha_de_inicio_del_contrato || (proceso as any).fecha_de_publicacion_del_proceso,
-            // Valores por defecto para procesos sin contrato
-            valor_del_contrato: proceso.valor_del_contrato || 0,
-            valor_pagado: proceso.valor_pagado || 0
+            descripcion_del_proceso: proceso.descripcion_del_proceso || p.nombre_del_procedimiento || p.descripci_n_del_procedimiento,
+            estado_contrato: proceso.estado_contrato || p.estado_del_procedimiento || 'Sin contrato',
+            // Fechas
+            fecha_de_inicio_del_contrato: proceso.fecha_de_inicio_del_contrato || p.fecha_de_publicacion_del_proceso,
+            // Valores y proveedor
+            valor_del_contrato: adjudicado && valorTotalAdjudicacion ? valorTotalAdjudicacion : (proceso.valor_del_contrato || precioBase || 0),
+            valor_pagado: proceso.valor_pagado || 0,
+            proveedor_adjudicado: proceso.proveedor_adjudicado || proveedor,
+            // Flag derivado para UI
+            sin_contrato: true
         };
     }
 

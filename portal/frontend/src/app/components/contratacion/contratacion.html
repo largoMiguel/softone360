@@ -483,11 +483,11 @@
                                     <i class="fas fa-dollar-sign"></i>
                                 </div>
                                 <div class="value-content">
-                                    <span class="value-label">Valor Contrato</span>
+                                    <span class="value-label">{{ isSinContrato(p) ? 'Valor Estimado' : 'Valor Contrato' }}</span>
                                     <span class="value-amount">$ {{ toNumber(p.valor_del_contrato) | number:'1.0-0' }}</span>
                                 </div>
                             </div>
-                            <div class="value-item success">
+                            <div class="value-item success" *ngIf="!isSinContrato(p)">
                                 <div class="value-icon">
                                     <i class="fas fa-check-circle"></i>
                                 </div>
@@ -499,7 +499,7 @@
                         </div>
 
                         <!-- Barra de progreso -->
-                        <div class="progress-bar-container" *ngIf="toNumber(p.valor_del_contrato) > 0">
+                        <div class="progress-bar-container" *ngIf="toNumber(p.valor_del_contrato) > 0 && !isSinContrato(p)">
                             <div class="progress-bar">
                                 <div class="progress-fill"
                                     [style.width.%]="(toNumber(p.valor_pagado) / toNumber(p.valor_del_contrato)) * 100">

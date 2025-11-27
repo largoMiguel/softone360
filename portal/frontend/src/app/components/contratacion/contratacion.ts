@@ -686,6 +686,11 @@ export class ContratacionComponent implements OnInit, OnDestroy {
         try { await navigator.clipboard?.writeText(ref); } catch { /* noop */ }
     }
 
+    // Registros provenientes de SECOP II Procesos (sin contrato)
+    isSinContrato(p: ProcesoContratacion): boolean {
+        return !!p.sin_contrato || (!!p.referencia_del_proceso && !p.id_contrato);
+    }
+
     // Normaliza si un contrato está contratado/en ejecución (activo)
     isContratado(p: ProcesoContratacion): boolean {
         // Normalizar estado: minúsculas sin acentos para comparación

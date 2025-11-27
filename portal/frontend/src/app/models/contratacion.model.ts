@@ -145,6 +145,9 @@ export interface ProcesoContratacion {
     es_mipyme?: string;
     tama_o_mipyme?: string;
     codigo_bpin?: string;
+
+    // ============ CAMPOS DERIVADOS (internos UI) ==========
+    sin_contrato?: boolean; // true cuando proviene de p6dx-8zbt (procesos sin contrato)
 }
 
 export interface FiltroContratacion {
