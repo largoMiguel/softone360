@@ -38,8 +38,8 @@ export class ContratacionComponent implements OnInit, OnDestroy {
     procesosFiltrados: ProcesoContratacion[] = [];
     // Paginación
     pageIndex = 1; // 1-based
-    pageSize = 8;
-    pageSizes: number[] = [8, 12, 24, 48];
+    pageSize = 20; // valor por defecto solicitado (20 registros)
+    pageSizes: number[] = [20, 40, 80];
     loading = false;
     errorMsg = '';
     subs = new Subscription();
@@ -145,12 +145,29 @@ export class ContratacionComponent implements OnInit, OnDestroy {
     mostrarModalInforme = false;
     incluirResumenIA = false;
 
-    // Estado de expansión de tarjetas
-    private expandedRefs = new Set<string>();
+    // Eliminado soporte de tarjetas (grid) -> se mantiene sólo tabla
 
     // Modal de detalle minimalista
     showModal = false;
     selectedProceso: ProcesoContratacion | null = null;
+
+    // Estado para sección avanzada del modal
+    showAdvanced = false;
+    copyFeedback = '';
+
+    // Eliminado layoutMode (solo tabla)
+
+    // Ordenamiento tabla
+    sortField: string = '';
+    sortDir: 'asc' | 'desc' = 'asc';
+    // Multi-ordenamiento (Shift+click en encabezados)
+    sortPriority: Array<{ field: string; dir: 'asc' | 'desc' }> = [];
+
+    // Densidad (comfortable | compact)
+    layoutDensity: 'comfortable' | 'compact' = 'comfortable';
+
+    // Debounce timers
+    private debounceTimers: Record<string, any> = {};
 
     constructor(
         private contratacionService: ContratacionService,
@@ -220,6 +237,7 @@ export class ContratacionComponent implements OnInit, OnDestroy {
         this.showModal = true;
         // Evitar scroll de fondo
         document.body.style.overflow = 'hidden';
+        this.showAdvanced = false;
     }
 
     // Cerrar modal de detalle
@@ -239,6 +257,8 @@ export class ContratacionComponent implements OnInit, OnDestroy {
             this.openModal(contrato);
         } else {
             this.vistaActual = vista;
+            // Reset de expansión al cambiar a lista
+            // Vista lista ya no gestiona expansión de tarjetas
             
             if (contrato) {
                 this.selectedProceso = contrato;
@@ -326,14 +346,6 @@ export class ContratacionComponent implements OnInit, OnDestroy {
             const needle = cf.proveedor.toLowerCase();
             data = data.filter(p => (p.proveedor_adjudicado || '').toString().toLowerCase().includes(needle));
         }
-        if (cf.publicacionDesde) {
-            const d = new Date(cf.publicacionDesde);
-            data = data.filter(p => !p.fecha_de_inicio_del_contrato || new Date(p.fecha_de_inicio_del_contrato) >= d);
-        }
-        if (cf.publicacionHasta) {
-            const d = new Date(cf.publicacionHasta);
-            data = data.filter(p => !p.fecha_de_inicio_del_contrato || new Date(p.fecha_de_inicio_del_contrato) <= d);
-        }
         if (cf.ultimaDesde) {
             const d = new Date(cf.ultimaDesde);
             data = data.filter(p => !p.ultima_actualizacion || new Date(p.ultima_actualizacion) >= d);
@@ -343,9 +355,44 @@ export class ContratacionComponent implements OnInit, OnDestroy {
             data = data.filter(p => !p.ultima_actualizacion || new Date(p.ultima_actualizacion) <= d);
         }
 
-        // Orden por referencia unificada (contrato o proceso)
+        // Ordenamiento dinámico (multi-sort si hay prioridad, de lo contrario sortField)
         const refOf = (p: ProcesoContratacion) => (p.referencia_del_contrato || p.referencia_del_proceso || '').toString();
-        data.sort((a, b) => refOf(a).localeCompare(refOf(b)));
+        const descriptors: Array<{ field: string; dir: 'asc' | 'desc' }> =
+            this.sortPriority.length > 0
+                ? this.sortPriority.slice()
+                : (this.sortField ? [{ field: this.sortField, dir: this.sortDir }] : [{ field: 'referencia', dir: 'asc' }]);
+
+        const getVal = (p: ProcesoContratacion, field: string) => {
+            switch (field) {
+                case 'referencia': return refOf(p);
+                case 'estado': return this.getEstado(p).toString();
+                case 'modalidad': return (p.modalidad_de_contratacion || '').toString();
+                case 'tipo': return (p.tipo_de_contrato || '').toString();
+                case 'valor': return this.toNumber(p.valor_del_contrato);
+                case 'pagado': return this.toNumber(p.valor_pagado);
+                case 'proveedor': return (p.proveedor_adjudicado || '').toString();
+                case 'inicio': {
+                    const pub = (p as any).fecha_de_publicacion_del_proceso as string | undefined;
+                    return (p.fecha_de_inicio_del_contrato || pub || '');
+                }
+                case 'fin': return p.fecha_de_fin_del_contrato || '';
+                default: return refOf(p);
+            }
+        };
+        data.sort((a, b) => {
+            for (const d of descriptors) {
+                const va = getVal(a, d.field);
+                const vb = getVal(b, d.field);
+                let cmp: number;
+                if (typeof va === 'number' && typeof vb === 'number') {
+                    cmp = va - vb;
+                } else {
+                    cmp = va.toString().localeCompare(vb.toString());
+                }
+                if (cmp !== 0) return d.dir === 'asc' ? cmp : -cmp;
+            }
+            return 0;
+        });
 
         this.procesosFiltrados = data;
         // reset página al aplicar filtros
@@ -507,7 +554,7 @@ export class ContratacionComponent implements OnInit, OnDestroy {
 
         // Distribución de estados
         this.distribucionEstados = this.groupCount(
-            this.procesosFiltrados.map(p => p.estado_contrato || 'SIN ESTADO')
+            this.procesosFiltrados.map(p => this.getEstado(p))
         );
 
         // Contratos vencidos y próximos a vencer
@@ -517,7 +564,7 @@ export class ContratacionComponent implements OnInit, OnDestroy {
 
     updateCharts(): void {
         // Estados
-        const estados = this.groupCount(this.procesosFiltrados.map(p => p.estado_contrato || 'SIN ESTADO'));
+        const estados = this.groupCount(this.procesosFiltrados.map(p => this.getEstado(p)));
         this.estadosChartData = {
             labels: Object.keys(estados),
             datasets: [{
@@ -663,32 +710,21 @@ export class ContratacionComponent implements OnInit, OnDestroy {
         return Math.round((list.reduce((a, b) => a + b, 0) / list.length) * 100) / 100;
     }
 
-    // ===== Listado en tarjetas =====
+    // Helpers para tabla
     getKey(p: ProcesoContratacion): string {
-        const ref = (p.referencia_del_contrato || p.referencia_del_proceso || '').toString();
-        return ref || `${p.nit_entidad || ''}-${p.documento_proveedor || ''}-${p.fecha_de_firma || ''}`;
-    }
-
-    isExpanded(key: string): boolean {
-        return this.expandedRefs.has(key);
-    }
-
-    toggleExpand(p: ProcesoContratacion): void {
-        const key = this.getKey(p);
-        if (!key) return;
-        if (this.expandedRefs.has(key)) this.expandedRefs.delete(key); else this.expandedRefs.add(key);
+        return (p.referencia_del_contrato || p.referencia_del_proceso || '').toString();
     }
 
     trackByContrato = (_: number, p: ProcesoContratacion) => this.getKey(p);
 
-    async copyReferencia(p: ProcesoContratacion): Promise<void> {
-        const ref = (p.referencia_del_contrato || p.referencia_del_proceso || '').toString();
-        try { await navigator.clipboard?.writeText(ref); } catch { /* noop */ }
-    }
-
     // Registros provenientes de SECOP II Procesos (sin contrato)
-    isSinContrato(p: ProcesoContratacion): boolean {
-        return !!p.sin_contrato;
+    isSinContrato(p: ProcesoContratacion): boolean { return !!p.sin_contrato; }
+
+    // Estado unificado: estado del contrato o del procedimiento (sin contrato)
+    getEstado(p: ProcesoContratacion | null | undefined): string {
+        if (!p) return 'SIN ESTADO';
+        const e = (p.estado_contrato || (p as any).estado_del_procedimiento || '').toString();
+        return e || 'SIN ESTADO';
     }
 
     // Normaliza si un contrato está contratado/en ejecución (activo)
@@ -725,7 +761,7 @@ export class ContratacionComponent implements OnInit, OnDestroy {
         } else if (typeof p === 'string') {
             estado = p;
         } else {
-            estado = p.estado_contrato ?? '';
+            estado = this.getEstado(p);
         }
         
         estado = estado
@@ -755,9 +791,12 @@ export class ContratacionComponent implements OnInit, OnDestroy {
 
             // En proceso (Amarillo)
             'borrador': 'bg-warning',           // Amarillo
-            'pendiente': 'bg-warning',          // Amarillo
+            'publicado': 'bg-warning',          // Amarillo
+            'pendiente': 'bg-warning',         // Amarillo
             'proceso': 'bg-warning',            // Amarillo
             'convocado': 'bg-info',             // Azul
+            'evaluacion': 'bg-info',            // Azul
+            'adjudicacion': 'bg-success',       // Verde
 
             // Adjudicación
             'adjudicado': 'bg-success',         // Verde
@@ -769,7 +808,7 @@ export class ContratacionComponent implements OnInit, OnDestroy {
 
     // Texto a mostrar para estado (mapear 'terminado' -> 'Liquidado')
     getEstadoDisplay(p: ProcesoContratacion): string {
-        const raw = p.estado_contrato || '';
+        const raw = this.getEstado(p) || '';
         const norm = raw.toString().trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         if (norm === 'terminado') return 'Liquidado';
         return raw || 'N/D';
@@ -1074,6 +1113,90 @@ export class ContratacionComponent implements OnInit, OnDestroy {
             publicacionDesde: '', publicacionHasta: '', ultimaDesde: '', ultimaHasta: ''
         };
         this.applyLocalFilters();
+    }
+
+    // Eliminado toggleLayout (única vista tabla)
+
+    setSort(field: string): void {
+        if (this.sortField === field) {
+            this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+            this.sortField = field;
+            this.sortDir = 'asc';
+        }
+        this.sortPriority = []; // limpiar multi-sort al usar simple
+        this.applyLocalFilters();
+    }
+
+    onHeaderClick(event: MouseEvent, field: string): void {
+        if (event.shiftKey) {
+            // Multi-sort: ciclo asc -> desc -> remove
+            const existing = this.sortPriority.find(d => d.field === field);
+            if (!existing) {
+                this.sortPriority.push({ field, dir: 'asc' });
+            } else if (existing.dir === 'asc') {
+                existing.dir = 'desc';
+            } else {
+                // remove
+                this.sortPriority = this.sortPriority.filter(d => d.field !== field);
+            }
+            // limpiar sortField para que multi-sort tome prioridad
+            this.sortField = '';
+            this.applyLocalFilters();
+        } else {
+            this.setSort(field);
+        }
+    }
+
+    getSortIndex(field: string): number | null {
+        const idx = this.sortPriority.findIndex(d => d.field === field);
+        return idx >= 0 ? idx + 1 : null;
+    }
+
+    getSortDir(field: string): 'asc' | 'desc' | null {
+        const d = this.sortPriority.find(x => x.field === field);
+        if (d) return d.dir;
+        if (this.sortField === field) return this.sortDir;
+        return null;
+    }
+
+    toggleDensity(): void {
+        this.layoutDensity = this.layoutDensity === 'comfortable' ? 'compact' : 'comfortable';
+    }
+
+    // Toggle sección avanzada del modal
+    toggleAdvanced(): void {
+        this.showAdvanced = !this.showAdvanced;
+    }
+
+    copySelectedReferencia(): void {
+        const ref = (this.selectedProceso?.referencia_del_contrato || this.selectedProceso?.referencia_del_proceso || '').toString();
+        if (!ref) return;
+        try { navigator.clipboard?.writeText(ref); } catch { /* noop */ }
+        this.copyFeedback = 'Referencia copiada';
+        setTimeout(() => { this.copyFeedback = ''; }, 1800);
+    }
+
+    // Debounce aplicado a filtros de texto
+    onFilterInput(key: 'referencia' | 'proveedor', value: string): void {
+        this.columnFilters[key] = value;
+        if (this.debounceTimers[key]) clearTimeout(this.debounceTimers[key]);
+        this.debounceTimers[key] = setTimeout(() => {
+            this.applyLocalFilters();
+        }, 300);
+    }
+
+    // Clase para header sticky cuando scroll (mejora UX en tablas largas)
+    @HostListener('window:scroll')
+    onScroll() {
+        const header = document.querySelector('.contracts-table thead');
+        if (!header) return;
+        const offset = window.scrollY;
+        if (offset > 120) {
+            header.classList.add('sticky');
+        } else {
+            header.classList.remove('sticky');
+        }
     }
 
     // ===== Reporte PDF =====

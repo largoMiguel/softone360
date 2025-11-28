@@ -7,8 +7,6 @@ export interface ProcesoContratacion {
     ciudad?: string;
 
     // Información del contrato
-    proceso_de_compra?: string;
-    id_contrato?: string;
     referencia_del_contrato?: string;
     estado_contrato?: string;
     descripcion_del_proceso?: string;
@@ -69,7 +67,6 @@ export interface ProcesoContratacion {
     // ============ CAMPOS SECOP II PROCESOS (p6dx-8zbt) ============
     descripci_n_del_procedimiento?: string;
     estado_del_procedimiento?: string;
-    id_del_proceso?: string;
     fecha_de_publicacion_del?: string;
 
     // ============ CAMPOS SECOP I (nuevos) ============

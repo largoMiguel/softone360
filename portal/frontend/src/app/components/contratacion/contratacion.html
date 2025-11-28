@@ -20,6 +20,9 @@
                 <button *ngIf="vistaActual !== 'dashboard'" class="btn btn-outline-secondary me-2" (click)="volver()">
                     <i class="fas fa-arrow-left"></i> Volver
                 </button>
+                <button *ngIf="vistaActual === 'lista'" class="btn btn-outline-primary me-2" (click)="exportCSV()" title="Exportar CSV (respeta orden)">
+                    <i class="fas fa-file-csv"></i> CSV
+                </button>
             </div>
         </div>
         <p class="page-subtitle" *ngIf="vistaActual === 'dashboard'">
@@ -362,16 +365,19 @@
     <div *ngIf="vistaActual === 'lista' && !loading" class="vista-lista">
         <div class="card">
             <div class="card-header bg-white">
-                <h6 class="mb-0"><i class="fas fa-th-large me-2 text-primary"></i>Contratos ({{ procesosFiltrados.length }})</h6>
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h6 class="mb-0 d-flex align-items-center gap-2"><i class="fas fa-table text-primary"></i> Contratos ({{ procesosFiltrados.length }})</h6>
+                    <div class="list-actions d-flex align-items-center gap-2"><!-- Botones densidad y ayuda removidos; CSV movido al header --></div>
+                </div>
             </div>
             <div class="card-body">
                 <!-- Barra de filtros compacta -->
-                <div class="filters-toolbar mb-3">
+                <div class="filters-toolbar mb-3 enhanced-filters">
                     <div class="row g-2 align-items-end">
                         <div class="col-12 col-md-3">
                             <label class="form-label mb-1">Referencia</label>
                             <input type="text" class="form-control form-control-sm" placeholder="Buscar..."
-                                [(ngModel)]="columnFilters.referencia" (ngModelChange)="applyLocalFilters()">
+                                [ngModel]="columnFilters.referencia" (ngModelChange)="onFilterInput('referencia', $event)">
                         </div>
                         <div class="col-6 col-md-2">
                             <label class="form-label mb-1">Estado</label>
@@ -400,7 +406,7 @@
                         <div class="col-6 col-md-3">
                             <label class="form-label mb-1">Proveedor</label>
                             <input type="text" class="form-control form-control-sm" placeholder="Nombre o NIT"
-                                [(ngModel)]="columnFilters.proveedor" (ngModelChange)="applyLocalFilters()">
+                                [ngModel]="columnFilters.proveedor" (ngModelChange)="onFilterInput('proveedor', $event)">
                         </div>
                         <div class="col-6 col-md-3">
                             <label class="form-label mb-1">Valor min</label>
@@ -458,100 +464,121 @@
                     </div>
                 </div>
 
-                <!-- Grid de tarjetas modernas -->
-                <div class="contracts-grid">
-                    <div class="contract-card-modern" *ngFor="let p of paginatedProcesos; trackBy: trackByContrato"
-                        role="button" tabindex="0" (click)="navegarA('detalle', p)" (keydown.enter)="navegarA('detalle', p)"
-                        (keydown.space)="navegarA('detalle', p)">
-
-                        <!-- Header de la card -->
-                        <div class="card-header-modern">
-                            <div class="card-reference">
-                                <i class="fas fa-file-contract"></i>
-                                <span class="ref-code">{{ (p.referencia_del_contrato || p.referencia_del_proceso) || 'N/D' }}</span>
-                            </div>
-                            <span class="badge status-badge" [ngClass]="getEstadoBadgeClass(p)">
-                                <span class="badge-dot"></span>
-                                {{ getEstadoDisplay(p) }}
-                            </span>
-                        </div>
-
-                        <!-- Valores principales -->
-                        <div class="card-values">
-                            <div class="value-item primary">
-                                <div class="value-icon">
-                                    <i class="fas fa-dollar-sign"></i>
-                                </div>
-                                <div class="value-content">
-                                    <span class="value-label">{{ isSinContrato(p) ? 'Valor Estimado' : 'Valor Contrato' }}</span>
-                                    <span class="value-amount">$ {{ toNumber(p.valor_del_contrato) | number:'1.0-0' }}</span>
-                                </div>
-                            </div>
-                            <div class="value-item success" *ngIf="!isSinContrato(p)">
-                                <div class="value-icon">
-                                    <i class="fas fa-check-circle"></i>
-                                </div>
-                                <div class="value-content">
-                                    <span class="value-label">Pagado</span>
-                                    <span class="value-amount">$ {{ toNumber(p.valor_pagado) | number:'1.0-0' }}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Barra de progreso -->
-                        <div class="progress-bar-container" *ngIf="toNumber(p.valor_del_contrato) > 0 && !isSinContrato(p)">
-                            <div class="progress-bar">
-                                <div class="progress-fill"
-                                    [style.width.%]="(toNumber(p.valor_pagado) / toNumber(p.valor_del_contrato)) * 100">
-                                </div>
-                            </div>
-                            <span class="progress-label">
-                                {{ ((toNumber(p.valor_pagado) / toNumber(p.valor_del_contrato)) * 100) | number:'1.0-1' }}%
-                                ejecutado
-                            </span>
-                        </div>
-
-                        <!-- Información del proveedor -->
-                        <div class="card-provider">
-                            <i class="fas fa-building"></i>
-                            <span class="provider-name">{{ p.proveedor_adjudicado || 'Sin proveedor' }}</span>
-                            <span *ngIf="p.es_pyme === 'Si'" class="pyme-badge">PYME</span>
-                        </div>
-
-                        <!-- Chips meta -->
-                        <div class="meta-chips">
-                            <span class="chip">
-                                <i class="fas fa-user-tie"></i>
-                                <span class="chip-text" [title]="p.nombre_supervisor || 'N/D'">{{ (p.nombre_supervisor || 'N/D') | slice:0:24 }}<ng-container
-                                        *ngIf="(p.nombre_supervisor || '').length > 24">…</ng-container></span>
-                            </span>
-                            <span class="chip">
-                                <i class="far fa-clock"></i>
-                                <span class="chip-text">{{ p.ultima_actualizacion | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</span>
-                            </span>
-                        </div>
-
-                        <!-- Fechas -->
-                        <div class="card-dates">
-                            <div class="date-item">
-                                <i class="far fa-calendar"></i>
-                                <span>{{ p.fecha_de_inicio_del_contrato | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</span>
-                            </div>
-                            <div class="date-separator">→</div>
-                            <div class="date-item">
-                                <i class="far fa-calendar-check"></i>
-                                <span>{{ p.fecha_de_fin_del_contrato | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</span>
-                            </div>
-                        </div>
-
-                        <!-- Objeto del contrato -->
-                        <div class="card-description">
-                            <p class="description-text">{{ p.objeto_del_contrato || 'Sin descripción' }}</p>
-                        </div>
-
-                        <!-- Indicador de abrir modal -->
-                        <div class="expand-indicator">
-                            <i class="fas fa-up-right-from-square"></i>
+                <!-- Vista Tabla Única -->
+                <div class="contracts-table-wrapper">
+                    <table class="table contracts-table align-middle mb-0" [class.compact]="layoutDensity==='compact'">
+                        <thead>
+                            <tr>
+                                <th (click)="onHeaderClick($event,'referencia')" class="sortable" [class.sorted]="getSortDir('referencia')" [class.sort-asc]="getSortDir('referencia')==='asc'" [class.sort-desc]="getSortDir('referencia')==='desc'" title="Referencia (Shift+click para multi-orden)">
+                                    Referencia
+                                    <span class="sort-indicator" *ngIf="getSortDir('referencia') as dir">
+                                        <i class="fa" [ngClass]="{'fa-arrow-up': dir==='asc', 'fa-arrow-down': dir==='desc'}"></i>
+                                        <span class="sort-index" *ngIf="getSortIndex('referencia') as idx">{{ idx }}</span>
+                                    </span>
+                                </th>
+                                <th class="text-center sortable" (click)="onHeaderClick($event,'estado')" [class.sorted]="getSortDir('estado')" [class.sort-asc]="getSortDir('estado')==='asc'" [class.sort-desc]="getSortDir('estado')==='desc'" title="Estado (Shift+click para multi-orden)">
+                                    Estado
+                                    <span class="sort-indicator" *ngIf="getSortDir('estado') as dir">
+                                        <i class="fa" [ngClass]="{'fa-arrow-up': dir==='asc', 'fa-arrow-down': dir==='desc'}"></i>
+                                        <span class="sort-index" *ngIf="getSortIndex('estado') as idx">{{ idx }}</span>
+                                    </span>
+                                </th>
+                                <th class="sortable" (click)="onHeaderClick($event,'modalidad')" [class.sorted]="getSortDir('modalidad')" [class.sort-asc]="getSortDir('modalidad')==='asc'" [class.sort-desc]="getSortDir('modalidad')==='desc'" title="Modalidad (Shift+click para multi-orden)">
+                                    Modalidad
+                                    <span class="sort-indicator" *ngIf="getSortDir('modalidad') as dir">
+                                        <i class="fa" [ngClass]="{'fa-arrow-up': dir==='asc', 'fa-arrow-down': dir==='desc'}"></i>
+                                        <span class="sort-index" *ngIf="getSortIndex('modalidad') as idx">{{ idx }}</span>
+                                    </span>
+                                </th>
+                                <th class="sortable" (click)="onHeaderClick($event,'tipo')" [class.sorted]="getSortDir('tipo')" [class.sort-asc]="getSortDir('tipo')==='asc'" [class.sort-desc]="getSortDir('tipo')==='desc'" title="Tipo (Shift+click para multi-orden)">
+                                    Tipo
+                                    <span class="sort-indicator" *ngIf="getSortDir('tipo') as dir">
+                                        <i class="fa" [ngClass]="{'fa-arrow-up': dir==='asc', 'fa-arrow-down': dir==='desc'}"></i>
+                                        <span class="sort-index" *ngIf="getSortIndex('tipo') as idx">{{ idx }}</span>
+                                    </span>
+                                </th>
+                                <th class="text-end sortable" (click)="onHeaderClick($event,'valor')" [class.sorted]="getSortDir('valor')" [class.sort-asc]="getSortDir('valor')==='asc'" [class.sort-desc]="getSortDir('valor')==='desc'" title="Valor (Shift+click para multi-orden)">
+                                    Valor
+                                    <span class="sort-indicator" *ngIf="getSortDir('valor') as dir">
+                                        <i class="fa" [ngClass]="{'fa-arrow-up': dir==='asc', 'fa-arrow-down': dir==='desc'}"></i>
+                                        <span class="sort-index" *ngIf="getSortIndex('valor') as idx">{{ idx }}</span>
+                                    </span>
+                                </th>
+                                <th class="text-end sortable" (click)="onHeaderClick($event,'pagado')" [class.sorted]="getSortDir('pagado')" [class.sort-asc]="getSortDir('pagado')==='asc'" [class.sort-desc]="getSortDir('pagado')==='desc'" title="Pagado (Shift+click para multi-orden)">
+                                    Pagado
+                                    <span class="sort-indicator" *ngIf="getSortDir('pagado') as dir">
+                                        <i class="fa" [ngClass]="{'fa-arrow-up': dir==='asc', 'fa-arrow-down': dir==='desc'}"></i>
+                                        <span class="sort-index" *ngIf="getSortIndex('pagado') as idx">{{ idx }}</span>
+                                    </span>
+                                </th>
+                                <th class="text-center">Avance</th>
+                                <th class="sortable" (click)="onHeaderClick($event,'proveedor')" [class.sorted]="getSortDir('proveedor')" [class.sort-asc]="getSortDir('proveedor')==='asc'" [class.sort-desc]="getSortDir('proveedor')==='desc'" title="Proveedor (Shift+click para multi-orden)">
+                                    Proveedor
+                                    <span class="sort-indicator" *ngIf="getSortDir('proveedor') as dir">
+                                        <i class="fa" [ngClass]="{'fa-arrow-up': dir==='asc', 'fa-arrow-down': dir==='desc'}"></i>
+                                        <span class="sort-index" *ngIf="getSortIndex('proveedor') as idx">{{ idx }}</span>
+                                    </span>
+                                </th>
+                                <th class="sortable" (click)="onHeaderClick($event,'inicio')" [class.sorted]="getSortDir('inicio')" [class.sort-asc]="getSortDir('inicio')==='asc'" [class.sort-desc]="getSortDir('inicio')==='desc'" title="Inicio (Shift+click para multi-orden)">
+                                    Inicio
+                                    <span class="sort-indicator" *ngIf="getSortDir('inicio') as dir">
+                                        <i class="fa" [ngClass]="{'fa-arrow-up': dir==='asc', 'fa-arrow-down': dir==='desc'}"></i>
+                                        <span class="sort-index" *ngIf="getSortIndex('inicio') as idx">{{ idx }}</span>
+                                    </span>
+                                </th>
+                                <th class="sortable" (click)="onHeaderClick($event,'fin')" [class.sorted]="getSortDir('fin')" [class.sort-asc]="getSortDir('fin')==='asc'" [class.sort-desc]="getSortDir('fin')==='desc'" title="Fin (Shift+click para multi-orden)">
+                                    Fin
+                                    <span class="sort-indicator" *ngIf="getSortDir('fin') as dir">
+                                        <i class="fa" [ngClass]="{'fa-arrow-up': dir==='asc', 'fa-arrow-down': dir==='desc'}"></i>
+                                        <span class="sort-index" *ngIf="getSortIndex('fin') as idx">{{ idx }}</span>
+                                    </span>
+                                </th>
+                                <!-- Acciones eliminadas: fila completa clickeable -->
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let p of paginatedProcesos; trackBy: trackByContrato" (click)="navegarA('detalle', p)" role="button" tabindex="0" (keydown.enter)="navegarA('detalle', p)">
+                                <td class="ref-col">
+                                    <div class="d-flex flex-column">
+                                        <span class="fw-semibold ref-text">{{ (p.referencia_del_contrato || p.referencia_del_proceso) || 'N/D' }}</span>
+                                        <small class="text-muted" *ngIf="isSinContrato(p)">Sin contrato</small>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge px-2 py-1" [ngClass]="getEstadoBadgeClass(p)">{{ getEstadoDisplay(p) }}</span>
+                                    <span *ngIf="isSinContrato(p)" class="badge badge-sin-contrato ms-1" title="Proceso sin contrato adjudicado">Sin contrato</span>
+                                </td>
+                                <td><span class="text-truncate d-inline-block modal-label" title="{{ p.modalidad_de_contratacion }}">{{ p.modalidad_de_contratacion || 'N/D' }}</span></td>
+                                <td><span class="text-truncate d-inline-block modal-label" title="{{ p.tipo_de_contrato }}">{{ p.tipo_de_contrato || 'N/D' }}</span></td>
+                                <td class="text-end">$ {{ toNumber(p.valor_del_contrato) | number:'1.0-0' }}</td>
+                                <td class="text-end">
+                                    <ng-container *ngIf="!isSinContrato(p); else dashPagado">$ {{ toNumber(p.valor_pagado) | number:'1.0-0' }}</ng-container>
+                                    <ng-template #dashPagado>—</ng-template>
+                                </td>
+                                <td class="text-center">
+                                    <div class="progress progress-thin" *ngIf="!isSinContrato(p) && toNumber(p.valor_del_contrato)>0">
+                                        <div class="progress-bar" role="progressbar" [style.width.%]="(toNumber(p.valor_pagado)/toNumber(p.valor_del_contrato))*100"></div>
+                                    </div>
+                                    <small *ngIf="!isSinContrato(p)">{{ ((toNumber(p.valor_pagado)/toNumber(p.valor_del_contrato))*100) | number:'1.0-1' }}%</small>
+                                    <small *ngIf="isSinContrato(p)" class="text-muted">—</small>
+                                </td>
+                                <td>
+                                    <span class="d-inline-block provider-cell" title="{{ p.proveedor_adjudicado || 'Sin proveedor' }}">{{ p.proveedor_adjudicado || 'Sin proveedor' }}</span>
+                                </td>
+                                <td>{{ p.fecha_de_inicio_del_contrato | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</td>
+                                <td>{{ p.fecha_de_fin_del_contrato | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Paginación flotante -->
+                <div class="floating-pagination">
+                    <div class="d-flex align-items-center justify-content-between w-100">
+                        <div class="small text-muted">Página {{ pageIndex }} de {{ totalPages }}</div>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-secondary" (click)="prevPage()" [disabled]="pageIndex===1">«</button>
+                            <button *ngFor="let p of getPageNumbers()" class="btn" [class.btn-primary]="p===pageIndex" [class.btn-outline-secondary]="p!==pageIndex" (click)="goToPage(p)">{{ p }}</button>
+                            <button class="btn btn-outline-secondary" (click)="nextPage()" [disabled]="pageIndex===totalPages">»</button>
                         </div>
                     </div>
                 </div>
@@ -579,131 +606,115 @@
     <!-- Modal de Detalle Minimalista -->
     <div class="modal-overlay" *ngIf="showModal && selectedProceso" (click)="closeModal()">
         <div class="modal-wrapper" (click)="$event.stopPropagation()">
-            <div class="modal-content-custom" style="max-height: 90vh; display: flex; flex-direction: column;">
-                <div class="modal-header-custom" style="flex-shrink: 0;">
+            <div class="modal-content-custom">
+                <!-- Header -->
+                <div class="modal-header-custom" [attr.aria-label]="'Detalle contrato ' + (selectedProceso.referencia_del_contrato || selectedProceso.referencia_del_proceso)">
                     <div class="modal-title-section">
                         <i class="fas fa-file-contract"></i>
-                        <div>
-                            <span class="modal-title">{{ (selectedProceso.referencia_del_contrato || selectedProceso.referencia_del_proceso) || 'N/D' }}</span>
-                            <span class="badge status-badge" [ngClass]="getEstadoBadgeClass(selectedProceso!)">
-                                <span class="badge-dot"></span>
-                                {{ getEstadoDisplay(selectedProceso!) }}
-                            </span>
+                        <div class="title-block">
+                            <div class="ref-line">
+                                <span class="modal-title">{{ (selectedProceso.referencia_del_contrato || selectedProceso.referencia_del_proceso) || 'N/D' }}</span>
+                                <span *ngIf="selectedProceso.sin_contrato" class="badge badge-sin-contrato ms-1" title="Proceso sin contrato adjudicado">Sin contrato</span>
+                                <span class="badge status-badge" [ngClass]="getEstadoBadgeClass(selectedProceso!)">{{ getEstadoDisplay(selectedProceso!) }}</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary btn-copy-ref" (click)="copySelectedReferencia()" aria-label="Copiar referencia" title="Copiar referencia"><i class="fas fa-copy"></i></button>
+                                <span class="copy-feedback" *ngIf="copyFeedback">{{ copyFeedback }}</span>
+                            </div>
+                            <div class="meta-line">
+                                <span class="meta-item"><i class="far fa-calendar"></i> Inicio: {{ selectedProceso.fecha_de_inicio_del_contrato | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</span>
+                                <span class="meta-sep">→</span>
+                                <span class="meta-item"><i class="far fa-calendar-check"></i> Fin: {{ selectedProceso.fecha_de_fin_del_contrato | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</span>
+                                <span class="meta-item" *ngIf="formatearDuracion(selectedProceso!) !== 'N/D'"><i class="fas fa-clock"></i> Duración: {{ formatearDuracion(selectedProceso!) }}</span>
+                            </div>
                         </div>
                     </div>
-                    <button class="close-btn" (click)="closeModal()" aria-label="Cerrar">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <button class="close-btn" (click)="closeModal()" aria-label="Cerrar"><i class="fas fa-times"></i></button>
                 </div>
-                <div class="modal-body" style="overflow-y: auto; flex: 1;">
-                    <div class="modal-section">
-                        <div class="modal-field">
-                            <span class="label">Proveedor</span>
-                            <span class="value">{{ selectedProceso.proveedor_adjudicado || 'N/D' }}</span>
+
+                <!-- Body -->
+                <div class="modal-body">
+                    <!-- Bloques principales -->
+                    <div class="summary-grid">
+                        <div class="summary-card" aria-label="Resumen valores contrato">
+                            <div class="sc-label">Valor Contrato</div>
+                            <div class="sc-value">$ {{ toNumber(selectedProceso.valor_del_contrato) | number:'1.0-0' }}</div>
+                            <div class="sc-sub" *ngIf="!selectedProceso.sin_contrato">Pagado: $ {{ toNumber(selectedProceso.valor_pagado) | number:'1.0-0' }}</div>
+                            <div class="sc-progress" *ngIf="!selectedProceso.sin_contrato && toNumber(selectedProceso.valor_del_contrato)>0">
+                                <div class="bar">
+                                    <div class="fill" [style.width.%]="(toNumber(selectedProceso.valor_pagado)/toNumber(selectedProceso.valor_del_contrato))*100"></div>
+                                </div>
+                                <span class="pct">{{ ((toNumber(selectedProceso.valor_pagado)/toNumber(selectedProceso.valor_del_contrato))*100) | number:'1.0-1' }}%</span>
+                                <span class="pct-badge">{{ ((toNumber(selectedProceso.valor_pagado)/toNumber(selectedProceso.valor_del_contrato))*100) | number:'1.0-1' }} ejecutado</span>
+                            </div>
                         </div>
-                        <div class="modal-field">
-                            <span class="label">Valor contrato</span>
-                            <span class="value">$ {{ toNumber(selectedProceso.valor_del_contrato) | number:'1.0-0'
-                                }}</span>
+                        <div class="summary-card" aria-label="Resumen proveedor">
+                            <div class="sc-label">Proveedor</div>
+                            <div class="sc-value provider">{{ selectedProceso.proveedor_adjudicado || 'Sin proveedor' }}</div>
+                            <div class="sc-sub">{{ selectedProceso.tipodocproveedor }} {{ selectedProceso.documento_proveedor || '' }}</div>
+                            <div *ngIf="selectedProceso.es_pyme==='Si'" class="sc-tag pyme" aria-label="Proveedor es PYME">PYME</div>
                         </div>
-                        <div class="modal-field">
-                            <span class="label">Pagado</span>
-                            <span class="value text-success">$ {{ toNumber(selectedProceso.valor_pagado) |
-                                number:'1.0-0' }}</span>
+                        <div class="summary-card">
+                            <div class="sc-label">Tipo / Modalidad</div>
+                            <div class="sc-value small">{{ selectedProceso.tipo_de_contrato || 'N/D' }}</div>
+                            <div class="sc-sub">{{ selectedProceso.modalidad_de_contratacion || 'N/D' }}</div>
                         </div>
-                    </div>
-                    <div class="modal-section">
-                        <div class="modal-field">
-                            <span class="label">Tipo</span>
-                            <span class="value">{{ selectedProceso.tipo_de_contrato || 'N/D' }}</span>
-                        </div>
-                        <div class="modal-field">
-                            <span class="label">Modalidad</span>
-                            <span class="value">{{ selectedProceso.modalidad_de_contratacion || 'N/D' }}</span>
-                        </div>
-                        <div class="modal-field">
-                            <span class="label">Documento proveedor</span>
-                            <span class="value">{{ selectedProceso.tipodocproveedor }} {{
-                                selectedProceso.documento_proveedor }}</span>
-                        </div>
-                    </div>
-                    <div class="modal-section">
-                        <div class="modal-field">
-                            <span class="label">Fecha inicio</span>
-                            <span class="value">{{ selectedProceso.fecha_de_inicio_del_contrato | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</span>
-                        </div>
-                        <div class="modal-field">
-                            <span class="label">Fecha fin</span>
-                            <span class="value">{{ selectedProceso.fecha_de_fin_del_contrato | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</span>
-                        </div>
-                        <div class="modal-field">
-                            <span class="label">Duración</span>
-                            <span class="value">{{ formatearDuracion(selectedProceso!) }}</span>
+                        <div class="summary-card" *ngIf="selectedProceso.ultima_actualizacion">
+                            <div class="sc-label">Actualización</div>
+                            <div class="sc-value small">{{ selectedProceso.ultima_actualizacion | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</div>
+                            <div class="sc-sub">Supervisor: {{ selectedProceso.nombre_supervisor || 'N/D' }}</div>
                         </div>
                     </div>
-                    <div class="modal-description">
-                        <span class="label">Objeto del contrato</span>
-                        <p>{{ selectedProceso.objeto_del_contrato || 'Sin descripción' }}</p>
+
+                    <!-- Objeto -->
+                    <div class="description-block">
+                        <div class="desc-label">Objeto del contrato</div>
+                        <p class="desc-text">{{ selectedProceso.objeto_del_contrato || 'Sin descripción' }}</p>
                     </div>
-                    <!-- Más detalles previamente mostrados -->
-                    <div class="modal-section">
-                        <div class="modal-field">
-                            <span class="label">Liquidación</span>
-                            <span class="value">{{ selectedProceso.liquidaci_n || 'Pendiente' }}</span>
-                        </div>
-                        <div class="modal-field">
-                            <span class="label">Supervisor</span>
-                            <span class="value">{{ selectedProceso.nombre_supervisor || 'N/D' }}</span>
-                        </div>
-                        <div class="modal-field">
-                            <span class="label">Última actualización</span>
-                            <span class="value">{{ selectedProceso.ultima_actualizacion | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</span>
-                        </div>
-                    </div>
-                    <div class="modal-section">
-                        <div class="modal-field">
-                            <span class="label">Pago adelantado</span>
-                            <span class="value">$ {{ toNumber(selectedProceso.valor_de_pago_adelantado) |
-                                number:'1.0-0' }}</span>
-                        </div>
-                        <div class="modal-field">
-                            <span class="label">Facturado</span>
-                            <span class="value">$ {{ toNumber(selectedProceso.valor_facturado) | number:'1.0-0'
-                                }}</span>
-                        </div>
-                        <div class="modal-field">
-                            <span class="label">Pendiente de pago</span>
-                            <span class="value">$ {{ toNumber(selectedProceso.valor_pendiente_de_pago) |
-                                number:'1.0-0' }}</span>
-                        </div>
-                    </div>
-                    <div class="modal-section">
-                        <div class="modal-field">
-                            <span class="label">Amortizado</span>
-                            <span class="value">$ {{ toNumber(selectedProceso.valor_amortizado) | number:'1.0-0'
-                                }}</span>
-                        </div>
-                        <div class="modal-field">
-                            <span class="label">Pendiente de ejecución</span>
-                            <span class="value">$ {{ toNumber(selectedProceso.valor_pendiente_de_ejecucion) |
-                                number:'1.0-0' }}</span>
-                        </div>
-                        <div class="modal-field">
-                            <span class="label">Inicio de liquidación</span>
-                            <span class="value">{{ selectedProceso.fecha_inicio_liquidacion | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</span>
+
+                    <!-- Toggle avanzado -->
+                    <button class="btn btn-sm btn-outline-secondary advanced-toggle" (click)="toggleAdvanced()" [attr.aria-expanded]="showAdvanced">
+                        <i class="fas" [ngClass]="showAdvanced ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                        {{ showAdvanced ? 'Ocultar detalles avanzados' : 'Ver detalles avanzados' }}
+                    </button>
+
+                    <!-- Detalles avanzados -->
+                    <div class="advanced-section" *ngIf="showAdvanced">
+                        <div class="advanced-grid">
+                            <div class="adv-item" aria-label="Liquidación">
+                                <span class="adv-label">Liquidación</span>
+                                <span class="adv-value">{{ selectedProceso.liquidaci_n || 'Pendiente' }}</span>
+                            </div>
+                            <div class="adv-item">
+                                <span class="adv-label">Pago adelantado</span>
+                                <span class="adv-value">$ {{ toNumber(selectedProceso.valor_de_pago_adelantado) | number:'1.0-0' }}</span>
+                            </div>
+                            <div class="adv-item">
+                                <span class="adv-label">Facturado</span>
+                                <span class="adv-value">$ {{ toNumber(selectedProceso.valor_facturado) | number:'1.0-0' }}</span>
+                            </div>
+                            <div class="adv-item">
+                                <span class="adv-label">Pendiente de pago</span>
+                                <span class="adv-value">$ {{ toNumber(selectedProceso.valor_pendiente_de_pago) | number:'1.0-0' }}</span>
+                            </div>
+                            <div class="adv-item">
+                                <span class="adv-label">Amortizado</span>
+                                <span class="adv-value">$ {{ toNumber(selectedProceso.valor_amortizado) | number:'1.0-0' }}</span>
+                            </div>
+                            <div class="adv-item">
+                                <span class="adv-label">Pendiente ejecución</span>
+                                <span class="adv-value">$ {{ toNumber(selectedProceso.valor_pendiente_de_ejecucion) | number:'1.0-0' }}</span>
+                            </div>
+                            <div class="adv-item" *ngIf="selectedProceso.fecha_inicio_liquidacion">
+                                <span class="adv-label">Inicio liquidación</span>
+                                <span class="adv-value">{{ selectedProceso.fecha_inicio_liquidacion | date:'dd/MM/yyyy':'America/Bogota':'es-CO' }}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-actions" style="flex-shrink: 0;">
-                    <button class="btn btn-outline-secondary" (click)="closeModal()">
-                        <i class="fas fa-times"></i>
-                        <span>Cerrar</span>
-                    </button>
-                    <a class="btn btn-primary" [href]="getProcesoUrl(selectedProceso!)" target="_blank"
-                        rel="noopener noreferrer">
-                        <i class="fas fa-external-link-alt"></i>
-                        <span>Ver en SECOP</span>
-                    </a>
+
+                <!-- Acciones -->
+                <div class="modal-actions">
+                    <button class="btn btn-outline-secondary" (click)="closeModal()"><i class="fas fa-times"></i><span>Cerrar</span></button>
+                    <a class="btn btn-primary" [href]="getProcesoUrl(selectedProceso!)" target="_blank" rel="noopener noreferrer"><i class="fas fa-external-link-alt"></i><span>Ver en SECOP</span></a>
                 </div>
             </div>
         </div>
