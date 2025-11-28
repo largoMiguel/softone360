@@ -1,0 +1,441 @@
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-chart-bar me-2 text-primary"></i>
+                        Análisis de Predios y Propietarios
+                    </h2>
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-building me-1"></i> {{ entity?.name || 'Análisis Temporal' }}
+                    </p>
+                </div>
+                <button class="btn btn-outline-danger" (click)="logout()">
+                    <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección de carga de archivos -->
+    <div class="row mb-4" *ngIf="!analisisCompletado">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body text-center p-5">
+                    <div class="mb-4">
+                        <i class="fas fa-file-csv fa-5x text-primary mb-3"></i>
+                        <h4>Cargar Archivos CSV de Análisis de Predios</h4>
+                        <p class="text-muted mb-3">
+                            Seleccione los archivos CSV para el análisis
+                        </p>
+                        <div class="alert alert-info text-start" style="max-width: 700px; margin: 0 auto;">
+                            <h6><i class="fas fa-info-circle me-2"></i>Instrucciones:</h6>
+                            <ol class="mb-0">
+                                <li><strong>Archivo IGAC/LGAC 2025</strong> - Archivo principal con predios y propietarios (debe contener "IGAC" o "LGAC" en el nombre)</li>
+                                <li><strong>Archivos ReporteInfoBasicaRut</strong> - Archivos complementarios con información detallada de propietarios</li>
+                            </ol>
+                            <small class="text-muted mt-2 d-block">
+                                💡 El sistema buscará automáticamente cada propietario del archivo IGAC en los archivos RUT para complementar la información.
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <input 
+                            type="file" 
+                            #fileInput
+                            class="form-control form-control-lg" 
+                            accept=".csv"
+                            multiple
+                            (change)="onFilesSelected($event)"
+                            style="max-width: 600px; margin: 0 auto;">
+                    </div>
+
+                    <div class="mb-3" *ngIf="archivosSeleccionados.length > 0">
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>{{ archivosSeleccionados.length }}</strong> archivo(s) seleccionado(s)
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-map me-2 text-primary"></i>Archivo IGAC:</h6>
+                                <ul class="list-unstyled mb-3">
+                                    <li *ngIf="archivoIGAC" class="mb-1">
+                                        <i class="fas fa-file-csv me-2 text-success"></i>
+                                        <strong>{{ archivoIGAC.name }}</strong> ({{ (archivoIGAC.size / 1024).toFixed(2) }} KB)
+                                    </li>
+                                    <li *ngIf="!archivoIGAC" class="mb-1 text-danger">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        No se detectó archivo IGAC (debe contener "IGAC" o "LGAC" en el nombre)
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-database me-2 text-info"></i>Archivos RUT ({{ archivosRUT.length }}):</h6>
+                                <ul class="list-unstyled mb-0" style="max-height: 150px; overflow-y: auto;">
+                                    <li *ngFor="let file of archivosRUT" class="mb-1">
+                                        <i class="fas fa-file-csv me-2 text-info"></i>
+                                        {{ file.name }} ({{ (file.size / 1024).toFixed(2) }} KB)
+                                    </li>
+                                    <li *ngIf="archivosRUT.length === 0" class="text-muted">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Sin archivos RUT complementarios
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+        <!-- Estadísticas generales -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="card shadow-sm border-warning">
+                    <div class="card-body text-center">
+                        <i class="fas fa-home fa-3x text-warning mb-3"></i>
+                        <h3 class="mb-0 text-warning">{{ analisis.totalPredios | number }}</h3>
+                        <p class="text-muted mb-0">Total Predios</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card shadow-sm border-primary">
+                    <div class="card-body text-center">
+                        <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                        <h3 class="mb-0 text-primary">{{ analisis.totalPropietarios | number }}</h3>
+                        <p class="text-muted mb-0">Total Propietarios</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card shadow-sm border-success">
+                    <div class="card-body text-center">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h3 class="mb-0 text-success">{{ analisis.propietariosEncontrados | number }}</h3>
+                        <p class="text-muted mb-0">Info Encontrada en RUT</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card shadow-sm border-info">
+                    <div class="card-body text-center">
+                        <i class="fas fa-envelope fa-3x text-info mb-3"></i>
+                        <h3 class="mb-0 text-info">{{ analisis.propietariosConCorreo | number }}</h3>
+                        <p class="text-muted mb-0">Con Correo Electrónico</p>
+                    </div>
+                </div>
+            </div>
+        </div>          <p class="text-muted mb-0">Registros Activos</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card shadow-sm border-info">
+                    <div class="card-body text-center">
+                        <i class="fas fa-envelope fa-3x text-info mb-3"></i>
+                        <h3 class="mb-0 text-info">{{ analisis.propietariosConCorreo | number }}</h3>
+                        <p class="text-muted mb-0">Con Correo Electrónico</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card shadow-sm border-warning">
+                    <div class="card-body text-center">
+                        <i class="fas fa-map-marker-alt fa-3x text-warning mb-3"></i>
+                        <h3 class="mb-0 text-warning">{{ analisis.topDepartamentos.length | number }}</h3>
+                        <p class="text-muted mb-0">Departamentos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="row mb-4">
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <div style="height: 350px;">
+                            <canvas baseChart
+                                [data]="chartEstadosData"
+                                [type]="chartEstadosType"
+                                [options]="chartEstadosOptions">
+                            </canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <div style="height: 350px;">
+                            <canvas baseChart
+                                [data]="chartTiposData"
+                                [type]="chartTiposType"
+                                [options]="chartTiposOptions">
+                            </canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <div style="height: 350px;">
+                            <canvas baseChart
+                                [data]="chartDepartamentosData"
+                                [type]="chartDepartamentosType"
+                                [options]="chartDepartamentosOptions">
+                            </canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <div style="height: 350px;">
+                            <canvas baseChart
+                                [data]="chartMunicipiosData"
+                                [type]="chartMunicipiosType"
+                                [options]="chartMunicipiosOptions">
+                            </canvas>
+                        </div>
+                        <h5 class="card-title mb-4">
+                            <i class="fas fa-info-circle me-2 text-primary"></i>
+                            Resumen Estadístico
+                        </h5>
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <td><strong>Total Predios:</strong></td>
+                                    <td class="text-end">{{ analisis.totalPredios | number }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Total Propietarios:</strong></td>
+                                    <td class="text-end">{{ analisis.totalPropietarios | number }}</td>
+                                </tr>
+                                <tr class="table-success">
+                                    <td><strong>Info Encontrada en RUT:</strong></td>
+                                    <td class="text-end">{{ analisis.propietariosEncontrados | number }}</td>
+                                </tr>
+                                <tr class="table-warning">
+                                    <td><strong>Sin Info en RUT:</strong></td>
+                                    <td class="text-end">{{ analisis.propietariosNoEncontrados | number }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Personas Naturales:</strong></td>
+                                    <td class="text-end">{{ analisis.distribuciones.personasNaturales | number }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Personas Jurídicas:</strong></td>
+                                    <td class="text-end">{{ analisis.distribuciones.personasJuridicas | number }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Registros Activos:</strong></td>
+                                    <td class="text-end text-success">{{ analisis.distribuciones.estadosActivos | number }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Registros Suspendidos:</strong></td>
+                                    <td class="text-end text-warning">{{ analisis.distribuciones.estadosSuspendidos | number }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Con Correo:</strong></td>
+                                    <td class="text-end text-info">{{ analisis.propietariosConCorreo | number }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Sin Contacto:</strong></td>
+                                    <td class="text-end text-danger">{{ analisis.propietariosSinContacto | number }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>% Contactabilidad:</strong></td>
+                                    <td class="text-end">
+                                        <span class="badge bg-success">
+                                            {{ ((analisis.propietariosConCorreo / analisis.totalPropietarios) * 100).toFixed(1) }}%
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>% Info Encontrada:</strong></td>
+                                    <td class="text-end">
+                                        <span class="badge bg-primary">
+                                            {{ ((analisis.propietariosEncontrados / analisis.totalPropietarios) * 100).toFixed(1) }}%
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table></tr>
+                                <tr>
+                                    <td><strong>Registros Cancelados:</strong></td>
+                                    <td class="text-end text-danger">{{ analisis.distribuciones.estadosCancelados | number }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Con Correo:</strong></td>
+                                    <td class="text-end text-info">{{ analisis.propietariosConCorreo | number }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Sin Contacto:</strong></td>
+                                    <td class="text-end text-danger">{{ analisis.propietariosSinContacto | number }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>% Contactabilidad:</strong></td>
+                                    <td class="text-end">
+                                        <span class="badge bg-success">
+                                            {{ ((analisis.propietariosConCorreo / analisis.totalPropietarios) * 100).toFixed(1) }}%
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtros y tabla de propietarios -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-table me-2"></i>
+                            Lista de Propietarios ({{ propietariosFiltrados.length | number }} registros)
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Filtros -->
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Estado:</label>
+                                <select class="form-select form-select-sm" [(ngModel)]="filtroEstado" (change)="aplicarFiltros()">
+                                    <option value="">Todos</option>
+                                    <option *ngFor="let estado of estadosUnicos" [value]="estado">{{ estado }}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Departamento:</label>
+                                <select class="form-select form-select-sm" [(ngModel)]="filtroDepartamento" (change)="aplicarFiltros()">
+                                    <option value="">Todos</option>
+                                    <option *ngFor="let dep of departamentosUnicos" [value]="dep">{{ dep }}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Municipio:</label>
+                                <select class="form-select form-select-sm" [(ngModel)]="filtroMunicipio" (change)="aplicarFiltros()">
+                                    <option value="">Todos</option>
+                                    <option *ngFor="let mun of municipiosUnicos" [value]="mun">{{ mun }}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Buscar:</label>
+                                <input 
+                                    type="text" 
+                                    class="form-control form-control-sm" 
+                                    placeholder="NIT, nombre, correo..."
+                                    [(ngModel)]="filtroTexto"
+                                    (input)="aplicarFiltros()">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <button class="btn btn-sm btn-outline-secondary me-2" (click)="limpiarFiltros()">
+                                <i class="fas fa-times me-1"></i>Limpiar Filtros
+                            </button>
+                            <button class="btn btn-sm btn-success" (click)="exportarCSV()">
+                                <i class="fas fa-file-csv me-1"></i>Exportar CSV
+                            </button>
+                        </div>
+
+                        <!-- Tabla -->
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>NIT</th>
+                                        <th>Nombre/Razón Social</th>
+                                        <th>Tipo</th>
+                                        <th>Estado</th>
+                                        <th>Departamento</th>
+                                        <th>Municipio</th>
+                                        <th>Correo</th>
+                                        <th>Teléfono</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let prop of propietariosPaginados">
+                                        <td class="text-nowrap">{{ prop.nit }}</td>
+                                        <td>{{ prop.nombre_razon_social }}</td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ prop.tipo }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge" 
+                                                [ngClass]="{
+                                                    'bg-success': prop.estado.includes('ACTIVO'),
+                                                    'bg-warning': prop.estado.includes('SUSPENSION'),
+                                                    'bg-danger': prop.estado.includes('CANCELADO')
+                                                }">
+                                                {{ prop.estado }}
+                                            </span>
+                                        </td>
+                                        <td>{{ prop.departamento }}</td>
+                                        <td>{{ prop.municipio }}</td>
+                                        <td>
+                                            <a *ngIf="prop.correo" [href]="'mailto:' + prop.correo" class="text-decoration-none">
+                                                {{ prop.correo }}
+                                            </a>
+                                            <span *ngIf="!prop.correo" class="text-muted">-</span>
+                                        </td>
+                                        <td class="text-nowrap">
+                                            {{ prop.telefono1 || prop.telefono2 || '-' }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Paginación -->
+                        <div class="d-flex justify-content-between align-items-center mt-3" *ngIf="totalPaginas > 1">
+                            <div>
+                                Mostrando {{ ((paginaActual - 1) * itemsPorPagina) + 1 }} - 
+                                {{ Math.min(paginaActual * itemsPorPagina, propietariosFiltrados.length) }} 
+                                de {{ propietariosFiltrados.length | number }} registros
+                            </div>
+                            <nav>
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item" [class.disabled]="paginaActual === 1">
+                                        <a class="page-link" (click)="cambiarPagina(paginaActual - 1)">Anterior</a>
+                                    </li>
+                                    <li class="page-item" 
+                                        *ngFor="let p of [].constructor(totalPaginas); let i = index"
+                                        [class.active]="i + 1 === paginaActual">
+                                        <a class="page-link" (click)="cambiarPagina(i + 1)">{{ i + 1 }}</a>
+                                    </li>
+                                    <li class="page-item" [class.disabled]="paginaActual === totalPaginas">
+                                        <a class="page-link" (click)="cambiarPagina(paginaActual + 1)">Siguiente</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <button class="btn btn-lg btn-primary me-2" (click)="reiniciar()">
+                    <i class="fas fa-refresh me-2"></i>Nuevo Análisis
+                </button>
+                <button class="btn btn-lg btn-success" (click)="exportarCSV()">
+                    <i class="fas fa-download me-2"></i>Descargar Datos
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Math para la paginación -->
+<ng-container *ngIf="false">{{ Math = Math }}</ng-container>

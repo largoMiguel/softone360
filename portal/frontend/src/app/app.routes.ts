@@ -43,6 +43,8 @@ export const routes: Routes = [
             { path: 'planes-institucionales', loadComponent: () => import('./components/planes-institucionales-v2/planes-institucionales-v2').then(m => m.PlanesInstitucionalesV2Component), canActivate: [adminPortalGuard, enforceUserEntityGuard, planesEnabledGuard, moduleAccessGuard('planes_institucionales')] },
             { path: 'pdm', loadComponent: () => import('./components/pdm/pdm').then(m => m.PdmComponent), canActivate: [adminPortalGuard, enforceUserEntityGuard, pdmEnabledGuard, moduleAccessGuard('pdm')] },
             { path: 'contratacion', loadComponent: () => import('./components/contratacion/contratacion').then(m => m.ContratacionComponent), canActivate: [adminPortalGuard, enforceUserEntityGuard, contratacionEnabledGuard, moduleAccessGuard('contratacion')] },
+            // Análisis temporal de predios (se eliminará después)
+            { path: 'analisis-predios', loadComponent: () => import('./components/predio-analysis/predio-analysis').then(m => m.PredioAnalysisComponent), canActivate: [adminPortalGuard, enforceUserEntityGuard] },
             // Administración de usuarios se gestiona desde el Dashboard (vista interna ?v=usuarios)
         ]
     },
