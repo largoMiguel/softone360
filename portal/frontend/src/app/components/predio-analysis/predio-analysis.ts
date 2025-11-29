@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -161,7 +161,8 @@ export class PredioAnalysisComponent implements OnInit, OnDestroy {
     constructor(
         private predioService: PredioAnalysisService,
         private authService: AuthService,
-        private router: Router
+        private router: Router,
+        private cdr: ChangeDetectorRef
     ) { }
 
     ngOnInit(): void {
@@ -269,6 +270,12 @@ export class PredioAnalysisComponent implements OnInit, OnDestroy {
             // 4. Analizar datos
             console.log('📊 Paso 4: Generando análisis...');
             this.analisis = this.predioService.analizarPredios(this.prediosCargados);
+            
+            console.log('✅ Análisis generado:', {
+                totalPredios: this.analisis.totalPredios,
+                totalPropietarios: this.analisis.totalPropietarios,
+                propietariosEncontrados: this.analisis.propietariosEncontrados
+            });
 
             // Preparar propietarios para tabla (todos los propietarios únicos)
             const propietariosMap = new Map<string, PropietarioRUT>();
@@ -288,7 +295,16 @@ export class PredioAnalysisComponent implements OnInit, OnDestroy {
             this.aplicarPaginacion();
 
             this.analisisCompletado = true;
+            
+            // Forzar detección de cambios
+            this.cdr.detectChanges();
+            
             console.log('✅ Análisis completado exitosamente');
+            console.log('📊 Estado del componente:', {
+                analisisCompletado: this.analisisCompletado,
+                tieneAnalisis: !!this.analisis,
+                analizando: this.analizando
+            });
 
         } catch (err: any) {
             console.error('❌ Error procesando archivos:', err);
