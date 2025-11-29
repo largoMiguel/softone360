@@ -9,6 +9,7 @@ import { authGuard, loginGuard, adminPortalGuard, ciudadanoGuard } from './guard
 import { superAdminGuard } from './guards/superadmin.guard';
 import { planesEnabledGuard, pqrsEnabledGuard, contratacionEnabledGuard, pdmEnabledGuard } from './guards/feature.guard';
 import { ShowcaseComponent } from './components/showcase/showcase';
+import { AnalisisCsvComponent } from './components/analisis-csv/analisis-csv.component';
 import { ensureEntityGuard } from './guards/ensure-entity.guard';
 import { enforceUserEntityGuard } from './guards/enforce-user-entity.guard';
 import { entityResolver } from './resolvers/entity.resolver';
@@ -27,6 +28,9 @@ export const routes: Routes = [
 
     // Ruta de super administración (global, no depende de entidad)
     { path: 'soft-admin', component: SoftAdminComponent, canActivate: [superAdminGuard] },
+
+    // Ruta de análisis CSV (temporal - para análisis de datos)
+    { path: 'analisis-csv', component: AnalisisCsvComponent },
 
     // Rutas por entidad (con slug). Ej: /chiquiza-boyaca/
     {

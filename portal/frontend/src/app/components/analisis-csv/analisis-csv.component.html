@@ -1,0 +1,239 @@
+<div class="analisis-container">
+  <div class="header">
+    <h1><i class="bi bi-graph-up"></i> Análisis de Predios y Propietarios</h1>
+    <p class="subtitle">Sistema de análisis de datos catastrales y propietarios</p>
+  </div>
+
+  <!-- Sección de carga de archivos -->
+  <div class="upload-section">
+    <div class="card">
+      <h2><i class="bi bi-cloud-upload"></i> Cargar Archivos CSV</h2>
+      <div class="upload-grid">
+        <div class="upload-box">
+          <label for="archivoPrincipal" class="upload-label">
+            <i class="bi bi-file-earmark-spreadsheet"></i>
+            <span>Archivo Principal (LGAC 2025)</span>
+            <small>Archivo con predios y propietarios</small>
+          </label>
+          <input
+            type="file"
+            id="archivoPrincipal"
+            accept=".csv,.xlsx,.xls"
+            (change)="onFileChange($event, 'principal')"
+            class="file-input"
+          />
+        </div>
+
+        <div class="upload-box">
+          <label for="archivosRut" class="upload-label">
+            <i class="bi bi-files"></i>
+            <span>Archivos RUT (Múltiples)</span>
+            <small>Información básica de propietarios</small>
+          </label>
+          <input
+            type="file"
+            id="archivosRut"
+            accept=".csv,.xlsx,.xls"
+            multiple
+            (change)="onFileChange($event, 'rut')"
+            class="file-input"
+          />
+        </div>
+      </div>
+
+      @if (loading) {
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Procesando archivos...</p>
+        </div>
+      }
+
+      @if (error) {
+        <div class="alert alert-danger">
+          <i class="bi bi-exclamation-triangle"></i>
+          {{ error }}
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Estadísticas generales -->
+  @if (totalPredios > 0) {
+    <div class="stats-section">
+      <div class="stats-grid">
+        <div class="stat-card primary">
+          <div class="stat-icon">
+            <i class="bi bi-house-door"></i>
+          </div>
+          <div class="stat-info">
+            <h3>{{ totalPredios }}</h3>
+            <p>Total Predios</p>
+          </div>
+        </div>
+
+        <div class="stat-card success">
+          <div class="stat-icon">
+            <i class="bi bi-people"></i>
+          </div>
+          <div class="stat-info">
+            <h3>{{ totalPropietarios }}</h3>
+            <p>Total Propietarios</p>
+          </div>
+        </div>
+
+        <div class="stat-card info">
+          <div class="stat-icon">
+            <i class="bi bi-check-circle"></i>
+          </div>
+          <div class="stat-info">
+            <h3>{{ propietariosConDatos }}</h3>
+            <p>Con Información</p>
+          </div>
+        </div>
+
+        <div class="stat-card warning">
+          <div class="stat-icon">
+            <i class="bi bi-exclamation-circle"></i>
+          </div>
+          <div class="stat-info">
+            <h3>{{ propietariosSinDatos }}</h3>
+            <p>Sin Información</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="charts-section">
+      <h2><i class="bi bi-bar-chart"></i> Análisis Visual</h2>
+      
+      <div class="charts-grid">
+        <!-- Gráfico de Estados -->
+        <div class="chart-card">
+          <div class="chart-container">
+            <canvas
+              baseChart
+              [data]="estadosChartData"
+              [type]="estadosChartType"
+              [options]="estadosChartOptions"
+            ></canvas>
+          </div>
+        </div>
+
+        <!-- Gráfico de Tipos -->
+        <div class="chart-card">
+          <div class="chart-container">
+            <canvas
+              baseChart
+              [data]="tipoChartData"
+              [type]="tipoChartType"
+              [options]="tipoChartOptions"
+            ></canvas>
+          </div>
+        </div>
+
+        <!-- Gráfico de Departamentos -->
+        <div class="chart-card full-width">
+          <div class="chart-container">
+            <canvas
+              baseChart
+              [data]="departamentosChartData"
+              [type]="departamentosChartType"
+              [options]="departamentosChartOptions"
+            ></canvas>
+          </div>
+        </div>
+
+        <!-- Gráfico de Municipios -->
+        <div class="chart-card full-width">
+          <div class="chart-container">
+            <canvas
+              baseChart
+              [data]="municipiosChartData"
+              [type]="municipiosChartType"
+              [options]="municipiosChartOptions"
+            ></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabla de datos -->
+    <div class="table-section">
+      <div class="table-header">
+        <h2><i class="bi bi-table"></i> Detalle de Propietarios</h2>
+        <button class="btn btn-success" (click)="exportarExcel()">
+          <i class="bi bi-file-earmark-excel"></i>
+          Exportar Excel
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>NIT</th>
+              <th>Nombre</th>
+              <th>Tipo</th>
+              <th>Estado</th>
+              <th>Departamento</th>
+              <th>Municipio</th>
+              <th>Dirección</th>
+              <th>Teléfono</th>
+              <th>Correo</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (propietario of propietariosConDatosCompletos; track propietario.nit) {
+              <tr>
+                <td>{{ propietario.nit }}</td>
+                <td>{{ propietario.nombre }}</td>
+                <td>
+                  <span class="badge badge-info">{{ propietario.tipo }}</span>
+                </td>
+                <td>
+                  <span
+                    class="badge"
+                    [class.badge-success]="propietario.estado.includes('ACTIVO')"
+                    [class.badge-warning]="propietario.estado.includes('SUSPENSION')"
+                    [class.badge-danger]="propietario.estado.includes('CANCELADO')"
+                  >
+                    {{ propietario.estado }}
+                  </span>
+                </td>
+                <td>{{ propietario.departamento }}</td>
+                <td>{{ propietario.municipio }}</td>
+                <td>{{ propietario.direccion }}</td>
+                <td>{{ propietario.telefono }}</td>
+                <td>
+                  @if (propietario.correo) {
+                    <a [href]="'mailto:' + propietario.correo">{{ propietario.correo }}</a>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        @if (propietariosConDatosCompletos.length === 0) {
+          <div class="empty-state">
+            <i class="bi bi-inbox"></i>
+            <p>No hay datos para mostrar</p>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  @if (totalPredios === 0 && !loading) {
+    <div class="welcome-state">
+      <i class="bi bi-file-earmark-arrow-up"></i>
+      <h3>Bienvenido al Análisis de Datos</h3>
+      <p>Por favor, carga los archivos CSV para comenzar el análisis</p>
+      <ul>
+        <li>Archivo principal con información de predios</li>
+        <li>Archivos RUT con información de propietarios</li>
+      </ul>
+    </div>
+  }
+</div>
