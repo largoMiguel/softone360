@@ -211,9 +211,21 @@ export class AnalisisCsvComponent implements OnInit {
     reader.onload = (e: any) => {
       try {
         const data = e.target.result;
-        const workbook = XLSX.read(data, { type: 'binary' });
+        // Forzar lectura de números como texto
+        const workbook = XLSX.read(data, { 
+          type: 'binary',
+          raw: true,
+          cellText: false,
+          cellDates: false
+        });
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as any[][];
+        
+        // Convertir manteniendo formato original
+        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { 
+          header: 1,
+          raw: false,  // No convertir a números
+          defval: ''
+        }) as any[][];
 
         console.log('📄 Archivo principal cargado, filas:', jsonData.length);
         console.log('📋 Primera fila (encabezados):', jsonData[0]);
@@ -225,10 +237,25 @@ export class AnalisisCsvComponent implements OnInit {
         for (let i = 1; i < jsonData.length; i++) {
           const row = jsonData[i];
           if (row && row.length > 0) {
-            const numeroIdentificacion = row[0]?.toString().trim() || '';
+            let numeroIdentificacion = row[0]?.toString().trim() || '';
+            
+            // Si es notación científica, convertir a entero
+            if (numeroIdentificacion.includes('e+') || numeroIdentificacion.includes('E+')) {
+              numeroIdentificacion = Math.round(parseFloat(numeroIdentificacion)).toString();
+            }
+            
             // Los propietarios pueden estar en varias columnas o separados por algún delimitador
             const propietariosStr = row[1]?.toString() || '';
-            const propietarios = propietariosStr.split(/[,;]/).map((p: string) => p.trim()).filter((p: string) => p);
+            let propietarios = propietariosStr.split(/[,;]/).map((p: string) => {
+              let nit = p.trim();
+              // Convertir notación científica a número entero
+              if (nit.includes('e+') || nit.includes('E+')) {
+                nit = Math.round(parseFloat(nit)).toString();
+              }
+              return nit;
+            }).filter((p: string) => p);
+            
+            console.log('🔍 Predio:', numeroIdentificacion, '- NITs:', propietarios);
             
             if (numeroIdentificacion && propietarios.length > 0) {
               this.predios.push({
@@ -262,9 +289,21 @@ export class AnalisisCsvComponent implements OnInit {
       reader.onload = (e: any) => {
         try {
           const data = e.target.result;
-          const workbook = XLSX.read(data, { type: 'binary' });
+          // Forzar lectura como texto, no como números
+          const workbook = XLSX.read(data, { 
+            type: 'binary',
+            raw: true,
+            cellText: false,
+            cellDates: false
+          });
           const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-          const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as any[][];
+          
+          // Convertir manteniendo formato original
+          const jsonData = XLSX.utils.sheet_to_json(firstSheet, { 
+            header: 1,
+            raw: false,  // No convertir a números
+            defval: ''
+          }) as any[][];
 
           console.log(`📄 Archivo ${index + 1}/${files.length}: ${file.name}`);
           console.log('  Filas totales:', jsonData.length);
@@ -287,8 +326,13 @@ export class AnalisisCsvComponent implements OnInit {
             const hayDatos = row.some(cell => cell !== undefined && cell !== null && cell.toString().trim() !== '');
             if (!hayDatos) continue;
             
-            const nit = row[0]?.toString().trim();
+            let nit = row[0]?.toString().trim();
             const nombre = row[1]?.toString().trim();
+            
+            // Convertir notación científica a número entero
+            if (nit && (nit.includes('e+') || nit.includes('E+'))) {
+              nit = Math.round(parseFloat(nit)).toString();
+            }
             
             // Validar que tenga NIT y nombre
             if (nit && nombre && nit !== '' && nombre !== '') {
@@ -314,6 +358,7 @@ export class AnalisisCsvComponent implements OnInit {
           filesProcessed++;
           if (filesProcessed === files.length) {
             console.log('🎯 Total de propietarios únicos:', propietariosMap.size);
+            console.log('📝 Ejemplo NITs almacenados:', Array.from(propietariosMap.keys()).slice(0, 10));
             this.finalizarProcesamiento(propietariosMap);
           }
         } catch (error) {
