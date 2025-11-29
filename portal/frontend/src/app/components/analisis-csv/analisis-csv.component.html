@@ -172,42 +172,62 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>NIT</th>
-              <th>Nombre</th>
-              <th>Tipo</th>
+              <th>N° Predio</th>
+              <th>Código</th>
+              <th>Vereda</th>
+              <th>Nombre Predio</th>
+              <th>Propietario</th>
+              <th>N° Documento</th>
+              <th>Tipo Doc</th>
+              <th>Dirección</th>
+              <th>Área (Ha)</th>
+              <th>Avalúo</th>
+              <!-- Columnas de RUT (si existen) -->
+              <th>Nombre Completo RUT</th>
               <th>Estado</th>
               <th>Departamento</th>
               <th>Municipio</th>
-              <th>Dirección</th>
               <th>Teléfono</th>
               <th>Correo</th>
             </tr>
           </thead>
           <tbody>
-            @for (propietario of propietariosConDatosCompletos; track propietario.nit) {
+            @for (propietario of propietariosConDatosCompletos; track propietario.numeroDocumento) {
               <tr>
-                <td>{{ propietario.nit }}</td>
-                <td>{{ propietario.nombre }}</td>
+                <td>{{ propietario.numeroPredio }}</td>
+                <td>{{ propietario.codigoPredio }}</td>
+                <td>{{ propietario.clasePredioVereda }}</td>
+                <td>{{ propietario.predioNombre }}</td>
+                <td>{{ propietario.propietarioNombre }}</td>
+                <td>{{ propietario.numeroDocumento }}</td>
+                <td>{{ propietario.tipoDocumento }}</td>
+                <td>{{ propietario.direccionPredio }}</td>
+                <td>{{ propietario.areaHectareas }}</td>
+                <td>{{ propietario.avaluo }}</td>
+                <!-- Datos de RUT -->
+                <td>{{ propietario.nombreCompleto || '-' }}</td>
                 <td>
-                  <span class="badge badge-info">{{ propietario.tipo }}</span>
+                  @if (propietario.estado) {
+                    <span
+                      class="badge"
+                      [class.badge-success]="propietario.estado.includes('ACTIVO')"
+                      [class.badge-warning]="propietario.estado.includes('SUSPENSION')"
+                      [class.badge-danger]="propietario.estado.includes('CANCELADO')"
+                    >
+                      {{ propietario.estado }}
+                    </span>
+                  } @else {
+                    <span>-</span>
+                  }
                 </td>
-                <td>
-                  <span
-                    class="badge"
-                    [class.badge-success]="propietario.estado.includes('ACTIVO')"
-                    [class.badge-warning]="propietario.estado.includes('SUSPENSION')"
-                    [class.badge-danger]="propietario.estado.includes('CANCELADO')"
-                  >
-                    {{ propietario.estado }}
-                  </span>
-                </td>
-                <td>{{ propietario.departamento }}</td>
-                <td>{{ propietario.municipio }}</td>
-                <td>{{ propietario.direccion }}</td>
-                <td>{{ propietario.telefono }}</td>
+                <td>{{ propietario.departamento || '-' }}</td>
+                <td>{{ propietario.municipio || '-' }}</td>
+                <td>{{ propietario.telefono || '-' }}</td>
                 <td>
                   @if (propietario.correo) {
                     <a [href]="'mailto:' + propietario.correo">{{ propietario.correo }}</a>
+                  } @else {
+                    <span>-</span>
                   }
                 </td>
               </tr>
