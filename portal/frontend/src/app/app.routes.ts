@@ -28,9 +28,6 @@ export const routes: Routes = [
     // Ruta de super administración (global, no depende de entidad)
     { path: 'soft-admin', component: SoftAdminComponent, canActivate: [superAdminGuard] },
 
-    // Análisis temporal de predios (GLOBAL - sin entidad específica)
-    { path: 'analisis-predios', loadComponent: () => import('./components/predio-analysis/predio-analysis').then(m => m.PredioAnalysisComponent), canActivate: [adminPortalGuard] },
-
     // Rutas por entidad (con slug). Ej: /chiquiza-boyaca/
     {
         path: ':slug',
