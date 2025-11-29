@@ -1,8 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { BaseChartDirective } from 'ng2-charts';
-import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
+import { Chart, ChartConfiguration, ChartData, ChartType, registerables } from 'chart.js';
 import * as XLSX from 'xlsx';
+
+// Registrar todos los componentes de Chart.js
+Chart.register(...registerables);
 
 interface Propietario {
   // Datos del archivo principal
@@ -245,9 +248,19 @@ export class AnalisisCsvComponent implements OnInit {
         }) as any[][];
 
         console.log('📄 Archivo principal cargado, filas:', jsonData.length);
-        console.log('📋 Encabezados:', jsonData[0]);
-        console.log('📋 Primera fila datos:', jsonData[1]);
-        console.log('📋 Segunda fila datos:', jsonData[2]);
+        console.log('📋 Primeras 5 filas:', jsonData.slice(0, 5));
+
+        // Detectar fila de encabezados (buscar "Número" o similar en la primera columna)
+        let headerRow = 0;
+        for (let i = 0; i < Math.min(10, jsonData.length); i++) {
+          const firstCell = jsonData[i][0]?.toString().toLowerCase() || '';
+          if (firstCell.includes('número') || firstCell.includes('numero') || firstCell.includes('predio')) {
+            headerRow = i;
+            console.log('📋 Encabezados encontrados en fila:', i);
+            console.log('📋 Encabezados:', jsonData[i]);
+            break;
+          }
+        }
 
         // Agrupar por predio
         const prediosMap = new Map<string, Propietario[]>();
@@ -272,7 +285,7 @@ export class AnalisisCsvComponent implements OnInit {
         // 16: Vigencia
         // 17: Avalúo
         
-        for (let i = 1; i < jsonData.length; i++) {
+        for (let i = headerRow + 1; i < jsonData.length; i++) {
           const row = jsonData[i];
           if (!row || row.length === 0) continue;
           
