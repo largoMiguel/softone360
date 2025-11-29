@@ -13,17 +13,11 @@ interface Propietario {
   codigoPredio?: string;
   clasePredioVereda?: string;
   predioNombre?: string;
-  mejoracodigo?: string;
   propietarioNombre: string;
   numeroDocumento: string;
-  totalPropietarios?: string;
   tipoDocumento?: string;
   direccionPredio?: string;
-  destinacion?: string;
   areaHectareas?: string;
-  areaMetros?: string;
-  areaConstruida?: string;
-  vigencia?: string;
   avaluo?: string;
   
   // Datos de RUT (enriquecidos)
@@ -250,11 +244,11 @@ export class AnalisisCsvComponent implements OnInit {
         console.log('📄 Archivo principal cargado, filas:', jsonData.length);
         console.log('📋 Primeras 5 filas:', jsonData.slice(0, 5));
 
-        // Detectar fila de encabezados (buscar "Número" o similar en la primera columna)
+        // Detectar fila de encabezados
         let headerRow = 0;
         for (let i = 0; i < Math.min(10, jsonData.length); i++) {
           const firstCell = jsonData[i][0]?.toString().toLowerCase() || '';
-          if (firstCell.includes('número') || firstCell.includes('numero') || firstCell.includes('predio')) {
+          if (firstCell.includes('predio') || firstCell.includes('n°')) {
             headerRow = i;
             console.log('📋 Encabezados encontrados en fila:', i);
             console.log('📋 Encabezados:', jsonData[i]);
@@ -262,28 +256,39 @@ export class AnalisisCsvComponent implements OnInit {
           }
         }
 
+        const headers = jsonData[headerRow];
+        console.log('📋 Headers detectados:', headers);
+
+        // Crear mapa de índices de columnas basado en los nombres
+        const getColIndex = (possibleNames: string[]): number => {
+          for (let i = 0; i < headers.length; i++) {
+            const header = headers[i]?.toString().toLowerCase().trim() || '';
+            for (const name of possibleNames) {
+              if (header.includes(name.toLowerCase())) {
+                return i;
+              }
+            }
+          }
+          return -1;
+        };
+
+        const colIndexes = {
+          numeroPredio: getColIndex(['n° predio', 'nº predio', 'numero predio']),
+          codigo: getColIndex(['código', 'codigo']),
+          vereda: getColIndex(['vereda', 'clase']),
+          nombrePredio: getColIndex(['nombre predio']),
+          propietario: getColIndex(['propietario', 'nombre']),
+          numeroDocumento: getColIndex(['n° documento', 'nº documento', 'documento']),
+          tipoDoc: getColIndex(['tipo doc', 'tipo documento']),
+          direccion: getColIndex(['dirección', 'direccion']),
+          area: getColIndex(['área', 'area', 'hectárea', 'hectarea']),
+          avaluo: getColIndex(['avalúo', 'avaluo', 'valor'])
+        };
+
+        console.log('📊 Índices de columnas:', colIndexes);
+
         // Agrupar por predio
         const prediosMap = new Map<string, Propietario[]>();
-        
-        // Estructura esperada del CSV (basada en la imagen):
-        // 0: Número Predio
-        // 1: Número Predio Código Predio  
-        // 2: Clase Predio Vereda
-        // 3: Predio Código
-        // 4: Predio Nombre
-        // 5: Mejora Código
-        // 6: Propietario
-        // 7: Número de Documento
-        // 8: Total Propietarios
-        // 9: Tipo de Documento
-        // 10: Número de Documento (dirección?)
-        // 11: Dirección
-        // 12: Destinación
-        // 13: Área en Hectáreas
-        // 14: Área en Metros
-        // 15: Área Construida
-        // 16: Vigencia
-        // 17: Avalúo
         
         for (let i = headerRow + 1; i < jsonData.length; i++) {
           const row = jsonData[i];
@@ -293,8 +298,8 @@ export class AnalisisCsvComponent implements OnInit {
           const hayDatos = row.some((cell: any) => cell !== undefined && cell !== null && cell.toString().trim() !== '');
           if (!hayDatos) continue;
           
-          let numeroPredio = row[0]?.toString().trim() || '';
-          let numeroDocumento = row[7]?.toString().trim() || '';
+          let numeroPredio = colIndexes.numeroPredio >= 0 ? row[colIndexes.numeroPredio]?.toString().trim() || '' : '';
+          let numeroDocumento = colIndexes.numeroDocumento >= 0 ? row[colIndexes.numeroDocumento]?.toString().trim() || '' : '';
           
           // Convertir notación científica si existe
           if (numeroPredio && (numeroPredio.includes('e+') || numeroPredio.includes('E+'))) {
@@ -304,25 +309,19 @@ export class AnalisisCsvComponent implements OnInit {
             numeroDocumento = Math.round(parseFloat(numeroDocumento)).toString();
           }
           
-          if (!numeroPredio || !numeroDocumento) continue;
+          if (!numeroPredio) continue;
           
           const propietario: Propietario = {
             numeroPredio,
-            codigoPredio: row[3]?.toString().trim() || '',
-            clasePredioVereda: row[2]?.toString().trim() || '',
-            predioNombre: row[4]?.toString().trim() || '',
-            mejoracodigo: row[5]?.toString().trim() || '',
-            propietarioNombre: row[6]?.toString().trim() || '',
+            codigoPredio: colIndexes.codigo >= 0 ? row[colIndexes.codigo]?.toString().trim() || '' : '',
+            clasePredioVereda: colIndexes.vereda >= 0 ? row[colIndexes.vereda]?.toString().trim() || '' : '',
+            predioNombre: colIndexes.nombrePredio >= 0 ? row[colIndexes.nombrePredio]?.toString().trim() || '' : '',
+            propietarioNombre: colIndexes.propietario >= 0 ? row[colIndexes.propietario]?.toString().trim() || '' : '',
             numeroDocumento,
-            totalPropietarios: row[8]?.toString().trim() || '',
-            tipoDocumento: row[9]?.toString().trim() || '',
-            direccionPredio: row[11]?.toString().trim() || '',
-            destinacion: row[12]?.toString().trim() || '',
-            areaHectareas: row[13]?.toString().trim() || '',
-            areaMetros: row[14]?.toString().trim() || '',
-            areaConstruida: row[15]?.toString().trim() || '',
-            vigencia: row[16]?.toString().trim() || '',
-            avaluo: row[17]?.toString().trim() || ''
+            tipoDocumento: colIndexes.tipoDoc >= 0 ? row[colIndexes.tipoDoc]?.toString().trim() || '' : '',
+            direccionPredio: colIndexes.direccion >= 0 ? row[colIndexes.direccion]?.toString().trim() || '' : '',
+            areaHectareas: colIndexes.area >= 0 ? row[colIndexes.area]?.toString().trim() || '' : '',
+            avaluo: colIndexes.avaluo >= 0 ? row[colIndexes.avaluo]?.toString().trim() || '' : ''
           };
           
           // Agrupar por número de predio
