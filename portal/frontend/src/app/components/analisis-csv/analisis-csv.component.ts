@@ -215,13 +215,17 @@ export class AnalisisCsvComponent implements OnInit {
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as any[][];
 
+        console.log('📄 Archivo principal cargado, filas:', jsonData.length);
+        console.log('📋 Primera fila (encabezados):', jsonData[0]);
+        console.log('📋 Segunda fila (ejemplo):', jsonData[1]);
+
         this.predios = [];
         
         // Asumiendo que la primera fila son encabezados
         for (let i = 1; i < jsonData.length; i++) {
           const row = jsonData[i];
           if (row && row.length > 0) {
-            const numeroIdentificacion = row[0]?.toString() || '';
+            const numeroIdentificacion = row[0]?.toString().trim() || '';
             // Los propietarios pueden estar en varias columnas o separados por algún delimitador
             const propietariosStr = row[1]?.toString() || '';
             const propietarios = propietariosStr.split(/[,;]/).map((p: string) => p.trim()).filter((p: string) => p);
@@ -236,9 +240,11 @@ export class AnalisisCsvComponent implements OnInit {
           }
         }
         
+        console.log('✅ Predios procesados:', this.predios.length);
         this.totalPredios = this.predios.length;
         this.loading = false;
       } catch (error) {
+        console.error('❌ Error procesando archivo principal:', error);
         this.error = 'Error al procesar el archivo principal: ' + error;
         this.loading = false;
       }
@@ -249,8 +255,9 @@ export class AnalisisCsvComponent implements OnInit {
   procesarArchivosRut(files: FileList) {
     const propietariosMap = new Map<string, Propietario>();
     let filesProcessed = 0;
+    console.log('📁 Procesando', files.length, 'archivos RUT...');
 
-    Array.from(files).forEach(file => {
+    Array.from(files).forEach((file, index) => {
       const reader = new FileReader();
       reader.onload = (e: any) => {
         try {
@@ -259,37 +266,58 @@ export class AnalisisCsvComponent implements OnInit {
           const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
           const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as any[][];
 
-          // Procesar datos (asumiendo estructura del CSV adjunto)
+          console.log(`📄 Archivo ${index + 1}/${files.length}: ${file.name}`);
+          console.log('  Filas totales:', jsonData.length);
+          if (jsonData.length > 0) {
+            console.log('  Encabezados:', jsonData[0]);
+          }
+          if (jsonData.length > 1) {
+            console.log('  Ejemplo fila:', jsonData[1]);
+          }
+
+          let propietariosEncontrados = 0;
+          // Procesar datos - Estructura: Nit;Nombre;Tipo;Seccional;Estado;Pais;Departamento;Municipio;Direccion;Telefono;Telefono;Correo
           for (let i = 1; i < jsonData.length; i++) {
             const row = jsonData[i];
-            if (row && row.length > 0 && row[0]) {
-              const nit = row[0]?.toString().trim();
-              if (nit && nit !== '' && !nit.includes(';;;;;')) {
-                const propietario: Propietario = {
-                  nit,
-                  nombre: row[1]?.toString() || '',
-                  tipo: row[2]?.toString() || '',
-                  estado: row[4]?.toString() || '',
-                  departamento: row[6]?.toString() || '',
-                  municipio: row[7]?.toString() || '',
-                  direccion: row[8]?.toString() || '',
-                  telefono: row[9]?.toString() || row[10]?.toString() || '',
-                  correo: row[11]?.toString() || ''
-                };
-                
-                if (propietario.nombre) {
-                  propietariosMap.set(nit, propietario);
-                }
-              }
+            
+            // Filtrar filas vacías o con solo separadores
+            if (!row || row.length === 0) continue;
+            
+            // Verificar si es una fila vacía (todos los valores vacíos o undefined)
+            const hayDatos = row.some(cell => cell !== undefined && cell !== null && cell.toString().trim() !== '');
+            if (!hayDatos) continue;
+            
+            const nit = row[0]?.toString().trim();
+            const nombre = row[1]?.toString().trim();
+            
+            // Validar que tenga NIT y nombre
+            if (nit && nombre && nit !== '' && nombre !== '') {
+              const propietario: Propietario = {
+                nit,
+                nombre,
+                tipo: row[2]?.toString().trim() || '',
+                estado: row[4]?.toString().trim() || '',
+                departamento: row[6]?.toString().trim() || '',
+                municipio: row[7]?.toString().trim() || '',
+                direccion: row[8]?.toString().trim() || '',
+                telefono: row[9]?.toString().trim() || row[10]?.toString().trim() || '',
+                correo: row[11]?.toString().trim() || ''
+              };
+              
+              propietariosMap.set(nit, propietario);
+              propietariosEncontrados++;
             }
           }
 
+          console.log(`  ✅ Propietarios encontrados: ${propietariosEncontrados}`);
+
           filesProcessed++;
           if (filesProcessed === files.length) {
+            console.log('🎯 Total de propietarios únicos:', propietariosMap.size);
             this.finalizarProcesamiento(propietariosMap);
           }
         } catch (error) {
-          console.error('Error procesando archivo RUT:', error);
+          console.error(`❌ Error procesando archivo ${file.name}:`, error);
           filesProcessed++;
           if (filesProcessed === files.length) {
             this.finalizarProcesamiento(propietariosMap);
@@ -301,19 +329,38 @@ export class AnalisisCsvComponent implements OnInit {
   }
 
   finalizarProcesamiento(propietariosMap: Map<string, Propietario>) {
+    console.log('🔄 Finalizando procesamiento...');
     this.propietariosData = Array.from(propietariosMap.values());
+    console.log('📊 Total propietarios cargados:', this.propietariosData.length);
     
     // Relacionar propietarios con predios
+    let propietariosEncontrados = 0;
+    let propietariosNoEncontrados = 0;
+    
     this.predios.forEach(predio => {
       predio.datosCompletos = predio.propietarios
-        .map(nit => propietariosMap.get(nit.trim()))
+        .map(nit => {
+          const propietario = propietariosMap.get(nit.trim());
+          if (propietario) {
+            propietariosEncontrados++;
+          } else {
+            propietariosNoEncontrados++;
+            console.log('⚠️ NIT no encontrado:', nit);
+          }
+          return propietario;
+        })
         .filter(p => p !== undefined) as Propietario[];
     });
+
+    console.log('✅ Propietarios encontrados en predios:', propietariosEncontrados);
+    console.log('⚠️ Propietarios NO encontrados:', propietariosNoEncontrados);
 
     // Calcular estadísticas
     this.calcularEstadisticas();
     this.generarGraficos();
     this.loading = false;
+    
+    console.log('🎉 Procesamiento completado!');
   }
 
   calcularEstadisticas() {
