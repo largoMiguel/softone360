@@ -86,13 +86,20 @@
                                 </ul>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <!-- Resultados del análisis -->
+    <div *ngIf="analisis">
         <!-- Estadísticas generales -->
         <div class="row mb-4">
             <div class="col-md-3 mb-3">
                 <div class="card shadow-sm border-warning">
                     <div class="card-body text-center">
                         <i class="fas fa-home fa-3x text-warning mb-3"></i>
-                        <h3 class="mb-0 text-warning">{{ analisis!.totalPredios | number }}</h3>
+                        <h3 class="mb-0 text-warning">{{ analisis.totalPredios | number }}</h3>
                         <p class="text-muted mb-0">Total Predios</p>
                     </div>
                 </div>
@@ -101,7 +108,7 @@
                 <div class="card shadow-sm border-primary">
                     <div class="card-body text-center">
                         <i class="fas fa-users fa-3x text-primary mb-3"></i>
-                        <h3 class="mb-0 text-primary">{{ analisis!.totalPropietarios | number }}</h3>
+                        <h3 class="mb-0 text-primary">{{ analisis.totalPropietarios | number }}</h3>
                         <p class="text-muted mb-0">Total Propietarios</p>
                     </div>
                 </div>
@@ -110,7 +117,7 @@
                 <div class="card shadow-sm border-success">
                     <div class="card-body text-center">
                         <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                        <h3 class="mb-0 text-success">{{ analisis!.propietariosEncontrados | number }}</h3>
+                        <h3 class="mb-0 text-success">{{ analisis.propietariosEncontrados | number }}</h3>
                         <p class="text-muted mb-0">Info Encontrada en RUT</p>
                     </div>
                 </div>
@@ -119,21 +126,21 @@
                 <div class="card shadow-sm border-info">
                     <div class="card-body text-center">
                         <i class="fas fa-envelope fa-3x text-info mb-3"></i>
-                        <h3 class="mb-0 text-info">{{ analisis!.propietariosConCorreo | number }}</h3>
+                        <h3 class="mb-0 text-info">{{ analisis.propietariosConCorreo | number }}</h3>
                         <p class="text-muted mb-0">Con Correo Electrónico</p>
                     </div>
                 </div>
             </div>
-        </div>          <p class="text-muted mb-0">Registros Activos</p>
-                    </div>
-                </div>
-            </div>
+        </div>
+
+        <!-- Segunda fila de estadísticas -->
+        <div class="row mb-4">
             <div class="col-md-3 mb-3">
-                <div class="card shadow-sm border-info">
+                <div class="card shadow-sm border-success">
                     <div class="card-body text-center">
-                        <i class="fas fa-envelope fa-3x text-info mb-3"></i>
-                        <h3 class="mb-0 text-info">{{ analisis!.propietariosConCorreo | number }}</h3>
-                        <p class="text-muted mb-0">Con Correo Electrónico</p>
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h3 class="mb-0 text-success">{{ analisis.distribuciones.estadosActivos | number }}</h3>
+                        <p class="text-muted mb-0">Registros Activos</p>
                     </div>
                 </div>
             </div>
@@ -141,7 +148,7 @@
                 <div class="card shadow-sm border-warning">
                     <div class="card-body text-center">
                         <i class="fas fa-map-marker-alt fa-3x text-warning mb-3"></i>
-                        <h3 class="mb-0 text-warning">{{ analisis!.topDepartamentos.length | number }}</h3>
+                        <h3 class="mb-0 text-warning">{{ analisis.topDepartamentos.length | number }}</h3>
                         <p class="text-muted mb-0">Departamentos</p>
                     </div>
                 </div>
@@ -210,49 +217,49 @@
                             <tbody>
                                 <tr>
                                     <td><strong>Total Predios:</strong></td>
-                                    <td class="text-end">{{ analisis!.totalPredios | number }}</td>
+                                    <td class="text-end">{{ analisis.totalPredios | number }}</td>
                                 </tr>
                                 <tr>
                                     <td><strong>Total Propietarios:</strong></td>
-                                    <td class="text-end">{{ analisis!.totalPropietarios | number }}</td>
+                                    <td class="text-end">{{ analisis.totalPropietarios | number }}</td>
                                 </tr>
                                 <tr class="table-success">
                                     <td><strong>Info Encontrada en RUT:</strong></td>
-                                    <td class="text-end">{{ analisis!.propietariosEncontrados | number }}</td>
+                                    <td class="text-end">{{ analisis.propietariosEncontrados | number }}</td>
                                 </tr>
                                 <tr class="table-warning">
                                     <td><strong>Sin Info en RUT:</strong></td>
-                                    <td class="text-end">{{ analisis!.propietariosNoEncontrados | number }}</td>
+                                    <td class="text-end">{{ analisis.propietariosNoEncontrados | number }}</td>
                                 </tr>
                                 <tr>
                                     <td><strong>Personas Naturales:</strong></td>
-                                    <td class="text-end">{{ analisis!.distribuciones.personasNaturales | number }}</td>
+                                    <td class="text-end">{{ analisis.distribuciones.personasNaturales | number }}</td>
                                 </tr>
                                 <tr>
                                     <td><strong>Personas Jurídicas:</strong></td>
-                                    <td class="text-end">{{ analisis!.distribuciones.personasJuridicas | number }}</td>
+                                    <td class="text-end">{{ analisis.distribuciones.personasJuridicas | number }}</td>
                                 </tr>
                                 <tr>
                                     <td><strong>Registros Activos:</strong></td>
-                                    <td class="text-end text-success">{{ analisis!.distribuciones.estadosActivos | number }}</td>
+                                    <td class="text-end text-success">{{ analisis.distribuciones.estadosActivos | number }}</td>
                                 </tr>
                                 <tr>
                                     <td><strong>Registros Suspendidos:</strong></td>
-                                    <td class="text-end text-warning">{{ analisis!.distribuciones.estadosSuspendidos | number }}</td>
+                                    <td class="text-end text-warning">{{ analisis.distribuciones.estadosSuspendidos | number }}</td>
                                 </tr>
                                 <tr>
                                     <td><strong>Con Correo:</strong></td>
-                                    <td class="text-end text-info">{{ analisis!.propietariosConCorreo | number }}</td>
+                                    <td class="text-end text-info">{{ analisis.propietariosConCorreo | number }}</td>
                                 </tr>
                                 <tr>
                                     <td><strong>Sin Contacto:</strong></td>
-                                    <td class="text-end text-danger">{{ analisis!.propietariosSinContacto | number }}</td>
+                                    <td class="text-end text-danger">{{ analisis.propietariosSinContacto | number }}</td>
                                 </tr>
                                 <tr>
                                     <td><strong>% Contactabilidad:</strong></td>
                                     <td class="text-end">
                                         <span class="badge bg-success">
-                                            {{ ((analisis!.propietariosConCorreo / analisis!.totalPropietarios) * 100).toFixed(1) }}%
+                                            {{ ((analisis.propietariosConCorreo / analisis.totalPropietarios) * 100).toFixed(1) }}%
                                         </span>
                                     </td>
                                 </tr>
@@ -260,27 +267,27 @@
                                     <td><strong>% Info Encontrada:</strong></td>
                                     <td class="text-end">
                                         <span class="badge bg-primary">
-                                            {{ ((analisis!.propietariosEncontrados / analisis!.totalPropietarios) * 100).toFixed(1) }}%
+                                            {{ ((analisis.propietariosEncontrados / analisis.totalPropietarios) * 100).toFixed(1) }}%
                                         </span>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td><strong>Registros Cancelados:</strong></td>
-                                    <td class="text-end text-danger">{{ analisis!.distribuciones.estadosCancelados | number }}</td>
+                                    <td class="text-end text-danger">{{ analisis.distribuciones.estadosCancelados | number }}</td>
                                 </tr>
                                 <tr>
                                     <td><strong>Con Correo:</strong></td>
-                                    <td class="text-end text-info">{{ analisis!.propietariosConCorreo | number }}</td>
+                                    <td class="text-end text-info">{{ analisis.propietariosConCorreo | number }}</td>
                                 </tr>
                                 <tr>
                                     <td><strong>Sin Contacto:</strong></td>
-                                    <td class="text-end text-danger">{{ analisis!.propietariosSinContacto | number }}</td>
+                                    <td class="text-end text-danger">{{ analisis.propietariosSinContacto | number }}</td>
                                 </tr>
                                 <tr>
                                     <td><strong>% Contactabilidad:</strong></td>
                                     <td class="text-end">
                                         <span class="badge bg-success">
-                                            {{ ((analisis!.propietariosConCorreo / analisis!.totalPropietarios) * 100).toFixed(1) }}%
+                                            {{ ((analisis.propietariosConCorreo / analisis.totalPropietarios) * 100).toFixed(1) }}%
                                         </span>
                                     </td>
                                 </tr>
