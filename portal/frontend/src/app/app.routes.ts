@@ -16,6 +16,7 @@ import { defaultEntityGuard } from './guards/default-entity.guard';
 import { moduleAccessGuard } from './guards/module-access.guard';
 import { sessionRedirectGuard } from './guards/session-redirect.guard';
 import { showcaseSessionGuard } from './guards/showcase-session.guard';
+import { IgacViewerComponent } from './components/igac-viewer/igac-viewer.component';
 
 export const routes: Routes = [
     // Ruta raíz: muestra el showcase como home
@@ -27,6 +28,9 @@ export const routes: Routes = [
 
     // Ruta de super administración (global, no depende de entidad)
     { path: 'soft-admin', component: SoftAdminComponent, canActivate: [superAdminGuard] },
+
+    // Ruta provisional para visor IGAC (SIN autenticación - solo para pruebas)
+    { path: 'igac-viewer', component: IgacViewerComponent },
 
     // Rutas por entidad (con slug). Ej: /chiquiza-boyaca/
     {

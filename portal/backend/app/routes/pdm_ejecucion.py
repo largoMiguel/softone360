@@ -311,15 +311,26 @@ async def upload_ejecucion_excel(
                     registros_actualizados += 1
                 else:
                     # Primera vez que aparece esta combinación
+                    pto_inicial = limpiar_numero(row['PTO INICIAL'])
+                    adicion = limpiar_numero(row['ADICION'])
+                    reduccion = limpiar_numero(row['REDUCCION'])
+                    credito = limpiar_numero(row['CREDITO'])
+                    contracredito = limpiar_numero(row['CONTRACREDITO'])
+                    pto_definitivo = limpiar_numero(row['PTO DEFINITIVO'])
+                    
+                    # Si pto_definitivo es 0 pero hay otros valores, calcularlo
+                    if pto_definitivo == 0 and (pto_inicial != 0 or adicion != 0 or reduccion != 0 or credito != 0 or contracredito != 0):
+                        pto_definitivo = pto_inicial + adicion - reduccion + credito - contracredito
+                    
                     registros_unicos[clave] = {
                         'codigo_producto': codigo_producto,
                         'descripcion_fte': descripcion_fte,
-                        'pto_inicial': limpiar_numero(row['PTO INICIAL']),
-                        'adicion': limpiar_numero(row['ADICION']),
-                        'reduccion': limpiar_numero(row['REDUCCION']),
-                        'credito': limpiar_numero(row['CREDITO']),
-                        'contracredito': limpiar_numero(row['CONTRACREDITO']),
-                        'pto_definitivo': limpiar_numero(row['PTO DEFINITIVO']),
+                        'pto_inicial': pto_inicial,
+                        'adicion': adicion,
+                        'reduccion': reduccion,
+                        'credito': credito,
+                        'contracredito': contracredito,
+                        'pto_definitivo': pto_definitivo,
                         'pagos': limpiar_numero(row['PAGOS']),
                         'sector': str(row['SECTOR']).strip() if pd.notna(row['SECTOR']) else None,
                         'dependencia': str(row['DEPENDENCIA']).strip() if has_dependencia and pd.notna(row.get('DEPENDENCIA')) else None,
