@@ -288,8 +288,17 @@ export class PredioAnalysisComponent implements OnInit, OnDestroy {
             });
             this.propietariosFiltrados = Array.from(propietariosMap.values());
             
+            console.log('📈 Paso 5: Generando gráficos...');
+            console.log('   Datos para gráficos:', {
+                estados: Object.keys(this.analisis.propietariosPorEstado).length,
+                departamentos: this.analisis.topDepartamentos.length,
+                municipios: this.analisis.topMunicipios.length
+            });
+            
             // Generar gráficos
             this.generarGraficos();
+            
+            console.log('   Gráficos generados');
             
             // Paginar
             this.aplicarPaginacion();
@@ -546,6 +555,10 @@ export class PredioAnalysisComponent implements OnInit, OnDestroy {
     get entity() {
         const user = this.authService.getCurrentUserValue();
         return user?.entity || null;
+    }
+
+    get currentAnalisis(): AnalisisPredios {
+        return this.analisis as AnalisisPredios;
     }
 
     isAdmin(): boolean {
