@@ -86,9 +86,6 @@
                                 </ul>
                             </div>
                         </div>
-        
-        <!-- Resultados del análisis -->
-        <div *ngIf="analisis">
         <!-- Estadísticas generales -->
         <div class="row mb-4">
             <div class="col-md-3 mb-3">
@@ -267,6 +264,26 @@
                                         </span>
                                     </td>
                                 </tr>
+                                <tr>
+                                    <td><strong>Registros Cancelados:</strong></td>
+                                    <td class="text-end text-danger">{{ analisis!.distribuciones.estadosCancelados | number }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Con Correo:</strong></td>
+                                    <td class="text-end text-info">{{ analisis!.propietariosConCorreo | number }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Sin Contacto:</strong></td>
+                                    <td class="text-end text-danger">{{ analisis!.propietariosSinContacto | number }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>% Contactabilidad:</strong></td>
+                                    <td class="text-end">
+                                        <span class="badge bg-success">
+                                            {{ ((analisis!.propietariosConCorreo / analisis!.totalPropietarios) * 100).toFixed(1) }}%
+                                        </span>
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -415,6 +432,5 @@
                 </button>
             </div>
         </div>
-        </div> <!-- Cierre de *ngIf="analisis" -->
     </div>
 </div>

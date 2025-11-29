@@ -202,6 +202,11 @@ export class PredioAnalysisComponent implements OnInit, OnDestroy {
             console.log(`📁 Total: ${this.archivosSeleccionados.length} archivo(s)`);
             console.log(`   - IGAC: ${this.archivoIGAC ? 1 : 0}`);
             console.log(`   - RUT: ${this.archivosRUT.length}`);
+            
+            // Auto-procesar si hay archivo IGAC
+            if (this.archivoIGAC) {
+                setTimeout(() => this.procesarArchivos(), 500);
+            }
         }
     }
 
