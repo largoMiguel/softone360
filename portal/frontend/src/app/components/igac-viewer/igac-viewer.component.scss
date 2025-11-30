@@ -73,38 +73,42 @@
           font-size: 0.95rem;
         }
 
-        .rut-files-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-          gap: 1rem;
+        .rut-upload-container {
           margin-bottom: 1.5rem;
 
-          .rut-file-item {
-            .rut-upload-button {
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              gap: 0.5rem;
-              padding: 1.5rem 1rem;
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-              color: white;
-              border-radius: 0.75rem;
-              cursor: pointer;
-              transition: all 0.3s ease;
-              font-size: 0.85rem;
-              font-weight: 500;
-              box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+          .rut-upload-button-large {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            padding: 3rem 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
 
-              svg {
-                width: 20px;
-                height: 20px;
-              }
+            svg {
+              width: 32px;
+              height: 32px;
+            }
 
-              &:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            span {
+              font-size: 1.125rem;
+              font-weight: 600;
+
+              &.file-hint {
+                font-size: 0.875rem;
+                font-weight: 400;
+                opacity: 0.9;
               }
+            }
+
+            &:hover {
+              transform: translateY(-4px);
+              box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
             }
           }
         }

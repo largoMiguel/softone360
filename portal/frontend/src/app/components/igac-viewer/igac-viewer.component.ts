@@ -27,6 +27,35 @@ export class IgacViewerComponent {
 
   constructor(private igacService: IgacService) {}
 
+  onRutFilesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+
+    const files = Array.from(input.files);
+    let filesProcessed = 0;
+
+    console.log(`📂 Procesando ${files.length} archivo(s) RUT...`);
+
+    files.forEach((file, index) => {
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        try {
+          const csvContent = e.target?.result as string;
+          this.igacService.parseReporteRut(csvContent);
+          filesProcessed++;
+          this.rutFilesLoaded.set(filesProcessed);
+          this.totalRutRecords.set(this.igacService.getTotalRutRecords());
+          console.log(`✅ Archivo RUT ${index + 1}/${files.length} cargado: ${file.name}`);
+        } catch (error) {
+          console.error(`❌ Error al cargar ${file.name}:`, error);
+        }
+      };
+
+      reader.readAsText(file, 'UTF-8');
+    });
+  }
+
   onRutFileSelected(event: Event, fileNumber: number): void {
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
