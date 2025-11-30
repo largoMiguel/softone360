@@ -19,6 +19,50 @@
   <!-- File Upload Section -->
   @if (predios().length === 0) {
     <div class="upload-section">
+      <!-- Sección de archivos RUT (5 archivos) -->
+      <div class="upload-card rut-section">
+        <h2>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          Paso 1: Cargar Archivos de Reporte RUT (Opcional)
+        </h2>
+        <p class="subtitle">Carga hasta 5 archivos CSV con información adicional de propietarios</p>
+        
+        <div class="rut-files-grid">
+          @for (fileNum of [1, 2, 3, 4, 5]; track fileNum) {
+            <div class="rut-file-item">
+              <label [for]="'rut-file-' + fileNum" class="rut-upload-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                Reporte RUT #{{ fileNum }}
+              </label>
+              <input 
+                [id]="'rut-file-' + fileNum"
+                type="file" 
+                accept=".csv,.txt" 
+                (change)="onRutFileSelected($event, fileNum)"
+                style="display: none;">
+            </div>
+          }
+        </div>
+
+        @if (rutFilesLoaded() > 0) {
+          <div class="rut-status">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            <span>{{ rutFilesLoaded() }} archivo(s) RUT cargado(s) • {{ totalRutRecords() }} registros</span>
+          </div>
+        }
+      </div>
+
+      <!-- Archivo principal IGAC -->
       <div class="upload-card">
         <div class="upload-icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -27,7 +71,7 @@
             <line x1="12" y1="3" x2="12" y2="15"/>
           </svg>
         </div>
-        <h2>Cargar Archivo CSV</h2>
+        <h2>Paso 2: Cargar Archivo IGAC Principal</h2>
         <p>Selecciona el archivo "Archivo Igac 2025.csv" para comenzar</p>
         <label for="file-upload" class="upload-button">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -35,7 +79,7 @@
             <polyline points="17 8 12 3 7 8"/>
             <line x1="12" y1="3" x2="12" y2="15"/>
           </svg>
-          Seleccionar Archivo
+          Seleccionar Archivo IGAC
         </label>
         <input 
           id="file-upload"
@@ -261,6 +305,69 @@
                             {{ propietario.direccion }}
                           </span>
                         </div>
+
+                        <!-- Datos adicionales del RUT si existen -->
+                        @if (propietario.razonSocial) {
+                          <div class="propietario-rut-data">
+                            <div class="rut-badge">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                              </svg>
+                              Datos RUT
+                            </div>
+                            <div class="rut-details-grid">
+                              @if (propietario.razonSocial) {
+                                <div class="rut-detail-item">
+                                  <span class="rut-label">Razón Social:</span>
+                                  <span class="rut-value">{{ propietario.razonSocial }}</span>
+                                </div>
+                              }
+                              @if (propietario.tipo) {
+                                <div class="rut-detail-item">
+                                  <span class="rut-label">Tipo:</span>
+                                  <span class="rut-value">{{ propietario.tipo }}</span>
+                                </div>
+                              }
+                              @if (propietario.estado) {
+                                <div class="rut-detail-item">
+                                  <span class="rut-label">Estado:</span>
+                                  <span class="rut-value">{{ propietario.estado }}</span>
+                                </div>
+                              }
+                              @if (propietario.seccional) {
+                                <div class="rut-detail-item">
+                                  <span class="rut-label">Seccional:</span>
+                                  <span class="rut-value">{{ propietario.seccional }}</span>
+                                </div>
+                              }
+                              @if (propietario.municipio) {
+                                <div class="rut-detail-item">
+                                  <span class="rut-label">Municipio:</span>
+                                  <span class="rut-value">{{ propietario.municipio }}, {{ propietario.departamento }}</span>
+                                </div>
+                              }
+                              @if (propietario.direccionRut) {
+                                <div class="rut-detail-item">
+                                  <span class="rut-label">Dirección RUT:</span>
+                                  <span class="rut-value">{{ propietario.direccionRut }}</span>
+                                </div>
+                              }
+                              @if (propietario.telefono1) {
+                                <div class="rut-detail-item">
+                                  <span class="rut-label">Teléfono:</span>
+                                  <span class="rut-value">{{ propietario.telefono1 }}{{ propietario.telefono2 ? ' / ' + propietario.telefono2 : '' }}</span>
+                                </div>
+                              }
+                              @if (propietario.correo) {
+                                <div class="rut-detail-item">
+                                  <span class="rut-label">Correo:</span>
+                                  <span class="rut-value">{{ propietario.correo }}</span>
+                                </div>
+                              }
+                            </div>
+                          </div>
+                        }
                       </div>
                     }
                   </div>

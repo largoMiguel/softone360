@@ -5,6 +5,33 @@ export interface Propietario {
   tipoDocumento: string;
   numeroDocumento: string;
   direccion: string;
+  // Datos adicionales del Reporte RUT
+  razonSocial?: string;
+  tipo?: string;
+  seccional?: string;
+  estado?: string;
+  pais?: string;
+  departamento?: string;
+  municipio?: string;
+  direccionRut?: string;
+  telefono1?: string;
+  telefono2?: string;
+  correo?: string;
+}
+
+export interface ReporteRut {
+  nit: string;
+  razonSocial: string;
+  tipo: string;
+  seccional: string;
+  estado: string;
+  pais: string;
+  departamento: string;
+  municipio: string;
+  direccion: string;
+  telefono1: string;
+  telefono2: string;
+  correo: string;
 }
 
 export interface Predio {

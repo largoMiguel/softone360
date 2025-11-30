@@ -20,7 +20,34 @@ export class IgacViewerComponent {
   errorMessage = signal<string>('');
   expandedPredios = new Set<string>();
 
+  // Control de archivos RUT
+  rutFilesLoaded = signal<number>(0);
+  igacFileLoaded = signal<boolean>(false);
+  totalRutRecords = signal<number>(0);
+
   constructor(private igacService: IgacService) {}
+
+  onRutFileSelected(event: Event, fileNumber: number): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+
+    const file = input.files[0];
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      try {
+        const csvContent = e.target?.result as string;
+        this.igacService.parseReporteRut(csvContent);
+        this.rutFilesLoaded.update(count => count + 1);
+        this.totalRutRecords.set(this.igacService.getTotalRutRecords());
+        console.log(`✅ Archivo RUT ${fileNumber} cargado`);
+      } catch (error) {
+        console.error(`Error al cargar RUT ${fileNumber}:`, error);
+      }
+    };
+
+    reader.readAsText(file, 'UTF-8');
+  }
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -39,9 +66,16 @@ export class IgacViewerComponent {
         
         this.predios.set(parsedPredios);
         this.filteredPredios.set(parsedPredios);
+        this.igacFileLoaded.set(true);
         this.isLoading.set(false);
         
         console.log(`Se cargaron ${parsedPredios.length} predios`);
+        
+        // Contar propietarios con datos RUT
+        const propietariosConRut = parsedPredios.reduce((count, p) => 
+          count + p.propietarios.filter(prop => prop.razonSocial).length, 0
+        );
+        console.log(`📊 Propietarios enriquecidos con RUT: ${propietariosConRut}`);
       } catch (error) {
         this.errorMessage.set('Error al procesar el archivo CSV');
         this.isLoading.set(false);
@@ -101,6 +135,10 @@ export class IgacViewerComponent {
     this.searchTerm.set('');
     this.selectedPredio.set(null);
     this.expandedPredios.clear();
+    this.rutFilesLoaded.set(0);
+    this.igacFileLoaded.set(false);
+    this.totalRutRecords.set(0);
+    this.igacService.clearRutData();
   }
 
   exportToJson(): void {
