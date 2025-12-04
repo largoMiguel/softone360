@@ -9,7 +9,7 @@ export interface PDMEjecucionResumen {
         contracredito: number;
         pto_definitivo: number;
         pagos: number;
-    };
+    }; 
 }
 
 export interface PDMEjecucionUploadResponse {

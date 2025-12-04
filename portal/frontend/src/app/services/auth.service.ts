@@ -86,7 +86,7 @@ export class AuthService {
         } catch {
             return true;
         }
-    }
+    } 
 
     isAuthenticated(): boolean {
         const token = this.getToken();

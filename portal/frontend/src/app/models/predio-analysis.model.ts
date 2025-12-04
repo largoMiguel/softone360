@@ -12,7 +12,7 @@ export interface PropietarioRUT {
     direccion: string;
     telefono1: string;
     telefono2: string;
-    correo: string;
+    correo: string; 
 }
 
 // Propietario del archivo IGAC

@@ -170,17 +170,6 @@ export class IgacViewerComponent {
     this.igacService.clearRutData();
   }
 
-  exportToJson(): void {
-    const dataStr = JSON.stringify(this.predios(), null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'predios-igac.json';
-    link.click();
-    URL.revokeObjectURL(url);
-  }
-
   getTotalPropietarios(): number {
     return this.filteredPredios().reduce((sum, p) => sum + p.propietarios.length, 0);
   }
