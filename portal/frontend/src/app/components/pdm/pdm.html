@@ -23,6 +23,9 @@
                 <button *ngIf="archivoExcelCargado && vistaActual === 'detalle'" class="btn btn-primary me-2" (click)="abrirModalAnalisisProducto()">
                     <i class="fas fa-chart-line"></i> Ver Análisis Detallado
                 </button>
+                <button *ngIf="vistaActual === 'productos'" class="btn btn-success me-2" (click)="generarInforme()" title="Generar Informe PDF del Plan de Desarrollo">
+                    <i class="fas fa-file-pdf"></i> Generar Informe
+                </button>
                 <button *ngIf="vistaActual !== 'dashboard' && archivoExcelCargado" class="btn btn-outline-secondary me-2" (click)="volver()">
                     <i class="fas fa-arrow-left"></i> Volver
                 </button>

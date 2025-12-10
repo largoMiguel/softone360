@@ -20,6 +20,12 @@ export interface Entity {
     enable_planes_institucionales: boolean;
     enable_contratacion: boolean;
     enable_pdm?: boolean;
+    // Personalización de informes PDM
+    plan_name?: string;        // Nombre del plan de desarrollo
+    report_code?: string;      // Código del formulario (ej: FM-0172)
+    report_version?: string;   // Versión del reporte (ej: 1.0)
+    header_text?: string;      // Texto personalizado del encabezado
+    footer_text?: string;      // Texto personalizado del pie de página
     created_at: string;
     updated_at?: string;
 }
@@ -48,6 +54,11 @@ export interface CreateEntityRequest {
     enable_planes_institucionales?: boolean;
     enable_contratacion?: boolean;
     enable_pdm?: boolean;
+    plan_name?: string;
+    report_code?: string;
+    report_version?: string;
+    header_text?: string;
+    footer_text?: string;
 }
 
 export interface UpdateEntityRequest {
@@ -70,4 +81,9 @@ export interface UpdateEntityRequest {
     enable_planes_institucionales?: boolean;
     enable_contratacion?: boolean;
     enable_pdm?: boolean;
+    plan_name?: string;
+    report_code?: string;
+    report_version?: string;
+    header_text?: string;
+    footer_text?: string;
 }

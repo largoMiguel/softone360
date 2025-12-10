@@ -754,6 +754,67 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
+     * Genera el informe PDF del Plan de Desarrollo Municipal
+     */
+    generarInforme(): void {
+        // Determinar el año del informe
+        let anioInforme = this.filtroAnio || new Date().getFullYear();
+        
+        // Si no hay un año de filtro específico, preguntar al usuario
+        if (!this.filtroAnio) {
+            const anioActual = new Date().getFullYear();
+            const mensaje = `¿Para qué año desea generar el informe del Plan de Desarrollo?\n\nAños disponibles: 2024, 2025, 2026, 2027`;
+            const anioInput = prompt(mensaje, String(anioActual));
+            
+            if (!anioInput) {
+                return; // Usuario canceló
+            }
+            
+            anioInforme = parseInt(anioInput);
+            
+            if (isNaN(anioInforme) || anioInforme < 2024 || anioInforme > 2027) {
+                alert(`❌ Año inválido: "${anioInput}"\n\nPor favor ingrese un año válido entre 2024 y 2027`);
+                return;
+            }
+        }
+        
+        console.log(`📊 Generando informe PDM para el año ${anioInforme}...`);
+        console.log(`   Filtro año actual: ${this.filtroAnio || 'ninguno'}`);
+        
+        // Llamar al servicio para generar el PDF
+        this.pdmService.generarInformePDF(anioInforme).subscribe({
+            next: (pdfBlob) => {
+                console.log('✅ PDF recibido correctamente');
+                // Descargar el PDF
+                this.pdmService.descargarInformePDF(pdfBlob, anioInforme);
+                alert(`✅ INFORME GENERADO EXITOSAMENTE\n\nAño: ${anioInforme}\n\nEl archivo PDF ha sido descargado.`);
+            },
+            error: (error) => {
+                console.error('❌ Error generando informe:', error);
+                console.error('   Status:', error.status);
+                console.error('   Detail:', error.error?.detail || error.message);
+                
+                let mensaje = `❌ ERROR AL GENERAR INFORME\n\nAño solicitado: ${anioInforme}\n\n`;
+                
+                if (error.status === 404) {
+                    mensaje += 'No hay productos cargados para esta entidad en el PDM.';
+                } else if (error.status === 500) {
+                    mensaje += 'Error interno del servidor. Por favor contacte al administrador.';
+                    if (error.error?.detail) {
+                        mensaje += `\n\nDetalle técnico: ${error.error.detail}`;
+                    }
+                } else if (error.error?.detail) {
+                    mensaje += error.error.detail;
+                } else {
+                    mensaje += 'Ocurrió un error inesperado al generar el informe.';
+                }
+                
+                alert(mensaje);
+            }
+        });
+    }
+
+    /**
      * Carga la ejecución presupuestal para un producto PDM
      * Filtra por el año seleccionado en actividades
      */

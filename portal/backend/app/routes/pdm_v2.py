@@ -312,6 +312,8 @@ async def get_pdm_data(
     - SECRETARIO: ve SOLO sus productos asignados (responsable_user_id == current_user.id)
     """
     try:
+        print(f"\n📊 GET /pdm/v2/{slug}/data - Usuario: {current_user.username}")
+        
         entity = get_entity_or_404(db, slug)
         ensure_user_can_manage_entity(current_user, entity)
         

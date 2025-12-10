@@ -82,6 +82,24 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# ============================================
+# IMPORTANTE: Handler de OPTIONS ANTES de middlewares
+# ============================================
+@app.options("/{full_path:path}")
+async def preflight_handler(full_path: str):
+    """Maneja explícitamente todos los requests OPTIONS (CORS preflight)
+    Este handler se ejecuta ANTES de los middlewares para evitar 502"""
+    return Response(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization, Accept, Origin, X-Requested-With",
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Max-Age": "3600",
+        }
+    )
+
 # Nota: se removieron prints de CORS para un arranque limpio
 
 # Configurar CORS dinámicamente según entorno
@@ -158,6 +176,8 @@ from app.routes import pdm_v2 as pdm_v2_routes
 app.include_router(pdm_v2_routes.router, prefix="/api", tags=["PDM V2"])
 from app.routes import pdm_ejecucion
 app.include_router(pdm_ejecucion.router, prefix="/api/pdm/ejecucion", tags=["PDM Ejecución"])
+from app.routes import pdm_informes
+app.include_router(pdm_informes.router, prefix="/api", tags=["PDM Informes"])
 app.include_router(alerts.router, prefix="/api", tags=["Alerts"])
 app.include_router(secretarias.router, prefix="/api", tags=["Secretarías"])
 app.include_router(bpin.router, tags=["BPIN"])
@@ -171,6 +191,22 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    """Health check endpoint para AWS y monitoreo"""
+    try:
+        # Verificar conexión a la base de datos
+        db = next(get_db())
+        db.execute(text("SELECT 1"))
+        db.close()
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "version": "1.0.0"
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "database": "disconnected",
+            "error": str(e)
+        }
 
 # Seed en startup eliminado; usar endpoint /api/auth/init-superadmin si se necesita

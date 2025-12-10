@@ -34,6 +34,14 @@ class Entity(Base):
     enable_contratacion = Column(Boolean, nullable=False, default=True)
     # Nuevo módulo de Plan de Desarrollo Municipal (PDM)
     enable_pdm = Column(Boolean, nullable=False, default=True)
+    
+    # Personalización de informes PDM
+    plan_name = Column(String(500), nullable=True)  # Nombre del plan de desarrollo
+    report_code = Column(String(50), default="FM-0172")  # Código del formulario
+    report_version = Column(String(20), default="1.0")  # Versión del reporte
+    header_text = Column(Text, nullable=True)  # Texto personalizado del encabezado
+    footer_text = Column(Text, nullable=True)  # Texto personalizado del pie de página
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

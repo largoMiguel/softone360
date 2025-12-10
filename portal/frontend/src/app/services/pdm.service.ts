@@ -1653,4 +1653,55 @@ export class PdmService {
             })
         );
     }
+
+    /**
+     * Genera y descarga el informe PDF del Plan de Desarrollo Municipal
+     * @param anio Año del informe (2024-2027)
+     */
+    generarInformePDF(anio: number): Observable<Blob> {
+        if (!this.entitySlug) {
+            console.warn('⚠️ No hay slug de entidad disponible');
+            return throwError(() => new Error('No hay entidad seleccionada'));
+        }
+
+        const url = `${environment.apiUrl}/pdm/informes/${this.entitySlug}/generar/${anio}`;
+        
+        console.log(`📊 Generando informe PDM para año ${anio}...`);
+        
+        return this.http.get(url, { 
+            responseType: 'blob',
+            observe: 'response'
+        }).pipe(
+            map(response => {
+                console.log('✅ Informe PDF generado exitosamente');
+                return response.body!;
+            }),
+            catchError(error => {
+                console.error('❌ Error al generar informe PDF:', error);
+                throw error;
+            })
+        );
+    }
+
+    /**
+     * Descarga el informe PDF generado
+     * @param blob Blob del PDF
+     * @param anio Año del informe
+     */
+    descargarInformePDF(blob: Blob, anio: number): void {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        
+        const fecha = new Date().toISOString().split('T')[0];
+        link.download = `informe-pdm-${this.entitySlug}-${anio}-${fecha}.pdf`;
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        console.log(`✅ Informe descargado: ${link.download}`);
+    }
 }
+
