@@ -1,7 +1,8 @@
-from pydantic import BaseModel, EmailStr, model_validator
+from pydantic import BaseModel, EmailStr, model_validator, field_validator
 from typing import Optional
 from datetime import datetime
 from app.models.pqrs import TipoSolicitud, EstadoPQRS, TipoIdentificacion, MedioRespuesta, CanalLlegada, TipoPersona, Genero
+import re
 
 # Esquemas base
 class PQRSBase(BaseModel):
@@ -11,7 +12,7 @@ class PQRSBase(BaseModel):
     nombre_ciudadano: Optional[str] = None
     cedula_ciudadano: Optional[str] = None
     telefono_ciudadano: Optional[str] = None
-    email_ciudadano: Optional[EmailStr] = None
+    email_ciudadano: Optional[str] = None  # Cambiado de EmailStr a str para validación condicional
     direccion_ciudadano: Optional[str] = None
     tipo_solicitud: TipoSolicitud
     asunto: Optional[str] = None  # Opcional para anónimas
@@ -22,6 +23,32 @@ class PQRSBase(BaseModel):
     archivo_adjunto: Optional[str] = None
     justificacion_asignacion: Optional[str] = None
     archivo_respuesta: Optional[str] = None
+    
+    @field_validator('email_ciudadano')
+    @classmethod
+    def validate_email(cls, v):
+        """Validar email solo si tiene valor"""
+        if v is None or v == '' or v.strip() == '':
+            return None
+        # Validación básica de formato de email
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, v.strip()):
+            raise ValueError('El email no tiene un formato válido')
+        return v.strip().lower()
+    
+    @model_validator(mode='after')
+    def validate_medio_respuesta(self):
+        """Validar campos requeridos según el medio de respuesta"""
+        if self.medio_respuesta == MedioRespuesta.EMAIL:
+            if not self.email_ciudadano or self.email_ciudadano.strip() == '':
+                raise ValueError('El email es obligatorio cuando el medio de respuesta es email')
+        elif self.medio_respuesta == MedioRespuesta.FISICA:
+            if not self.direccion_ciudadano or self.direccion_ciudadano.strip() == '':
+                raise ValueError('La dirección es obligatoria cuando el medio de respuesta es físico')
+        elif self.medio_respuesta == MedioRespuesta.TELEFONO:
+            if not self.telefono_ciudadano or self.telefono_ciudadano.strip() == '':
+                raise ValueError('El teléfono es obligatorio cuando el medio de respuesta es telefónico')
+        return self
 
 class PQRSCreate(PQRSBase):
     numero_radicado: Optional[str] = None
@@ -34,7 +61,7 @@ class PQRSUpdate(BaseModel):
     nombre_ciudadano: Optional[str] = None
     cedula_ciudadano: Optional[str] = None
     telefono_ciudadano: Optional[str] = None
-    email_ciudadano: Optional[EmailStr] = None
+    email_ciudadano: Optional[str] = None  # Cambiado de EmailStr a str
     direccion_ciudadano: Optional[str] = None
     tipo_solicitud: Optional[TipoSolicitud] = None
     asunto: Optional[str] = None
@@ -49,6 +76,18 @@ class PQRSUpdate(BaseModel):
     archivo_adjunto: Optional[str] = None
     justificacion_asignacion: Optional[str] = None
     archivo_respuesta: Optional[str] = None
+    
+    @field_validator('email_ciudadano')
+    @classmethod
+    def validate_email(cls, v):
+        """Validar email solo si tiene valor"""
+        if v is None or v == '' or (isinstance(v, str) and v.strip() == ''):
+            return None
+        # Validación básica de formato de email
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, v.strip()):
+            raise ValueError('El email no tiene un formato válido')
+        return v.strip().lower()
 
 class PQRSResponse(BaseModel):
     respuesta: str
