@@ -609,63 +609,107 @@
                     </div>
 
                     <!-- Indicador de pasos -->
-                    <div class="step-indicator mb-5">
+                    <div class="step-indicator mb-5" role="navigation" aria-label="Progreso del formulario PQRS">
                         <div class="step" [class.active]="pasoActual >= 1" [class.completed]="pasoActual > 1">
-                            <div class="step-circle" (click)="irAPaso(1)">1</div>
+                            <div class="step-circle" (click)="irAPaso(1)" 
+                                 role="button" 
+                                 tabindex="0"
+                                 (keydown.enter)="irAPaso(1)"
+                                 [attr.aria-current]="pasoActual === 1 ? 'step' : null"
+                                 aria-label="Paso 1: Canal de Llegada">1</div>
                             <div class="step-label">Canal de Llegada</div>
                         </div>
                         <div class="step-line" [class.active]="pasoActual > 1"></div>
                         <div class="step" [class.active]="pasoActual >= 2" [class.completed]="pasoActual > 2">
-                            <div class="step-circle" (click)="irAPaso(2)">2</div>
+                            <div class="step-circle" (click)="irAPaso(2)"
+                                 role="button" 
+                                 tabindex="0"
+                                 (keydown.enter)="irAPaso(2)"
+                                 [attr.aria-current]="pasoActual === 2 ? 'step' : null"
+                                 aria-label="Paso 2: Identificación">2</div>
                             <div class="step-label">Identificación</div>
                         </div>
                         <div class="step-line" [class.active]="pasoActual > 2"></div>
                         <div class="step" [class.active]="pasoActual >= 3" [class.completed]="pasoActual > 3">
-                            <div class="step-circle" (click)="irAPaso(3)">3</div>
+                            <div class="step-circle" (click)="irAPaso(3)"
+                                 role="button" 
+                                 tabindex="0"
+                                 (keydown.enter)="irAPaso(3)"
+                                 [attr.aria-current]="pasoActual === 3 ? 'step' : null"
+                                 aria-label="Paso 3: Tipo de Solicitud">3</div>
                             <div class="step-label">Tipo de Solicitud</div>
                         </div>
                         <div class="step-line" [class.active]="pasoActual > 3"></div>
                         <div class="step" [class.active]="pasoActual >= 4" [class.completed]="pasoActual > 4">
-                            <div class="step-circle" (click)="irAPaso(4)">4</div>
+                            <div class="step-circle" (click)="irAPaso(4)"
+                                 role="button" 
+                                 tabindex="0"
+                                 (keydown.enter)="irAPaso(4)"
+                                 [attr.aria-current]="pasoActual === 4 ? 'step' : null"
+                                 aria-label="Paso 4: Detalles">4</div>
                             <div class="step-label">Detalles</div>
+                        </div>
+                        <div class="step-line" [class.active]="pasoActual > 4"></div>
+                        <div class="step" [class.active]="pasoActual >= 5" [class.completed]="pasoActual > 5">
+                            <div class="step-circle" (click)="irAPaso(5)"
+                                 role="button" 
+                                 tabindex="0"
+                                 (keydown.enter)="irAPaso(5)"
+                                 [attr.aria-current]="pasoActual === 5 ? 'step' : null"
+                                 aria-label="Paso 5: Resumen">5</div>
+                            <div class="step-label">Resumen</div>
                         </div>
                     </div>
 
                     <form [formGroup]="nuevaPqrsForm" (ngSubmit)="onSubmitNuevaPqrs()">
                         <!-- PASO 1: Canal de Llegada -->
-                        <div *ngIf="pasoActual === 1" class="paso-container">
-                            <h4 class="text-center mb-4">¿Cómo llegó esta PQRS?</h4>
+                        <div *ngIf="pasoActual === 1" class="paso-container" role="region" aria-labelledby="paso1-titulo">
+                            <h4 id="paso1-titulo" class="text-center mb-4">¿Cómo llegó esta PQRS?</h4>
                             <div class="row g-3">
                                 <div class="col-md-6 col-lg-4" *ngFor="let canal of canalesLlegada">
                                     <div class="canal-card" 
                                          [class.selected]="nuevaPqrsForm.get('canal_llegada')?.value === canal.value"
-                                         (click)="nuevaPqrsForm.patchValue({canal_llegada: canal.value})">
-                                        <i [class]="canal.icon + ' fa-3x mb-3'"></i>
+                                         (click)="nuevaPqrsForm.patchValue({canal_llegada: canal.value})"
+                                         (keydown.enter)="nuevaPqrsForm.patchValue({canal_llegada: canal.value})"
+                                         (keydown.space)="nuevaPqrsForm.patchValue({canal_llegada: canal.value})"
+                                         role="button"
+                                         tabindex="0"
+                                         [attr.aria-pressed]="nuevaPqrsForm.get('canal_llegada')?.value === canal.value"
+                                         [attr.aria-label]="'Seleccionar canal ' + canal.label">
+                                        <i [class]="canal.icon + ' fa-3x mb-3'" aria-hidden="true"></i>
                                         <h5>{{ canal.label }}</h5>
                                     </div>
                                 </div>
                             </div>
                             <div class="d-flex justify-content-between mt-4">
-                                <button type="button" class="btn btn-secondary" (click)="setActiveView('dashboard')">
-                                    <i class="fas fa-arrow-left me-1"></i>Cancelar
+                                <button type="button" class="btn btn-secondary" (click)="setActiveView('dashboard')"
+                                        aria-label="Cancelar creación de PQRS">
+                                    <i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Cancelar
                                 </button>
                                 <button type="button" class="btn btn-primary" 
                                         [disabled]="!nuevaPqrsForm.get('canal_llegada')?.value"
-                                        (click)="siguientePaso()">
-                                    Siguiente<i class="fas fa-arrow-right ms-1"></i>
+                                        (click)="siguientePaso()"
+                                        aria-label="Ir al siguiente paso">
+                                    Siguiente<i class="fas fa-arrow-right ms-1" aria-hidden="true"></i>
                                 </button>
                             </div>
                         </div>
 
                         <!-- PASO 2: Tipo de Identificación -->
-                        <div *ngIf="pasoActual === 2" class="paso-container">
-                            <h4 class="text-center mb-4">¿Cómo desea registrar la PQRS?</h4>
+                        <div *ngIf="pasoActual === 2" class="paso-container" role="region" aria-labelledby="paso2-titulo">
+                            <h4 id="paso2-titulo" class="text-center mb-4">¿Cómo desea registrar la PQRS?</h4>
                             <div class="row g-3 justify-content-center">
                                 <div class="col-md-5">
                                     <div class="tipo-id-card" 
                                          [class.selected]="tipo === 'personal'"
-                                         (click)="seleccionarTipoIdentificacion('personal')">
-                                        <i class="fas fa-user fa-4x mb-3 text-primary"></i>
+                                         (click)="seleccionarTipoIdentificacion('personal')"
+                                         (keydown.enter)="seleccionarTipoIdentificacion('personal')"
+                                         (keydown.space)="seleccionarTipoIdentificacion('personal')"
+                                         role="button"
+                                         tabindex="0"
+                                         [attr.aria-pressed]="tipo === 'personal'"
+                                         aria-label="Seleccionar PQRS a nombre personal">
+                                        <i class="fas fa-user fa-4x mb-3 text-primary" aria-hidden="true"></i>
                                         <h5>A Nombre Personal</h5>
                                         <p class="text-muted small">Con identificación del ciudadano</p>
                                     </div>
@@ -673,46 +717,62 @@
                                 <div class="col-md-5">
                                     <div class="tipo-id-card" 
                                          [class.selected]="tipo === 'anonima'"
-                                         (click)="seleccionarTipoIdentificacion('anonima')">
-                                        <i class="fas fa-user-secret fa-4x mb-3 text-secondary"></i>
+                                         (click)="seleccionarTipoIdentificacion('anonima')"
+                                         (keydown.enter)="seleccionarTipoIdentificacion('anonima')"
+                                         (keydown.space)="seleccionarTipoIdentificacion('anonima')"
+                                         role="button"
+                                         tabindex="0"
+                                         [attr.aria-pressed]="tipo === 'anonima'"
+                                         aria-label="Seleccionar PQRS anónima">
+                                        <i class="fas fa-user-secret fa-4x mb-3 text-secondary" aria-hidden="true"></i>
                                         <h5>Anónima</h5>
                                         <p class="text-muted small">Sin datos del ciudadano</p>
                                     </div>
                                 </div>
                             </div>
                             <div class="d-flex justify-content-between mt-4">
-                                <button type="button" class="btn btn-secondary" (click)="pasoAnterior()">
-                                    <i class="fas fa-arrow-left me-1"></i>Anterior
+                                <button type="button" class="btn btn-secondary" (click)="pasoAnterior()"
+                                        aria-label="Volver al paso anterior">
+                                    <i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Anterior
                                 </button>
                                 <button type="button" class="btn btn-primary" 
                                         [disabled]="!nuevaPqrsForm.get('tipo_identificacion')?.value"
-                                        (click)="siguientePaso()">
-                                    Siguiente<i class="fas fa-arrow-right ms-1"></i>
+                                        (click)="siguientePaso()"
+                                        aria-label="Ir al siguiente paso">
+                                    Siguiente<i class="fas fa-arrow-right ms-1" aria-hidden="true"></i>
                                 </button>
                             </div>
                         </div>
 
                         <!-- PASO 3: Tipo de Solicitud -->
-                        <div *ngIf="pasoActual === 3" class="paso-container">
-                            <h4 class="text-center mb-4">Tipo de Solicitud</h4>
+                        <div *ngIf="pasoActual === 3" class="paso-container" role="region" aria-labelledby="paso3-titulo">
+                            <h4 id="paso3-titulo" class="text-center mb-4">Tipo de Solicitud</h4>
                             <div class="row g-3">
                                 <div class="col-md-6 col-lg-4" *ngFor="let tipoSol of tiposSolicitud">
                                     <div class="tipo-solicitud-card" 
                                          [class.selected]="nuevaPqrsForm.get('tipo_solicitud')?.value === tipoSol.value"
-                                         (click)="nuevaPqrsForm.patchValue({tipo_solicitud: tipoSol.value})">
+                                         (click)="nuevaPqrsForm.patchValue({tipo_solicitud: tipoSol.value})"
+                                         (keydown.enter)="nuevaPqrsForm.patchValue({tipo_solicitud: tipoSol.value})"
+                                         (keydown.space)="nuevaPqrsForm.patchValue({tipo_solicitud: tipoSol.value})"
+                                         role="button"
+                                         tabindex="0"
+                                         [attr.aria-pressed]="nuevaPqrsForm.get('tipo_solicitud')?.value === tipoSol.value"
+                                         [attr.aria-label]="'Seleccionar ' + tipoSol.label">
                                         <h5 class="fw-bold mb-2">{{ tipoSol.label }}</h5>
                                         <p class="small text-muted mb-0">{{ tipoSol.descripcion }}</p>
                                     </div>
                                 </div>
                             </div>
                             <div class="d-flex justify-content-between mt-4">
-                                <button type="button" class="btn btn-secondary" (click)="pasoAnterior()">
-                                    <i class="fas fa-arrow-left me-1"></i>Anterior
+                                <button type="button" class="btn btn-secondary" (click)="pasoAnterior()"
+                                        aria-label="Volver al paso anterior">
+                                    <i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Anterior
                                 </button>
                                 <button type="button" class="btn btn-primary" 
                                         [disabled]="!nuevaPqrsForm.get('tipo_solicitud')?.value"
-                                        (click)="siguientePaso()">
-                                    Siguiente<i class="fas fa-arrow-right ms-1"></i>
+                                        (click)="siguientePaso()"
+                                        aria-label="Ir al siguiente paso">
+                                    Siguiente<i class="fas fa-arrow-right ms-1" aria-hidden="true"></i>
                                 </button>
                             </div>
                         </div>
@@ -776,14 +836,14 @@
                                     <select id="tipo_persona" formControlName="tipo_persona" class="form-select">
                                         <option value="">Seleccione...</option>
                                         <option *ngFor="let tp of tiposPersona" [value]="tp.value">{{ tp.label }}</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="genero" class="form-label">Género</label>
-                                    <select id="genero" formControlName="genero" class="form-select">
-                                        <option value="">Seleccione...</option>
-                                        <option *ngFor="let g of generos" [value]="g.value">{{ g.label }}</option>
-                                    </select>
+                                    </select> mb-3">
+                                    <label for="archivo_adjunto" class="form-label">
+                                        <i class="fas fa-file-pdf me-1" aria-hidden="true"></i> Documento escaneado (PDF)
+                                    </label>
+                                    <input id="archivo_adjunto" type="file" class="form-control"
+                                        accept="application/pdf" (change)="onFileSelected($event)"
+                                        aria-describedby="archivo-help">
+                                    <small id="archivo-help" class="form-text text-muted">Para PQRS físicas escaneadas (máx. {{ MAX_FILE_SIZE_MB }}MB)</small>
                                 </div>
                             </div>
 
@@ -878,14 +938,129 @@
 
                             <!-- Botones Finales -->
                             <div class="d-flex justify-content-between mt-4">
-                                <button type="button" class="btn btn-secondary" (click)="pasoAnterior()">
+                                <button type="button" class="btn btn-secondary" (click)="pasoAnterior()"
+                                        aria-label="Volver al paso anterior">
                                     <i class="fas fa-arrow-left me-1"></i>Anterior
                                 </button>
+                                <button type="button" class="btn btn-primary" (click)="siguientePaso()"
+                                        [disabled]="nuevaPqrsForm.invalid"
+                                        aria-label="Continuar al paso de resumen">
+                                    Continuar al Resumen<i class="fas fa-arrow-right ms-1"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- PASO 5: Resumen -->
+                        <div *ngIf="pasoActual === 5" class="paso-container">
+                            <h4 class="text-center mb-4"><i class="fas fa-clipboard-check me-2"></i>Resumen de la PQRS</h4>
+                            
+                            <div class="alert alert-info" role="alert">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Por favor, revisa que toda la información sea correcta antes de registrar la PQRS.
+                            </div>
+
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="fas fa-inbox me-2"></i>Información de la Solicitud</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-2">
+                                            <strong>Canal de Llegada:</strong><br>
+                                            <span class="text-muted">{{ getCanalLlegadaLabel(nuevaPqrsForm.get('canal_llegada')?.value) }}</span>
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <strong>Tipo de Identificación:</strong><br>
+                                            <span class="text-muted">{{ nuevaPqrsForm.get('tipo_identificacion')?.value === 'personal' ? 'A Nombre Personal' : 'Anónima' }}</span>
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <strong>Tipo de Solicitud:</strong><br>
+                                            <span class="badge bg-primary">{{ getTipoSolicitudLabel(nuevaPqrsForm.get('tipo_solicitud')?.value) }}</span>
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <strong>Medio de Respuesta:</strong><br>
+                                            <span class="text-muted">{{ getMedioRespuestaLabel(nuevaPqrsForm.get('medio_respuesta')?.value) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card mb-3" *ngIf="tipo === 'personal'">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="fas fa-user me-2"></i>Datos del Ciudadano</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-2">
+                                            <strong>Cédula:</strong><br>
+                                            <span class="text-muted">{{ nuevaPqrsForm.get('cedula_ciudadano')?.value || 'N/A' }}</span>
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <strong>Nombre Completo:</strong><br>
+                                            <span class="text-muted">{{ nuevaPqrsForm.get('nombre_ciudadano')?.value || 'N/A' }}</span>
+                                        </div>
+                                        <div class="col-md-6 mb-2" *ngIf="nuevaPqrsForm.get('telefono_ciudadano')?.value">
+                                            <strong>Teléfono:</strong><br>
+                                            <span class="text-muted">{{ nuevaPqrsForm.get('telefono_ciudadano')?.value }}</span>
+                                        </div>
+                                        <div class="col-md-6 mb-2" *ngIf="nuevaPqrsForm.get('email_ciudadano')?.value">
+                                            <strong>Email:</strong><br>
+                                            <span class="text-muted">{{ nuevaPqrsForm.get('email_ciudadano')?.value }}</span>
+                                        </div>
+                                        <div class="col-12 mb-2" *ngIf="nuevaPqrsForm.get('direccion_ciudadano')?.value">
+                                            <strong>Dirección:</strong><br>
+                                            <span class="text-muted">{{ nuevaPqrsForm.get('direccion_ciudadano')?.value }}</span>
+                                        </div>
+                                        <div class="col-md-6 mb-2" *ngIf="nuevaPqrsForm.get('tipo_persona')?.value">
+                                            <strong>Tipo de Persona:</strong><br>
+                                            <span class="text-muted">{{ getTipoPersonaLabel(nuevaPqrsForm.get('tipo_persona')?.value) }}</span>
+                                        </div>
+                                        <div class="col-md-6 mb-2" *ngIf="nuevaPqrsForm.get('genero')?.value">
+                                            <strong>Género:</strong><br>
+                                            <span class="text-muted">{{ getGeneroLabel(nuevaPqrsForm.get('genero')?.value) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="fas fa-file-alt me-2"></i>Contenido de la PQRS</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3" *ngIf="nuevaPqrsForm.get('asunto')?.value">
+                                        <strong>Asunto:</strong><br>
+                                        <p class="text-muted mb-0">{{ nuevaPqrsForm.get('asunto')?.value }}</p>
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>Descripción:</strong><br>
+                                        <p class="text-muted mb-0" style="white-space: pre-wrap;">{{ nuevaPqrsForm.get('descripcion')?.value }}</p>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-2" *ngIf="nuevaPqrsForm.get('dias_respuesta')?.value">
+                                            <strong>Días para Responder:</strong><br>
+                                            <span class="text-muted">{{ nuevaPqrsForm.get('dias_respuesta')?.value }} días hábiles</span>
+                                        </div>
+                                        <div class="col-md-6 mb-2" *ngIf="selectedFile">
+                                            <strong>Archivo Adjunto:</strong><br>
+                                            <span class="text-muted"><i class="fas fa-file-pdf me-1 text-danger"></i>{{ selectedFile.name }} ({{ (selectedFile.size / 1024).toFixed(2) }} KB)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Botones Finales del Paso 5 -->
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-secondary" (click)="pasoAnterior()"
+                                        aria-label="Volver a editar detalles">
+                                    <i class="fas fa-arrow-left me-1"></i>Volver a Editar
+                                </button>
                                 <button type="submit" class="btn btn-success"
-                                    [disabled]="nuevaPqrsForm.invalid || isSubmitting">
-                                    <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-2"></span>
+                                    [disabled]="nuevaPqrsForm.invalid || isSubmitting"
+                                    aria-label="Registrar PQRS definitivamente">
+                                    <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                                     <i class="fas fa-check me-1" *ngIf="!isSubmitting"></i>
-                                    {{ isSubmitting ? 'Creando...' : 'Registrar PQRS' }}
+                                    {{ isSubmitting ? 'Registrando...' : 'Confirmar y Registrar PQRS' }}
                                 </button>
                             </div>
                         </div>

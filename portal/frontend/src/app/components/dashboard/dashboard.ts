@@ -59,11 +59,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
   
   // Control de pasos del formulario PQRS
   pasoActual: number = 1;
-  totalPasos: number = 4;
+  totalPasos: number = 5; // Ahora incluye paso de resumen
   tipo: string = 'personal';
   medio: string = 'email';
   nextRadicado: string = '';
   loadingRadicado: boolean = false;
+  
+  // Validación de archivos
+  readonly MAX_FILE_SIZE_MB = 10;
+  readonly MAX_FILE_SIZE_BYTES = this.MAX_FILE_SIZE_MB * 1024 * 1024;
+  
+  // Guardado temporal (borrador)
+  private readonly BORRADOR_KEY = 'pqrs_borrador';
 
   // Alertas (campana en navbar)
   showAlertsPanel = false;
@@ -517,6 +524,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // Cargar próximo radicado al abrir formulario de nueva PQRS
     if (view === 'nueva-pqrs') {
       this.loadNextRadicado();
+      // Verificar si hay borrador guardado
+      setTimeout(() => this.verificarBorrador(), 300);
     }
   }
 
@@ -885,6 +894,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
                 this.nuevaPqrsForm.reset();
                 this.selectedFile = null;
                 this.isSubmitting = false;
+                this.limpiarBorrador(); // Limpiar borrador después de crear exitosamente
                 this.setActiveView('dashboard');
                 this.loadPqrs();
               },
@@ -897,6 +907,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
                 this.nuevaPqrsForm.reset();
                 this.selectedFile = null;
                 this.isSubmitting = false;
+                this.limpiarBorrador(); // Limpiar borrador después de advertencia
                 this.setActiveView('dashboard');
                 this.loadPqrs();
               }
@@ -910,6 +921,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
             this.nuevaPqrsForm.reset();
             this.selectedFile = null;
             this.isSubmitting = false;
+            this.limpiarBorrador(); // Limpiar borrador después de crear exitosamente
             this.setActiveView('dashboard');
             this.loadPqrs();
           }
@@ -1952,18 +1964,24 @@ export class DashboardComponent implements OnInit, OnDestroy {
   siguientePaso(): void {
     if (this.pasoActual < this.totalPasos) {
       this.pasoActual++;
+      // Guardar borrador al avanzar de paso
+      this.guardarBorrador();
     }
   }
-  
+
   pasoAnterior(): void {
     if (this.pasoActual > 1) {
       this.pasoActual--;
+      // Guardar borrador al retroceder
+      this.guardarBorrador();
     }
   }
-  
+
   irAPaso(paso: number): void {
     if (paso >= 1 && paso <= this.totalPasos) {
       this.pasoActual = paso;
+      // Guardar borrador al cambiar de paso
+      this.guardarBorrador();
     }
   }
   
@@ -1995,6 +2013,97 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.tipo = 'personal';
     this.medio = 'email';
     this.selectedFile = null;
+    // Limpiar borrador al resetear
+    this.limpiarBorrador();
+  }
+  
+  // Guardar borrador automáticamente
+  guardarBorrador(): void {
+    try {
+      const borrador = {
+        formData: this.nuevaPqrsForm.value,
+        pasoActual: this.pasoActual,
+        tipo: this.tipo,
+        medio: this.medio,
+        timestamp: new Date().toISOString()
+      };
+      localStorage.setItem(this.BORRADOR_KEY, JSON.stringify(borrador));
+      console.log('💾 Borrador guardado automáticamente');
+    } catch (error) {
+      console.error('Error guardando borrador:', error);
+    }
+  }
+  
+  // Cargar borrador si existe
+  cargarBorrador(): boolean {
+    try {
+      const borradorStr = localStorage.getItem(this.BORRADOR_KEY);
+      if (!borradorStr) return false;
+      
+      const borrador = JSON.parse(borradorStr);
+      const timestamp = new Date(borrador.timestamp);
+      const ahora = new Date();
+      const diferenciaHoras = (ahora.getTime() - timestamp.getTime()) / (1000 * 60 * 60);
+      
+      // Solo cargar si el borrador tiene menos de 24 horas
+      if (diferenciaHoras > 24) {
+        this.limpiarBorrador();
+        return false;
+      }
+      
+      // Restaurar datos del formulario
+      this.nuevaPqrsForm.patchValue(borrador.formData);
+      this.pasoActual = borrador.pasoActual || 1;
+      this.tipo = borrador.tipo || 'personal';
+      this.medio = borrador.medio || 'email';
+      
+      return true;
+    } catch (error) {
+      console.error('Error cargando borrador:', error);
+      return false;
+    }
+  }
+  
+  // Limpiar borrador
+  limpiarBorrador(): void {
+    try {
+      localStorage.removeItem(this.BORRADOR_KEY);
+      console.log('🗑️ Borrador eliminado');
+    } catch (error) {
+      console.error('Error limpiando borrador:', error);
+    }
+  }
+  
+  // Preguntar si desea cargar borrador
+  async verificarBorrador(): Promise<void> {
+    const borradorStr = localStorage.getItem(this.BORRADOR_KEY);
+    if (!borradorStr) return;
+    
+    try {
+      const borrador = JSON.parse(borradorStr);
+      const timestamp = new Date(borrador.timestamp);
+      const diferenciaHoras = (timestamp.getTime() - new Date().getTime()) / (1000 * 60 * 60);
+      
+      if (Math.abs(diferenciaHoras) > 24) {
+        this.limpiarBorrador();
+        return;
+      }
+      
+      const resultado = await this.alertService.confirm(
+        '¿Deseas continuar con el borrador guardado?',
+        'Borrador Encontrado'
+      );
+      
+      if (resultado) {
+        this.cargarBorrador();
+        this.alertService.info('Borrador cargado correctamente', 'Borrador Restaurado');
+      } else {
+        this.limpiarBorrador();
+      }
+    } catch (error) {
+      console.error('Error verificando borrador:', error);
+      this.limpiarBorrador();
+    }
   }
   
   seleccionarTipoIdentificacion(tipoValue: string): void {
