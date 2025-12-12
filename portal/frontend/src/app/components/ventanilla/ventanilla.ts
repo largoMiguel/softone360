@@ -16,6 +16,9 @@ import { Entity } from '../../models/entity.model';
     styleUrl: './ventanilla.scss'
 })
 export class VentanillaComponent implements OnInit {
+    // Vista activa
+    currentView: 'home' | 'radicar-pqrs' = 'home';
+
     // Modal states
     mostrarModalConsulta = false;
     mostrarResultadoConsulta = false;
@@ -55,6 +58,18 @@ export class VentanillaComponent implements OnInit {
     navigateToLogin() {
         const slug = this.entityContext.currentEntity?.slug;
         this.router.navigate(slug ? ['/', slug, 'login'] : ['/']);
+    }
+
+    navigateToRadicarPqrs() {
+        if (!this.pqrsEnabled()) {
+            this.alertService.warning('El módulo de PQRS está desactivado para esta entidad.', 'Módulo desactivado');
+            return;
+        }
+        this.currentView = 'radicar-pqrs';
+    }
+
+    volverAHome() {
+        this.currentView = 'home';
     }
 
     navigateToPortalCiudadano() {
