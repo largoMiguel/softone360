@@ -16,7 +16,7 @@ export class EntityService {
      * Obtener todas las entidades (solo superadmin)
      */
     getEntities(): Observable<EntityWithStats[]> {
-        return this.http.get<EntityWithStats[]>(this.baseUrl);
+        return this.http.get<EntityWithStats[]>(`${this.baseUrl}/`);
     }
 
     /**
@@ -44,7 +44,7 @@ export class EntityService {
      * Crear nueva entidad (solo superadmin)
      */
     createEntity(entity: CreateEntityRequest): Observable<Entity> {
-        return this.http.post<Entity>(this.baseUrl, entity);
+        return this.http.post<Entity>(`${this.baseUrl}/`, entity);
     }
 
     /**
