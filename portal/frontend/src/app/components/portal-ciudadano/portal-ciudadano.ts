@@ -35,6 +35,13 @@ export class PortalCiudadanoComponent implements OnInit {
     loadingPqrs = false;
     pqrsDetalle: any = null;
 
+    // Formulario de nueva PQRS
+    pqrsForm: FormGroup;
+    archivoAdjunto: File | null = null;
+    MAX_FILE_SIZE_MB = 10;
+    MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+    creandoPqrs = false;
+
     constructor(
         private authService: AuthService,
         private router: Router,
@@ -61,6 +68,16 @@ export class PortalCiudadanoComponent implements OnInit {
         }, { validators: this.passwordMatchValidator });
 
         this.currentEntity$ = this.entityContext.currentEntity$;
+
+        // Inicializar formulario de PQRS
+        this.pqrsForm = this.fb.group({
+            tipo_pqrs: ['peticion', Validators.required],
+            asunto: ['', [Validators.required, Validators.maxLength(200)]],
+            descripcion: ['', [Validators.required, Validators.minLength(10)]],
+            medio_respuesta: ['email', Validators.required],
+            direccion_respuesta: [''],
+            telefono_respuesta: ['']
+        });
     }
 
     ngOnInit() {
@@ -163,6 +180,13 @@ export class PortalCiudadanoComponent implements OnInit {
 
     cambiarVista(vista: 'mis-pqrs' | 'nueva-pqrs') {
         this.currentView = vista;
+        if (vista === 'nueva-pqrs') {
+            this.pqrsForm.reset({
+                tipo_pqrs: 'peticion',
+                medio_respuesta: 'email'
+            });
+            this.archivoAdjunto = null;
+        }
     }
 
     verDetalle(pqrs: any) {
@@ -177,6 +201,126 @@ export class PortalCiudadanoComponent implements OnInit {
         const slug = this.entityContext.currentEntity?.slug;
         this.router.navigate(slug ? ['/', slug, 'dashboard'] : ['/'], {
             queryParams: { v: 'nueva-pqrs' }
+        });
+    }
+
+    // Manejo del formulario de PQRS
+    onFileSelected(event: any) {
+        const file = event.target.files[0];
+        if (file) {
+            // Validar tamaño
+            if (file.size > this.MAX_FILE_SIZE_BYTES) {
+                this.alertService.error(
+                    `El archivo es demasiado grande. Tamaño máximo: ${this.MAX_FILE_SIZE_MB}MB`,
+                    'Archivo muy grande'
+                );
+                event.target.value = '';
+                return;
+            }
+
+            // Validar tipo
+            const allowedTypes = [
+                'application/pdf',
+                'image/jpeg',
+                'image/jpg',
+                'image/png',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            ];
+            
+            if (!allowedTypes.includes(file.type)) {
+                this.alertService.error(
+                    'Tipo de archivo no permitido. Solo se aceptan: PDF, JPG, PNG, DOC, DOCX',
+                    'Tipo no válido'
+                );
+                event.target.value = '';
+                return;
+            }
+
+            this.archivoAdjunto = file;
+        }
+    }
+
+    removerArchivo() {
+        this.archivoAdjunto = null;
+    }
+
+    crearPqrs() {
+        if (this.pqrsForm.invalid) {
+            this.alertService.warning('Por favor completa todos los campos requeridos', 'Formulario incompleto');
+            return;
+        }
+
+        if (!this.currentUser || !this.currentEntity) {
+            this.alertService.error('No se pudo obtener información del usuario o entidad', 'Error');
+            return;
+        }
+
+        this.creandoPqrs = true;
+
+        const formValue = this.pqrsForm.value;
+        const pqrsData = {
+            tipo_pqrs: formValue.tipo_pqrs,
+            asunto: formValue.asunto,
+            descripcion: formValue.descripcion,
+            medio_respuesta: formValue.medio_respuesta,
+            tipo_identificacion: 'personal' as const,
+            tipo_solicitud: formValue.tipo_pqrs,
+            canal_llegada: 'web' as const,
+            nombre_ciudadano: this.currentUser.full_name,
+            cedula_ciudadano: this.currentUser.cedula || '',
+            email_ciudadano: this.currentUser.email,
+            telefono_ciudadano: this.currentUser.telefono || '',
+            direccion_ciudadano: this.currentUser.direccion || '',
+            direccion_respuesta: formValue.direccion_respuesta || null,
+            telefono_respuesta: formValue.telefono_respuesta || null,
+            entity_id: this.currentEntity.id
+        };
+
+        this.pqrsService.createPqrs(pqrsData).subscribe({
+            next: (pqrs) => {
+                // Si hay archivo, subirlo
+                if (this.archivoAdjunto) {
+                    this.pqrsService.uploadArchivo(pqrs.id, this.archivoAdjunto).subscribe({
+                        next: () => {
+                            this.alertService.success(
+                                `PQRS radicada exitosamente. Número de radicado: ${pqrs.numero_radicado}`,
+                                'PQRS Creada'
+                            );
+                            this.pqrsForm.reset({ tipo_pqrs: 'peticion', medio_respuesta: 'email' });
+                            this.archivoAdjunto = null;
+                            this.creandoPqrs = false;
+                            this.cargarMisPqrs();
+                            this.cambiarVista('mis-pqrs');
+                        },
+                        error: () => {
+                            this.alertService.warning(
+                                `PQRS radicada con número ${pqrs.numero_radicado}, pero hubo un error al subir el archivo.`,
+                                'Archivo no subido'
+                            );
+                            this.creandoPqrs = false;
+                            this.cargarMisPqrs();
+                            this.cambiarVista('mis-pqrs');
+                        }
+                    });
+                } else {
+                    this.alertService.success(
+                        `PQRS radicada exitosamente. Número de radicado: ${pqrs.numero_radicado}`,
+                        'PQRS Creada'
+                    );
+                    this.pqrsForm.reset({ tipo_pqrs: 'peticion', medio_respuesta: 'email' });
+                    this.creandoPqrs = false;
+                    this.cargarMisPqrs();
+                    this.cambiarVista('mis-pqrs');
+                }
+            },
+            error: (error) => {
+                this.alertService.error(
+                    error.error?.detail || 'Error al crear la PQRS',
+                    'Error'
+                );
+                this.creandoPqrs = false;
+            }
         });
     }
 
