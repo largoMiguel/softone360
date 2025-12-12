@@ -256,6 +256,52 @@ async def get_pqrs(
     
     return result
 
+@router.get("/mis-pqrs", response_model=List[PQRSWithDetails])
+async def get_mis_pqrs(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Obtener PQRS del ciudadano autenticado"""
+    # Solo ciudadanos pueden usar este endpoint
+    if current_user.role != UserRole.CIUDADANO:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Este endpoint es solo para ciudadanos"
+        )
+    
+    # Obtener PQRS creadas por el ciudadano
+    query = db.query(PQRS).options(
+        joinedload(PQRS.created_by),
+        joinedload(PQRS.assigned_to)
+    ).filter(
+        (PQRS.created_by_id == current_user.id) |
+        (PQRS.email_ciudadano == current_user.email)
+    ).order_by(PQRS.created_at.desc())
+    
+    pqrs_list = query.offset(skip).limit(limit).all()
+    
+    # Convertir a formato con detalles
+    result = []
+    for pqrs in pqrs_list:
+        pqrs_dict = {
+            **pqrs.__dict__,
+            "created_by": {
+                "id": pqrs.created_by.id,
+                "username": pqrs.created_by.username,
+                "full_name": pqrs.created_by.full_name
+            } if pqrs.created_by else None,
+            "assigned_to": {
+                "id": pqrs.assigned_to.id,
+                "username": pqrs.assigned_to.username,
+                "full_name": pqrs.assigned_to.full_name
+            } if pqrs.assigned_to else None
+        }
+        result.append(pqrs_dict)
+    
+    return result
+
 @router.get("/next-radicado", response_model=dict)
 async def get_next_radicado(
     db: Session = Depends(get_db),

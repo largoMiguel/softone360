@@ -5,6 +5,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { EntityContextService } from '../../services/entity-context.service';
 import { AuthService } from '../../services/auth.service';
 import { AlertService } from '../../services/alert.service';
+import { PqrsService } from '../../services/pqrs.service';
 import { User } from '../../models/user.model';
 import { Observable } from 'rxjs';
 import { Entity } from '../../models/entity.model';
@@ -26,13 +27,22 @@ export class PortalCiudadanoComponent implements OnInit {
     currentEntity$!: Observable<Entity | null>;
     currentEntity: Entity | null = null;
 
+    // Vista activa del dashboard
+    currentView: 'mis-pqrs' | 'nueva-pqrs' = 'mis-pqrs';
+
+    // Listado de PQRS
+    misPqrs: any[] = [];
+    loadingPqrs = false;
+    pqrsDetalle: any = null;
+
     constructor(
         private authService: AuthService,
         private router: Router,
         private route: ActivatedRoute,
         private fb: FormBuilder,
         private alertService: AlertService,
-        private entityContext: EntityContextService
+        private entityContext: EntityContextService,
+        private pqrsService: PqrsService
     ) {
         this.loginForm = this.fb.group({
             username: ['', Validators.required],
@@ -60,6 +70,7 @@ export class PortalCiudadanoComponent implements OnInit {
                 if (user && user.role === 'ciudadano') {
                     this.currentUser = user;
                     this.isLoggedIn = true;
+                    this.cargarMisPqrs();
                 }
             },
             error: () => { this.isLoggedIn = false; }
@@ -133,5 +144,75 @@ export class PortalCiudadanoComponent implements OnInit {
     volverAInicio() {
         const slug = this.entityContext.currentEntity?.slug;
         if (slug) { this.router.navigate(['/', slug]); } else { this.router.navigate(['/']); }
+    }
+
+    // Métodos para PQRS
+    cargarMisPqrs() {
+        this.loadingPqrs = true;
+        this.pqrsService.getMisPqrs().subscribe({
+            next: (data) => {
+                this.misPqrs = data;
+                this.loadingPqrs = false;
+            },
+            error: (error) => {
+                this.alertService.error('Error al cargar PQRS', 'Error');
+                this.loadingPqrs = false;
+            }
+        });
+    }
+
+    cambiarVista(vista: 'mis-pqrs' | 'nueva-pqrs') {
+        this.currentView = vista;
+    }
+
+    verDetalle(pqrs: any) {
+        this.pqrsDetalle = pqrs;
+    }
+
+    cerrarDetalle() {
+        this.pqrsDetalle = null;
+    }
+
+    navegarANuevaPqrs() {
+        const slug = this.entityContext.currentEntity?.slug;
+        this.router.navigate(slug ? ['/', slug, 'dashboard'] : ['/'], {
+            queryParams: { v: 'nueva-pqrs' }
+        });
+    }
+
+    getEstadoClass(estado: string): string {
+        const estados: { [key: string]: string } = {
+            'radicada': 'badge bg-primary',
+            'en_tramite': 'badge bg-warning',
+            'en_proceso': 'badge bg-info',
+            'resuelta': 'badge bg-success',
+            'cerrada': 'badge bg-secondary',
+            'rechazada': 'badge bg-danger'
+        };
+        return estados[estado] || 'badge bg-secondary';
+    }
+
+    getEstadoLabel(estado: string): string {
+        const estados: { [key: string]: string } = {
+            'radicada': 'Radicada',
+            'en_tramite': 'En Trámite',
+            'en_proceso': 'En Proceso',
+            'resuelta': 'Resuelta',
+            'cerrada': 'Cerrada',
+            'rechazada': 'Rechazada'
+        };
+        return estados[estado] || estado;
+    }
+
+    getTipoPqrsLabel(tipo: string): string {
+        const tipos: { [key: string]: string } = {
+            'peticion': 'Petición',
+            'queja': 'Queja',
+            'reclamo': 'Reclamo',
+            'sugerencia': 'Sugerencia',
+            'felicitacion': 'Felicitación',
+            'denuncia': 'Denuncia'
+        };
+        return tipos[tipo] || tipo;
     }
 }

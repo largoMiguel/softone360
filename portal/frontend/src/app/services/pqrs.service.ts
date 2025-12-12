@@ -49,6 +49,11 @@ export class PqrsService {
         return this.http.get<PQRSWithDetails[]>(this.baseUrl, { params: httpParams });
     }
 
+    // Obtener PQRS del ciudadano autenticado
+    getMisPqrs(): Observable<PQRSWithDetails[]> {
+        return this.http.get<PQRSWithDetails[]>(`${this.baseUrl}mis-pqrs`);
+    }
+
     getPqrsById(id: number): Observable<PQRSWithDetails> {
         return this.http.get<PQRSWithDetails>(`${this.baseUrl}${id}`);
     }

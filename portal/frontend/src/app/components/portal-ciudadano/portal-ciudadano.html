@@ -223,20 +223,172 @@
         </div>
     </div>
 
-    <!-- Vista del Dashboard Ciudadano (vacía) -->
+    <!-- Vista del Dashboard Ciudadano -->
     <div *ngIf="isLoggedIn" class="dashboard-section">
-        <div class="container">
-            <div class="welcome-banner mb-4">
-                <h2><i class="fas fa-home me-2"></i>Bienvenido, {{ currentUser?.full_name }}</h2>
-                <p class="text-muted">Este portal está actualmente en blanco. No hay módulos activos.</p>
+        <div class="container py-4">
+            <!-- Botones de navegación -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="btn-group w-100" role="group">
+                        <button type="button" class="btn btn-lg"
+                            [class.btn-secondary]="currentView === 'mis-pqrs'"
+                            [class.btn-outline-secondary]="currentView !== 'mis-pqrs'"
+                            (click)="cambiarVista('mis-pqrs')">
+                            <i class="fas fa-list me-2"></i>Mis PQRS
+                        </button>
+                        <button type="button" class="btn btn-lg"
+                            [class.btn-primary]="currentView === 'nueva-pqrs'"
+                            [class.btn-outline-primary]="currentView !== 'nueva-pqrs'"
+                            (click)="cambiarVista('nueva-pqrs')">
+                            <i class="fas fa-plus me-2"></i>Nueva PQRS
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div class="card">
-                <div class="card-body text-center py-5">
-                    <i class="fas fa-box-open fa-4x text-muted mb-3"></i>
-                    <h5 class="text-muted">Sin contenido disponible</h5>
-                    <p class="text-secondary mb-4">El módulo de PQRS ha sido deshabilitado y retirado.</p>
-                    <button class="btn btn-outline-secondary" (click)="volverAInicio()">
-                        <i class="fas fa-arrow-left me-2"></i>Volver al inicio
+
+            <!-- Vista: Mis PQRS -->
+            <div *ngIf="currentView === 'mis-pqrs'">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0"><i class="fas fa-folder-open me-2"></i>Mis PQRS Registradas</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Loading -->
+                        <div *ngIf="loadingPqrs" class="text-center py-5">
+                            <div class="spinner-border text-secondary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                            <p class="mt-3 text-muted">Cargando PQRS...</p>
+                        </div>
+
+                        <!-- Sin PQRS -->
+                        <div *ngIf="!loadingPqrs && misPqrs.length === 0" class="text-center py-5">
+                            <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                            <h5 class="text-muted">No tienes PQRS registradas</h5>
+                            <p class="text-secondary mb-4">Aún no has radicado ninguna solicitud</p>
+                            <button class="btn btn-primary" (click)="cambiarVista('nueva-pqrs')">
+                                <i class="fas fa-plus me-2"></i>Radicar Primera PQRS
+                            </button>
+                        </div>
+
+                        <!-- Listado de PQRS -->
+                        <div *ngIf="!loadingPqrs && misPqrs.length > 0">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Radicado</th>
+                                            <th>Tipo</th>
+                                            <th>Asunto</th>
+                                            <th>Estado</th>
+                                            <th>Fecha</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr *ngFor="let pqrs of misPqrs" style="cursor: pointer;">
+                                            <td (click)="verDetalle(pqrs)">
+                                                <strong class="text-primary">{{ pqrs.numero_radicado }}</strong>
+                                            </td>
+                                            <td (click)="verDetalle(pqrs)">
+                                                <span class="badge bg-info">{{ getTipoPqrsLabel(pqrs.tipo_pqrs) }}</span>
+                                            </td>
+                                            <td (click)="verDetalle(pqrs)">{{ pqrs.asunto }}</td>
+                                            <td (click)="verDetalle(pqrs)">
+                                                <span [class]="getEstadoClass(pqrs.estado)">
+                                                    {{ getEstadoLabel(pqrs.estado) }}
+                                                </span>
+                                            </td>
+                                            <td (click)="verDetalle(pqrs)">{{ pqrs.fecha_radicacion | date: 'short' }}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" (click)="verDetalle(pqrs)">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vista: Nueva PQRS -->
+            <div *ngIf="currentView === 'nueva-pqrs'">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Radicar Nueva PQRS</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Información:</strong> Serás redirigido al formulario completo de radicación.
+                        </div>
+                        <p>Para radicar una nueva PQRS con todas las opciones disponibles, utiliza el dashboard administrativo.</p>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary btn-lg" (click)="navegarANuevaPqrs()">
+                                <i class="fas fa-paper-plane me-2"></i>Ir a Radicar PQRS
+                            </button>
+                            <button class="btn btn-outline-secondary" (click)="cambiarVista('mis-pqrs')">
+                                <i class="fas fa-arrow-left me-2"></i>Volver a Mis PQRS
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detalle PQRS -->
+    <div class="modal fade show d-block" *ngIf="pqrsDetalle" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-secondary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-file-alt me-2"></i>Detalle de PQRS
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" (click)="cerrarDetalle()"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Radicado:</strong>
+                            <p class="text-primary">{{ pqrsDetalle.numero_radicado }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Estado:</strong>
+                            <p><span [class]="getEstadoClass(pqrsDetalle.estado)">{{ getEstadoLabel(pqrsDetalle.estado) }}</span></p>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Tipo:</strong>
+                            <p>{{ getTipoPqrsLabel(pqrsDetalle.tipo_pqrs) }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Fecha:</strong>
+                            <p>{{ pqrsDetalle.fecha_radicacion | date: 'medium' }}</p>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Asunto:</strong>
+                        <p>{{ pqrsDetalle.asunto }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Descripción:</strong>
+                        <p class="text-muted">{{ pqrsDetalle.descripcion }}</p>
+                    </div>
+                    <div class="mb-3" *ngIf="pqrsDetalle.respuesta">
+                        <strong>Respuesta:</strong>
+                        <div class="alert alert-success">
+                            {{ pqrsDetalle.respuesta }}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" (click)="cerrarDetalle()">
+                        <i class="fas fa-times me-2"></i>Cerrar
                     </button>
                 </div>
             </div>
