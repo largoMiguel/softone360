@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, from, BehaviorSubject, of, throwError } from 'rxjs';
-import { map, catchError, switchMap, tap } from 'rxjs/operators';
+import { Observable, from, BehaviorSubject, of, throwError, timer } from 'rxjs';
+import { map, catchError, switchMap, tap, retry, delayWhen } from 'rxjs/operators';
 import * as XLSX from 'xlsx';
 import { AuthService } from './auth.service';
 import { environment } from '../../environments/environment';
@@ -1338,6 +1338,20 @@ export class PdmService {
         }
         
         return this.http.get(`${this.API_URL}/${this.entitySlug}/status`).pipe(
+            // Retry con delay exponencial para errores de timing (status 0, 502)
+            retry({
+                count: 3,
+                delay: (error, retryCount) => {
+                    // Solo reintentar si es error de timing (status 0 o 502)
+                    if (error.status === 0 || error.status === 502) {
+                        const delayMs = Math.min(1000 * Math.pow(2, retryCount - 1), 4000);
+                        console.log(`🔄 Reintentando verificar estado PDM (intento ${retryCount}/3) en ${delayMs}ms...`);
+                        return timer(delayMs);
+                    }
+                    // Para otros errores, no reintentar
+                    return throwError(() => error);
+                }
+            }),
             catchError(error => {
                 console.error('Error al verificar estado PDM:', error);
                 if (error.status === 403) {
@@ -1364,6 +1378,20 @@ export class PdmService {
         
         
         return this.http.get<PDMData>(`${this.API_URL}/${this.entitySlug}/data`).pipe(
+            // Retry con delay exponencial para errores de timing (status 0, 502)
+            retry({
+                count: 3,
+                delay: (error, retryCount) => {
+                    // Solo reintentar si es error de timing (status 0 o 502)
+                    if (error.status === 0 || error.status === 502) {
+                        const delayMs = Math.min(1000 * Math.pow(2, retryCount - 1), 4000);
+                        console.log(`🔄 Reintentando cargar datos PDM (intento ${retryCount}/3) en ${delayMs}ms...`);
+                        return timer(delayMs);
+                    }
+                    // Para otros errores, no reintentar
+                    return throwError(() => error);
+                }
+            }),
             catchError(error => {
                 console.error('Error al cargar datos PDM:', error);
                 if (error.status === 403) {

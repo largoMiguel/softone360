@@ -226,25 +226,21 @@
     <!-- Vista del Dashboard Ciudadano -->
     <div *ngIf="isLoggedIn" class="dashboard-section">
         <div class="container py-4">
-            <!-- Botones de navegación -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="btn-group w-100" role="group">
-                        <button type="button" class="btn btn-lg"
-                            [class.btn-secondary]="currentView === 'mis-pqrs'"
-                            [class.btn-outline-secondary]="currentView !== 'mis-pqrs'"
-                            (click)="cambiarVista('mis-pqrs')">
-                            <i class="fas fa-list me-2"></i>Mis PQRS
-                        </button>
-                        <button type="button" class="btn btn-lg"
-                            [class.btn-primary]="currentView === 'nueva-pqrs'"
-                            [class.btn-outline-primary]="currentView !== 'nueva-pqrs'"
-                            (click)="cambiarVista('nueva-pqrs')">
-                            <i class="fas fa-plus me-2"></i>Nueva PQRS
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <!-- Tabs de navegación -->
+            <ul class="nav nav-tabs mb-4" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" [class.active]="currentView === 'mis-pqrs'"
+                        (click)="cambiarVista('mis-pqrs')" type="button" role="tab">
+                        <i class="fas fa-list me-2"></i>Mis PQRS
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" [class.active]="currentView === 'nueva-pqrs'"
+                        (click)="cambiarVista('nueva-pqrs')" type="button" role="tab">
+                        <i class="fas fa-plus me-2"></i>Nueva PQRS
+                    </button>
+                </li>
+            </ul>
 
             <!-- Vista: Mis PQRS -->
             <div *ngIf="currentView === 'mis-pqrs'">
@@ -316,113 +312,13 @@
 
             <!-- Vista: Nueva PQRS -->
             <div *ngIf="currentView === 'nueva-pqrs'">
-                <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Radicar Nueva PQRS</h5>
-                    </div>
-                    <div class="card-body">
-                        <form [formGroup]="pqrsForm" (ngSubmit)="crearPqrs()">
-                            <!-- Tipo de PQRS -->
-                            <div class="mb-3">
-                                <label class="form-label"><strong>Tipo de Solicitud *</strong></label>
-                                <select class="form-select" formControlName="tipo_pqrs" required>
-                                    <option value="peticion">Petición</option>
-                                    <option value="queja">Queja</option>
-                                    <option value="reclamo">Reclamo</option>
-                                    <option value="sugerencia">Sugerencia</option>
-                                    <option value="felicitacion">Felicitación</option>
-                                    <option value="denuncia">Denuncia</option>
-                                </select>
-                            </div>
-
-                            <!-- Asunto -->
-                            <div class="mb-3">
-                                <label class="form-label"><strong>Asunto *</strong></label>
-                                <input type="text" class="form-control" formControlName="asunto" 
-                                    placeholder="Resumen breve de tu solicitud" maxlength="200" required>
-                                <small class="text-muted">Máximo 200 caracteres</small>
-                            </div>
-
-                            <!-- Descripción -->
-                            <div class="mb-3">
-                                <label class="form-label"><strong>Descripción *</strong></label>
-                                <textarea class="form-control" formControlName="descripcion" rows="5"
-                                    placeholder="Describe detalladamente tu solicitud" required></textarea>
-                                <small class="text-muted">Mínimo 10 caracteres</small>
-                            </div>
-
-                            <!-- Medio de Respuesta -->
-                            <div class="mb-3">
-                                <label class="form-label"><strong>Medio de Respuesta *</strong></label>
-                                <select class="form-select" formControlName="medio_respuesta" required>
-                                    <option value="email">Correo Electrónico</option>
-                                    <option value="fisica">Correspondencia Física</option>
-                                    <option value="telefono">Teléfono</option>
-                                    <option value="ticket">Solo Seguimiento por Ticket</option>
-                                </select>
-                            </div>
-
-                            <!-- Dirección de respuesta (si medio es físico) -->
-                            <div class="mb-3" *ngIf="pqrsForm.get('medio_respuesta')?.value === 'fisica'">
-                                <label class="form-label"><strong>Dirección de Correspondencia *</strong></label>
-                                <input type="text" class="form-control" formControlName="direccion_respuesta"
-                                    placeholder="Dirección completa para envío de respuesta" required>
-                            </div>
-
-                            <!-- Teléfono de respuesta (si medio es teléfono) -->
-                            <div class="mb-3" *ngIf="pqrsForm.get('medio_respuesta')?.value === 'telefono'">
-                                <label class="form-label"><strong>Teléfono de Contacto *</strong></label>
-                                <input type="tel" class="form-control" formControlName="telefono_respuesta"
-                                    placeholder="Teléfono donde podemos contactarte" required>
-                            </div>
-
-                            <!-- Archivo Adjunto -->
-                            <div class="mb-3">
-                                <label class="form-label"><strong>Archivo Adjunto (Opcional)</strong></label>
-                                <input type="file" class="form-control" (change)="onFileSelected($event)"
-                                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
-                                <small class="text-muted">
-                                    Formatos permitidos: PDF, JPG, PNG, DOC, DOCX. Tamaño máximo: {{ MAX_FILE_SIZE_MB }}MB
-                                </small>
-                                <div *ngIf="archivoAdjunto" class="mt-2">
-                                    <div class="alert alert-info d-flex justify-content-between align-items-center">
-                                        <span>
-                                            <i class="fas fa-file me-2"></i>{{ archivoAdjunto.name }} 
-                                            ({{ (archivoAdjunto.size / 1024 / 1024).toFixed(2) }} MB)
-                                        </span>
-                                        <button type="button" class="btn btn-sm btn-danger" (click)="removerArchivo()">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Información del ciudadano (pre-llenada) -->
-                            <div class="alert alert-info">
-                                <strong><i class="fas fa-info-circle me-2"></i>Tu información:</strong>
-                                <ul class="mb-0 mt-2">
-                                    <li>Nombre: {{ currentUser?.full_name }}</li>
-                                    <li>Email: {{ currentUser?.email }}</li>
-                                    <li *ngIf="currentUser?.cedula">Cédula: {{ currentUser?.cedula }}</li>
-                                </ul>
-                            </div>
-
-                            <!-- Botones -->
-                            <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-primary btn-lg" 
-                                    [disabled]="pqrsForm.invalid || creandoPqrs">
-                                    <span *ngIf="creandoPqrs" class="spinner-border spinner-border-sm me-2"></span>
-                                    <i *ngIf="!creandoPqrs" class="fas fa-paper-plane me-2"></i>
-                                    {{ creandoPqrs ? 'Radicando...' : 'Radicar PQRS' }}
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary" 
-                                    (click)="cambiarVista('mis-pqrs')" [disabled]="creandoPqrs">
-                                    <i class="fas fa-arrow-left me-2"></i>Cancelar
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+                <app-pqrs-form 
+                    [currentUser]="currentUser!" 
+                    [currentEntity]="currentEntity!"
+                    [ocultarPaso1]="true"
+                    (pqrsCreated)="onPqrsCreated($event)"
+                    (cancelled)="cambiarVista('mis-pqrs')">
+                </app-pqrs-form>
             </div>
         </div>
     </div>

@@ -707,8 +707,12 @@ async def upload_archivo_pqrs(
             detail=f"PQRS con ID {pqrs_id} no encontrada"
         )
     
-    # Validar permisos: admin o creador de la PQRS
-    if current_user.role != UserRole.ADMIN and current_user.entity_id != pqrs.entity_id:
+    # Validar permisos: admin, usuario de la misma entidad, o creador de la PQRS (ciudadano)
+    is_creator = (pqrs.created_by_id == current_user.id)
+    is_same_entity = (current_user.entity_id == pqrs.entity_id)
+    is_admin = (current_user.role == UserRole.ADMIN or current_user.role == UserRole.SUPERADMIN)
+    
+    if not (is_creator or is_same_entity or is_admin):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tienes permisos para subir archivos a esta PQRS"

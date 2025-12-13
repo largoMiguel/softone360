@@ -1,0 +1,174 @@
+// ===== ESTILOS DEL FORMULARIO PQRS COMPARTIDO =====
+
+// Step Indicator (Wizard)
+.step-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 2rem;
+
+    .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        flex: 0 0 auto;
+
+        &.active .step-circle {
+            background-color: #216ba8;
+            color: #fff;
+            transform: scale(1.1);
+        }
+
+        &.completed .step-circle {
+            background-color: #28a745;
+            color: #fff;
+        }
+    }
+
+    .step-circle {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: #e9ecef;
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.25rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        border: 3px solid transparent;
+
+        &:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+    }
+
+    .step-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #6c757d;
+        text-align: center;
+        max-width: 100px;
+        white-space: nowrap;
+    }
+
+    .step-line {
+        width: 60px;
+        height: 3px;
+        background-color: #e9ecef;
+        transition: all 0.3s ease;
+
+        &.active {
+            background-color: #28a745;
+        }
+    }
+}
+
+// Container de cada paso con animación
+.paso-container {
+    animation: fadeIn 0.4s ease-in-out;
+    min-height: 400px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+// Cards para selección de canal, tipo de identificación y tipo de solicitud
+.canal-card,
+.tipo-id-card,
+.tipo-solicitud-card {
+    background: #fff;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 120px;
+
+    &:hover {
+        border-color: #216ba8;
+        box-shadow: 0 4px 12px rgba(33, 107, 168, 0.15);
+        transform: translateY(-2px);
+    }
+
+    &.selected {
+        border-color: #216ba8;
+        background: rgba(33, 107, 168, 0.05);
+        box-shadow: 0 0 0 4px rgba(33, 107, 168, 0.1);
+    }
+
+    i {
+        transition: all 0.3s ease;
+    }
+
+    &:hover i {
+        transform: scale(1.1);
+    }
+
+    h5 {
+        margin-top: 0.5rem;
+        margin-bottom: 0;
+        font-weight: 600;
+        color: #495057;
+    }
+
+    p {
+        margin: 0;
+        font-size: 0.85rem;
+    }
+}
+
+// Responsive
+@media (max-width: 768px) {
+    .step-indicator {
+        .step-label {
+            font-size: 0.7rem;
+            max-width: 70px;
+        }
+
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            font-size: 1rem;
+        }
+
+        .step-line {
+            width: 30px;
+        }
+    }
+
+    .canal-card,
+    .tipo-id-card,
+    .tipo-solicitud-card {
+        min-height: auto;
+        padding: 1.5rem 1rem;
+
+        i {
+            font-size: 2.5rem !important;
+        }
+    }
+
+    .paso-container {
+        min-height: 300px;
+    }
+}

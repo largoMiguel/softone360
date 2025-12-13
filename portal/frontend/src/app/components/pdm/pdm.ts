@@ -360,22 +360,27 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Verifica datos del backend con espera para entity slug
-     * ✅ OPTIMIZADO: 10 intentos máximo (1 segundo)
+     * Verifica datos del backend con espera para entity slug y autenticación
+     * ✅ OPTIMIZADO: 15 intentos máximo (1.5 segundos) para dar tiempo al token
      */
     private verificarDatosBackendConEspera(): void {
         let intentos = 0;
-        const MAX_INTENTOS = 10;
+        const MAX_INTENTOS = 15; // Aumentado para dar más tiempo al token
         const verificar = () => {
             intentos++;
             const slug = this.pdmService.getEntitySlug();
+            const token = localStorage.getItem('token'); // Verificar también que el token esté disponible
             
-            if (slug) {
-                this.verificarDatosBackend();
+            if (slug && token) {
+                // Agregar un delay adicional de 200ms para asegurar que el token esté completamente configurado
+                setTimeout(() => {
+                    this.verificarDatosBackend();
+                }, 200);
             } else if (intentos < MAX_INTENTOS) {
                 setTimeout(verificar, 100);
             } else {
-                console.warn('⚠️ Timeout: Entity slug no disponible después de 1s');
+                console.warn('⚠️ Timeout: Entity slug o token no disponible después de 1.5s');
+                console.warn('🔍 Slug disponible:', !!slug, 'Token disponible:', !!token);
                 this.cargandoDesdeBackend = false;
             }
         };

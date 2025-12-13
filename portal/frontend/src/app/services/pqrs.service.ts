@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, throwError, timer } from 'rxjs';
+import { retry } from 'rxjs/operators';
 import {
     PQRS,
     PQRSWithDetails,
@@ -51,7 +52,22 @@ export class PqrsService {
 
     // Obtener PQRS del ciudadano autenticado
     getMisPqrs(): Observable<PQRSWithDetails[]> {
-        return this.http.get<PQRSWithDetails[]>(`${this.baseUrl}mis-pqrs`);
+        return this.http.get<PQRSWithDetails[]>(`${this.baseUrl}mis-pqrs`).pipe(
+            // Retry con delay exponencial para errores de timing (status 0, 502)
+            retry({
+                count: 3,
+                delay: (error, retryCount) => {
+                    // Solo reintentar si es error de timing (status 0 o 502)
+                    if (error.status === 0 || error.status === 502) {
+                        const delayMs = Math.min(1000 * Math.pow(2, retryCount - 1), 4000);
+                        console.log(`🔄 Reintentando cargar mis PQRS (intento ${retryCount}/3) en ${delayMs}ms...`);
+                        return timer(delayMs);
+                    }
+                    // Para otros errores, no reintentar
+                    return throwError(() => error);
+                }
+            })
+        );
     }
 
     getPqrsById(id: number): Observable<PQRSWithDetails> {

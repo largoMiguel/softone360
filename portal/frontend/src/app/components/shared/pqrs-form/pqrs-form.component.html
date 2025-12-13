@@ -1,0 +1,466 @@
+<div class="pqrs-form-container">
+    <!-- Indicador de pasos -->
+    <div class="step-indicator mb-5" role="navigation" aria-label="Progreso del formulario PQRS">
+        <div class="step" *ngIf="!ocultarPaso1" [class.active]="pasoActual >= 1" [class.completed]="pasoActual > 1">
+            <div class="step-circle" (click)="irAPaso(1)" 
+                 role="button" 
+                 tabindex="0"
+                 (keydown.enter)="irAPaso(1)"
+                 [attr.aria-current]="pasoActual === 1 ? 'step' : null"
+                 aria-label="Paso 1: Canal de Llegada">1</div>
+            <div class="step-label">Canal de Llegada</div>
+        </div>
+        <div class="step-line" *ngIf="!ocultarPaso1" [class.active]="pasoActual > 1"></div>
+        <div class="step" [class.active]="pasoActual >= 2" [class.completed]="pasoActual > 2">
+            <div class="step-circle" (click)="irAPaso(2)"
+                 role="button" 
+                 tabindex="0"
+                 (keydown.enter)="irAPaso(2)"
+                 [attr.aria-current]="pasoActual === 2 ? 'step' : null"
+                 aria-label="Paso 2: Identificación">2</div>
+            <div class="step-label">Identificación</div>
+        </div>
+        <div class="step-line" [class.active]="pasoActual > 2"></div>
+        <div class="step" [class.active]="pasoActual >= 3" [class.completed]="pasoActual > 3">
+            <div class="step-circle" (click)="irAPaso(3)"
+                 role="button" 
+                 tabindex="0"
+                 (keydown.enter)="irAPaso(3)"
+                 [attr.aria-current]="pasoActual === 3 ? 'step' : null"
+                 aria-label="Paso 3: Tipo de Solicitud">3</div>
+            <div class="step-label">Tipo de Solicitud</div>
+        </div>
+        <div class="step-line" [class.active]="pasoActual > 3"></div>
+        <div class="step" [class.active]="pasoActual >= 4" [class.completed]="pasoActual > 4">
+            <div class="step-circle" (click)="irAPaso(4)"
+                 role="button" 
+                 tabindex="0"
+                 (keydown.enter)="irAPaso(4)"
+                 [attr.aria-current]="pasoActual === 4 ? 'step' : null"
+                 aria-label="Paso 4: Detalles">4</div>
+            <div class="step-label">Detalles</div>
+        </div>
+        <div class="step-line" [class.active]="pasoActual > 4"></div>
+        <div class="step" [class.active]="pasoActual >= 5" [class.completed]="pasoActual > 5">
+            <div class="step-circle" (click)="irAPaso(5)"
+                 role="button" 
+                 tabindex="0"
+                 (keydown.enter)="irAPaso(5)"
+                 [attr.aria-current]="pasoActual === 5 ? 'step' : null"
+                 aria-label="Paso 5: Resumen">5</div>
+            <div class="step-label">Resumen</div>
+        </div>
+    </div>
+
+    <!-- PASO 1: Canal de Llegada -->
+    <div *ngIf="pasoActual === 1" class="paso-container" role="region" aria-labelledby="paso1-titulo">
+        <h4 id="paso1-titulo" class="text-center mb-4">¿Cómo llegó esta PQRS?</h4>
+        <div class="row g-3">
+            <div class="col-md-6 col-lg-4" *ngFor="let canal of canalesLlegada">
+                <div class="canal-card" 
+                     [class.selected]="nuevaPqrs.canal_llegada === canal.value"
+                     (click)="nuevaPqrs.canal_llegada = canal.value"
+                     (keydown.enter)="nuevaPqrs.canal_llegada = canal.value"
+                     (keydown.space)="nuevaPqrs.canal_llegada = canal.value"
+                     role="button"
+                     tabindex="0"
+                     [attr.aria-pressed]="nuevaPqrs.canal_llegada === canal.value"
+                     [attr.aria-label]="'Seleccionar canal ' + canal.label">
+                    <i [class]="canal.icon + ' fa-3x mb-3'" aria-hidden="true"></i>
+                    <h5>{{ canal.label }}</h5>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex justify-content-between mt-4">
+            <button type="button" class="btn btn-secondary" (click)="cancelar()"
+                    aria-label="Cancelar creación de PQRS">
+                <i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Cancelar
+            </button>
+            <button type="button" class="btn btn-primary" 
+                    [disabled]="!nuevaPqrs.canal_llegada"
+                    (click)="siguientePaso()"
+                    aria-label="Ir al siguiente paso">
+                Siguiente<i class="fas fa-arrow-right ms-1" aria-hidden="true"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- PASO 2: Tipo de Identificación -->
+    <div *ngIf="pasoActual === 2" class="paso-container" role="region" aria-labelledby="paso2-titulo">
+        <h4 id="paso2-titulo" class="text-center mb-4">¿Cómo desea registrar la PQRS?</h4>
+        <div class="row g-3 justify-content-center">
+            <div class="col-md-5">
+                <div class="tipo-id-card" 
+                     [class.selected]="nuevaPqrs.tipo_identificacion === 'personal'"
+                     (click)="nuevaPqrs.tipo_identificacion = 'personal'"
+                     (keydown.enter)="nuevaPqrs.tipo_identificacion = 'personal'"
+                     (keydown.space)="nuevaPqrs.tipo_identificacion = 'personal'"
+                     role="button"
+                     tabindex="0"
+                     [attr.aria-pressed]="nuevaPqrs.tipo_identificacion === 'personal'"
+                     aria-label="Seleccionar PQRS a nombre personal">
+                    <i class="fas fa-user fa-4x mb-3 text-primary" aria-hidden="true"></i>
+                    <h5>A Nombre Personal</h5>
+                    <p class="text-muted small">Con identificación del ciudadano</p>
+                </div>
+            </div>
+            <div class="col-md-5">
+                <div class="tipo-id-card" 
+                     [class.selected]="nuevaPqrs.tipo_identificacion === 'anonima'"
+                     (click)="nuevaPqrs.tipo_identificacion = 'anonima'"
+                     (keydown.enter)="nuevaPqrs.tipo_identificacion = 'anonima'"
+                     (keydown.space)="nuevaPqrs.tipo_identificacion = 'anonima'"
+                     role="button"
+                     tabindex="0"
+                     [attr.aria-pressed]="nuevaPqrs.tipo_identificacion === 'anonima'"
+                     aria-label="Seleccionar PQRS anónima">
+                    <i class="fas fa-user-secret fa-4x mb-3 text-secondary" aria-hidden="true"></i>
+                    <h5>Anónima</h5>
+                    <p class="text-muted small">Sin datos del ciudadano</p>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex justify-content-between mt-4">
+            <button type="button" class="btn btn-secondary" (click)="pasoAnterior()"
+                    aria-label="Volver al paso anterior">
+                <i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Anterior
+            </button>
+            <button type="button" class="btn btn-primary" 
+                    [disabled]="!nuevaPqrs.tipo_identificacion"
+                    (click)="siguientePaso()"
+                    aria-label="Ir al siguiente paso">
+                Siguiente<i class="fas fa-arrow-right ms-1" aria-hidden="true"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- PASO 3: Tipo de Solicitud -->
+    <div *ngIf="pasoActual === 3" class="paso-container" role="region" aria-labelledby="paso3-titulo">
+        <h4 id="paso3-titulo" class="text-center mb-4">Tipo de Solicitud</h4>
+        <div class="row g-3">
+            <div class="col-md-6 col-lg-4" *ngFor="let tipoSol of tiposSolicitud">
+                <div class="tipo-solicitud-card" 
+                     [class.selected]="nuevaPqrs.tipo_solicitud === tipoSol.value"
+                     (click)="nuevaPqrs.tipo_solicitud = tipoSol.value"
+                     (keydown.enter)="nuevaPqrs.tipo_solicitud = tipoSol.value"
+                     (keydown.space)="nuevaPqrs.tipo_solicitud = tipoSol.value"
+                     role="button"
+                     tabindex="0"
+                     [attr.aria-pressed]="nuevaPqrs.tipo_solicitud === tipoSol.value"
+                     [attr.aria-label]="'Seleccionar ' + tipoSol.label">
+                    <h5 class="fw-bold mb-2">{{ tipoSol.label }}</h5>
+                    <p class="small text-muted mb-0">{{ tipoSol.descripcion }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex justify-content-between mt-4">
+            <button type="button" class="btn btn-secondary" (click)="pasoAnterior()"
+                    aria-label="Volver al paso anterior">
+                <i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Anterior
+            </button>
+            <button type="button" class="btn btn-primary" 
+                    [disabled]="!nuevaPqrs.tipo_solicitud"
+                    (click)="siguientePaso()"
+                    aria-label="Ir al siguiente paso">
+                Siguiente<i class="fas fa-arrow-right ms-1" aria-hidden="true"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- PASO 4: Detalles -->
+    <div *ngIf="pasoActual === 4" class="paso-container">
+        <h4 class="text-center mb-4">Detalles de la PQRS</h4>
+
+        <!-- Campos para PQRS Personal -->
+        <div *ngIf="nuevaPqrs.tipo_identificacion === 'personal'">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="cedula_ciudadano" class="form-label">Cédula del Ciudadano *</label>
+                    <input id="cedula_ciudadano" type="text" class="form-control"
+                        [(ngModel)]="nuevaPqrs.cedula_ciudadano">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="nombre_ciudadano" class="form-label">Nombre Completo *</label>
+                    <input id="nombre_ciudadano" type="text" class="form-control"
+                        [(ngModel)]="nuevaPqrs.nombre_ciudadano">
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="telefono_ciudadano" class="form-label">Teléfono</label>
+                    <input id="telefono_ciudadano" type="tel" class="form-control"
+                        [(ngModel)]="nuevaPqrs.telefono_ciudadano">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="email_ciudadano" class="form-label">Email</label>
+                    <input id="email_ciudadano" type="email" class="form-control"
+                        [(ngModel)]="nuevaPqrs.email_ciudadano">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="direccion_ciudadano" class="form-label">Dirección</label>
+                <input id="direccion_ciudadano" type="text" class="form-control"
+                    [(ngModel)]="nuevaPqrs.direccion_ciudadano">
+            </div>
+
+            <div class="mb-3">
+                <label for="asunto" class="form-label">Asunto *</label>
+                <input id="asunto" type="text" class="form-control" [(ngModel)]="nuevaPqrs.asunto"
+                    placeholder="Resumen breve del motivo de la PQRS...">
+            </div>
+        </div>
+
+        <!-- Campo Descripción (siempre visible) -->
+        <div class="mb-4">
+            <label for="descripcion" class="form-label">Descripción *</label>
+            <textarea id="descripcion" class="form-control" rows="4" [(ngModel)]="nuevaPqrs.descripcion"
+                placeholder="Describa detalladamente la solicitud..."></textarea>
+        </div>
+
+        <!-- Nuevos campos: Tipo de Persona y Género -->
+        <div class="row" *ngIf="nuevaPqrs.tipo_identificacion === 'personal'">
+            <div class="col-md-6 mb-3">
+                <label for="tipo_persona" class="form-label">Tipo de Persona</label>
+                <select id="tipo_persona" [(ngModel)]="nuevaPqrs.tipo_persona" class="form-select">
+                    <option value="">Seleccione...</option>
+                    <option *ngFor="let tp of tiposPersona" [value]="tp.value">{{ tp.label }}</option>
+                </select>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="genero" class="form-label">Género</label>
+                <select id="genero" [(ngModel)]="nuevaPqrs.genero" class="form-select">
+                    <option value="">Seleccione...</option>
+                    <option *ngFor="let g of generos" [value]="g.value">{{ g.label }}</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Días de respuesta y archivo adjunto -->
+        <div class="row mb-3">
+            <div class="col-md-6" *ngIf="!ocultarPaso1">
+                <label for="dias_respuesta" class="form-label">
+                    <i class="fas fa-calendar-alt me-1"></i> Días para responder
+                </label>
+                <input id="dias_respuesta" type="number" class="form-control"
+                    [(ngModel)]="nuevaPqrs.dias_respuesta" min="1" max="365"
+                    placeholder="Ej: 15">
+                <small class="form-text text-muted">Días hábiles para dar respuesta</small>
+            </div>
+            <div [class.col-md-6]="!ocultarPaso1" [class.col-md-12]="ocultarPaso1">
+                <label for="archivo_adjunto" class="form-label">
+                    <i class="fas fa-file-pdf me-1"></i> Documento escaneado (PDF/DOC/IMG)
+                </label>
+                <input id="archivo_adjunto" type="file" class="form-control"
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" (change)="onFileSelected($event)">
+                <small class="form-text text-muted">Para PQRS físicas escaneadas (máx. 10MB)</small>
+                <div *ngIf="archivoAdjunto" class="mt-2">
+                    <span class="badge bg-success">
+                        <i class="fas fa-check-circle me-1"></i>{{ archivoAdjunto.name }}
+                    </span>
+                    <button type="button" class="btn btn-sm btn-link text-danger" (click)="removerArchivo()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Medio de Respuesta -->
+        <div class="mb-4">
+            <label class="form-label fw-bold">Medio de Respuesta *</label>
+            <div class="row g-2">
+                <div class="col-md-6">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="medio_respuesta"
+                            id="medio_email" value="email" [(ngModel)]="nuevaPqrs.medio_respuesta">
+                        <label class="form-check-label" for="medio_email">
+                            <i class="fas fa-envelope me-1"></i> Correo electrónico
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="medio_respuesta"
+                            id="medio_fisica" value="fisica" [(ngModel)]="nuevaPqrs.medio_respuesta">
+                        <label class="form-check-label" for="medio_fisica">
+                            <i class="fas fa-mail-bulk me-1"></i> Correspondencia física
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="medio_respuesta"
+                            id="medio_telefono" value="telefono" [(ngModel)]="nuevaPqrs.medio_respuesta">
+                        <label class="form-check-label" for="medio_telefono">
+                            <i class="fas fa-phone me-1"></i> Teléfono
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="medio_respuesta"
+                            id="medio_ticket" value="ticket" [(ngModel)]="nuevaPqrs.medio_respuesta">
+                        <label class="form-check-label" for="medio_ticket">
+                            <i class="fas fa-ticket-alt me-1"></i> Seguimiento por ticket
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Campos condicionales según medio de respuesta -->
+        <div class="mb-3" *ngIf="nuevaPqrs.medio_respuesta === 'email'">
+            <label for="email_respuesta" class="form-label">
+                <i class="fas fa-envelope text-primary me-1"></i> Correo para Respuesta *
+            </label>
+            <input id="email_respuesta" type="email" class="form-control"
+                [(ngModel)]="nuevaPqrs.email_ciudadano" placeholder="correo@ejemplo.com">
+        </div>
+
+        <div class="mb-3" *ngIf="nuevaPqrs.medio_respuesta === 'fisica'">
+            <label for="direccion_respuesta" class="form-label">
+                <i class="fas fa-map-marker-alt text-danger me-1"></i> Dirección para Correspondencia *
+            </label>
+            <textarea id="direccion_respuesta" class="form-control" rows="2"
+                [(ngModel)]="nuevaPqrs.direccion_ciudadano" placeholder="Calle, número, barrio, ciudad..."></textarea>
+        </div>
+
+        <div class="mb-3" *ngIf="nuevaPqrs.medio_respuesta === 'telefono'">
+            <label for="telefono_respuesta" class="form-label">
+                <i class="fas fa-phone text-success me-1"></i> Teléfono de Contacto *
+            </label>
+            <input id="telefono_respuesta" type="tel" class="form-control"
+                [(ngModel)]="nuevaPqrs.telefono_ciudadano" placeholder="3001234567">
+        </div>
+
+        <!-- Botones Finales -->
+        <div class="d-flex justify-content-between mt-4">
+            <button type="button" class="btn btn-secondary" (click)="pasoAnterior()"
+                    aria-label="Volver al paso anterior">
+                <i class="fas fa-arrow-left me-1"></i>Anterior
+            </button>
+            <button type="button" class="btn btn-primary" (click)="siguientePaso()"
+                    [disabled]="!validarPasoActual()"
+                    aria-label="Continuar al paso de resumen">
+                Continuar al Resumen<i class="fas fa-arrow-right ms-1"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- PASO 5: Resumen -->
+    <div *ngIf="pasoActual === 5" class="paso-container">
+        <h4 class="text-center mb-4"><i class="fas fa-clipboard-check me-2"></i>Resumen de la PQRS</h4>
+        
+        <div class="alert alert-info" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            Por favor, revisa que toda la información sea correcta antes de registrar la PQRS.
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="fas fa-inbox me-2"></i>Información de la Solicitud</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <strong>Canal de Llegada:</strong><br>
+                        <span class="text-muted">{{ getCanalLlegadaLabel(nuevaPqrs.canal_llegada) }}</span>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <strong>Tipo de Identificación:</strong><br>
+                        <span class="text-muted">{{ nuevaPqrs.tipo_identificacion === 'personal' ? 'A Nombre Personal' : 'Anónima' }}</span>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <strong>Tipo de Solicitud:</strong><br>
+                        <span class="badge bg-primary">{{ getTipoSolicitudLabel(nuevaPqrs.tipo_solicitud) }}</span>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <strong>Medio de Respuesta:</strong><br>
+                        <span class="text-muted">{{ getMedioRespuestaLabel(nuevaPqrs.medio_respuesta) }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3" *ngIf="nuevaPqrs.tipo_identificacion === 'personal'">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="fas fa-user me-2"></i>Datos del Ciudadano</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <strong>Cédula:</strong><br>
+                        <span class="text-muted">{{ nuevaPqrs.cedula_ciudadano || 'N/A' }}</span>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <strong>Nombre Completo:</strong><br>
+                        <span class="text-muted">{{ nuevaPqrs.nombre_ciudadano || 'N/A' }}</span>
+                    </div>
+                    <div class="col-md-6 mb-2" *ngIf="nuevaPqrs.telefono_ciudadano">
+                        <strong>Teléfono:</strong><br>
+                        <span class="text-muted">{{ nuevaPqrs.telefono_ciudadano }}</span>
+                    </div>
+                    <div class="col-md-6 mb-2" *ngIf="nuevaPqrs.email_ciudadano">
+                        <strong>Email:</strong><br>
+                        <span class="text-muted">{{ nuevaPqrs.email_ciudadano }}</span>
+                    </div>
+                    <div class="col-12 mb-2" *ngIf="nuevaPqrs.direccion_ciudadano">
+                        <strong>Dirección:</strong><br>
+                        <span class="text-muted">{{ nuevaPqrs.direccion_ciudadano }}</span>
+                    </div>
+                    <div class="col-md-6 mb-2" *ngIf="nuevaPqrs.tipo_persona">
+                        <strong>Tipo de Persona:</strong><br>
+                        <span class="text-muted">{{ getTipoPersonaLabel(nuevaPqrs.tipo_persona) }}</span>
+                    </div>
+                    <div class="col-md-6 mb-2" *ngIf="nuevaPqrs.genero">
+                        <strong>Género:</strong><br>
+                        <span class="text-muted">{{ getGeneroLabel(nuevaPqrs.genero) }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="fas fa-file-alt me-2"></i>Contenido de la PQRS</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3" *ngIf="nuevaPqrs.asunto">
+                    <strong>Asunto:</strong><br>
+                    <p class="text-muted mb-0">{{ nuevaPqrs.asunto }}</p>
+                </div>
+                <div class="mb-3">
+                    <strong>Descripción:</strong><br>
+                    <p class="text-muted mb-0" style="white-space: pre-wrap;">{{ nuevaPqrs.descripcion }}</p>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-2" *ngIf="nuevaPqrs.dias_respuesta">
+                        <strong>Días para Responder:</strong><br>
+                        <span class="text-muted">{{ nuevaPqrs.dias_respuesta }} días hábiles</span>
+                    </div>
+                    <div class="col-md-6 mb-2" *ngIf="archivoAdjunto">
+                        <strong>Archivo Adjunto:</strong><br>
+                        <span class="text-muted"><i class="fas fa-file-pdf me-1 text-danger"></i>{{ archivoAdjunto.name }} ({{ (archivoAdjunto.size / 1024).toFixed(2) }} KB)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botones Finales del Paso 5 -->
+        <div class="d-flex justify-content-between mt-4">
+            <button type="button" class="btn btn-secondary" (click)="pasoAnterior()"
+                    aria-label="Volver a editar detalles">
+                <i class="fas fa-arrow-left me-1"></i>Volver a Editar
+            </button>
+            <button type="button" class="btn btn-success"
+                [disabled]="isSubmitting"
+                (click)="enviarPqrs()"
+                aria-label="Registrar PQRS definitivamente">
+                <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                <i class="fas fa-check me-1" *ngIf="!isSubmitting"></i>
+                {{ isSubmitting ? 'Registrando...' : 'Confirmar y Registrar PQRS' }}
+            </button>
+        </div>
+    </div>
+</div>
