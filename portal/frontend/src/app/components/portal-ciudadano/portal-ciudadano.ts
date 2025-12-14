@@ -98,6 +98,10 @@ export class PortalCiudadanoComponent implements OnInit {
                                 this.currentUser = user;
                                 this.isLoggedIn = true;
                                 this.alertService.success(`Bienvenido ${user.full_name}`, 'Acceso Exitoso');
+                                // Cargar PQRS después del login exitoso con delay para asegurar token configurado
+                                setTimeout(() => {
+                                    this.cargarMisPqrs();
+                                }, 400);
                             } else {
                                 this.alertService.warning('Este portal es solo para ciudadanos.', 'Acceso Restringido');
                                 this.authService.logout();

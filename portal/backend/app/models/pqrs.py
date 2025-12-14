@@ -202,6 +202,7 @@ class PQRS(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relaciones
+    entity = relationship("Entity", foreign_keys=[entity_id])
     created_by = relationship("User", foreign_keys=[created_by_id], back_populates="pqrs_creadas")
     assigned_to = relationship("User", foreign_keys=[assigned_to_id], back_populates="pqrs_asignadas")
     asignaciones_auditoria = relationship("AsignacionAuditoria", back_populates="pqrs", cascade="all, delete-orphan")

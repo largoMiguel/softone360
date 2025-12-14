@@ -42,6 +42,11 @@ export interface PQRSWithDetails extends PQRS {
         username: string;
         full_name: string;
     };
+    entity?: {
+        id: number;
+        name: string;
+        slug: string;
+    };
 }
 
 export interface CreatePQRSRequest {

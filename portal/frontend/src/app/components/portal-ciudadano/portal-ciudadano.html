@@ -274,6 +274,7 @@
                                     <thead>
                                         <tr>
                                             <th>Radicado</th>
+                                            <th>Entidad</th>
                                             <th>Tipo</th>
                                             <th>Asunto</th>
                                             <th>Estado</th>
@@ -287,7 +288,10 @@
                                                 <strong class="text-primary">{{ pqrs.numero_radicado }}</strong>
                                             </td>
                                             <td (click)="verDetalle(pqrs)">
-                                                <span class="badge bg-info">{{ getTipoPqrsLabel(pqrs.tipo_pqrs) }}</span>
+                                                <span class="badge bg-secondary">{{ pqrs.entity?.name || 'N/A' }}</span>
+                                            </td>
+                                            <td (click)="verDetalle(pqrs)">
+                                                <span class="badge bg-info">{{ getTipoPqrsLabel(pqrs.tipo_solicitud) }}</span>
                                             </td>
                                             <td (click)="verDetalle(pqrs)">{{ pqrs.asunto }}</td>
                                             <td (click)="verDetalle(pqrs)">
@@ -295,7 +299,7 @@
                                                     {{ getEstadoLabel(pqrs.estado) }}
                                                 </span>
                                             </td>
-                                            <td (click)="verDetalle(pqrs)">{{ pqrs.fecha_radicacion | date: 'short' }}</td>
+                                            <td (click)="verDetalle(pqrs)">{{ pqrs.fecha_solicitud | date: 'short' }}</td>
                                             <td>
                                                 <button class="btn btn-sm btn-outline-primary" (click)="verDetalle(pqrs)">
                                                     <i class="fas fa-eye"></i>
@@ -337,36 +341,97 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <strong>Radicado:</strong>
-                            <p class="text-primary">{{ pqrsDetalle.numero_radicado }}</p>
+                            <p class="text-primary mb-0"><strong>{{ pqrsDetalle.numero_radicado }}</strong></p>
                         </div>
                         <div class="col-md-6">
-                            <strong>Estado:</strong>
-                            <p><span [class]="getEstadoClass(pqrsDetalle.estado)">{{ getEstadoLabel(pqrsDetalle.estado) }}</span></p>
+                            <strong>Entidad:</strong>
+                            <p class="mb-0"><span class="badge bg-secondary">{{ pqrsDetalle.entity?.name || 'Sin asignar' }}</span></p>
                         </div>
                     </div>
+                    
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <strong>Tipo:</strong>
-                            <p>{{ getTipoPqrsLabel(pqrsDetalle.tipo_pqrs) }}</p>
+                            <strong>Estado:</strong>
+                            <p class="mb-0"><span [class]="getEstadoClass(pqrsDetalle.estado)">{{ getEstadoLabel(pqrsDetalle.estado) }}</span></p>
                         </div>
                         <div class="col-md-6">
-                            <strong>Fecha:</strong>
-                            <p>{{ pqrsDetalle.fecha_radicacion | date: 'medium' }}</p>
+                            <strong>Tipo:</strong>
+                            <p class="mb-0"><span class="badge bg-info">{{ getTipoPqrsLabel(pqrsDetalle.tipo_solicitud) }}</span></p>
                         </div>
                     </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Tipo de Identificación:</strong>
+                            <p class="mb-0">{{ pqrsDetalle.tipo_identificacion === 'personal' ? 'A nombre propio' : 'Anónima' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Canal de Llegada:</strong>
+                            <p class="mb-0">{{ pqrsDetalle.canal_llegada || 'Web' }}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Información del Ciudadano (solo si es a nombre propio) -->
+                    <div *ngIf="pqrsDetalle.tipo_identificacion === 'personal'" class="mb-3 p-3 bg-light rounded">
+                        <h6 class="mb-3"><i class="fas fa-user me-2"></i>Información del Solicitante</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <strong>Nombre:</strong>
+                                <p class="mb-0">{{ pqrsDetalle.nombre_ciudadano || 'No especificado' }}</p>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <strong>Cédula:</strong>
+                                <p class="mb-0">{{ pqrsDetalle.cedula_ciudadano || 'No especificado' }}</p>
+                            </div>
+                            <div class="col-md-6 mb-2" *ngIf="pqrsDetalle.telefono_ciudadano">
+                                <strong>Teléfono:</strong>
+                                <p class="mb-0">{{ pqrsDetalle.telefono_ciudadano }}</p>
+                            </div>
+                            <div class="col-md-6 mb-2" *ngIf="pqrsDetalle.email_ciudadano">
+                                <strong>Email:</strong>
+                                <p class="mb-0">{{ pqrsDetalle.email_ciudadano }}</p>
+                            </div>
+                            <div class="col-md-12 mb-2" *ngIf="pqrsDetalle.direccion_ciudadano">
+                                <strong>Dirección:</strong>
+                                <p class="mb-0">{{ pqrsDetalle.direccion_ciudadano }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Fecha de Radicación:</strong>
+                            <p class="mb-0">{{ pqrsDetalle.fecha_solicitud | date: 'dd/MM/yyyy HH:mm' }}</p>
+                        </div>
+                        <div class="col-md-6" *ngIf="pqrsDetalle.dias_respuesta">
+                            <strong>Días para Responder:</strong>
+                            <p class="mb-0"><span class="badge bg-warning text-dark">{{ pqrsDetalle.dias_respuesta }} días</span></p>
+                        </div>
+                    </div>
+                    
                     <div class="mb-3">
                         <strong>Asunto:</strong>
-                        <p>{{ pqrsDetalle.asunto }}</p>
+                        <p class="mb-0">{{ pqrsDetalle.asunto }}</p>
                     </div>
+                    
                     <div class="mb-3">
                         <strong>Descripción:</strong>
-                        <p class="text-muted">{{ pqrsDetalle.descripcion }}</p>
+                        <p class="text-muted mb-0">{{ pqrsDetalle.descripcion }}</p>
                     </div>
+                    
                     <div class="mb-3" *ngIf="pqrsDetalle.respuesta">
                         <strong>Respuesta:</strong>
-                        <div class="alert alert-success">
-                            {{ pqrsDetalle.respuesta }}
+                        <div class="alert alert-success mb-0">
+                            <i class="fas fa-check-circle me-2"></i>{{ pqrsDetalle.respuesta }}
                         </div>
+                        <small class="text-muted" *ngIf="pqrsDetalle.fecha_respuesta">
+                            Respondida el {{ pqrsDetalle.fecha_respuesta | date: 'dd/MM/yyyy HH:mm' }}
+                        </small>
+                    </div>
+                    
+                    <div class="mb-3" *ngIf="pqrsDetalle.assigned_to">
+                        <strong>Asignada a:</strong>
+                        <p class="mb-0"><i class="fas fa-user-tie me-2"></i>{{ pqrsDetalle.assigned_to.full_name }}</p>
                     </div>
                 </div>
                 <div class="modal-footer">

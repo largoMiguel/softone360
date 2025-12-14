@@ -3,15 +3,126 @@
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 
+  // Fijar altura de la navbar y alinear contenido
+  .portal-navbar {
+    min-height: 70px;
+    max-height: 70px;
+    height: 70px;
+    display: flex;
+    align-items: center;
+
+    .container-fluid {
+      display: flex;
+      align-items: center;
+      height: 100%;
+    }
+  }
+
   .navbar-logo { height: 40px; width: auto; object-fit: contain; }
-  .navbar-brand-section { display: flex; align-items: center; cursor: pointer; }
-  .entity-logo-wrapper { display: flex; align-items: center; background: #fff; border-radius: 10px; padding: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.1); }
+  .navbar-brand-section { display: flex; align-items: center; cursor: pointer; height: 100%; }
+  .entity-logo-wrapper { display: flex; align-items: center; padding: 0; height: 100%; }
   .entity-logo { height: 50px; width: auto; max-width: 100px; object-fit: contain; }
-  .entity-info .entity-name { color:#fff; font-size:1.1rem; font-weight:700; margin:0; }
-  .entity-info .entity-subtitle { color:rgba(255,255,255,.85); font-size:.8rem; }
-  .software-logo-wrapper { display:flex; flex-direction:column; align-items:center; }
-  .software-logo { height:35px; background:#fff; border-radius:8px; padding:4px 8px; }
+  .entity-info { 
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .entity-info .entity-name { color:#fff; font-size:1.1rem; font-weight:700; margin:0; line-height: 1.2; }
+  .entity-info .entity-subtitle { color:rgba(255,255,255,.85); font-size:.8rem; line-height: 1.2; }
+  .software-logo-wrapper { display:flex; flex-direction:column; align-items:center; justify-content: center; }
+  .software-logo { height:35px; padding:4px 8px; }
   .software-name { color:rgba(255,255,255,.9); font-size:.7rem; font-weight:600; text-transform:uppercase; }
+
+  // Estilos para el dropdown del usuario
+  .user-dropdown {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    transition: background 0.3s ease;
+    text-decoration: none !important;
+    min-width: 200px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .user-avatar {
+      flex-shrink: 0;
+      
+      i {
+        font-size: 2rem;
+        color: #fff;
+      }
+    }
+
+    .user-info {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      line-height: 1.2;
+      flex-grow: 1;
+      min-width: 0;
+
+      .user-name {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #fff;
+        display: block;
+        margin-bottom: 0.15rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
+      }
+
+      .user-role {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.85);
+        font-weight: 400;
+        display: block;
+        white-space: nowrap;
+      }
+    }
+  }
+
+  // Estilos para el menú dropdown
+  .dropdown-menu {
+    min-width: 200px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: none;
+    padding: 0.5rem 0;
+    margin-top: 0.5rem;
+
+    .dropdown-item, .dropdown-item-text {
+      padding: 0.6rem 1.25rem;
+      font-size: 0.9rem;
+      transition: background 0.2s ease;
+
+      i {
+        width: 20px;
+        text-align: center;
+      }
+    }
+
+    .dropdown-item {
+      &:hover {
+        background: #f8f9fa;
+        color: #667eea;
+      }
+    }
+
+    .dropdown-item-text {
+      color: #6c757d;
+      font-weight: 500;
+    }
+
+    .dropdown-divider {
+      margin: 0.5rem 0;
+    }
+  }
 
   // ===== AUTH SECTION - DISEÑO MEJORADO =====
   .auth-section {

@@ -81,13 +81,13 @@ async def create_pqrs(
     
     # Generar número de radicado único (ignorar el del frontend para evitar duplicados)
     try:
-        # Siempre generar un nuevo radicado único con formato YYYYMMDDNNN
-        numero_radicado = generate_radicado(db)
+        # Siempre generar un nuevo radicado único con formato ENT-YYYYMMDDNNN
+        numero_radicado = generate_radicado(db, entity_id=current_user.entity_id)
         # Verificar unicidad por si acaso (aunque la función ya maneja esto)
         max_intentos = 10
         intentos = 0
         while db.query(PQRS).filter(PQRS.numero_radicado == numero_radicado).first() and intentos < max_intentos:
-            numero_radicado = generate_radicado(db)
+            numero_radicado = generate_radicado(db, entity_id=current_user.entity_id)
             intentos += 1
         
         # Determinar asignación automática:
@@ -274,7 +274,8 @@ async def get_mis_pqrs(
     # Obtener PQRS creadas por el ciudadano
     query = db.query(PQRS).options(
         joinedload(PQRS.created_by),
-        joinedload(PQRS.assigned_to)
+        joinedload(PQRS.assigned_to),
+        joinedload(PQRS.entity)
     ).filter(
         (PQRS.created_by_id == current_user.id) |
         (PQRS.email_ciudadano == current_user.email)
@@ -296,7 +297,12 @@ async def get_mis_pqrs(
                 "id": pqrs.assigned_to.id,
                 "username": pqrs.assigned_to.username,
                 "full_name": pqrs.assigned_to.full_name
-            } if pqrs.assigned_to else None
+            } if pqrs.assigned_to else None,
+            "entity": {
+                "id": pqrs.entity.id,
+                "name": pqrs.entity.name,
+                "slug": pqrs.entity.slug
+            } if pqrs.entity else None
         }
         result.append(pqrs_dict)
     
