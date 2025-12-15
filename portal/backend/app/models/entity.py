@@ -55,5 +55,9 @@ class Entity(Base):
     pdm_iniciativas_sgr = relationship("PdmIniciativaSGR", foreign_keys="PdmIniciativaSGR.entity_id", cascade="all, delete-orphan")
     pdm_ejecuciones = relationship("PDMEjecucionPresupuestal", back_populates="entity", cascade="all, delete-orphan")
     
+    # Relaciones control de asistencia
+    funcionarios = relationship("Funcionario", back_populates="entity", cascade="all, delete-orphan")
+    equipos_registro = relationship("EquipoRegistro", back_populates="entity", cascade="all, delete-orphan")
+    
     def __repr__(self):
         return f"<Entity {self.code}: {self.name}>"

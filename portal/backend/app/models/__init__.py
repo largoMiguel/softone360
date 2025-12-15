@@ -19,6 +19,11 @@ from app.models.pdm import (
     PdmActividad,
     PdmActividadEvidencia
 )
+from app.models.funcionario import (
+    Funcionario,
+    EquipoRegistro,
+    RegistroAsistencia
+)
 
 __all__ = [
     "User", 
@@ -37,5 +42,8 @@ __all__ = [
     "TipoActividadEjecucion",
     "PdmProducto",
     "PdmActividad",
-    "PdmActividadEvidencia"
+    "PdmActividadEvidencia",
+    "Funcionario",
+    "EquipoRegistro",
+    "RegistroAsistencia"
 ]

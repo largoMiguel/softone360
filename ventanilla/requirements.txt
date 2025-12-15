@@ -1,0 +1,4 @@
+PyQt6==6.6.1
+opencv-python==4.9.0.80
+requests==2.31.0
+pyinstaller==6.3.0
