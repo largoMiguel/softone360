@@ -8,8 +8,9 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 
 # Variables
-BUCKET_NAME="softone360-frontend-useast1"
+BUCKET_NAME="www.softone360.com"
 DISTRIBUTION_PATH="dist/pqrs-frontend/browser"
+CLOUDFRONT_DISTRIBUTION_ID="E3OH65AY982GZ5"
 
 # 1. Build de producción
 echo "📦 Compilando frontend para producción..."
@@ -44,7 +45,19 @@ aws s3 cp . s3://$BUCKET_NAME/ \
 aws s3 rm s3://$BUCKET_NAME/_redirects || true
 
 echo "✅ Despliegue completado!"
-echo "🌐 URL: http://$BUCKET_NAME.s3-website-us-east-1.amazonaws.com"
+echo "🌐 URL: https://www.softone360.com"
+echo ""
+
+# Invalidar caché de CloudFront
+if [ ! -z "$CLOUDFRONT_DISTRIBUTION_ID" ]; then
+    echo "📝 Invalidando caché de CloudFront..."
+    aws cloudfront create-invalidation \
+        --distribution-id $CLOUDFRONT_DISTRIBUTION_ID \
+        --paths "/*" \
+        --no-cli-pager
+    echo "✅ Caché de CloudFront invalidado"
+fi
+
 echo ""
 echo "ℹ️  SPA Routing está habilitado:"
 echo "   - Error Document: index.html"
