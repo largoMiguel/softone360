@@ -19,14 +19,10 @@ class Settings(BaseSettings):
     debug: bool = True
     
     # CORS - Múltiples orígenes separados por coma
-    # En producción (AWS), DEBE incluir:
-    # - El URL del frontend en S3
-    # - Otros orígenes permitidos
-    # IMPORTANTE: Esto se lee de variable de entorno ALLOWED_ORIGINS primero,
-    # luego del .env, y finalmente del default
+    # Dominios permitidos para CORS
     allowed_origins: str = os.getenv(
         "ALLOWED_ORIGINS",
-        "http://localhost:4200,https://pqrs-frontend.onrender.com,https://softone-stratek.onrender.com,http://softone360-frontend-useast1.s3-website-us-east-1.amazonaws.com,https://softone360-frontend-useast1.s3-website-us-east-1.amazonaws.com,https://softone360-frontend-useast1.s3.amazonaws.com,http://softone360-frontend-useast1.s3.amazonaws.com,https://app.softone360.com"
+        "http://localhost:4200,https://www.softone360.com,https://softone360.com"
     )
 
     # Superadmin (para seed/control inicial)
@@ -43,8 +39,7 @@ class Settings(BaseSettings):
     email_from_name: str = "Sistema PQRS"  # Nombre del remitente
     
     # Frontend URL (para links en emails)
-    frontend_url: str = os.getenv("FRONTEND_URL", "http://softone360-frontend-useast1.s3-website-us-east-1.amazonaws.com")
-    # Después de CloudFront: frontend_url = "https://app.softone360.com"
+    frontend_url: str = os.getenv("FRONTEND_URL", "https://www.softone360.com")
     
     # Timezone
     timezone: str = "America/Bogota"  # UTC-5 (Colombia)
