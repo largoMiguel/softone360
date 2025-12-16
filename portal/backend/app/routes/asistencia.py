@@ -5,8 +5,7 @@ from typing import List, Optional
 from datetime import datetime, date, timedelta
 import base64
 import uuid as uuid_lib
-import boto3
-from botocore.exceptions import ClientError
+import os
 
 from app.config.database import get_db
 from app.config.settings import settings
@@ -23,20 +22,34 @@ from app.models.user import User, UserRole
 
 router = APIRouter(prefix="/asistencia", tags=["Asistencia"])
 
-# Configuración de S3 para almacenar fotos
-s3_client = boto3.client(
-    's3',
-    aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-    region_name=settings.AWS_REGION
-)
-BUCKET_NAME = settings.AWS_S3_BUCKET
+# Configuración de S3 para almacenar fotos (opcional)
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
+BUCKET_NAME = os.getenv("AWS_S3_BUCKET", "softone360-pqrs-archivos")
+
+# Inicializar S3 client solo si hay credenciales
+s3_client = None
+if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY:
+    import boto3
+    from botocore.exceptions import ClientError
+    s3_client = boto3.client(
+        's3',
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+        region_name=AWS_REGION
+    )
 
 
 def upload_foto_s3(foto_base64: str, prefix: str = "asistencia") -> str:
     """
     Sube una foto en base64 a S3 y retorna la URL.
+    Si S3 no está configurado, retorna None.
     """
+    if not s3_client:
+        # S3 no configurado, retornar None (foto no será almacenada)
+        return None
+    
     try:
         # Decodificar base64
         foto_data = base64.b64decode(foto_base64)
@@ -55,7 +68,9 @@ def upload_foto_s3(foto_base64: str, prefix: str = "asistencia") -> str:
         # Retornar URL
         return f"https://{BUCKET_NAME}.s3.amazonaws.com/{file_name}"
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al subir foto: {str(e)}")
+        # Error al subir, pero no fallar el registro
+        print(f"Error al subir foto a S3: {str(e)}")
+        return None
 
 
 # ===== EQUIPOS DE REGISTRO =====
