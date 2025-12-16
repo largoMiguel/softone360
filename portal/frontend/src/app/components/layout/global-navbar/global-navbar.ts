@@ -199,6 +199,7 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
     canAccessPlanes(): boolean { return this.planesEnabled() && this.userHasModule('planes_institucionales'); }
     canAccessContratacion(): boolean { return this.contratacionEnabled() && this.userHasModule('contratacion'); }
     canAccessPdm(): boolean { return this.pdmEnabled() && this.userHasModule('pdm'); }
+    canAccessAsistencia(): boolean { return this.isAdmin(); } // Solo admins y secretarios
 
     goDashboard(view: 'dashboard' | 'mis-pqrs' | 'nueva-pqrs' | 'usuarios' = 'dashboard') {
         if (!this.slug) return;
@@ -215,6 +216,9 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
     }
     goPdm() {
         if (!this.slug) return; this.router.navigate([`/${this.slug}/pdm`]);
+    }
+    goAsistencia() {
+        if (!this.slug) return; this.router.navigate([`/${this.slug}/ventanilla`]);
     }
 
     // Activo visual de pestañas

@@ -39,7 +39,11 @@ export const routes: Routes = [
         resolve: { entity: entityResolver },
         children: [
             { path: '', component: VentanillaComponent, canActivate: [sessionRedirectGuard] },
-            { path: 'ventanilla', component: VentanillaComponent },
+            { 
+                path: 'ventanilla', 
+                loadChildren: () => import('./components/ventanilla/ventanilla.routes').then(m => m.VENTANILLA_ROUTES),
+                canActivate: [adminPortalGuard, enforceUserEntityGuard]
+            },
             // El portal ciudadano no requiere permisos por módulos ni autenticación
             { path: 'portal-ciudadano', component: PortalCiudadanoComponent, canActivate: [ciudadanoGuard, pqrsEnabledGuard] },
             { path: 'dashboard', loadComponent: () => import('./components/dashboard/dashboard').then(m => m.DashboardComponent), canActivate: [adminPortalGuard, enforceUserEntityGuard] },
