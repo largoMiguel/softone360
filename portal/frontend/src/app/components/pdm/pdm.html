@@ -1828,5 +1828,187 @@
         </div>
     </div>
 
+    <!-- ✅ MODAL: Filtros para Generar Informe -->
+    <div *ngIf="mostrarModalFiltrosInforme" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-filter me-2"></i>
+                        Generar Informe PDM - Filtros
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" (click)="cerrarModalFiltrosInforme()"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Loading -->
+                    <div *ngIf="cargandoFiltrosInforme" class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando filtros...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Cargando opciones de filtrado...</p>
+                    </div>
+
+                    <!-- Filtros -->
+                    <div *ngIf="!cargandoFiltrosInforme && filtrosInformeDisponibles">
+                        <!-- Mensaje informativo según rol -->
+                        <div class="alert" [ngClass]="filtrosInformeDisponibles.es_admin ? 'alert-info' : 'alert-warning'" *ngIf="filtrosInformeDisponibles">
+                            <i class="fas" [ngClass]="filtrosInformeDisponibles.es_admin ? 'fa-info-circle' : 'fa-user-shield'"></i>
+                            <strong *ngIf="filtrosInformeDisponibles.es_admin">Administrador:</strong>
+                            <strong *ngIf="!filtrosInformeDisponibles.es_admin">Secretario:</strong>
+                            <span *ngIf="filtrosInformeDisponibles.es_admin"> Puede generar informes de todas las secretarías o filtrar por específicas.</span>
+                            <span *ngIf="!filtrosInformeDisponibles.es_admin"> Solo puede generar informes de su secretaría asignada.</span>
+                        </div>
+
+                        <!-- Año -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-calendar me-1"></i>
+                                Año del Informe <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" [(ngModel)]="filtrosInforme.anio">
+                                <option *ngFor="let anio of filtrosInformeDisponibles.anios" [value]="anio">{{ anio }}</option>
+                            </select>
+                        </div>
+
+                        <!-- Secretarías (solo para admin) -->
+                        <div class="mb-3" *ngIf="filtrosInformeDisponibles.es_admin">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-building me-1"></i>
+                                Secretarías (opcional)
+                            </label>
+                            <small class="text-muted d-block mb-2">
+                                Seleccione una o más secretarías. Si no selecciona ninguna, se incluirán todas.
+                            </small>
+                            <div class="row">
+                                <div class="col-md-6" *ngFor="let secretaria of filtrosInformeDisponibles.secretarias">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" 
+                                               [id]="'sec-' + secretaria.id"
+                                               [checked]="isSecretariaSeleccionada(secretaria.id)"
+                                               (change)="toggleSecretariaInforme(secretaria.id)">
+                                        <label class="form-check-label" [for]="'sec-' + secretaria.id">
+                                            {{ secretaria.nombre }}
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div *ngIf="filtrosInforme.secretaria_ids.length > 0" class="mt-2">
+                                <span class="badge bg-primary me-1" *ngFor="let id of filtrosInforme.secretaria_ids">
+                                    {{ (filtrosInformeDisponibles.secretarias.find((s: any) => s.id === id))?.nombre }}
+                                    <i class="fas fa-times ms-1 cursor-pointer" (click)="toggleSecretariaInforme(id)"></i>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Secretarías (solo lectura para secretario) -->
+                        <div class="mb-3" *ngIf="!filtrosInformeDisponibles.es_admin">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-building me-1"></i>
+                                Secretaría
+                            </label>
+                            <div class="alert alert-secondary mb-0">
+                                <i class="fas fa-lock me-2"></i>
+                                <strong>{{ filtrosInformeDisponibles.secretarias[0]?.nombre }}</strong>
+                                <p class="mb-0 mt-1 small text-muted">El informe se generará solo para su secretaría.</p>
+                            </div>
+                        </div>
+
+                        <!-- Rango de Fechas -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                Rango de Fechas (opcional)
+                            </label>
+                            <small class="text-muted d-block mb-2">
+                                Filtrar actividades por rango de fechas de ejecución.
+                            </small>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label small">Fecha Inicio</label>
+                                    <input type="date" class="form-control" [(ngModel)]="filtrosInforme.fecha_inicio">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">Fecha Fin</label>
+                                    <input type="date" class="form-control" [(ngModel)]="filtrosInforme.fecha_fin">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Estados -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-tasks me-1"></i>
+                                Estados de Actividades (opcional)
+                            </label>
+                            <small class="text-muted d-block mb-2">
+                                Filtrar actividades por estado. Si no selecciona ninguno, se incluirán todos.
+                            </small>
+                            <div class="row">
+                                <div class="col-md-3" *ngFor="let estado of filtrosInformeDisponibles.estados">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" 
+                                               [id]="'est-' + estado"
+                                               [checked]="isEstadoSeleccionado(estado)"
+                                               (change)="toggleEstadoInforme(estado)">
+                                        <label class="form-check-label" [for]="'est-' + estado">
+                                            <span class="badge" [ngClass]="{
+                                                'bg-warning': estado === 'PENDIENTE',
+                                                'bg-info': estado === 'EN_PROGRESO',
+                                                'bg-success': estado === 'COMPLETADA',
+                                                'bg-secondary': estado === 'CANCELADA'
+                                            }">{{ estado }}</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div *ngIf="filtrosInforme.estados.length > 0" class="mt-2">
+                                <span class="badge me-1" *ngFor="let estado of filtrosInforme.estados" [ngClass]="{
+                                    'bg-warning': estado === 'PENDIENTE',
+                                    'bg-info': estado === 'EN_PROGRESO',
+                                    'bg-success': estado === 'COMPLETADA',
+                                    'bg-secondary': estado === 'CANCELADA'
+                                }">
+                                    {{ estado }}
+                                    <i class="fas fa-times ms-1 cursor-pointer" (click)="toggleEstadoInforme(estado)"></i>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Resumen de filtros aplicados -->
+                        <div class="alert alert-light border" *ngIf="filtrosInforme.secretaria_ids.length > 0 || filtrosInforme.fecha_inicio || filtrosInforme.fecha_fin || filtrosInforme.estados.length > 0">
+                            <strong><i class="fas fa-info-circle me-1"></i> Filtros a aplicar:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li *ngIf="filtrosInforme.secretaria_ids.length > 0">
+                                    <strong>Secretarías:</strong> {{ filtrosInforme.secretaria_ids.length }} seleccionada(s)
+                                </li>
+                                <li *ngIf="filtrosInforme.fecha_inicio || filtrosInforme.fecha_fin">
+                                    <strong>Período:</strong> 
+                                    {{ filtrosInforme.fecha_inicio || 'Inicio' }} a {{ filtrosInforme.fecha_fin || 'Fin' }}
+                                </li>
+                                <li *ngIf="filtrosInforme.estados.length > 0">
+                                    <strong>Estados:</strong> {{ filtrosInforme.estados.join(', ') }}
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" (click)="cerrarModalFiltrosInforme()" [disabled]="generandoInforme">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-success" (click)="confirmarGenerarInforme()" [disabled]="cargandoFiltrosInforme || generandoInforme">
+                        <span *ngIf="!generandoInforme">
+                            <i class="fas fa-file-pdf me-1"></i> Generar Informe
+                        </span>
+                        <span *ngIf="generandoInforme">
+                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            Generando...
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal: Análisis Detallado del Producto -->
 </div>

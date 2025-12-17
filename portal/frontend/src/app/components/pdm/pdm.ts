@@ -139,6 +139,19 @@ export class PdmComponent implements OnInit, OnDestroy {
     dashboardAnalytics: any = null;
     analisisPorSecretaria: any[] = []; // ✅ NUEVO: Análisis por secretaría
 
+    // ✅ NUEVO: Modal y filtros de informe
+    mostrarModalFiltrosInforme = false;
+    filtrosInformeDisponibles: any = null;
+    cargandoFiltrosInforme = false;
+    filtrosInforme = {
+        anio: new Date().getFullYear(),
+        secretaria_ids: [] as number[],
+        fecha_inicio: '',
+        fecha_fin: '',
+        estados: [] as string[]
+    };
+    generandoInforme = false;
+
     // Charts
     chartEstados: any = null;
     chartSectores: any = null;
@@ -759,59 +772,155 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Genera el informe PDF del Plan de Desarrollo Municipal
+     * Abre el modal de filtros para generar informe
      */
     generarInforme(): void {
-        // Determinar el año del informe
-        let anioInforme = this.filtroAnio || new Date().getFullYear();
+        // Abrir modal de filtros
+        this.mostrarModalFiltrosInforme = true;
         
-        // Si no hay un año de filtro específico, preguntar al usuario
-        if (!this.filtroAnio) {
-            const anioActual = new Date().getFullYear();
-            const mensaje = `¿Para qué año desea generar el informe del Plan de Desarrollo?\n\nAños disponibles: 2024, 2025, 2026, 2027`;
-            const anioInput = prompt(mensaje, String(anioActual));
-            
-            if (!anioInput) {
-                return; // Usuario canceló
+        // Cargar filtros disponibles
+        this.cargarFiltrosInforme();
+    }
+
+    /**
+     * Carga los filtros disponibles para el informe desde el backend
+     */
+    cargarFiltrosInforme(): void {
+        this.cargandoFiltrosInforme = true;
+        
+        this.pdmService.obtenerFiltrosInforme().subscribe({
+            next: (filtros) => {
+                this.filtrosInformeDisponibles = filtros;
+                this.cargandoFiltrosInforme = false;
+                
+                console.log('✅ Filtros obtenidos:', filtros);
+                console.log('   Es admin:', filtros.es_admin);
+                console.log('   Secretarías disponibles:', filtros.secretarias?.length || 0);
+                
+                // Si es secretario (no admin), preseleccionar su secretaría
+                if (!filtros.es_admin && filtros.secretarias && filtros.secretarias.length > 0) {
+                    this.filtrosInforme.secretaria_ids = filtros.secretarias.map((s: any) => s.id);
+                    console.log('   → Secretaría preseleccionada:', this.filtrosInforme.secretaria_ids);
+                }
+            },
+            error: (error) => {
+                console.error('❌ Error al cargar filtros:', error);
+                this.cargandoFiltrosInforme = false;
+                alert('Error al cargar filtros. Por favor intente nuevamente.');
             }
-            
-            anioInforme = parseInt(anioInput);
-            
-            if (isNaN(anioInforme) || anioInforme < 2024 || anioInforme > 2027) {
-                alert(`❌ Año inválido: "${anioInput}"\n\nPor favor ingrese un año válido entre 2024 y 2027`);
-                return;
-            }
+        });
+    }
+
+    /**
+     * Cierra el modal de filtros de informe
+     */
+    cerrarModalFiltrosInforme(): void {
+        this.mostrarModalFiltrosInforme = false;
+        // Resetear filtros
+        this.filtrosInforme = {
+            anio: new Date().getFullYear(),
+            secretaria_ids: [],
+            fecha_inicio: '',
+            fecha_fin: '',
+            estados: []
+        };
+    }
+
+    /**
+     * Toggle de secretaría en el filtro (para selección múltiple)
+     */
+    toggleSecretariaInforme(secretariaId: number): void {
+        const index = this.filtrosInforme.secretaria_ids.indexOf(secretariaId);
+        if (index > -1) {
+            this.filtrosInforme.secretaria_ids.splice(index, 1);
+        } else {
+            this.filtrosInforme.secretaria_ids.push(secretariaId);
+        }
+    }
+
+    /**
+     * Toggle de estado en el filtro
+     */
+    toggleEstadoInforme(estado: string): void {
+        const index = this.filtrosInforme.estados.indexOf(estado);
+        if (index > -1) {
+            this.filtrosInforme.estados.splice(index, 1);
+        } else {
+            this.filtrosInforme.estados.push(estado);
+        }
+    }
+
+    /**
+     * Verifica si una secretaría está seleccionada
+     */
+    isSecretariaSeleccionada(secretariaId: number): boolean {
+        return this.filtrosInforme.secretaria_ids.includes(secretariaId);
+    }
+
+    /**
+     * Verifica si un estado está seleccionado
+     */
+    isEstadoSeleccionado(estado: string): boolean {
+        return this.filtrosInforme.estados.includes(estado);
+    }
+
+    /**
+     * Genera el informe con los filtros seleccionados
+     */
+    confirmarGenerarInforme(): void {
+        if (this.generandoInforme) return;
+        
+        console.log('📊 Generando informe con filtros:', this.filtrosInforme);
+        
+        this.generandoInforme = true;
+        
+        // Preparar filtros (eliminar arrays vacíos y valores vacíos)
+        const filtros: any = {};
+        
+        if (this.filtrosInforme.secretaria_ids.length > 0) {
+            filtros.secretaria_ids = this.filtrosInforme.secretaria_ids;
+        }
+        if (this.filtrosInforme.fecha_inicio) {
+            filtros.fecha_inicio = this.filtrosInforme.fecha_inicio;
+        }
+        if (this.filtrosInforme.fecha_fin) {
+            filtros.fecha_fin = this.filtrosInforme.fecha_fin;
+        }
+        if (this.filtrosInforme.estados.length > 0) {
+            filtros.estados = this.filtrosInforme.estados;
         }
         
-        console.log(`📊 Generando informe PDM para el año ${anioInforme}...`);
-        console.log(`   Filtro año actual: ${this.filtroAnio || 'ninguno'}`);
-        
-        // Llamar al servicio para generar el PDF
-        this.pdmService.generarInformePDF(anioInforme).subscribe({
+        // Generar informe
+        this.pdmService.generarInformePDF(this.filtrosInforme.anio, filtros).subscribe({
             next: (pdfBlob) => {
-                console.log('✅ PDF recibido correctamente');
+                console.log('✅ PDF generado correctamente');
                 // Descargar el PDF
-                this.pdmService.descargarInformePDF(pdfBlob, anioInforme);
-                alert(`✅ INFORME GENERADO EXITOSAMENTE\n\nAño: ${anioInforme}\n\nEl archivo PDF ha sido descargado.`);
+                this.pdmService.descargarInformePDF(pdfBlob, this.filtrosInforme.anio);
+                
+                this.generandoInforme = false;
+                this.cerrarModalFiltrosInforme();
+                
+                alert(`✅ INFORME GENERADO EXITOSAMENTE\n\nAño: ${this.filtrosInforme.anio}\n\nEl archivo PDF ha sido descargado.`);
             },
             error: (error) => {
                 console.error('❌ Error generando informe:', error);
-                console.error('   Status:', error.status);
-                console.error('   Detail:', error.error?.detail || error.message);
+                this.generandoInforme = false;
                 
-                let mensaje = `❌ ERROR AL GENERAR INFORME\n\nAño solicitado: ${anioInforme}\n\n`;
+                let mensaje = `❌ ERROR AL GENERAR INFORME\n\nAño solicitado: ${this.filtrosInforme.anio}\n\n`;
                 
                 if (error.status === 404) {
-                    mensaje += 'No hay productos cargados para esta entidad en el PDM.';
+                    mensaje += 'No hay productos para los filtros especificados.';
+                } else if (error.status === 403) {
+                    mensaje += 'No tiene permisos para generar este informe.';
                 } else if (error.status === 500) {
-                    mensaje += 'Error interno del servidor. Por favor contacte al administrador.';
+                    mensaje += 'Error interno del servidor.';
                     if (error.error?.detail) {
-                        mensaje += `\n\nDetalle técnico: ${error.error.detail}`;
+                        mensaje += `\n\nDetalle: ${error.error.detail}`;
                     }
                 } else if (error.error?.detail) {
                     mensaje += error.error.detail;
                 } else {
-                    mensaje += 'Ocurrió un error inesperado al generar el informe.';
+                    mensaje += 'Ocurrió un error inesperado.';
                 }
                 
                 alert(mensaje);

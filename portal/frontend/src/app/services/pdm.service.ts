@@ -1683,18 +1683,69 @@ export class PdmService {
     }
 
     /**
-     * Genera y descarga el informe PDF del Plan de Desarrollo Municipal
-     * @param anio Año del informe (2024-2027)
+     * Obtiene los filtros disponibles para generar informes
      */
-    generarInformePDF(anio: number): Observable<Blob> {
+    obtenerFiltrosInforme(): Observable<any> {
         if (!this.entitySlug) {
             console.warn('⚠️ No hay slug de entidad disponible');
             return throwError(() => new Error('No hay entidad seleccionada'));
         }
 
-        const url = `${environment.apiUrl}/pdm/informes/${this.entitySlug}/generar/${anio}`;
+        const url = `${environment.apiUrl}/pdm/informes/${this.entitySlug}/filtros`;
+        
+        return this.http.get(url).pipe(
+            tap(filtros => {
+                console.log('✅ Filtros obtenidos:', filtros);
+            }),
+            catchError(error => {
+                console.error('❌ Error al obtener filtros:', error);
+                throw error;
+            })
+        );
+    }
+
+    /**
+     * Genera y descarga el informe PDF del Plan de Desarrollo Municipal
+     * @param anio Año del informe (2024-2027)
+     * @param filtros Filtros opcionales (secretarías, fechas, estados)
+     */
+    generarInformePDF(anio: number, filtros?: {
+        secretaria_ids?: number[],
+        fecha_inicio?: string,
+        fecha_fin?: string,
+        estados?: string[]
+    }): Observable<Blob> {
+        if (!this.entitySlug) {
+            console.warn('⚠️ No hay slug de entidad disponible');
+            return throwError(() => new Error('No hay entidad seleccionada'));
+        }
+
+        let url = `${environment.apiUrl}/pdm/informes/${this.entitySlug}/generar/${anio}`;
+        
+        // Agregar query params si hay filtros
+        const params = new URLSearchParams();
+        if (filtros?.secretaria_ids && filtros.secretaria_ids.length > 0) {
+            filtros.secretaria_ids.forEach(id => params.append('secretaria_ids', id.toString()));
+        }
+        if (filtros?.fecha_inicio) {
+            params.append('fecha_inicio', filtros.fecha_inicio);
+        }
+        if (filtros?.fecha_fin) {
+            params.append('fecha_fin', filtros.fecha_fin);
+        }
+        if (filtros?.estados && filtros.estados.length > 0) {
+            filtros.estados.forEach(estado => params.append('estados', estado));
+        }
+
+        const queryString = params.toString();
+        if (queryString) {
+            url += `?${queryString}`;
+        }
         
         console.log(`📊 Generando informe PDM para año ${anio}...`);
+        if (filtros) {
+            console.log('   Filtros aplicados:', filtros);
+        }
         
         return this.http.get(url, { 
             responseType: 'blob',
