@@ -263,7 +263,61 @@ class PDMReportGenerator:
                     Paragraph(f'<b>{avance_financiero_promedio:.1f}%</b>', center_style),
                     Paragraph(f'<b>${total_presupuesto:,.0f}</b>', center_style)
                 ]
-            ]\n            \n            kpis_table = Table(kpis_data, colWidths=[1.75*inch, 1.75*inch, 1.75*inch, 1.75*inch])\n            kpis_table.setStyle(TableStyle([\n                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#003366')),\n                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),\n                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#E8F4F8')),\n                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),\n                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),\n                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),\n                ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#003366')),\n                ('TOPPADDING', (0, 0), (-1, -1), 8),\n                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),\n            ]))\n            \n            self.story.append(kpis_table)\n            self.story.append(Spacer(1, 0.15*inch))\n            \n            # TABLA DE ACTIVIDADES POR ESTADO\n            if estados_count:\n                actividades_data = [\n                    [Paragraph('Estado de Actividades', white_bold), \n                     Paragraph('Cantidad', white_bold),\n                     Paragraph('Porcentaje', white_bold)]\n                ]\n                \n                total_act_anio = sum(estados_count.values())\n                for estado, count in sorted(estados_count.items()):\n                    porcentaje = (count / total_act_anio * 100) if total_act_anio > 0 else 0\n                    actividades_data.append([\n                        Paragraph(estado, self.styles['Normal']),\n                        Paragraph(f'{count}', center_style),\n                        Paragraph(f'{porcentaje:.1f}%', center_style)\n                    ])\n                \n                act_table = Table(actividades_data, colWidths=[3*inch, 2*inch, 2*inch])\n                act_table.setStyle(TableStyle([\n                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#003366')),\n                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),\n                    ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F5F5F5')),\n                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),\n                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),\n                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),\n                    ('TOPPADDING', (0, 0), (-1, -1), 6),\n                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),\n                ]))\n                \n                self.story.append(act_table)\n            \n            print(\"✅ Resumen ejecutivo generado\")\n            \n        except Exception as e:\n            print(f\"⚠️ Error generando resumen ejecutivo: {e}\")\n            import traceback\n            traceback.print_exc()
+            ]
+            
+            kpis_table = Table(kpis_data, colWidths=[1.75*inch, 1.75*inch, 1.75*inch, 1.75*inch])
+            kpis_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#003366')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#E8F4F8')),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#003366')),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ]))
+            
+            self.story.append(kpis_table)
+            self.story.append(Spacer(1, 0.15*inch))
+            
+            # TABLA DE ACTIVIDADES POR ESTADO
+            if estados_count:
+                actividades_data = [
+                    [Paragraph('Estado de Actividades', white_bold), 
+                     Paragraph('Cantidad', white_bold),
+                     Paragraph('Porcentaje', white_bold)]
+                ]
+                
+                total_act_anio = sum(estados_count.values())
+                for estado, count in sorted(estados_count.items()):
+                    porcentaje = (count / total_act_anio * 100) if total_act_anio > 0 else 0
+                    actividades_data.append([
+                        Paragraph(estado, self.styles['Normal']),
+                        Paragraph(f'{count}', center_style),
+                        Paragraph(f'{porcentaje:.1f}%', center_style)
+                    ])
+                
+                act_table = Table(actividades_data, colWidths=[3*inch, 2*inch, 2*inch])
+                act_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#003366')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F5F5F5')),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('TOPPADDING', (0, 0), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ]))
+                
+                self.story.append(act_table)
+            
+            print("✅ Resumen ejecutivo generado")
+            
+        except Exception as e:
+            print(f"⚠️ Error generando resumen ejecutivo: {e}")
+            import traceback
+            traceback.print_exc()
     
     def calcular_avance_producto(self, producto):
         """Calcula el avance de un producto basado en programación vs meta cuatrienio"""
