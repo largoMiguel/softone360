@@ -23,11 +23,12 @@ import {
 } from '../../models/pdm.model';
 import { PDMEjecucionResumen } from '../../models/pdm-ejecucion.model';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { forkJoin, of, Subscription } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 
 // Registrar los componentes de Chart.js
-Chart.register(...registerables);
+Chart.register(...registerables, ChartDataLabels);
 
 @Component({
     selector: 'app-pdm',
@@ -2553,17 +2554,41 @@ export class PdmComponent implements OnInit, OnDestroy {
 
     /**
      * Genera los análisis para los dashboards analíticos
+     * Filtra por año y opcionalmente por secretaría
      */
     generarAnalytics(): void {
+        // Filtrar productos según filtroSecretaria
+        let productosFiltrados = this.resumenProductos;
+        
+        if (this.filtroSecretaria) {
+            const secretariaId = parseInt(this.filtroSecretaria, 10);
+            productosFiltrados = this.resumenProductos.filter(p => {
+                const productoSecretariaId = p.responsable_secretaria_id || p.responsable_id;
+                return productoSecretariaId && parseInt(String(productoSecretariaId), 10) === secretariaId;
+            });
+        }
+        
         this.dashboardAnalytics = this.pdmService.generarDashboardAnalytics(
-            this.resumenProductos,
+            productosFiltrados,
             this.filtroAnio
         );
-        // ✅ NUEVO: Generar análisis por secretaría
+        
+        // ✅ Generar análisis por secretaría
         this.analisisPorSecretaria = this.pdmService.generarAnaliasisPorSecretaria(
-            this.resumenProductos,
+            productosFiltrados,
             this.filtroAnio
         );
+    }
+    
+    /**
+     * ✅ NUEVO: Cambia los filtros de analytics y regenera gráficos
+     */
+    cambiarFiltrosAnalytics(): void {
+        // Regenerar analytics con los nuevos filtros
+        this.generarAnalytics();
+        
+        // Regenerar gráficos después de un pequeño delay
+        setTimeout(() => this.crearGraficos(), 100);
     }
 
     /**
@@ -2580,6 +2605,11 @@ export class PdmComponent implements OnInit, OnDestroy {
      */
     verAnalytics(): void {
         this.vistaActual = 'analytics';
+        
+        // ✅ Asegurar que secretarías estén cargadas para el filtro
+        if (this.secretariasAgrupadas.length === 0) {
+            this.cargarSecretarios();
+        }
         
         if (!this.datosEnBackend) {
             // Sin datos en backend, usar lo que hay en memoria
@@ -2737,7 +2767,21 @@ export class PdmComponent implements OnInit, OnDestroy {
                             font: {
                                 size: 12
                             },
-                            padding: 15
+                            padding: 15,
+                            generateLabels: (chart) => {
+                                const datasets = chart.data.datasets;
+                                const total = (datasets[0].data as number[]).reduce((sum, val) => sum + val, 0);
+                                return chart.data.labels?.map((label, i) => {
+                                    const value = (datasets[0].data as number[])[i];
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return {
+                                        text: `${label}: ${value} (${percentage}%)`,
+                                        fillStyle: (datasets[0].backgroundColor as string[])[i],
+                                        hidden: false,
+                                        index: i
+                                    };
+                                }) || [];
+                            }
                         }
                     },
                     title: {
@@ -2757,6 +2801,19 @@ export class PdmComponent implements OnInit, OnDestroy {
                                 const percentage = ((value / total) * 100).toFixed(1);
                                 return `${label}: ${value} productos (${percentage}%)`;
                             }
+                        }
+                    },
+                    datalabels: {
+                        display: true,
+                        color: '#fff',
+                        font: {
+                            weight: 'bold',
+                            size: 14
+                        },
+                        formatter: (value: number, context: any) => {
+                            const total = (context.chart.data.datasets[0].data as number[]).reduce((sum: number, val: number) => sum + val, 0);
+                            const percentage = ((value / total) * 100).toFixed(0);
+                            return `${value}\n(${percentage}%)`;
                         }
                     }
                 }
@@ -2836,6 +2893,17 @@ export class PdmComponent implements OnInit, OnDestroy {
                             size: 16,
                             weight: 'bold'
                         }
+                    },
+                    datalabels: {
+                        display: true,
+                        color: '#fff',
+                        font: {
+                            weight: 'bold',
+                            size: 11
+                        },
+                        formatter: (value: any) => value > 0 ? value : '',
+                        anchor: 'center',
+                        align: 'center'
                     }
                 }
             }
@@ -2961,6 +3029,17 @@ export class PdmComponent implements OnInit, OnDestroy {
                                 return `${label}: ${value} (${porcentaje}% del total)`;
                             }
                         }
+                    },
+                    datalabels: {
+                        display: true,
+                        anchor: 'end',
+                        align: 'top',
+                        color: '#444',
+                        font: {
+                            weight: 'bold',
+                            size: 12
+                        },
+                        formatter: (value: any) => value
                     }
                 }
             }
@@ -3043,6 +3122,20 @@ export class PdmComponent implements OnInit, OnDestroy {
                                 return `${label}: $${value.toLocaleString('es-CO')}`;
                             }
                         }
+                    },
+                    datalabels: {
+                        display: true,
+                        anchor: 'end',
+                        align: 'top',
+                        color: '#444',
+                        font: {
+                            weight: 'bold',
+                            size: 10
+                        },
+                        formatter: (value: any) => {
+                            const millones = value / 1000000;
+                            return millones >= 1 ? `$${millones.toFixed(1)}M` : `$${(value / 1000).toFixed(0)}K`;
+                        }
                     }
                 }
             }
@@ -3116,6 +3209,19 @@ export class PdmComponent implements OnInit, OnDestroy {
                                     `Presupuesto: $${presupuesto}`
                                 ];
                             }
+                        }
+                    },
+                    datalabels: {
+                        display: true,
+                        color: '#fff',
+                        font: {
+                            weight: 'bold',
+                            size: 11
+                        },
+                        formatter: (value: any, context: any) => {
+                            const total = (context.chart.data.datasets[0].data as number[]).reduce((a: number, b: number) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(0);
+                            return `${value}\n(${percentage}%)`;
                         }
                     }
                 }
@@ -3212,6 +3318,17 @@ export class PdmComponent implements OnInit, OnDestroy {
                                 ];
                             }
                         }
+                    },
+                    datalabels: {
+                        display: true,
+                        anchor: 'end',
+                        align: 'end',
+                        color: '#444',
+                        font: {
+                            weight: 'bold',
+                            size: 11
+                        },
+                        formatter: (value: any) => `${value.toFixed(1)}%`
                     }
                 }
             }
@@ -3299,6 +3416,17 @@ export class PdmComponent implements OnInit, OnDestroy {
                                 ];
                             }
                         }
+                    },
+                    datalabels: {
+                        display: true,
+                        anchor: 'end',
+                        align: 'end',
+                        color: '#444',
+                        font: {
+                            weight: 'bold',
+                            size: 11
+                        },
+                        formatter: (value: any) => `${value.toFixed(1)}%`
                     }
                 },
                 scales: {

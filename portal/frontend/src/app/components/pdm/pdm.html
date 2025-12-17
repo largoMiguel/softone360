@@ -1299,6 +1299,27 @@
 
     <!-- VISTA: ANÁLISIS Y DASHBOARDS -->
     <div *ngIf="archivoExcelCargado && vistaActual === 'analytics' && dashboardAnalytics" class="vista-analytics">
+        <!-- Filtros: Año y Secretaría -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <label class="form-label"><i class="fas fa-calendar-alt me-2"></i><strong>Filtrar por Año:</strong></label>
+                        <select [(ngModel)]="filtroAnio" (change)="cambiarFiltrosAnalytics()" class="form-select">
+                            <option *ngFor="let anio of aniosDisponibles" [value]="anio">{{ anio }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label"><i class="fas fa-building me-2"></i><strong>Filtrar por Secretaría:</strong></label>
+                        <select [(ngModel)]="filtroSecretaria" (change)="cambiarFiltrosAnalytics()" class="form-select">
+                            <option value="">Todas las Secretarías</option>
+                            <option *ngFor="let sec of secretariasAgrupadas" [value]="sec.id">{{ sec.nombre }}</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Resumen General -->
         <div class="row mb-4">
             <div class="col-md-3">

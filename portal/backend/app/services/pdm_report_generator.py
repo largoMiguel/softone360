@@ -211,38 +211,40 @@ class PDMReportGenerator:
             
             # Calcular KPIs generales
             total_productos = len(self.productos)
-            total_actividades = len(self.actividades)
+            total_actividades = sum(1 for act in self.actividades if act.anio == self.anio)
             
-            # Avance promedio
+            # Avance promedio (solo considerar productos con programación en el año actual)
             suma_avances = 0
+            productos_con_meta = 0
             for prod in self.productos:
-                suma_avances += self.calcular_avance_producto(prod)
-            avance_promedio = suma_avances / total_productos if total_productos > 0 else 0
+                # Solo contar productos que tienen meta en el año del informe
+                meta_anio = getattr(prod, f'programacion_{self.anio}', 0) or 0
+                if meta_anio > 0:
+                    suma_avances += self.calcular_avance_producto(prod)
+                    productos_con_meta += 1
+            avance_promedio = suma_avances / productos_con_meta if productos_con_meta > 0 else 0
             
-            # Avance financiero promedio
+            # Avance financiero promedio (sobre todos los productos)
             suma_financiero = 0
             for prod in self.productos:
                 suma_financiero += self.calcular_avance_financiero(prod)
             avance_financiero_promedio = suma_financiero / total_productos if total_productos > 0 else 0
             
-            # Actividades por estado
+            # Actividades por estado (SOLO del año filtrado)
             estados_count = {}
             for act in self.actividades:
                 if act.anio == self.anio:
                     estado = act.estado
                     estados_count[estado] = estados_count.get(estado, 0) + 1
             
-            # Total presupuesto
+            # Total presupuesto (suma simple de los 4 años como en frontend)
+            # NO acumular condicionalmente - sumar los 4 años directamente
             total_presupuesto = 0
             for prod in self.productos:
-                if self.anio >= 2024:
-                    total_presupuesto += float(prod.total_2024 or 0)
-                if self.anio >= 2025:
-                    total_presupuesto += float(prod.total_2025 or 0)
-                if self.anio >= 2026:
-                    total_presupuesto += float(prod.total_2026 or 0)
-                if self.anio >= 2027:
-                    total_presupuesto += float(prod.total_2027 or 0)
+                total_presupuesto += float(prod.total_2024 or 0)
+                total_presupuesto += float(prod.total_2025 or 0)
+                total_presupuesto += float(prod.total_2026 or 0)
+                total_presupuesto += float(prod.total_2027 or 0)
             
             # TABLA DE KPIs PRINCIPALES
             white_bold = ParagraphStyle('WhiteBold', parent=self.styles['Normal'], 
@@ -320,25 +322,43 @@ class PDMReportGenerator:
             traceback.print_exc()
     
     def calcular_avance_producto(self, producto):
-        """Calcula el avance de un producto basado en programación vs meta cuatrienio"""
+        """
+        Calcula el avance de un producto basado en meta ejecutada vs meta programada
+        Usa la misma lógica del frontend: promedio de avance de los años con meta programada
+        """
         try:
-            if not producto.meta_cuatrienio or producto.meta_cuatrienio == 0:
-                return 0
+            anios = [2024, 2025, 2026, 2027]
+            suma_avances = 0
+            total_anios_con_meta = 0
             
-            # Calcular la suma de lo ejecutado hasta el año actual
-            anios_validos = [2024, 2025, 2026, 2027]
-            total_ejecutado = 0
+            for anio in anios:
+                # Obtener meta programada del año
+                meta_programada = getattr(producto, f'programacion_{anio}', 0) or 0
+                
+                if meta_programada > 0:
+                    # Calcular meta ejecutada: suma de meta_ejecutar de actividades con evidencia
+                    actividades_anio = [
+                        act for act in self.actividades 
+                        if act.codigo_producto == producto.codigo_producto and act.anio == anio
+                    ]
+                    
+                    meta_ejecutada = sum(
+                        act.meta_ejecutar for act in actividades_anio 
+                        if act.evidencia is not None and act.evidencia.strip() != ''
+                    )
+                    
+                    # Calcular porcentaje de avance (topar en 100%)
+                    porcentaje_avance = min(100, (meta_ejecutada / meta_programada) * 100)
+                    suma_avances += porcentaje_avance
+                    total_anios_con_meta += 1
             
-            for anio in anios_validos:
-                if anio <= self.anio:  # Solo contar años hasta el año del informe
-                    programado = getattr(producto, f'programacion_{anio}', 0) or 0
-                    total_ejecutado += programado
+            # Retornar promedio de avance de años con meta
+            return suma_avances / total_anios_con_meta if total_anios_con_meta > 0 else 0
             
-            # Calcular porcentaje de avance
-            avance = (total_ejecutado / producto.meta_cuatrienio) * 100
-            return min(100, avance)  # Máximo 100%
         except Exception as e:
             print(f"      ⚠️ Error calculando avance para {producto.codigo_producto}: {e}")
+            import traceback
+            traceback.print_exc()
             return 0
     
     def calcular_avance_financiero(self, producto) -> float:
