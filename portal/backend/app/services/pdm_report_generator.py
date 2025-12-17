@@ -689,12 +689,15 @@ class PDMReportGenerator:
             self.story.append(header_table)
             self.story.append(Spacer(1, 0.1*inch))
             
+            # Estilo para encabezados con texto blanco
+            white_header = ParagraphStyle('WhiteHeader', parent=self.styles['Normal'], textColor=colors.white, fontName='Helvetica-Bold')
+            
             # Tabla de productos
             data = [[
-                Paragraph('<b>PRODUCTO(S)</b>', self.styles['Normal']),
-                Paragraph('<b>INDICADOR DE PRODUCTO</b>', self.styles['Normal']),
-                Paragraph('<b>AVANCE FÍSICO</b>', self.styles['Normal']),
-                Paragraph('<b>AVANCE FINANCIERO</b>', self.styles['Normal'])
+                Paragraph('<b>PRODUCTO(S)</b>', white_header),
+                Paragraph('<b>INDICADOR DE PRODUCTO</b>', white_header),
+                Paragraph('<b>AVANCE FÍSICO</b>', white_header),
+                Paragraph('<b>AVANCE FINANCIERO</b>', white_header)
             ]]
             
             for prod in productos:
@@ -719,7 +722,7 @@ class PDMReportGenerator:
             table = Table(data, colWidths=[2.5*inch, 2.5*inch, 1*inch, 1*inch])
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#003366')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
@@ -1007,9 +1010,10 @@ class PDMReportGenerator:
             # AVANCES
             avance_fisico = self.calcular_avance_producto(prod)
             avance_financiero = self.calcular_avance_financiero(prod)
+            white_header = ParagraphStyle('WhiteHeader', parent=self.styles['Normal'], textColor=colors.white, fontName='Helvetica-Bold')
             data_avance = [[
-                Paragraph('<b>AVANCE FÍSICO</b>', self.styles['Normal']),
-                Paragraph('<b>AVANCE FINANCIERO</b>', self.styles['Normal'])
+                Paragraph('<b>AVANCE FÍSICO</b>', white_header),
+                Paragraph('<b>AVANCE FINANCIERO</b>', white_header)
             ], [
                 Paragraph(f'{avance_fisico:.1f}%', self.styles['Normal']),
                 Paragraph(f'{avance_financiero:.1f}%', self.styles['Normal'])
