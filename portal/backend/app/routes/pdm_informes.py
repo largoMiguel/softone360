@@ -54,16 +54,25 @@ async def obtener_filtros_disponibles(
         
         # Si no es admin, solo su secretaría
         if not is_admin:
-            if hasattr(current_user, 'secretaria_id') and current_user.secretaria_id:
-                secretarias_query = secretarias_query.filter(
-                    Secretaria.id == current_user.secretaria_id
-                )
-            else:
-                # Buscar por email o nombre
-                secretarias_query = secretarias_query.filter(
-                    (Secretaria.email == current_user.email) |
-                    (Secretaria.nombre.contains(current_user.full_name))
-                )
+            try:
+                if hasattr(current_user, 'secretaria_id') and current_user.secretaria_id:
+                    secretarias_query = secretarias_query.filter(
+                        Secretaria.id == current_user.secretaria_id
+                    )
+                else:
+                    # Buscar por email o nombre
+                    if current_user.email:
+                        secretarias_query = secretarias_query.filter(
+                            Secretaria.email == current_user.email
+                        )
+                    elif current_user.full_name:
+                        secretarias_query = secretarias_query.filter(
+                            Secretaria.nombre.ilike(f"%{current_user.full_name}%")
+                        )
+            except Exception as filter_error:
+                # Si falla el filtro, devolver lista vacía de secretarías para no-admin
+                print(f"⚠️ Error filtrando secretarías para usuario {current_user.email}: {filter_error}")
+                secretarias_query = db.query(Secretaria).filter(Secretaria.id == -1)  # Query vacío
         
         secretarias = secretarias_query.all()
         
