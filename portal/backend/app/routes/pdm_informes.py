@@ -113,16 +113,18 @@ async def generar_informe_pdm(
     fecha_inicio: Optional[str] = Query(None, description="Fecha inicio (YYYY-MM-DD)"),
     fecha_fin: Optional[str] = Query(None, description="Fecha fin (YYYY-MM-DD)"),
     estados: Optional[List[str]] = Query(None, description="Estados de actividades"),
+    formato: str = Query("pdf", description="Formato del informe (pdf, docx, excel)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Genera un informe PDF del Plan de Desarrollo Municipal para un año específico
+    Genera un informe del Plan de Desarrollo Municipal para un año específico
     
     Filtros disponibles:
     - secretaria_ids: Filtrar por secretarías específicas (admin)
     - fecha_inicio/fecha_fin: Rango de fechas de actividades
     - estados: Estados de actividades (PENDIENTE, EN_PROGRESO, COMPLETADA, CANCELADA)
+    - formato: Formato de salida (pdf, docx, excel) - Por defecto: pdf
     
     Permisos:
     - Admin: puede filtrar por cualquier secretaría o ver todas
@@ -131,12 +133,21 @@ async def generar_informe_pdm(
     Args:
         slug: Slug de la entidad
         anio: Año del informe (2024-2027)
+        formato: Formato del archivo (pdf, docx, excel)
         
     Returns:
-        PDF file download
+        Archivo descargable en el formato solicitado
     """
     try:
-        print(f"\n📊 Generando informe PDM para {slug} - Año {anio}")
+        # Validar formato
+        formato = formato.lower()
+        if formato not in ["pdf", "docx", "excel"]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Formato '{formato}' no soportado. Use: pdf, docx o excel"
+            )
+        
+        print(f"\n📊 Generando informe PDM {formato.upper()} para {slug} - Año {anio}")
         
         # Obtener entidad
         entity = get_entity_or_404(db, slug)
@@ -260,9 +271,9 @@ async def generar_informe_pdm(
         print(f"   Actividades con evidencia: {actividades_con_evidencia}")
         
         # ============================================
-        # GENERAR PDF CON FILTROS
+        # GENERAR INFORME EN EL FORMATO SOLICITADO
         # ============================================
-        print(f"   Generando PDF...")
+        print(f"   Generando informe en formato {formato.upper()}...")
         
         # Obtener nombres de secretarías para el título
         secretarias_nombres = []
@@ -286,7 +297,19 @@ async def generar_informe_pdm(
             }
         )
         
-        pdf_bytes = generator.generate()
+        # Generar según formato solicitado
+        if formato == "pdf":
+            file_bytes = generator.generate()
+            media_type = "application/pdf"
+            extension = "pdf"
+        elif formato == "docx":
+            file_bytes = generator.generate_docx()
+            media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            extension = "docx"
+        elif formato == "excel":
+            file_bytes = generator.generate_excel()
+            media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            extension = "xlsx"
         
         # Nombre del archivo con información de filtros
         fecha_actual = datetime.now().strftime("%Y-%m-%d")
@@ -294,17 +317,17 @@ async def generar_informe_pdm(
         if secretaria_ids and len(secretaria_ids) == 1:
             sec_nombre = secretarias_nombres[0] if secretarias_nombres else f"sec{secretaria_ids[0]}"
             filtro_nombre = f"-{sec_nombre.replace(' ', '-')[:20]}"
-        filename = f"informe-pdm-{slug}-{anio}{filtro_nombre}-{fecha_actual}.pdf"
+        filename = f"informe-pdm-{slug}-{anio}{filtro_nombre}-{fecha_actual}.{extension}"
         
-        print(f"✅ Informe generado exitosamente: {filename}\n")
+        print(f"✅ Informe {formato.upper()} generado exitosamente: {filename}\n")
         
-        # Retornar PDF como descarga
+        # Retornar archivo como descarga
         return StreamingResponse(
-            BytesIO(pdf_bytes),
-            media_type="application/pdf",
+            BytesIO(file_bytes),
+            media_type=media_type,
             headers={
                 "Content-Disposition": f"attachment; filename={filename}",
-                "Content-Type": "application/pdf",
+                "Content-Type": media_type,
             }
         )
         

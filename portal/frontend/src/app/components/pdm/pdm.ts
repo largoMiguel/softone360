@@ -822,7 +822,8 @@ export class PdmComponent implements OnInit, OnDestroy {
             secretaria_ids: [],
             fecha_inicio: '',
             fecha_fin: '',
-            estados: []
+            estados: [],
+            formato: 'pdf'  // Formato por defecto
         };
     }
 
@@ -900,18 +901,24 @@ export class PdmComponent implements OnInit, OnDestroy {
         if (this.filtrosInforme.estados.length > 0) {
             filtros.estados = this.filtrosInforme.estados;
         }
+        if (this.filtrosInforme.formato) {
+            filtros.formato = this.filtrosInforme.formato;
+        }
+        
+        const formatoNombre = this.filtrosInforme.formato === 'pdf' ? 'PDF' : 
+                             this.filtrosInforme.formato === 'docx' ? 'Word' : 'Excel';
         
         // Generar informe
         this.pdmService.generarInformePDF(this.filtrosInforme.anio, filtros).subscribe({
-            next: (pdfBlob) => {
-                console.log('✅ PDF generado correctamente');
-                // Descargar el PDF
-                this.pdmService.descargarInformePDF(pdfBlob, this.filtrosInforme.anio);
+            next: (fileBlob) => {
+                console.log(`✅ ${formatoNombre} generado correctamente`);
+                // Descargar el archivo
+                this.pdmService.descargarInformePDF(fileBlob, this.filtrosInforme.anio);
                 
                 this.generandoInforme = false;
                 this.cerrarModalFiltrosInforme();
                 
-                alert(`✅ INFORME GENERADO EXITOSAMENTE\n\nAño: ${this.filtrosInforme.anio}\n\nEl archivo PDF ha sido descargado.`);
+                alert(`✅ INFORME ${formatoNombre.toUpperCase()} GENERADO EXITOSAMENTE\n\nAño: ${this.filtrosInforme.anio}\n\nEl archivo ha sido descargado.`);
             },
             error: (error) => {
                 console.error('❌ Error generando informe:', error);

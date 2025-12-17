@@ -1974,6 +1974,22 @@
                             </div>
                         </div>
 
+                        <!-- Formato del informe -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-file-export me-1"></i> Formato de Exportación
+                            </label>
+                            <select class="form-select" [(ngModel)]="filtrosInforme.formato">
+                                <option value="pdf">PDF (Documento completo con gráficos)</option>
+                                <option value="docx">Word (DOCX - Editable)</option>
+                                <option value="excel">Excel (XLSX - Datos tabulados)</option>
+                            </select>
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Seleccione el formato más conveniente para su análisis
+                            </small>
+                        </div>
+
                         <!-- Resumen de filtros aplicados -->
                         <div class="alert alert-light border" *ngIf="filtrosInforme.secretaria_ids.length > 0 || filtrosInforme.fecha_inicio || filtrosInforme.fecha_fin || filtrosInforme.estados.length > 0">
                             <strong><i class="fas fa-info-circle me-1"></i> Filtros a aplicar:</strong>
@@ -1988,6 +2004,13 @@
                                 <li *ngIf="filtrosInforme.estados.length > 0">
                                     <strong>Estados:</strong> {{ filtrosInforme.estados.join(', ') }}
                                 </li>
+                                <li>
+                                    <strong>Formato:</strong> {{ 
+                                        filtrosInforme.formato === 'pdf' ? 'PDF' : 
+                                        filtrosInforme.formato === 'docx' ? 'Word (DOCX)' : 
+                                        'Excel (XLSX)' 
+                                    }}
+                                </li>
                             </ul>
                         </div>
                     </div>
@@ -1998,7 +2021,8 @@
                     </button>
                     <button type="button" class="btn btn-success" (click)="confirmarGenerarInforme()" [disabled]="cargandoFiltrosInforme || generandoInforme">
                         <span *ngIf="!generandoInforme">
-                            <i class="fas fa-file-pdf me-1"></i> Generar Informe
+                            <i class="fas fa-file-{{ filtrosInforme.formato === 'pdf' ? 'pdf' : filtrosInforme.formato === 'docx' ? 'word' : 'excel' }} me-1"></i> 
+                            Generar {{ filtrosInforme.formato === 'pdf' ? 'PDF' : filtrosInforme.formato === 'docx' ? 'Word' : 'Excel' }}
                         </span>
                         <span *ngIf="generandoInforme">
                             <span class="spinner-border spinner-border-sm me-1" role="status"></span>

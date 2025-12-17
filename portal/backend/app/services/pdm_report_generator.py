@@ -28,6 +28,7 @@ plt.rcParams['font.family'] = 'DejaVu Sans'
 
 from sqlalchemy.orm import Session
 from app.models.pdm import PdmActividadEvidencia
+from app.models.pdm_ejecucion import PDMEjecucionPresupuestal
 from app.models.user import User
 
 class PDMReportGenerator:
@@ -210,6 +211,55 @@ class PDMReportGenerator:
         except Exception as e:
             print(f"      ⚠️ Error calculando avance para {producto.codigo_producto}: {e}")
             return 0
+    
+    def calcular_avance_financiero(self, producto) -> float:
+        """
+        Calcula el avance financiero real basado en la ejecución presupuestal
+        Formula: (Pagos / Presupuesto Definitivo) * 100
+        
+        Si no hay datos de ejecución, retorna el avance físico como estimación
+        """
+        try:
+            if not self.db:
+                # Sin acceso a DB, usar avance físico
+                return self.calcular_avance_producto(producto)
+            
+            # Consultar ejecución presupuestal para este producto y año
+            ejecuciones = self.db.query(PDMEjecucionPresupuestal).filter(
+                PDMEjecucionPresupuestal.entity_id == self.entity.id,
+                PDMEjecucionPresupuestal.codigo_producto == producto.codigo_producto,
+                PDMEjecucionPresupuestal.anio == self.anio
+            ).all()
+            
+            if not ejecuciones:
+                print(f"      ℹ️ No hay ejecución presupuestal para {producto.codigo_producto} en {self.anio}")
+                # Sin datos de ejecución, usar avance físico como estimación
+                return self.calcular_avance_producto(producto)
+            
+            # Sumar totales de todas las fuentes
+            total_definitivo = 0
+            total_pagos = 0
+            
+            for ejecucion in ejecuciones:
+                total_definitivo += float(ejecucion.pto_definitivo or 0)
+                total_pagos += float(ejecucion.pagos or 0)
+            
+            # Calcular porcentaje
+            if total_definitivo == 0:
+                print(f"      ⚠️ Presupuesto definitivo = 0 para {producto.codigo_producto}")
+                return self.calcular_avance_producto(producto)
+            
+            avance_financiero = (total_pagos / total_definitivo) * 100
+            print(f"      💰 Avance financiero {producto.codigo_producto}: {avance_financiero:.1f}% (Pagos: ${total_pagos:,.0f} / Definitivo: ${total_definitivo:,.0f})")
+            
+            return min(100, max(0, avance_financiero))  # Entre 0 y 100%
+            
+        except Exception as e:
+            print(f"      ❌ Error calculando avance financiero para {producto.codigo_producto}: {e}")
+            import traceback
+            traceback.print_exc()
+            # En caso de error, usar avance físico
+            return self.calcular_avance_producto(producto)
     
     def generate_grafico_lineas(self):
         """Genera gráfico de avance por líneas estratégicas"""
@@ -404,20 +454,12 @@ class PDMReportGenerator:
                 indicador_text = prod.indicador_producto_mga or prod.personalizacion_indicador or 'N/A'
                 
                 # Calcular avance físico usando nuestra función
-                avance_porcentaje = self.calcular_avance_producto(prod)
-                avance_fisico = f"{avance_porcentaje:.1f}%"
+                avance_fisico_porcentaje = self.calcular_avance_producto(prod)
+                avance_fisico = f"{avance_fisico_porcentaje:.1f}%"
                 
-                # Calcular avance financiero (suma de totales ejecutados vs programados)
-                total_programado = (
-                    (prod.total_2024 or 0) +
-                    (prod.total_2025 or 0) +
-                    (prod.total_2026 or 0) +
-                    (prod.total_2027 or 0)
-                )
-                
-                # Para avance financiero usamos el mismo porcentaje por ahora
-                # En el futuro se puede calcular con datos reales de ejecución presupuestal
-                avance_financiero = f"{avance_porcentaje:.1f}%"
+                # Calcular avance financiero REAL desde ejecución presupuestal
+                avance_financiero_porcentaje = self.calcular_avance_financiero(prod)
+                avance_financiero = f"{avance_financiero_porcentaje:.1f}%"
                 
                 data.append([
                     Paragraph(producto_text[:100], self.styles['Normal']),
@@ -717,13 +759,14 @@ class PDMReportGenerator:
             self.story.append(Spacer(1, 0.1*inch))
             
             # AVANCES
-            avance = self.calcular_avance_producto(prod)
+            avance_fisico = self.calcular_avance_producto(prod)
+            avance_financiero = self.calcular_avance_financiero(prod)
             data_avance = [[
                 Paragraph('<b>AVANCE FÍSICO</b>', self.styles['Normal']),
                 Paragraph('<b>AVANCE FINANCIERO</b>', self.styles['Normal'])
             ], [
-                Paragraph(f'{avance:.1f}%', self.styles['Normal']),
-                Paragraph(f'{avance:.1f}%', self.styles['Normal'])
+                Paragraph(f'{avance_fisico:.1f}%', self.styles['Normal']),
+                Paragraph(f'{avance_financiero:.1f}%', self.styles['Normal'])
             ]]
             
             avance_table = Table(data_avance, colWidths=[3.5*inch, 3.5*inch])
@@ -746,25 +789,49 @@ class PDMReportGenerator:
             if actividades:
                 # Encabezado de actividades
                 act_header = [[
-                    Paragraph('<b>Meta y/o Actividades</b>', self.styles['Normal']),
-                    Paragraph('<b>Informe de Ejecución</b>', self.styles['Normal'])
+                    Paragraph('<b>Meta del Producto</b>', self.styles['Normal']),
+                    Paragraph('<b>Actividades Programadas</b>', self.styles['Normal'])
                 ]]
                 
-                for actividad in actividades[:5]:  # Máximo 5 actividades por producto
-                    meta_text = f"{actividad.nombre}\n{actividad.descripcion or ''}"
-                    
-                    # Informe de ejecución
-                    informe = f"<b>Actividad:</b> {actividad.nombre}<br/>"
-                    informe += f"<b>Estado:</b> {actividad.estado}<br/>"
-                    informe += f"<b>Meta a ejecutar:</b> {actividad.meta_ejecutar}"
-                    
-                    if actividad.responsable_secretaria:
-                        informe += f"<br/><b>Responsable:</b> {actividad.responsable_secretaria.nombre}"
-                    
+                # Primera fila: Meta del producto vs resumen de actividades
+                meta_producto = f"<b>Indicador:</b> {prod.indicador_producto_mga or prod.personalizacion_indicador or 'N/A'}<br/>"
+                meta_producto += f"<b>Meta Cuatrienio:</b> {prod.meta_cuatrienio or 0} {prod.unidad_medida or ''}<br/>"
+                meta_producto += f"<b>Avance a {self.anio}:</b> {self.calcular_avance_producto(prod):.1f}%"
+                
+                resumen_actividades = f"<b>Total actividades:</b> {len(actividades)}<br/>"
+                estados_count = {}
+                for act in actividades:
+                    estados_count[act.estado] = estados_count.get(act.estado, 0) + 1
+                
+                for estado, count in estados_count.items():
+                    resumen_actividades += f"<b>{estado}:</b> {count}<br/>"
+                
+                act_header.append([
+                    Paragraph(meta_producto, self.styles['Normal']),
+                    Paragraph(resumen_actividades, self.styles['Normal'])
+                ])
+                
+                # Detalle de actividades (máximo 5)
+                if len(actividades) > 0:
                     act_header.append([
-                        Paragraph(meta_text[:300], self.styles['Normal']),
-                        Paragraph(informe, self.styles['Normal'])
+                        Paragraph('<b>Detalle de Actividades</b>', self.styles['Normal']),
+                        Paragraph('<b>Estado y Meta</b>', self.styles['Normal'])
                     ])
+                    
+                    for actividad in actividades[:5]:
+                        actividad_text = f"<b>{actividad.nombre}</b><br/>"
+                        if actividad.descripcion:
+                            actividad_text += f"{actividad.descripcion[:200]}"
+                        
+                        estado_meta = f"<b>Estado:</b> {actividad.estado}<br/>"
+                        estado_meta += f"<b>Meta:</b> {actividad.meta_ejecutar}<br/>"
+                        if actividad.fecha_inicio and actividad.fecha_fin:
+                            estado_meta += f"<b>Período:</b> {actividad.fecha_inicio.strftime('%d/%m/%Y')} - {actividad.fecha_fin.strftime('%d/%m/%Y')}"
+                        
+                        act_header.append([
+                            Paragraph(actividad_text[:300], self.styles['Normal']),
+                            Paragraph(estado_meta, self.styles['Normal'])
+                        ])
                 
                 act_table = Table(act_header, colWidths=[3.5*inch, 3.5*inch])
                 act_table.setStyle(TableStyle([
@@ -964,6 +1031,185 @@ class PDMReportGenerator:
             
         except Exception as e:
             print(f"❌ Error generando PDF: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
+    
+    def generate_docx(self) -> bytes:
+        """
+        Genera informe en formato DOCX (Word)
+        Nota: Requiere instalación de python-docx
+        """
+        try:
+            from docx import Document
+            from docx.shared import Inches, Pt, RGBColor
+            from docx.enum.text import WD_ALIGN_PARAGRAPH
+            
+            print("📝 Generando informe DOCX...")
+            
+            doc = Document()
+            
+            # PORTADA
+            doc.add_heading(f'INFORME DE GESTIÓN {self.anio}', 0)
+            doc.add_heading('PLAN DE DESARROLLO MUNICIPAL', 1)
+            doc.add_heading(self.entity.name, 2)
+            doc.add_page_break()
+            
+            # RESUMEN POR LÍNEAS ESTRATÉGICAS
+            doc.add_heading('AVANCE POR LÍNEAS ESTRATÉGICAS', 1)
+            
+            # Agrupar por línea
+            lineas_data = {}
+            for prod in self.productos:
+                linea = prod.linea_estrategica or 'Sin Línea'
+                if linea not in lineas_data:
+                    lineas_data[linea] = {'total': 0, 'suma_avance': 0}
+                lineas_data[linea]['total'] += 1
+                lineas_data[linea]['suma_avance'] += self.calcular_avance_producto(prod)
+            
+            table = doc.add_table(rows=1, cols=2)
+            table.style = 'Light Grid Accent 1'
+            hdr_cells = table.rows[0].cells
+            hdr_cells[0].text = 'Línea Estratégica'
+            hdr_cells[1].text = 'Avance (%)'
+            
+            for linea, data in lineas_data.items():
+                row_cells = table.add_row().cells
+                row_cells[0].text = linea
+                promedio = data['suma_avance'] / data['total'] if data['total'] > 0 else 0
+                row_cells[1].text = f"{promedio:.1f}%"
+            
+            doc.add_page_break()
+            
+            # TABLA DE PRODUCTOS
+            doc.add_heading('PRODUCTOS Y AVANCES', 1)
+            
+            table = doc.add_table(rows=1, cols=4)
+            table.style = 'Light Grid Accent 1'
+            hdr_cells = table.rows[0].cells
+            hdr_cells[0].text = 'Producto'
+            hdr_cells[1].text = 'Indicador'
+            hdr_cells[2].text = 'Avance Físico'
+            hdr_cells[3].text = 'Avance Financiero'
+            
+            for prod in self.productos:
+                row_cells = table.add_row().cells
+                row_cells[0].text = prod.producto_mga or prod.codigo_producto
+                row_cells[1].text = prod.indicador_producto_mga or 'N/A'
+                row_cells[2].text = f"{self.calcular_avance_producto(prod):.1f}%"
+                row_cells[3].text = f"{self.calcular_avance_financiero(prod):.1f}%"
+            
+            # Guardar en BytesIO
+            from io import BytesIO
+            docx_buffer = BytesIO()
+            doc.save(docx_buffer)
+            docx_bytes = docx_buffer.getvalue()
+            docx_buffer.close()
+            
+            print(f"✅ DOCX generado exitosamente ({len(docx_bytes)} bytes)")
+            return docx_bytes
+            
+        except ImportError:
+            print("❌ ERROR: python-docx no instalado")
+            raise Exception("El formato DOCX no está disponible. Instale python-docx")
+        except Exception as e:
+            print(f"❌ Error generando DOCX: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
+    
+    def generate_excel(self) -> bytes:
+        """
+        Genera informe en formato Excel (XLSX)
+        Usa openpyxl para crear un archivo Excel estructurado
+        """
+        try:
+            from openpyxl import Workbook
+            from openpyxl.styles import Font, Alignment, PatternFill
+            from openpyxl.utils import get_column_letter
+            
+            print("📊 Generando informe Excel...")
+            
+            wb = Workbook()
+            
+            # HOJA 1: Resumen General
+            ws = wb.active
+            ws.title = "Resumen General"
+            
+            # Título
+            ws['A1'] = f"INFORME PDM - {self.entity.name}"
+            ws['A1'].font = Font(size=16, bold=True)
+            ws['A2'] = f"Año: {self.anio}"
+            ws['A2'].font = Font(size=12)
+            
+            # Líneas Estratégicas
+            ws['A4'] = "AVANCE POR LÍNEAS ESTRATÉGICAS"
+            ws['A4'].font = Font(size=14, bold=True)
+            
+            ws['A5'] = "Línea Estratégica"
+            ws['B5'] = "Avance (%)"
+            ws['A5'].font = Font(bold=True)
+            ws['B5'].font = Font(bold=True)
+            
+            row = 6
+            lineas_data = {}
+            for prod in self.productos:
+                linea = prod.linea_estrategica or 'Sin Línea'
+                if linea not in lineas_data:
+                    lineas_data[linea] = {'total': 0, 'suma_avance': 0}
+                lineas_data[linea]['total'] += 1
+                lineas_data[linea]['suma_avance'] += self.calcular_avance_producto(prod)
+            
+            for linea, data in lineas_data.items():
+                ws[f'A{row}'] = linea
+                promedio = data['suma_avance'] / data['total'] if data['total'] > 0 else 0
+                ws[f'B{row}'] = f"{promedio:.1f}%"
+                row += 1
+            
+            # HOJA 2: Productos Detallados
+            ws2 = wb.create_sheet("Productos")
+            ws2['A1'] = "PRODUCTOS Y AVANCES"
+            ws2['A1'].font = Font(size=14, bold=True)
+            
+            headers = ['Código', 'Producto', 'Indicador', 'Meta', 'Unidad', 'Avance Físico', 'Avance Financiero', 'Responsable']
+            for col, header in enumerate(headers, 1):
+                cell = ws2.cell(row=3, column=col)
+                cell.value = header
+                cell.font = Font(bold=True)
+                cell.fill = PatternFill(start_color="003366", end_color="003366", fill_type="solid")
+                cell.font = Font(bold=True, color="FFFFFF")
+            
+            row = 4
+            for prod in self.productos:
+                ws2[f'A{row}'] = prod.codigo_producto
+                ws2[f'B{row}'] = prod.producto_mga or 'N/A'
+                ws2[f'C{row}'] = prod.indicador_producto_mga or 'N/A'
+                ws2[f'D{row}'] = prod.meta_cuatrienio or 0
+                ws2[f'E{row}'] = prod.unidad_medida or ''
+                ws2[f'F{row}'] = f"{self.calcular_avance_producto(prod):.1f}%"
+                ws2[f'G{row}'] = f"{self.calcular_avance_financiero(prod):.1f}%"
+                ws2[f'H{row}'] = prod.responsable_secretaria.nombre if prod.responsable_secretaria else 'N/A'
+                row += 1
+            
+            # Ajustar anchos de columna
+            for col in range(1, 9):
+                ws2.column_dimensions[get_column_letter(col)].width = 20
+            
+            # Guardar en BytesIO
+            from io import BytesIO
+            excel_buffer = BytesIO()
+            wb.save(excel_buffer)
+            excel_bytes = excel_buffer.getvalue()
+            excel_buffer.close()
+            
+            print(f"✅ Excel generado exitosamente ({len(excel_bytes)} bytes)")
+            return excel_bytes
+            
+        except ImportError as ie:
+            print(f"❌ ERROR: Biblioteca no instalada - {ie}")
+            raise Exception("El formato Excel no está disponible. Instale openpyxl")
+        except Exception as e:
+            print(f"❌ Error generando Excel: {e}")
             import traceback
             traceback.print_exc()
             raise
