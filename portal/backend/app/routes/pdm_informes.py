@@ -87,8 +87,7 @@ async def obtener_filtros_disponibles(
             "secretarias": [
                 {
                     "id": s.id,
-                    "nombre": s.nombre,
-                    "email": s.email
+                    "nombre": s.nombre
                 }
                 for s in secretarias
             ],
