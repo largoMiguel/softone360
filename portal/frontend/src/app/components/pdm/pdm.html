@@ -1894,7 +1894,7 @@
                             </div>
                             <div *ngIf="filtrosInforme.secretaria_ids.length > 0" class="mt-2">
                                 <span class="badge bg-primary me-1" *ngFor="let id of filtrosInforme.secretaria_ids">
-                                    {{ (filtrosInformeDisponibles.secretarias.find((s: any) => s.id === id))?.nombre }}
+                                    {{ getNombreSecretaria(id) }}
                                     <i class="fas fa-times ms-1 cursor-pointer" (click)="toggleSecretariaInforme(id)"></i>
                                 </span>
                             </div>

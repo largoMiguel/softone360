@@ -865,6 +865,17 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
+     * Obtiene el nombre de una secretaría por su ID
+     */
+    getNombreSecretaria(secretariaId: number): string {
+        if (!this.filtrosInformeDisponibles || !this.filtrosInformeDisponibles.secretarias) {
+            return '';
+        }
+        const secretaria = this.filtrosInformeDisponibles.secretarias.find((s: any) => s.id === secretariaId);
+        return secretaria ? secretaria.nombre : '';
+    }
+
+    /**
      * Genera el informe con los filtros seleccionados
      */
     confirmarGenerarInforme(): void {
