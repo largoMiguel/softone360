@@ -913,8 +913,8 @@ export class PdmComponent implements OnInit, OnDestroy {
         this.pdmService.generarInformePDF(this.filtrosInforme.anio, filtros).subscribe({
             next: (fileBlob) => {
                 console.log(`✅ ${formatoNombre} generado correctamente`);
-                // Descargar el archivo
-                this.pdmService.descargarInformePDF(fileBlob, this.filtrosInforme.anio);
+                // Descargar el archivo con formato correcto
+                this.pdmService.descargarInformePDF(fileBlob, this.filtrosInforme.anio, this.filtrosInforme.formato);
                 
                 this.generandoInforme = false;
                 this.cerrarModalFiltrosInforme();

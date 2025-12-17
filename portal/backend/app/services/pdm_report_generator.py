@@ -333,7 +333,7 @@ class PDMReportGenerator:
                 "[Gráfico no disponible - Error en generación]",
                 error_style
             ))
-            self.story.append(Spacer(1, 0.3*inch))
+            self.story.append(Spacer(1, 0.15*inch))
         finally:
             # Limpiar todas las figuras de matplotlib
             plt.close('all')
@@ -345,7 +345,7 @@ class PDMReportGenerator:
         
         img = RLImage(img_buffer, width=6.5*inch, height=len(lineas) * 0.5*inch)
         self.story.append(img)
-        self.story.append(Spacer(1, 0.3*inch))
+        self.story.append(Spacer(1, 0.15*inch))
     
     def generate_seccion_lineas(self):
         """Genera sección de avance por líneas estratégicas"""
@@ -379,7 +379,7 @@ class PDMReportGenerator:
         )
         
         self.story.append(Paragraph(desc_text, justify_style))
-        self.story.append(Spacer(1, 0.2*inch))
+        self.story.append(Spacer(1, 0.1*inch))
         
         # Agregar gráfico
         self.generate_grafico_lineas()
@@ -485,9 +485,7 @@ class PDMReportGenerator:
             ]))
             
             self.story.append(table)
-            self.story.append(Spacer(1, 0.3*inch))
-        
-        # No agregar PageBreak al final para permitir continuidad
+            self.story.append(Spacer(1, 0.15*inch))
     
     def generate_seccion_sectores(self):
         """Genera sección de avance por sectores MGA"""
@@ -522,7 +520,7 @@ class PDMReportGenerator:
         )
         
         self.story.append(Paragraph(desc_text, justify_style))
-        self.story.append(Spacer(1, 0.2*inch))
+        self.story.append(Spacer(1, 0.1*inch))
         
         # Generar gráfico de sectores
         self.generate_grafico_sectores()
@@ -908,10 +906,12 @@ class PDMReportGenerator:
                         self.story.append(Spacer(1, 0.1*inch))
                         
                         # Imágenes de evidencia
-                        if evidencia.imagenes and isinstance(evidencia.imagenes, list):
+                        if evidencia.imagenes and isinstance(evidencia.imagenes, list) and len(evidencia.imagenes) > 0:
                             print(f"      📷 Procesando {len(evidencia.imagenes)} imágenes...")
                             
-                            for idx, img_base64 in enumerate(evidencia.imagenes[:3]):  # Máximo 3 imágenes
+                            # Procesar imágenes en grid 2x2
+                            imagenes_procesadas = []
+                            for idx, img_base64 in enumerate(evidencia.imagenes[:4]):  # Máximo 4 imágenes
                                 try:
                                     # Decodificar base64
                                     if img_base64.startswith('data:image'):
@@ -920,15 +920,54 @@ class PDMReportGenerator:
                                     img_data = base64.b64decode(img_base64)
                                     img_buffer = BytesIO(img_data)
                                     
-                                    # Agregar imagen al PDF
-                                    img = RLImage(img_buffer, width=3*inch, height=2*inch)
-                                    self.story.append(img)
-                                    self.story.append(Spacer(1, 0.1*inch))
+                                    # Crear imagen con tamaño adaptativo
+                                    from PIL import Image as PILImage
+                                    pil_img = PILImage.open(BytesIO(img_data))
+                                    aspect_ratio = pil_img.width / pil_img.height
                                     
-                                    print(f"      ✅ Imagen {idx+1} agregada")
+                                    # Tamaño máximo por imagen
+                                    max_width = 3.2*inch
+                                    max_height = 2.2*inch
+                                    
+                                    if aspect_ratio > 1:  # Horizontal
+                                        width = max_width
+                                        height = width / aspect_ratio
+                                    else:  # Vertical
+                                        height = max_height
+                                        width = height * aspect_ratio
+                                    
+                                    img = RLImage(BytesIO(img_data), width=width, height=height)
+                                    imagenes_procesadas.append(img)
+                                    
+                                    print(f"      ✅ Imagen {idx+1} agregada ({int(width/inch):.1f}x{int(height/inch):.1f} in)")
                                     
                                 except Exception as e:
                                     print(f"      ⚠️ Error procesando imagen {idx+1}: {e}")
+                            
+                            # Organizar imágenes en tabla 2x2
+                            if imagenes_procesadas:
+                                # Crear filas de 2 imágenes
+                                img_rows = []
+                                for i in range(0, len(imagenes_procesadas), 2):
+                                    row = imagenes_procesadas[i:i+2]
+                                    # Si solo hay 1 imagen en la fila, agregar celda vacía
+                                    if len(row) == 1:
+                                        row.append('')
+                                    img_rows.append(row)
+                                
+                                # Crear tabla de imágenes
+                                img_table = Table(img_rows, colWidths=[3.5*inch, 3.5*inch])
+                                img_table.setStyle(TableStyle([
+                                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                                    ('LEFTPADDING', (0, 0), (-1, -1), 3),
+                                    ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+                                    ('TOPPADDING', (0, 0), (-1, -1), 3),
+                                    ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                                ]))
+                                
+                                self.story.append(img_table)
+                                self.story.append(Spacer(1, 0.1*inch))
                 
                 if not evidencias_encontradas:
                     evidencia_table = Table([[Paragraph('<b>REGISTRO DE EVIDENCIA</b>', self.styles['Normal'])],
@@ -959,12 +998,12 @@ class PDMReportGenerator:
                 ]))
                 self.story.append(sin_act_table)
             
-            # Separador entre productos
-            self.story.append(Spacer(1, 0.3*inch))
+            # Separador entre productos (reducido)
+            self.story.append(Spacer(1, 0.15*inch))
             productos_procesados += 1
             
-            # Page break cada 2 productos para no saturar
-            if productos_procesados % 2 == 0:
+            # Page break cada 3 productos (menos pagebreaks = menos espacios)
+            if productos_procesados % 3 == 0 and productos_procesados < len(self.productos):
                 self.story.append(PageBreak())
         
         print(f"   ✅ Procesados {productos_procesados} productos con detalle completo")

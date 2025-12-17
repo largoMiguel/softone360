@@ -1768,17 +1768,31 @@ export class PdmService {
     }
 
     /**
-     * Descarga el informe PDF generado
-     * @param blob Blob del PDF
+     * Descarga el informe generado en el formato correspondiente
+     * @param blob Blob del archivo
      * @param anio Año del informe
+     * @param formato Formato del archivo (opcional, se detecta del blob)
      */
-    descargarInformePDF(blob: Blob, anio: number): void {
+    descargarInformePDF(blob: Blob, anio: number, formato?: string): void {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
         
+        // Detectar extensión desde el tipo MIME del blob
+        let extension = 'pdf';
+        if (blob.type.includes('wordprocessingml')) {
+            extension = 'docx';
+        } else if (blob.type.includes('spreadsheetml')) {
+            extension = 'xlsx';
+        } else if (formato) {
+            // Usar formato especificado si el MIME no es claro
+            extension = formato === 'docx' ? 'docx' : formato === 'excel' ? 'xlsx' : 'pdf';
+        }
+        
         const fecha = new Date().toISOString().split('T')[0];
-        link.download = `informe-pdm-${this.entitySlug}-${anio}-${fecha}.pdf`;
+        link.download = `informe-pdm-${this.entitySlug}-${anio}-${fecha}.${extension}`;
+        
+        console.log(`💾 Descargando archivo: ${link.download} (${blob.type})`);
         
         document.body.appendChild(link);
         link.click();
