@@ -412,7 +412,7 @@ class PDMReportGenerator:
         self.story.append(Spacer(1, 0.2*inch))
         
         for linea, productos in productos_por_linea.items():
-            # Encabezado de línea
+            # Encabezado de línea con texto blanco
             linea_style = ParagraphStyle(
                 'LineaTitle',
                 parent=self.styles['Heading2'],
@@ -432,6 +432,7 @@ class PDMReportGenerator:
             header_table = Table(header_data, colWidths=[7*inch])
             header_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#003366')),
+                ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                 ('TOPPADDING', (0, 0), (-1, -1), 8),
@@ -785,10 +786,11 @@ class PDMReportGenerator:
             actividades = actividades_por_producto.get(prod.codigo_producto, [])
             
             if actividades:
-                # Encabezado de actividades
+                # Encabezado de actividades con texto blanco
+                white_style = ParagraphStyle('WhiteText', parent=self.styles['Normal'], textColor=colors.white, fontName='Helvetica-Bold')
                 act_header = [[
-                    Paragraph('<b>Meta del Producto</b>', self.styles['Normal']),
-                    Paragraph('<b>Actividades Programadas</b>', self.styles['Normal'])
+                    Paragraph('Meta del Producto', white_style),
+                    Paragraph('Actividades Programadas', white_style)
                 ]]
                 
                 # Primera fila: Meta del producto vs resumen de actividades
@@ -812,8 +814,8 @@ class PDMReportGenerator:
                 # Detalle de actividades (máximo 5)
                 if len(actividades) > 0:
                     act_header.append([
-                        Paragraph('<b>Detalle de Actividades</b>', self.styles['Normal']),
-                        Paragraph('<b>Estado y Meta</b>', self.styles['Normal'])
+                        Paragraph('Detalle de Actividades', white_style),
+                        Paragraph('Estado y Meta', white_style)
                     ])
                     
                     for actividad in actividades[:5]:
@@ -856,9 +858,9 @@ class PDMReportGenerator:
                 )
                 
                 recursos_data = [[
-                    Paragraph('<b>Cantidad Meta Física</b>', self.styles['Normal']),
-                    Paragraph('<b>Recursos Ejecutados</b>', self.styles['Normal']),
-                    Paragraph('<b>Responsable</b>', self.styles['Normal'])
+                    Paragraph('Cantidad Meta Física', white_style),
+                    Paragraph('Recursos Ejecutados', white_style),
+                    Paragraph('Responsable', white_style)
                 ], [
                     Paragraph(str(prod.meta_cuatrienio or 0), self.styles['Normal']),
                     Paragraph(f'${total_recursos:,.0f}', self.styles['Normal']),
@@ -886,8 +888,8 @@ class PDMReportGenerator:
                         evidencias_encontradas = True
                         evidencia = actividad.evidencia
                         
-                        # Texto de evidencia
-                        evidencia_header = [[Paragraph('<b>REGISTRO DE EVIDENCIA</b>', self.styles['Normal'])]]
+                        # Texto de evidencia con encabezado blanco
+                        evidencia_header = [[Paragraph('REGISTRO DE EVIDENCIA', white_style)]]
                         evidencia_header.append([Paragraph(evidencia.descripcion or 'Sin descripción', self.styles['Normal'])])
                         
                         evidencia_table = Table(evidencia_header, colWidths=[7*inch])
@@ -905,77 +907,59 @@ class PDMReportGenerator:
                         self.story.append(evidencia_table)
                         self.story.append(Spacer(1, 0.1*inch))
                         
-                        # Imágenes de evidencia
+                        # Imágenes de evidencia - FILA HORIZONTAL con tamaño uniforme
                         if evidencia.imagenes and isinstance(evidencia.imagenes, list) and len(evidencia.imagenes) > 0:
                             print(f"      📷 Procesando {len(evidencia.imagenes)} imágenes...")
                             
-                            # Procesar imágenes en grid 2x2
+                            # Procesar máximo 3 imágenes en una sola fila
                             imagenes_procesadas = []
-                            for idx, img_base64 in enumerate(evidencia.imagenes[:4]):  # Máximo 4 imágenes
+                            for idx, img_base64 in enumerate(evidencia.imagenes[:3]):  # Máximo 3 imágenes
                                 try:
                                     # Decodificar base64
                                     if img_base64.startswith('data:image'):
                                         img_base64 = img_base64.split(',')[1]
                                     
                                     img_data = base64.b64decode(img_base64)
-                                    img_buffer = BytesIO(img_data)
                                     
-                                    # Crear imagen con tamaño adaptativo
-                                    from PIL import Image as PILImage
-                                    pil_img = PILImage.open(BytesIO(img_data))
-                                    aspect_ratio = pil_img.width / pil_img.height
+                                    # Tamaño uniforme para todas las imágenes
+                                    img_width = 2.2*inch
+                                    img_height = 1.8*inch
                                     
-                                    # Tamaño máximo por imagen
-                                    max_width = 3.2*inch
-                                    max_height = 2.2*inch
-                                    
-                                    if aspect_ratio > 1:  # Horizontal
-                                        width = max_width
-                                        height = width / aspect_ratio
-                                    else:  # Vertical
-                                        height = max_height
-                                        width = height * aspect_ratio
-                                    
-                                    img = RLImage(BytesIO(img_data), width=width, height=height)
+                                    img = RLImage(BytesIO(img_data), width=img_width, height=img_height)
                                     imagenes_procesadas.append(img)
                                     
-                                    print(f"      ✅ Imagen {idx+1} agregada ({int(width/inch):.1f}x{int(height/inch):.1f} in)")
+                                    print(f"      ✅ Imagen {idx+1} agregada (tamaño uniforme: 2.2x1.8 in)")
                                     
                                 except Exception as e:
                                     print(f"      ⚠️ Error procesando imagen {idx+1}: {e}")
                             
-                            # Organizar imágenes en tabla 2x2
+                            # Organizar imágenes en UNA SOLA FILA HORIZONTAL
                             if imagenes_procesadas:
-                                # Crear filas de 2 imágenes
-                                img_rows = []
-                                for i in range(0, len(imagenes_procesadas), 2):
-                                    row = imagenes_procesadas[i:i+2]
-                                    # Si solo hay 1 imagen en la fila, agregar celda vacía
-                                    if len(row) == 1:
-                                        row.append('')
-                                    img_rows.append(row)
+                                # Completar con celdas vacías si hay menos de 3 imágenes
+                                while len(imagenes_procesadas) < 3:
+                                    imagenes_procesadas.append('')
                                 
-                                # Crear tabla de imágenes
-                                img_table = Table(img_rows, colWidths=[3.5*inch, 3.5*inch])
+                                # Crear tabla de 1 fila x 3 columnas
+                                img_table = Table([imagenes_procesadas], colWidths=[2.33*inch, 2.33*inch, 2.33*inch])
                                 img_table.setStyle(TableStyle([
                                     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                                     ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                                    ('LEFTPADDING', (0, 0), (-1, -1), 3),
-                                    ('RIGHTPADDING', (0, 0), (-1, -1), 3),
-                                    ('TOPPADDING', (0, 0), (-1, -1), 3),
-                                    ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                                    ('LEFTPADDING', (0, 0), (-1, -1), 2),
+                                    ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+                                    ('TOPPADDING', (0, 0), (-1, -1), 2),
+                                    ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
                                 ]))
                                 
                                 self.story.append(img_table)
                                 self.story.append(Spacer(1, 0.1*inch))
                 
                 if not evidencias_encontradas:
-                    evidencia_table = Table([[Paragraph('<b>REGISTRO DE EVIDENCIA</b>', self.styles['Normal'])],
+                    evidencia_table = Table([[Paragraph('REGISTRO DE EVIDENCIA', white_style)],
                                             [Paragraph('Sin evidencias registradas para este producto.', self.styles['Normal'])]], 
                                            colWidths=[7*inch])
                     evidencia_table.setStyle(TableStyle([
                         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#003366')),
-                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                         ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
