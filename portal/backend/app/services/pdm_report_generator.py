@@ -188,7 +188,82 @@ class PDMReportGenerator:
         )
         
         self.story.append(Paragraph(intro_text, justify_style))
+        
+        # RESUMEN EJECUTIVO con KPIs principales
+        self.generar_resumen_ejecutivo()
+        
         self.story.append(PageBreak())
+    
+    def generar_resumen_ejecutivo(self):
+        """Genera resumen ejecutivo con indicadores clave al inicio del informe"""
+        try:
+            title_style = ParagraphStyle(
+                'ExecutiveTitle',
+                parent=self.styles['Heading1'],
+                fontSize=14,
+                textColor=colors.HexColor('#003366'),
+                spaceAfter=12,
+                fontName='Helvetica-Bold'
+            )
+            
+            self.story.append(Spacer(1, 0.2*inch))
+            self.story.append(Paragraph("RESUMEN EJECUTIVO", title_style))
+            
+            # Calcular KPIs generales
+            total_productos = len(self.productos)
+            total_actividades = len(self.actividades)
+            
+            # Avance promedio
+            suma_avances = 0
+            for prod in self.productos:
+                suma_avances += self.calcular_avance_producto(prod)
+            avance_promedio = suma_avances / total_productos if total_productos > 0 else 0
+            
+            # Avance financiero promedio
+            suma_financiero = 0
+            for prod in self.productos:
+                suma_financiero += self.calcular_avance_financiero(prod)
+            avance_financiero_promedio = suma_financiero / total_productos if total_productos > 0 else 0
+            
+            # Actividades por estado
+            estados_count = {}
+            for act in self.actividades:
+                if act.anio == self.anio:
+                    estado = act.estado
+                    estados_count[estado] = estados_count.get(estado, 0) + 1
+            
+            # Total presupuesto
+            total_presupuesto = 0
+            for prod in self.productos:
+                if self.anio >= 2024:
+                    total_presupuesto += float(prod.total_2024 or 0)
+                if self.anio >= 2025:
+                    total_presupuesto += float(prod.total_2025 or 0)
+                if self.anio >= 2026:
+                    total_presupuesto += float(prod.total_2026 or 0)
+                if self.anio >= 2027:
+                    total_presupuesto += float(prod.total_2027 or 0)
+            
+            # TABLA DE KPIs PRINCIPALES
+            white_bold = ParagraphStyle('WhiteBold', parent=self.styles['Normal'], 
+                                       textColor=colors.white, fontName='Helvetica-Bold', fontSize=9)
+            center_style = ParagraphStyle('Center', parent=self.styles['Normal'], 
+                                         alignment=TA_CENTER, fontSize=10)
+            
+            kpis_data = [
+                [
+                    Paragraph('Total Productos', white_bold),
+                    Paragraph('Avance Físico Promedio', white_bold),
+                    Paragraph('Avance Financiero Promedio', white_bold),
+                    Paragraph('Presupuesto Acumulado', white_bold)
+                ],
+                [
+                    Paragraph(f'<b>{total_productos}</b>', center_style),
+                    Paragraph(f'<b>{avance_promedio:.1f}%</b>', center_style),
+                    Paragraph(f'<b>{avance_financiero_promedio:.1f}%</b>', center_style),
+                    Paragraph(f'<b>${total_presupuesto:,.0f}</b>', center_style)
+                ]
+            ]\n            \n            kpis_table = Table(kpis_data, colWidths=[1.75*inch, 1.75*inch, 1.75*inch, 1.75*inch])\n            kpis_table.setStyle(TableStyle([\n                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#003366')),\n                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),\n                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#E8F4F8')),\n                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),\n                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),\n                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),\n                ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#003366')),\n                ('TOPPADDING', (0, 0), (-1, -1), 8),\n                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),\n            ]))\n            \n            self.story.append(kpis_table)\n            self.story.append(Spacer(1, 0.15*inch))\n            \n            # TABLA DE ACTIVIDADES POR ESTADO\n            if estados_count:\n                actividades_data = [\n                    [Paragraph('Estado de Actividades', white_bold), \n                     Paragraph('Cantidad', white_bold),\n                     Paragraph('Porcentaje', white_bold)]\n                ]\n                \n                total_act_anio = sum(estados_count.values())\n                for estado, count in sorted(estados_count.items()):\n                    porcentaje = (count / total_act_anio * 100) if total_act_anio > 0 else 0\n                    actividades_data.append([\n                        Paragraph(estado, self.styles['Normal']),\n                        Paragraph(f'{count}', center_style),\n                        Paragraph(f'{porcentaje:.1f}%', center_style)\n                    ])\n                \n                act_table = Table(actividades_data, colWidths=[3*inch, 2*inch, 2*inch])\n                act_table.setStyle(TableStyle([\n                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#003366')),\n                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),\n                    ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F5F5F5')),\n                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),\n                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),\n                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),\n                    ('TOPPADDING', (0, 0), (-1, -1), 6),\n                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),\n                ]))\n                \n                self.story.append(act_table)\n            \n            print(\"✅ Resumen ejecutivo generado\")\n            \n        except Exception as e:\n            print(f\"⚠️ Error generando resumen ejecutivo: {e}\")\n            import traceback\n            traceback.print_exc()
     
     def calcular_avance_producto(self, producto):
         """Calcula el avance de un producto basado en programación vs meta cuatrienio"""
@@ -260,6 +335,124 @@ class PDMReportGenerator:
             traceback.print_exc()
             # En caso de error, usar avance físico
             return self.calcular_avance_producto(producto)
+    
+    def generar_graficas_producto(self, producto):
+        """
+        Genera gráficas de análisis ejecutivo por producto:
+        - Gráfica de avance anual (barras)
+        - Gráfica de ejecución presupuestal (pastel)
+        - Timeline de progreso
+        """
+        try:
+            print(f"      📊 Generando gráficas de análisis para {producto.codigo_producto}...")
+            
+            # GRÁFICA 1: Avance por Año (Barras Horizontales)
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7, 2.5))
+            
+            # Datos de programación por año
+            anios = ['2024', '2025', '2026', '2027']
+            programado = [
+                float(producto.programacion_2024 or 0),
+                float(producto.programacion_2025 or 0),
+                float(producto.programacion_2026 or 0),
+                float(producto.programacion_2027 or 0)
+            ]
+            
+            # Calcular ejecutado hasta el año actual
+            ejecutado = []
+            for i, anio in enumerate([2024, 2025, 2026, 2027]):
+                if anio <= self.anio:
+                    ejecutado.append(programado[i])  # Ya ejecutado
+                else:
+                    ejecutado.append(0)  # Pendiente
+            
+            # Gráfica de barras
+            y_pos = range(len(anios))
+            ax1.barh(y_pos, programado, color='#E8F4F8', label='Programado', height=0.4, alpha=0.7)
+            ax1.barh(y_pos, ejecutado, color='#003366', label='Ejecutado', height=0.4)
+            ax1.set_yticks(y_pos)
+            ax1.set_yticklabels(anios)
+            ax1.set_xlabel('Unidades', fontsize=8)
+            ax1.set_title('Programación vs Ejecución por Año', fontsize=9, fontweight='bold')
+            ax1.legend(fontsize=7, loc='lower right')
+            ax1.grid(axis='x', alpha=0.3)
+            
+            # GRÁFICA 2: Avance Físico vs Financiero (Comparación)
+            avance_fisico = self.calcular_avance_producto(producto)
+            avance_financiero = self.calcular_avance_financiero(producto)
+            
+            categorias = ['Físico', 'Financiero']
+            valores = [avance_fisico, avance_financiero]
+            colores = ['#003366', '#4A90E2']
+            
+            bars = ax2.bar(categorias, valores, color=colores, alpha=0.8)
+            ax2.set_ylabel('Porcentaje (%)', fontsize=8)
+            ax2.set_title('Comparación de Avances', fontsize=9, fontweight='bold')
+            ax2.set_ylim(0, 100)
+            ax2.grid(axis='y', alpha=0.3)
+            
+            # Etiquetas en las barras
+            for bar, val in zip(bars, valores):
+                height = bar.get_height()
+                ax2.text(bar.get_x() + bar.get_width()/2., height + 2,
+                        f'{val:.1f}%', ha='center', va='bottom', fontsize=8, fontweight='bold')
+            
+            plt.tight_layout()
+            
+            # Convertir a imagen
+            img_buffer = BytesIO()
+            plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight')
+            img_buffer.seek(0)
+            plt.close(fig)
+            
+            # Agregar al PDF
+            img = RLImage(img_buffer, width=6.5*inch, height=2.3*inch)
+            self.story.append(img)
+            self.story.append(Spacer(1, 0.1*inch))
+            
+            # TABLA DE INDICADORES CLAVE (KPIs)
+            meta_total = producto.meta_cuatrienio or 0
+            ejecutado_acumulado = sum(ejecutado)
+            pendiente = meta_total - ejecutado_acumulado
+            porcentaje_cumplimiento = (ejecutado_acumulado / meta_total * 100) if meta_total > 0 else 0
+            
+            kpi_style = ParagraphStyle('KPI', parent=self.styles['Normal'], fontSize=8, alignment=TA_CENTER)
+            kpi_data = [[
+                Paragraph('<b>Meta Total</b>', kpi_style),
+                Paragraph('<b>Ejecutado</b>', kpi_style),
+                Paragraph('<b>Pendiente</b>', kpi_style),
+                Paragraph('<b>% Cumplimiento</b>', kpi_style)
+            ], [
+                Paragraph(f'{meta_total:.1f}', self.styles['Normal']),
+                Paragraph(f'{ejecutado_acumulado:.1f}', self.styles['Normal']),
+                Paragraph(f'{pendiente:.1f}', self.styles['Normal']),
+                Paragraph(f'{porcentaje_cumplimiento:.1f}%', self.styles['Normal'])
+            ]]
+            
+            kpi_table = Table(kpi_data, colWidths=[1.75*inch, 1.75*inch, 1.75*inch, 1.75*inch])
+            kpi_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#003366')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F5F5F5')),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            
+            self.story.append(kpi_table)
+            self.story.append(Spacer(1, 0.15*inch))
+            
+            print(f"      ✅ Gráficas de análisis generadas")
+            
+        except Exception as e:
+            print(f"      ⚠️ Error generando gráficas de producto: {e}")
+            import traceback
+            traceback.print_exc()
+        finally:
+            plt.close('all')
     
     def generate_grafico_lineas(self):
         """Genera gráfico de avance por líneas estratégicas"""
@@ -726,9 +919,9 @@ class PDMReportGenerator:
             if act.anio == self.anio:  # Solo actividades del año del informe
                 actividades_por_producto[act.codigo_producto].append(act)
         
-        # Procesar cada producto (máximo 10 para no saturar el PDF)
+        # Procesar cada producto con análisis completo (aumentar límite)
         productos_procesados = 0
-        max_productos = 10
+        max_productos = 15  # Aumentado de 10 a 15 para más completitud
         
         for prod in self.productos[:max_productos]:
             print(f"   📦 Procesando producto: {prod.codigo_producto}")
@@ -771,7 +964,7 @@ class PDMReportGenerator:
             avance_table = Table(data_avance, colWidths=[3.5*inch, 3.5*inch])
             avance_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#003366')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                 ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
@@ -781,6 +974,9 @@ class PDMReportGenerator:
             
             self.story.append(avance_table)
             self.story.append(Spacer(1, 0.1*inch))
+            
+            # GRÁFICAS DE ANÁLISIS DEL PRODUCTO
+            self.generar_graficas_producto(prod)
             
             # ACTIVIDADES DEL PRODUCTO
             actividades = actividades_por_producto.get(prod.codigo_producto, [])
@@ -836,7 +1032,7 @@ class PDMReportGenerator:
                 act_table = Table(act_header, colWidths=[3.5*inch, 3.5*inch])
                 act_table.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#003366')),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                     ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
@@ -870,7 +1066,7 @@ class PDMReportGenerator:
                 recursos_table = Table(recursos_data, colWidths=[2.33*inch, 2.33*inch, 2.34*inch])
                 recursos_table.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#003366')),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                     ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
