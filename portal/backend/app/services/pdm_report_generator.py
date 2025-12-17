@@ -331,6 +331,9 @@ class PDMReportGenerator:
             suma_avances = 0
             total_anios_con_meta = 0
             
+            print(f"\n🔍 Calculando avance para producto: {producto.codigo_producto}")
+            print(f"   Total actividades disponibles: {len(self.actividades)}")
+            
             for anio in anios:
                 # Obtener meta programada del año
                 meta_programada = getattr(producto, f'programacion_{anio}', 0) or 0
@@ -342,18 +345,26 @@ class PDMReportGenerator:
                         if act.codigo_producto == producto.codigo_producto and act.anio == anio
                     ]
                     
+                    print(f"   Año {anio}: meta_programada={meta_programada}, actividades={len(actividades_anio)}")
+                    
+                    # Sumar meta_ejecutar de actividades que tienen evidencia (objeto no None)
                     meta_ejecutada = sum(
                         act.meta_ejecutar for act in actividades_anio 
-                        if act.evidencia is not None and act.evidencia.strip() != ''
+                        if act.evidencia is not None  # evidencia es un objeto relationship, no string
                     )
+                    
+                    actividades_con_evidencia = sum(1 for act in actividades_anio if act.evidencia is not None)
+                    print(f"   Año {anio}: meta_ejecutada={meta_ejecutada}, actividades_con_evidencia={actividades_con_evidencia}")
                     
                     # Calcular porcentaje de avance (topar en 100%)
                     porcentaje_avance = min(100, (meta_ejecutada / meta_programada) * 100)
+                    print(f"   Año {anio}: porcentaje_avance={porcentaje_avance:.1f}%")
                     suma_avances += porcentaje_avance
                     total_anios_con_meta += 1
             
-            # Retornar promedio de avance de años con meta
-            return suma_avances / total_anios_con_meta if total_anios_con_meta > 0 else 0
+            resultado = suma_avances / total_anios_con_meta if total_anios_con_meta > 0 else 0
+            print(f"   ✅ Avance promedio final: {resultado:.1f}%\n")
+            return resultado
             
         except Exception as e:
             print(f"      ⚠️ Error calculando avance para {producto.codigo_producto}: {e}")
