@@ -148,7 +148,8 @@ export class PdmComponent implements OnInit, OnDestroy {
         secretaria_ids: [] as number[],
         fecha_inicio: '',
         fecha_fin: '',
-        estados: [] as string[]
+        estados: [] as string[],
+        formato: 'pdf'
     };
     generandoInforme = false;
 
