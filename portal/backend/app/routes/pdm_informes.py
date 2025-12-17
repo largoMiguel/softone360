@@ -13,6 +13,7 @@ from app.models.entity import Entity
 from app.models.user import User
 from app.models.pdm import PdmProducto, PdmActividad
 from app.models.secretaria import Secretaria
+from app.models.user import UserRole
 from app.utils.auth import get_current_active_user
 from app.services.pdm_report_generator import PDMReportGenerator
 
@@ -45,7 +46,7 @@ async def obtener_filtros_disponibles(
         entity = get_entity_or_404(db, slug)
         
         # Control de permisos
-        is_admin = current_user.role in ['admin', 'super_admin']
+        is_admin = current_user.role in [UserRole.ADMIN, UserRole.SUPERADMIN]
         
         # Obtener secretarías según permisos
         secretarias_query = db.query(Secretaria).filter(
@@ -145,7 +146,7 @@ async def generar_informe_pdm(
         # ============================================
         # CONTROL DE PERMISOS POR ROL
         # ============================================
-        is_admin = current_user.role in ['admin', 'super_admin']
+        is_admin = current_user.role in [UserRole.ADMIN, UserRole.SUPERADMIN]
         user_secretaria_id = None
         
         # Si el usuario es secretario, obtener su secretaría
@@ -338,7 +339,7 @@ async def preview_informe_pdm(
         entity = get_entity_or_404(db, slug)
         
         # Control de permisos (igual que en generar)
-        is_admin = current_user.role in ['admin', 'super_admin']
+        is_admin = current_user.role in [UserRole.ADMIN, UserRole.SUPERADMIN]
         user_secretaria_id = None
         
         if not is_admin and hasattr(current_user, 'secretaria_id'):
