@@ -31,14 +31,15 @@ from app.models.pdm import PdmActividadEvidencia
 from app.models.user import User
 
 class PDMReportGenerator:
-    """Generador de informes PDF personalizados por entidad"""
+    """Generador de informes PDF con estructura general"""
     
-    def __init__(self, entity, productos: List, actividades: List, anio: int, db: Session = None):
+    def __init__(self, entity, productos: List, actividades: List, anio: int, db: Session = None, filtros: dict = None):
         self.entity = entity
         self.productos = productos
         self.actividades = actividades
         self.anio = anio
         self.db = db
+        self.filtros = filtros or {}
         self.buffer = BytesIO()
         self.doc = None
         self.styles = None
@@ -46,16 +47,16 @@ class PDMReportGenerator:
         self.page_number = 0
         
     def add_header_footer(self, canvas, doc):
-        """Encabezado y pie de página personalizados por entidad"""
+        """Encabezado y pie de página estándar"""
         canvas.saveState()
         
         # ENCABEZADO
         canvas.setFont('Helvetica', 8)
-        # Código de formulario (izquierda)
-        canvas.drawString(0.5*inch, 10.5*inch, f"{self.entity.report_code or 'FM-0172'}")
-        canvas.drawString(0.5*inch, 10.3*inch, f"Versión: {self.entity.report_version or '1.0'}")
+        # Código de formulario estándar
+        canvas.drawString(0.5*inch, 10.5*inch, "FM-PDM-001")
+        canvas.drawString(0.5*inch, 10.3*inch, "Versión: 1.0")
         
-        # Número de página y título (derecha)
+        # Número de página y título
         canvas.drawRightString(8*inch, 10.5*inch, f"Página {doc.page}")
         canvas.drawRightString(8*inch, 10.3*inch, "INFORME DE GESTIÓN INSTITUCIONAL")
         
@@ -64,33 +65,14 @@ class PDMReportGenerator:
         canvas.line(0.5*inch, 10.2*inch, 8*inch, 10.2*inch)
         
         # PIE DE PÁGINA
-        if self.entity.footer_text:
-            canvas.setFont('Helvetica', 7)
-            canvas.drawCentredString(4.25*inch, 0.5*inch, self.entity.footer_text)
+        canvas.setFont('Helvetica', 7)
+        footer_text = f"Plan de Desarrollo Municipal - {self.entity.name}"
+        canvas.drawCentredString(4.25*inch, 0.5*inch, footer_text)
         
         canvas.restoreState()
     
     def generate_portada(self):
-        """Genera la portada institucional"""
-        # Logo de la entidad (si existe)
-        if self.entity.logo_url:
-            try:
-                # Descargar logo si es URL o usar ruta local
-                from urllib.request import urlopen
-                from PIL import Image as PILImage
-                
-                if self.entity.logo_url.startswith('http'):
-                    img_data = urlopen(self.entity.logo_url).read()
-                    img_buffer = BytesIO(img_data)
-                else:
-                    img_buffer = self.entity.logo_url
-                
-                logo = RLImage(img_buffer, width=3*inch, height=2*inch)
-                self.story.append(logo)
-                self.story.append(Spacer(1, 0.5*inch))
-            except Exception as e:
-                print(f"⚠️ No se pudo cargar el logo: {e}")
-        
+        """Genera la portada estándar"""
         # Título principal
         title_style = ParagraphStyle(
             'CustomTitle',
@@ -101,6 +83,7 @@ class PDMReportGenerator:
             spaceAfter=12
         )
         
+        self.story.append(Spacer(1, 2*inch))
         self.story.append(Paragraph("INFORME DE GESTIÓN", title_style))
         self.story.append(Paragraph(str(self.anio), title_style))
         self.story.append(Spacer(1, 0.3*inch))
@@ -114,22 +97,57 @@ class PDMReportGenerator:
             alignment=TA_CENTER
         )
         
-        self.story.append(Paragraph("PLAN DE DESARROLLO", plan_style))
+        self.story.append(Paragraph("PLAN DE DESARROLLO MUNICIPAL", plan_style))
+        self.story.append(Spacer(1, 0.3*inch))
         
-        plan_name = self.entity.plan_name or "Plan de Desarrollo Municipal"
-        self.story.append(Paragraph(f'"{plan_name}"', plan_style))
-        
-        self.story.append(Spacer(1, 0.5*inch))
-        
-        # Subtítulo
-        subtitle_style = ParagraphStyle(
-            'Subtitle',
+        # Entidad
+        entity_style = ParagraphStyle(
+            'EntityName',
             parent=self.styles['Heading2'],
             fontSize=16,
             alignment=TA_CENTER,
             textColor=colors.HexColor('#666666')
         )
+        self.story.append(Paragraph(self.entity.name.upper(), entity_style))
+        self.story.append(Spacer(1, 0.5*inch))
         
+        # Información de filtros si existen
+        if self.filtros:
+            filter_info = []
+            if self.filtros.get('secretarias'):
+                secs = ', '.join(self.filtros['secretarias'])
+                filter_info.append(f"Secretarías: {secs}")
+            if self.filtros.get('fecha_inicio') or self.filtros.get('fecha_fin'):
+                inicio = self.filtros.get('fecha_inicio', 'N/A')
+                fin = self.filtros.get('fecha_fin', 'N/A')
+                filter_info.append(f"Período: {inicio} a {fin}")
+            if self.filtros.get('estados'):
+                estados = ', '.join(self.filtros['estados'])
+                filter_info.append(f"Estados: {estados}")
+            
+            if filter_info:
+                filter_style = ParagraphStyle(
+                    'FilterInfo',
+                    parent=self.styles['Normal'],
+                    fontSize=10,
+                    alignment=TA_CENTER,
+                    textColor=colors.HexColor('#666666'),
+                    spaceAfter=6
+                )
+                self.story.append(Spacer(1, 0.3*inch))
+                for info in filter_info:
+                    self.story.append(Paragraph(info, filter_style))
+        
+        # Subtítulo
+        subtitle_style = ParagraphStyle(
+            'Subtitle',
+            parent=self.styles['Heading2'],
+            fontSize=14,
+            alignment=TA_CENTER,
+            textColor=colors.HexColor('#666666')
+        )
+        
+        self.story.append(Spacer(1, 0.5*inch))
         self.story.append(Paragraph("INFORME DE RENDICIÓN DE CUENTAS", subtitle_style))
         
         self.story.append(PageBreak())
@@ -153,14 +171,12 @@ class PDMReportGenerator:
         construido de forma democrática y pluralista, donde se concretan las decisiones, acciones, 
         medios y recursos que orientan el desarrollo del territorio.
         <br/><br/>
-        El {self.entity.name} mediante el respectivo acuerdo, adoptó el Plan de Desarrollo 
-        "{self.entity.plan_name or 'Plan de Desarrollo Municipal'}" para la vigencia correspondiente, 
-        documento que contiene los objetivos, las metas, las estrategias y políticas que guiaron la 
-        articulación de la acción pública del territorio.
+        El presente informe de gestión da cuenta del estado de ejecución del Plan de Desarrollo Municipal 
+        para la vigencia {self.anio}, presentando los resultados alcanzados a partir de las metas establecidas, 
+        los recursos administrativos, financieros y humanos ejecutados.
         <br/><br/>
-        El presente informe de gestión da cuenta del estado en el que se entregan los resultados 
-        alcanzados, y a partir de las metas del Plan de Desarrollo, los recursos administrativos, 
-        financieros y humanos, con los que cuenta la entidad territorial.
+        Este documento contiene información sobre el avance de productos, actividades y evidencias de 
+        gestión, organizado por líneas estratégicas, sectores y objetivos de desarrollo sostenible.
         """
         
         justify_style = ParagraphStyle(
