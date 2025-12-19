@@ -17,19 +17,19 @@ import { RouterModule } from '@angular/router';
       </div>
 
       <div class="ventanilla-nav">
-        <a routerLink="/ventanilla/dashboard" routerLinkActive="active" class="nav-item">
+        <a [routerLink]="['./dashboard']" routerLinkActive="active" class="nav-item">
           <i class="bi bi-speedometer2"></i>
           Dashboard
         </a>
-        <a routerLink="/ventanilla/funcionarios" routerLinkActive="active" class="nav-item">
+        <a [routerLink]="['./funcionarios']" routerLinkActive="active" class="nav-item">
           <i class="bi bi-people"></i>
           Funcionarios
         </a>
-        <a routerLink="/ventanilla/registros" routerLinkActive="active" class="nav-item">
+        <a [routerLink]="['./registros']" routerLinkActive="active" class="nav-item">
           <i class="bi bi-calendar-check"></i>
           Registros
         </a>
-        <a routerLink="/ventanilla/equipos" routerLinkActive="active" class="nav-item">
+        <a [routerLink]="['./equipos']" routerLinkActive="active" class="nav-item">
           <i class="bi bi-pc-display"></i>
           Equipos
         </a>

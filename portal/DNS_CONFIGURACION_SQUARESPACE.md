@@ -26,8 +26,8 @@ ns-259.awsdns-32.com
 - **Dominios configurados:** softone360.com, www.softone360.com
 
 ### S3 Buckets
-- **Bucket principal:** www.softone360.com (contenido del sitio)
-- **Bucket redirect:** softone360.com (redirección HTTPS a www)
+- **Bucket principal:** softone360.com (contenido del sitio) ← CloudFront origen
+- **Nota:** www.softone360.com redirige a softone360.com vía DNS/CloudFront (sin bucket adicional)
 
 ### Backend API
 - **Elastic Beanstalk:** softone-backend-useast1.eba-epvnmbmk.us-east-1.elasticbeanstalk.com
@@ -37,8 +37,8 @@ ns-259.awsdns-32.com
 
 ## 🌐 URLs de Producción
 
-- **Frontend:** https://www.softone360.com
-- **Redirect:** https://softone360.com → https://www.softone360.com
+- **Frontend:** https://softone360.com
+- **Redirect:** https://www.softone360.com → https://softone360.com
 - **API:** https://api.softone360.com/api
 
 ---

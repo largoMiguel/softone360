@@ -118,9 +118,10 @@ async def generar_informe_pdm(
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Genera un informe del Plan de Desarrollo Municipal para un año específico
+    Genera un informe del Plan de Desarrollo Municipal para un año específico o todos los años
     
     Filtros disponibles:
+    - anio: Año del informe (2024-2027) o 0 para todos los años
     - secretaria_ids: Filtrar por secretarías específicas (admin)
     - fecha_inicio/fecha_fin: Rango de fechas de actividades
     - estados: Estados de actividades (PENDIENTE, EN_PROGRESO, COMPLETADA, CANCELADA)
@@ -132,7 +133,7 @@ async def generar_informe_pdm(
     
     Args:
         slug: Slug de la entidad
-        anio: Año del informe (2024-2027)
+        anio: Año del informe (2024-2027) o 0 para todos los años
         formato: Formato del archivo (pdf, docx, excel)
         
     Returns:
@@ -147,7 +148,8 @@ async def generar_informe_pdm(
                 detail=f"Formato '{formato}' no soportado. Use: pdf, docx o excel"
             )
         
-        print(f"\n📊 Generando informe PDM {formato.upper()} para {slug} - Año {anio}")
+        anio_texto = "Todos los Años" if anio == 0 else str(anio)
+        print(f"\n📊 Generando informe PDM {formato.upper()} para {slug} - Año {anio_texto}")
         
         # Obtener entidad
         entity = get_entity_or_404(db, slug)
@@ -209,6 +211,26 @@ async def generar_informe_pdm(
                 PdmProducto.responsable_secretaria_id.in_(secretaria_ids)
             )
         
+        # Filtrar productos por año (si anio != 0)
+        # Si anio es 0, incluir productos de todos los años con meta > 0
+        if anio > 0:
+            # Filtrar productos que tienen meta para el año específico
+            campo_meta = f"programacion_{anio}"
+            productos_query = productos_query.filter(
+                getattr(PdmProducto, campo_meta, 0) > 0
+            )
+        else:
+            # Incluir productos que tengan meta en al menos un año
+            from sqlalchemy import or_
+            productos_query = productos_query.filter(
+                or_(
+                    PdmProducto.programacion_2024 > 0,
+                    PdmProducto.programacion_2025 > 0,
+                    PdmProducto.programacion_2026 > 0,
+                    PdmProducto.programacion_2027 > 0
+                )
+            )
+        
         productos = productos_query.all()
         print(f"   Productos encontrados: {len(productos)}")
         
@@ -228,8 +250,8 @@ async def generar_informe_pdm(
             PdmActividad.entity_id == entity.id
         )
         
-        # Filtrar por año
-        if anio:
+        # Filtrar por año (solo si no es 0 - 'todos')
+        if anio > 0:
             actividades_query = actividades_query.filter(PdmActividad.anio == anio)
         
         # Filtrar por secretarías
@@ -317,7 +339,8 @@ async def generar_informe_pdm(
         if secretaria_ids and len(secretaria_ids) == 1:
             sec_nombre = secretarias_nombres[0] if secretarias_nombres else f"sec{secretaria_ids[0]}"
             filtro_nombre = f"-{sec_nombre.replace(' ', '-')[:20]}"
-        filename = f"informe-pdm-{slug}-{anio}{filtro_nombre}-{fecha_actual}.{extension}"
+        anio_archivo = "todos" if anio == 0 else str(anio)
+        filename = f"informe-pdm-{slug}-{anio_archivo}{filtro_nombre}-{fecha_actual}.{extension}"
         
         print(f"✅ Informe {formato.upper()} generado exitosamente: {filename}\n")
         

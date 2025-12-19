@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AsistenciaService } from '../../../services/asistencia.service';
 import { Funcionario } from '../../../models/asistencia.model';
+import { EntityContextService } from '../../../services/entity-context.service';
 
 @Component({
   selector: 'app-funcionarios',
@@ -271,7 +272,10 @@ export class FuncionariosComponent implements OnInit {
 
   private searchTimeout: any;
 
-  constructor(private asistenciaService: AsistenciaService) {}
+  constructor(
+    private asistenciaService: AsistenciaService,
+    private entityContext: EntityContextService
+  ) {}
 
   ngOnInit(): void {
     this.loadFuncionarios();
@@ -324,19 +328,66 @@ export class FuncionariosComponent implements OnInit {
   }
 
   saveFuncionario(): void {
+    const entityId = this.entityContext.currentEntity?.id;
+    
+    if (!entityId) {
+      alert('Error: No se pudo obtener la entidad actual');
+      return;
+    }
+
     if (this.showCreateModal) {
+      // Validaciones para crear nuevo
+      if (!this.formData.cedula || this.formData.cedula.trim() === '') {
+        alert('La cédula es obligatoria');
+        return;
+      }
+      if (!this.formData.nombres || this.formData.nombres.trim() === '') {
+        alert('El nombre es obligatorio');
+        return;
+      }
+      if (!this.formData.apellidos || this.formData.apellidos.trim() === '') {
+        alert('Los apellidos son obligatorios');
+        return;
+      }
+
       // Crear nuevo
-      this.asistenciaService.createFuncionario({
-        ...this.formData,
-        entity_id: 1 // TODO: Obtener del contexto del usuario
-      }).subscribe({
+      const funcionarioData: any = {
+        cedula: this.formData.cedula.trim(),
+        nombres: this.formData.nombres.trim(),
+        apellidos: this.formData.apellidos.trim(),
+        entity_id: entityId
+      };
+
+      // Solo agregar campos opcionales si tienen valor
+      if (this.formData.email && this.formData.email.trim() !== '') {
+        funcionarioData.email = this.formData.email.trim();
+      }
+      if (this.formData.telefono && this.formData.telefono.trim() !== '') {
+        funcionarioData.telefono = this.formData.telefono.trim();
+      }
+      if (this.formData.cargo && this.formData.cargo.trim() !== '') {
+        funcionarioData.cargo = this.formData.cargo.trim();
+      }
+
+      console.log('Enviando datos:', funcionarioData);
+
+      this.asistenciaService.createFuncionario(funcionarioData).subscribe({
         next: () => {
+          alert('Funcionario creado exitosamente');
           this.closeModals();
           this.loadFuncionarios();
         },
         error: (error) => {
-          console.error('Error al crear funcionario:', error);
-          alert('Error al crear el funcionario');
+          console.error('Error completo:', error);
+          let errorMsg = 'Error al crear el funcionario';
+          if (error.error?.detail) {
+            errorMsg += ': ' + error.error.detail;
+          } else if (error.message) {
+            errorMsg += ': ' + error.message;
+          } else if (error.status === 0) {
+            errorMsg += ': No se pudo conectar con el servidor. Verifica tu conexión o contacta al administrador.';
+          }
+          alert(errorMsg);
         }
       });
     } else if (this.showEditModal && this.currentFuncionario) {
@@ -348,7 +399,7 @@ export class FuncionariosComponent implements OnInit {
         },
         error: (error) => {
           console.error('Error al actualizar funcionario:', error);
-          alert('Error al actualizar el funcionario');
+          alert('Error al actualizar el funcionario: ' + (error.error?.detail || error.message));
         }
       });
     }

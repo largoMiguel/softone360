@@ -282,14 +282,14 @@
                                 <td>
                                     <span class="badge" 
                                           [ngClass]="{
-                                              'bg-warning': getEstadoProductoAnio(p, filtroAnio) === 'PENDIENTE',
-                                              'bg-info': getEstadoProductoAnio(p, filtroAnio) === 'EN_PROGRESO',
-                                              'bg-success': getEstadoProductoAnio(p, filtroAnio) === 'COMPLETADO',
-                                              'bg-secondary': getEstadoProductoAnio(p, filtroAnio) === 'POR_EJECUTAR'
+                                              'bg-warning': getEstadoProductoAnio(p, getFiltroAnioNumero()) === 'PENDIENTE',
+                                              'bg-info': getEstadoProductoAnio(p, getFiltroAnioNumero()) === 'EN_PROGRESO',
+                                              'bg-success': getEstadoProductoAnio(p, getFiltroAnioNumero()) === 'COMPLETADO',
+                                              'bg-secondary': getEstadoProductoAnio(p, getFiltroAnioNumero()) === 'POR_EJECUTAR'
                                           }">
-                                        {{ getEstadoProductoAnio(p, filtroAnio) === 'PENDIENTE' ? 'Pendiente' : 
-                                           getEstadoProductoAnio(p, filtroAnio) === 'EN_PROGRESO' ? 'En Progreso' : 
-                                           getEstadoProductoAnio(p, filtroAnio) === 'COMPLETADO' ? 'Completado' : 
+                                        {{ getEstadoProductoAnio(p, getFiltroAnioNumero()) === 'PENDIENTE' ? 'Pendiente' : 
+                                           getEstadoProductoAnio(p, getFiltroAnioNumero()) === 'EN_PROGRESO' ? 'En Progreso' : 
+                                           getEstadoProductoAnio(p, getFiltroAnioNumero()) === 'COMPLETADO' ? 'Completado' : 
                                            'Por Ejecutar' }}
                                     </span>
                                 </td>
@@ -516,24 +516,24 @@
                                     <small class="d-block text-muted">{{ producto.unidad_medida }}</small>
                                 </td>
                                 <td class="text-center">
-                                    <strong>{{ formatearNumero(getMetaAnio(producto, filtroAnio)) }}</strong>
+                                    <strong>{{ formatearNumero(getMetaAnio(producto, getFiltroAnioNumero())) }}</strong>
                                     <small class="d-block text-muted">{{ producto.unidad_medida }}</small>
                                 </td>
                                 <td class="text-end">
-                                    <strong class="text-success">{{ formatearMoneda(getPresupuestoAnio(producto, filtroAnio)) }}</strong>
+                                    <strong class="text-success">{{ formatearMoneda(getPresupuestoAnio(producto, getFiltroAnioNumero())) }}</strong>
                                 </td>
                                 <td class="text-center">
                                     <div class="progress" style="height: 24px;">
-                                        <div [class]="'progress-bar ' + getColorProgreso(getAvanceAnio(producto, filtroAnio))" 
-                                             [style.width.%]="getAvanceAnio(producto, filtroAnio)"
+                                        <div [class]="'progress-bar ' + getColorProgreso(getAvanceAnio(producto, getFiltroAnioNumero()))" 
+                                             [style.width.%]="getAvanceAnio(producto, getFiltroAnioNumero())"
                                              role="progressbar">
-                                            <strong>{{ getAvanceAnio(producto, filtroAnio).toFixed(1) }}%</strong>
+                                            <strong>{{ getAvanceAnio(producto, getFiltroAnioNumero()).toFixed(1) }}%</strong>
                                         </div>
                                     </div>
                                 </td>
                                 <td class="text-center">
-                                    <span class="badge" [class]="'bg-' + getColorEstadoProducto(getEstadoProductoAnio(producto, filtroAnio))">
-                                        {{ getTextoEstadoProducto(getEstadoProductoAnio(producto, filtroAnio)) }}
+                                    <span class="badge" [class]="'bg-' + getColorEstadoProducto(getEstadoProductoAnio(producto, getFiltroAnioNumero()))">
+                                        {{ getTextoEstadoProducto(getEstadoProductoAnio(producto, getFiltroAnioNumero())) }}
                                     </span>
                                 </td>
                                 <td (click)="$event.stopPropagation()">
@@ -1306,7 +1306,8 @@
                     <div class="col-md-6">
                         <label class="form-label"><i class="fas fa-calendar-alt me-2"></i><strong>Filtrar por Año:</strong></label>
                         <select [(ngModel)]="filtroAnio" (change)="cambiarFiltrosAnalytics()" class="form-select">
-                            <option *ngFor="let anio of aniosDisponibles" [value]="anio">{{ anio }}</option>
+                            <option value="todos">📊 Todos los Años (Agregado)</option>
+                            <option *ngFor="let anio of aniosDisponibles.slice(1)" [value]="anio">{{ anio }}</option>
                         </select>
                     </div>
                     <div class="col-md-6">
@@ -1887,6 +1888,7 @@
                                 Año del Informe <span class="text-danger">*</span>
                             </label>
                             <select class="form-select" [(ngModel)]="filtrosInforme.anio">
+                                <option [value]="0">📊 Todos los Años (Cuatrienio Completo)</option>
                                 <option *ngFor="let anio of filtrosInformeDisponibles.anios" [value]="anio">{{ anio }}</option>
                             </select>
                         </div>

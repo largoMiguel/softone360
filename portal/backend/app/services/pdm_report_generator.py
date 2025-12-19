@@ -86,7 +86,8 @@ class PDMReportGenerator:
         
         self.story.append(Spacer(1, 2*inch))
         self.story.append(Paragraph("INFORME DE GESTIÓN", title_style))
-        self.story.append(Paragraph(str(self.anio), title_style))
+        anio_texto = "Todos los Años (2024-2027)" if self.anio == 0 else str(self.anio)
+        self.story.append(Paragraph(anio_texto, title_style))
         self.story.append(Spacer(1, 0.3*inch))
         
         # Nombre del plan
@@ -211,17 +212,37 @@ class PDMReportGenerator:
             
             # Calcular KPIs generales
             total_productos = len(self.productos)
-            total_actividades = sum(1 for act in self.actividades if act.anio == self.anio)
+            # Total de actividades según filtro de año
+            if self.anio == 0:
+                total_actividades = len(self.actividades)
+            else:
+                total_actividades = sum(1 for act in self.actividades if act.anio == self.anio)
             
             # Avance promedio (solo considerar productos con programación en el año actual)
             suma_avances = 0
             productos_con_meta = 0
+            total_meta = 0
+            total_ejecutado = 0
+            
             for prod in self.productos:
-                # Solo contar productos que tienen meta en el año del informe
-                meta_anio = getattr(prod, f'programacion_{self.anio}', 0) or 0
+                # Obtener meta programada según año
+                if self.anio == 0:
+                    # Sumar todas las metas del cuatrienio
+                    meta_anio = (
+                        (getattr(prod, 'programacion_2024', 0) or 0) +
+                        (getattr(prod, 'programacion_2025', 0) or 0) +
+                        (getattr(prod, 'programacion_2026', 0) or 0) +
+                        (getattr(prod, 'programacion_2027', 0) or 0)
+                    )
+                else:
+                    # Solo meta del año específico
+                    meta_anio = getattr(prod, f'programacion_{self.anio}', 0) or 0
+                
                 if meta_anio > 0:
-                    suma_avances += self.calcular_avance_producto(prod)
                     productos_con_meta += 1
+                    total_meta += meta_anio
+                    suma_avances += self.calcular_avance_producto(prod)
+                
             avance_promedio = suma_avances / productos_con_meta if productos_con_meta > 0 else 0
             
             # Avance financiero promedio (sobre todos los productos)
@@ -230,21 +251,26 @@ class PDMReportGenerator:
                 suma_financiero += self.calcular_avance_financiero(prod)
             avance_financiero_promedio = suma_financiero / total_productos if total_productos > 0 else 0
             
-            # Actividades por estado (SOLO del año filtrado)
+            # Actividades por estado (según año filtrado o todas si anio=0)
             estados_count = {}
             for act in self.actividades:
-                if act.anio == self.anio:
+                # Si anio es 0, incluir todas las actividades
+                if self.anio == 0 or act.anio == self.anio:
                     estado = act.estado
                     estados_count[estado] = estados_count.get(estado, 0) + 1
             
-            # Total presupuesto (suma simple de los 4 años como en frontend)
-            # NO acumular condicionalmente - sumar los 4 años directamente
+            # Total presupuesto según año seleccionado
             total_presupuesto = 0
             for prod in self.productos:
-                total_presupuesto += float(prod.total_2024 or 0)
-                total_presupuesto += float(prod.total_2025 or 0)
-                total_presupuesto += float(prod.total_2026 or 0)
-                total_presupuesto += float(prod.total_2027 or 0)
+                if self.anio == 0:
+                    # Presupuesto del cuatrienio completo
+                    total_presupuesto += float(prod.total_cuatrienio or 0)
+                else:
+                    # Suma simple de los 4 años (acumulado)
+                    total_presupuesto += float(prod.total_2024 or 0)
+                    total_presupuesto += float(prod.total_2025 or 0)
+                    total_presupuesto += float(prod.total_2026 or 0)
+                    total_presupuesto += float(prod.total_2027 or 0)
             
             # TABLA DE KPIs PRINCIPALES
             white_bold = ParagraphStyle('WhiteBold', parent=self.styles['Normal'], 
@@ -1004,7 +1030,8 @@ class PDMReportGenerator:
         # Agrupar actividades por producto
         actividades_por_producto = defaultdict(list)
         for act in self.actividades:
-            if act.anio == self.anio:  # Solo actividades del año del informe
+            # Si anio es 0, incluir todas; si no, solo del año específico
+            if self.anio == 0 or act.anio == self.anio:
                 actividades_por_producto[act.codigo_producto].append(act)
         
         # Procesar cada producto con análisis completo (aumentar límite)
@@ -1081,7 +1108,8 @@ class PDMReportGenerator:
                 # Primera fila: Meta del producto vs resumen de actividades
                 meta_producto = f"<b>Indicador:</b> {prod.indicador_producto_mga or prod.personalizacion_indicador or 'N/A'}<br/>"
                 meta_producto += f"<b>Meta Cuatrienio:</b> {prod.meta_cuatrienio or 0} {prod.unidad_medida or ''}<br/>"
-                meta_producto += f"<b>Avance a {self.anio}:</b> {self.calcular_avance_producto(prod):.1f}%"
+                anio_texto = "el Cuatrienio" if self.anio == 0 else str(self.anio)
+                meta_producto += f"<b>Avance a {anio_texto}:</b> {self.calcular_avance_producto(prod):.1f}%"
                 
                 resumen_actividades = f"<b>Total actividades:</b> {len(actividades)}<br/>"
                 estados_count = {}
@@ -1135,12 +1163,17 @@ class PDMReportGenerator:
                 self.story.append(Spacer(1, 0.1*inch))
                 
                 # RESPONSABLE Y RECURSOS
-                total_recursos = (
-                    (prod.total_2024 or 0) if self.anio >= 2024 else 0 +
-                    (prod.total_2025 or 0) if self.anio >= 2025 else 0 +
-                    (prod.total_2026 or 0) if self.anio >= 2026 else 0 +
-                    (prod.total_2027 or 0) if self.anio >= 2027 else 0
-                )
+                if self.anio == 0:
+                    # Presupuesto total del cuatrienio
+                    total_recursos = prod.total_cuatrienio or 0
+                else:
+                    # Presupuesto acumulado hasta el año
+                    total_recursos = (
+                        (prod.total_2024 or 0) if self.anio >= 2024 else 0 +
+                        (prod.total_2025 or 0) if self.anio >= 2025 else 0 +
+                        (prod.total_2026 or 0) if self.anio >= 2026 else 0 +
+                        (prod.total_2027 or 0) if self.anio >= 2027 else 0
+                    )
                 
                 recursos_data = [[
                     Paragraph('Cantidad Meta Física', white_style),
@@ -1256,7 +1289,8 @@ class PDMReportGenerator:
             
             else:
                 # Sin actividades
-                sin_act_table = Table([[Paragraph('Sin actividades registradas para este producto en el año {}.'.format(self.anio), self.styles['Normal'])]], 
+                anio_texto = "el cuatrienio completo" if self.anio == 0 else f"el año {self.anio}"
+                sin_act_table = Table([[Paragraph(f'Sin actividades registradas para este producto en {anio_texto}.', self.styles['Normal'])]], 
                                      colWidths=[7*inch])
                 sin_act_table.setStyle(TableStyle([
                     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
@@ -1358,7 +1392,8 @@ class PDMReportGenerator:
             doc = Document()
             
             # PORTADA
-            doc.add_heading(f'INFORME DE GESTIÓN {self.anio}', 0)
+            anio_texto = "Todos los Años (2024-2027)" if self.anio == 0 else str(self.anio)
+            doc.add_heading(f'INFORME DE GESTIÓN {anio_texto}', 0)
             doc.add_heading('PLAN DE DESARROLLO MUNICIPAL', 1)
             doc.add_heading(self.entity.name, 2)
             doc.add_page_break()
@@ -1447,7 +1482,8 @@ class PDMReportGenerator:
             # Título
             ws['A1'] = f"INFORME PDM - {self.entity.name}"
             ws['A1'].font = Font(size=16, bold=True)
-            ws['A2'] = f"Año: {self.anio}"
+            anio_texto = "Todos los Años (2024-2027)" if self.anio == 0 else str(self.anio)
+            ws['A2'] = f"Año: {anio_texto}"
             ws['A2'].font = Font(size=12)
             
             # Líneas Estratégicas

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AsistenciaService } from '../../../services/asistencia.service';
 import { EquipoRegistro } from '../../../models/asistencia.model';
+import { EntityContextService } from '../../../services/entity-context.service';
 
 @Component({
   selector: 'app-equipos-registro',
@@ -12,9 +13,16 @@ import { EquipoRegistro } from '../../../models/asistencia.model';
     <div class="equipos-container">
       <div class="header-section">
         <h2><i class="bi bi-pc-display"></i> Equipos de Registro</h2>
-        <button class="btn btn-primary" (click)="showCreateModal = true">
-          <i class="bi bi-plus-circle"></i> Nuevo Equipo
-        </button>
+        <div class="header-actions">
+          <div class="alert alert-info mb-2">
+            <i class="bi bi-info-circle"></i>
+            <strong>Instrucciones:</strong> Ejecuta la aplicación de escritorio en el equipo que deseas registrar. 
+            Copia el UUID que aparece en pantalla y pégalo en el formulario.
+          </div>
+          <button class="btn btn-primary" (click)="showCreateModal = true">
+            <i class="bi bi-plus-circle"></i> Nuevo Equipo
+          </button>
+        </div>
       </div>
 
       <div *ngIf="loading" class="text-center my-4">
@@ -45,8 +53,11 @@ import { EquipoRegistro } from '../../../models/asistencia.model';
               </td>
               <td>{{ equipo.created_at | date:'dd/MM/yyyy' }}</td>
               <td>
-                <button class="btn btn-sm btn-outline-primary" (click)="editEquipo(equipo)">
+                <button class="btn btn-sm btn-outline-primary me-2" (click)="editEquipo(equipo)" title="Editar">
                   <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" (click)="deleteEquipo(equipo)" title="Eliminar">
+                  <i class="bi bi-trash"></i>
                 </button>
               </td>
             </tr>
@@ -62,13 +73,17 @@ import { EquipoRegistro } from '../../../models/asistencia.model';
       <div class="modal-dialog" *ngIf="showCreateModal">
         <div class="modal-content">
           <div class="modal-header">
-            <h5>Nuevo Equipo</h5>
+            <h5>{{ isEditMode ? 'Editar Equipo' : 'Nuevo Equipo' }}</h5>
             <button class="btn-close" (click)="closeModal()"></button>
           </div>
           <div class="modal-body">
             <div class="mb-3">
               <label class="form-label">UUID del Equipo *</label>
-              <input type="text" class="form-control" [(ngModel)]="formData.uuid" placeholder="UUID único del equipo">
+              <input type="text" class="form-control" [(ngModel)]="formData.uuid" placeholder="Pega aquí el UUID de la app de escritorio" required>
+              <small class="text-muted">
+                <i class="bi bi-lightbulb"></i> 
+                Copia el UUID que aparece en la aplicación de escritorio del equipo que deseas registrar.
+              </small>
             </div>
             <div class="mb-3">
               <label class="form-label">Nombre *</label>
@@ -89,7 +104,10 @@ import { EquipoRegistro } from '../../../models/asistencia.model';
   `,
   styles: [`
     .equipos-container { padding: 20px; }
-    .header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    .header-section { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; }
+    .header-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; max-width: 600px; }
+    .alert { padding: 12px; border-radius: 5px; font-size: 0.9rem; }
+    .alert-info { background: #cfe2ff; border: 1px solid #b6d4fe; color: #084298; }
     .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1040; }
     .modal-dialog { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1050; width: 90%; max-width: 600px; }
     .modal-content { background: white; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
@@ -102,9 +120,14 @@ export class EquiposRegistroComponent implements OnInit {
   equipos: EquipoRegistro[] = [];
   loading = true;
   showCreateModal = false;
+  isEditMode = false;
+  editingId: number | null = null;
   formData: any = { uuid: '', nombre: '', ubicacion: '' };
 
-  constructor(private asistenciaService: AsistenciaService) {}
+  constructor(
+    private asistenciaService: AsistenciaService,
+    private entityContext: EntityContextService
+  ) {}
 
   ngOnInit(): void {
     this.loadEquipos();
@@ -125,28 +148,90 @@ export class EquiposRegistroComponent implements OnInit {
   }
 
   editEquipo(equipo: EquipoRegistro): void {
-    // TODO: Implementar edición
-    console.log('Editar equipo:', equipo);
+    this.isEditMode = true;
+    this.editingId = equipo.id;
+    this.formData = {
+      uuid: equipo.uuid,
+      nombre: equipo.nombre,
+      ubicacion: equipo.ubicacion || '',
+      is_active: equipo.is_active
+    };
+    this.showCreateModal = true;
   }
 
-  saveEquipo(): void {
-    this.asistenciaService.createEquipo({
-      ...this.formData,
-      entity_id: 1 // TODO: Obtener del contexto
-    }).subscribe({
+  deleteEquipo(equipo: EquipoRegistro): void {
+    if (!confirm(`¿Estás seguro de eliminar el equipo "${equipo.nombre}"?`)) {
+      return;
+    }
+
+    this.asistenciaService.deleteEquipo(equipo.id).subscribe({
       next: () => {
-        this.closeModal();
+        alert('Equipo eliminado exitosamente');
         this.loadEquipos();
       },
       error: (error) => {
         console.error('Error:', error);
-        alert('Error al crear el equipo');
+        alert('Error al eliminar el equipo: ' + (error.error?.detail || error.message));
       }
     });
   }
 
+  saveEquipo(): void {
+    // Validar que el UUID no esté vacío
+    if (!this.formData.uuid || this.formData.uuid.trim() === '') {
+      alert('Por favor ingresa el UUID del equipo');
+      return;
+    }
+
+    if (this.isEditMode && this.editingId) {
+      // Modo edición - no enviar UUID (es inmutable)
+      const updateData = {
+        nombre: this.formData.nombre,
+        ubicacion: this.formData.ubicacion,
+        is_active: this.formData.is_active
+      };
+      
+      this.asistenciaService.updateEquipo(this.editingId, updateData).subscribe({
+        next: () => {
+          alert('Equipo actualizado exitosamente');
+          this.closeModal();
+          this.loadEquipos();
+        },
+        error: (error) => {
+          console.error('Error:', error);
+          alert('Error al actualizar el equipo: ' + (error.error?.detail || error.message));
+        }
+      });
+    } else {
+      // Modo creación
+      const entityId = this.entityContext.currentEntity?.id;
+      
+      if (!entityId) {
+        alert('Error: No se pudo obtener la entidad actual');
+        return;
+      }
+
+      this.asistenciaService.createEquipo({
+        ...this.formData,
+        entity_id: entityId
+      }).subscribe({
+        next: () => {
+          alert('Equipo registrado exitosamente');
+          this.closeModal();
+          this.loadEquipos();
+        },
+        error: (error) => {
+          console.error('Error:', error);
+          alert('Error al crear el equipo: ' + (error.error?.detail || error.message));
+        }
+      });
+    }
+  }
+
   closeModal(): void {
     this.showCreateModal = false;
+    this.isEditMode = false;
+    this.editingId = null;
     this.formData = { uuid: '', nombre: '', ubicacion: '' };
   }
 }

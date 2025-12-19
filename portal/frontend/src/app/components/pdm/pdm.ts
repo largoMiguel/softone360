@@ -99,11 +99,11 @@ export class PdmComponent implements OnInit, OnDestroy {
     filtroTipoAcumulacion = '';
     filtroEstado = '';
     filtroBusqueda = '';
-    filtroAnio = new Date().getFullYear(); // Año actual por defecto
+    filtroAnio: number | 'todos' = new Date().getFullYear(); // Año actual por defecto
     filtroSecretaria = ''; // ✅ Nuevo filtro por secretaría
     
-    // Años disponibles
-    aniosDisponibles = [2024, 2025, 2026, 2027];
+    // Años disponibles (incluyendo opción 'Todos')
+    aniosDisponibles: (number | string)[] = ['todos', 2024, 2025, 2026, 2027];
     
     // ✅ OPTIMIZACIÓN: Debounce timer para búsqueda
     private debounceTimer: any = null;
@@ -145,7 +145,7 @@ export class PdmComponent implements OnInit, OnDestroy {
     filtrosInformeDisponibles: any = null;
     cargandoFiltrosInforme = false;
     filtrosInforme = {
-        anio: new Date().getFullYear(),
+        anio: new Date().getFullYear() as number | 0, // 0 = todos los años
         secretaria_ids: [] as number[],
         fecha_inicio: '',
         fecha_fin: '',
@@ -188,9 +188,12 @@ export class PdmComponent implements OnInit, OnDestroy {
         // No hay que aplicar filtro de secretario aquí - el backend lo maneja
         // Los secretarios ya solo recibirán sus productos asignados
 
+        // Si filtroAnio es 'todos', usar año actual para dashboard principal
+        const anioParaFiltro = typeof this.filtroAnio === 'number' ? this.filtroAnio : new Date().getFullYear();
+
         // Filtrar productos con meta > 0 para el año seleccionado
         productos = productos.filter(p => {
-            const meta = this.getMetaAnio(p, this.filtroAnio);
+            const meta = this.getMetaAnio(p, anioParaFiltro);
             return meta > 0;
         });
 
@@ -213,7 +216,7 @@ export class PdmComponent implements OnInit, OnDestroy {
 
         if (this.filtroEstado) {
             productos = productos.filter(p => 
-                this.getEstadoProductoAnio(p, this.filtroAnio) === this.filtroEstado
+                this.getEstadoProductoAnio(p, anioParaFiltro) === this.filtroEstado
             );
         }
 
@@ -252,9 +255,12 @@ export class PdmComponent implements OnInit, OnDestroy {
         
         let productos = [...this.resumenProductos];
         
+        // Si filtroAnio es 'todos', usar año actual para dashboard principal
+        const anioParaFiltro = typeof this.filtroAnio === 'number' ? this.filtroAnio : new Date().getFullYear();
+        
         // Filtrar productos con meta > 0 para el año seleccionado
         productos = productos.filter(p => {
-            const meta = this.getMetaAnio(p, this.filtroAnio);
+            const meta = this.getMetaAnio(p, anioParaFiltro);
             return meta > 0;
         });
 
@@ -278,7 +284,7 @@ export class PdmComponent implements OnInit, OnDestroy {
         // Filtrar por estado
         if (this.filtroEstado) {
             productos = productos.filter(p => 
-                this.getEstadoProductoAnio(p, this.filtroAnio) === this.filtroEstado
+                this.getEstadoProductoAnio(p, anioParaFiltro) === this.filtroEstado
             );
         }
         
@@ -334,8 +340,8 @@ export class PdmComponent implements OnInit, OnDestroy {
     /**
      * ✅ Cambia el año del filtro y actualiza los caches
      */
-    cambiarAnioFiltro(anio: number): void {
-        this.filtroAnio = anio;
+    cambiarAnioFiltro(anio: number | string): void {
+        this.filtroAnio = anio === 'todos' ? 'todos' : Number(anio);
         this.actualizarCachesFiltros();
     }
 
@@ -820,7 +826,7 @@ export class PdmComponent implements OnInit, OnDestroy {
         this.mostrarModalFiltrosInforme = false;
         // Resetear filtros
         this.filtrosInforme = {
-            anio: new Date().getFullYear(),
+            anio: new Date().getFullYear() as number | 0,
             secretaria_ids: [],
             fecha_inicio: '',
             fecha_fin: '',
@@ -2133,6 +2139,13 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
+     * Helper para obtener año como número (convierte 'todos' a año actual)
+     */
+    getFiltroAnioNumero(): number {
+        return typeof this.filtroAnio === 'number' ? this.filtroAnio : new Date().getFullYear();
+    }
+
+    /**
      * Obtiene la meta programada para un año específico
      */
     getMetaAnio(producto: ResumenProducto, anio: number): number {
@@ -2255,9 +2268,12 @@ export class PdmComponent implements OnInit, OnDestroy {
         por_ejecutar: number;
         total: number;
     } {
+        // Si filtroAnio es 'todos', usar año actual para dashboard principal
+        const anioParaFiltro = typeof this.filtroAnio === 'number' ? this.filtroAnio : new Date().getFullYear();
+        
         // Filtrar solo productos con meta > 0 para el año seleccionado
         const productos = this.resumenProductos.filter(producto => {
-            const meta = this.getMetaAnio(producto, this.filtroAnio);
+            const meta = this.getMetaAnio(producto, anioParaFiltro);
             return meta > 0;
         });
 
@@ -2267,7 +2283,7 @@ export class PdmComponent implements OnInit, OnDestroy {
         let por_ejecutar = 0;
 
         productos.forEach(producto => {
-            const estado = this.getEstadoProductoAnio(producto, this.filtroAnio);
+            const estado = this.getEstadoProductoAnio(producto, anioParaFiltro);
             switch (estado) {
                 case 'PENDIENTE': pendiente++; break;
                 case 'EN_PROGRESO': en_progreso++; break;
@@ -2568,15 +2584,18 @@ export class PdmComponent implements OnInit, OnDestroy {
             });
         }
         
+        // Si filtroAnio es 'todos', pasar null para agregación de todos los años
+        const anioParaAnalisis = this.filtroAnio === 'todos' ? null : this.filtroAnio as number;
+        
         this.dashboardAnalytics = this.pdmService.generarDashboardAnalytics(
             productosFiltrados,
-            this.filtroAnio
+            anioParaAnalisis
         );
         
         // ✅ Generar análisis por secretaría
         this.analisisPorSecretaria = this.pdmService.generarAnaliasisPorSecretaria(
             productosFiltrados,
-            this.filtroAnio
+            anioParaAnalisis
         );
     }
     
@@ -3032,14 +3051,48 @@ export class PdmComponent implements OnInit, OnDestroy {
                     },
                     datalabels: {
                         display: true,
-                        anchor: 'end',
-                        align: 'top',
-                        color: '#444',
                         font: {
                             weight: 'bold',
                             size: 12
                         },
-                        formatter: (value: any) => value
+                        labels: {
+                            // Etiqueta para el número (arriba de la barra)
+                            value: {
+                                anchor: 'end',
+                                align: 'top',
+                                color: '#444',
+                                font: {
+                                    weight: 'bold',
+                                    size: 12
+                                },
+                                formatter: (value: any) => value
+                            },
+                            // Etiqueta para el porcentaje (dentro de la barra)
+                            percentage: {
+                                anchor: 'center',
+                                align: 'center',
+                                color: (context: any) => {
+                                    const datasetIndex = context.datasetIndex;
+                                    return datasetIndex === 0 ? '#28a745' : '#dc3545';
+                                },
+                                font: {
+                                    weight: 'bold',
+                                    size: 14
+                                },
+                                formatter: (value: any, context: any) => {
+                                    const datasetIndex = context.datasetIndex;
+                                    const dataIndex = context.dataIndex;
+                                    const total = metasTotales[dataIndex];
+                                    
+                                    if (datasetIndex === 0) {
+                                        return '100%';
+                                    } else {
+                                        const porcentaje = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+                                        return `${porcentaje}%`;
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

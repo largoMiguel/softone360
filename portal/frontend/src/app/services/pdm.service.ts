@@ -1065,14 +1065,40 @@ export class PdmService {
     /**
      * Genera análisis completo del PDM para dashboards
      */
-    generarDashboardAnalytics(productos: ResumenProducto[], anioFiltro: number): DashboardAnalytics {
+    generarDashboardAnalytics(productos: ResumenProducto[], anioFiltro: number | null): DashboardAnalytics {
+        // Filtrar productos según el año seleccionado
+        let productosFiltrados: ResumenProducto[];
+        
+        if (anioFiltro === null) {
+            // Modo "Todos": incluir productos con meta en cualquier año
+            productosFiltrados = productos.filter(p => {
+                return [2024, 2025, 2026, 2027].some(anio => {
+                    const meta = this.obtenerMetaProgramada(p, anio);
+                    return meta > 0;
+                });
+            });
+        } else {
+            // Modo año específico: solo productos con meta > 0 en ese año
+            productosFiltrados = productos.filter(p => {
+                const meta = this.obtenerMetaProgramada(p, anioFiltro);
+                return meta > 0;
+            });
+        }
+        
         // Análisis por estado
         const porEstado: AnalisisPorEstado[] = [];
         const estadoMap = new Map<string, number>();
         
-        productos.forEach(p => {
-            const estado = this.getEstadoProducto(p, anioFiltro);
-            estadoMap.set(estado, (estadoMap.get(estado) || 0) + 1);
+        productosFiltrados.forEach(p => {
+            if (anioFiltro === null) {
+                // Calcular estado general (promedio de todos los años)
+                const estado = this.getEstadoProductoTodos(p);
+                estadoMap.set(estado, (estadoMap.get(estado) || 0) + 1);
+            } else {
+                // Modo año específico
+                const estado = this.getEstadoProducto(p, anioFiltro);
+                estadoMap.set(estado, (estadoMap.get(estado) || 0) + 1);
+            }
         });
 
         const coloresEstado: {[key: string]: string} = {
@@ -1086,14 +1112,14 @@ export class PdmService {
             porEstado.push({
                 estado,
                 cantidad,
-                porcentaje: (cantidad / productos.length) * 100,
+                porcentaje: (cantidad / productosFiltrados.length) * 100,
                 color: coloresEstado[estado] || '#6c757d'
             });
         });
 
         // Análisis por sector
         const sectorMap = new Map<string, ResumenProducto[]>();
-        productos.forEach(p => {
+        productosFiltrados.forEach(p => {
             const sector = p.sector || 'Sin Sector';
             if (!sectorMap.has(sector)) {
                 sectorMap.set(sector, []);
@@ -1103,9 +1129,21 @@ export class PdmService {
 
         const porSector: AnalisisPorSector[] = [];
         sectorMap.forEach((prods, sector) => {
-            const completados = prods.filter(p => this.getEstadoProducto(p, anioFiltro) === 'COMPLETADO').length;
-            const enProgreso = prods.filter(p => this.getEstadoProducto(p, anioFiltro) === 'EN_PROGRESO').length;
-            const pendientes = prods.filter(p => this.getEstadoProducto(p, anioFiltro) === 'PENDIENTE').length;
+            const completados = prods.filter(p => {
+                return anioFiltro === null 
+                    ? this.getEstadoProductoTodos(p) === 'COMPLETADO'
+                    : this.getEstadoProducto(p, anioFiltro) === 'COMPLETADO';
+            }).length;
+            const enProgreso = prods.filter(p => {
+                return anioFiltro === null 
+                    ? this.getEstadoProductoTodos(p) === 'EN_PROGRESO'
+                    : this.getEstadoProducto(p, anioFiltro) === 'EN_PROGRESO';
+            }).length;
+            const pendientes = prods.filter(p => {
+                return anioFiltro === null 
+                    ? this.getEstadoProductoTodos(p) === 'PENDIENTE'
+                    : this.getEstadoProducto(p, anioFiltro) === 'PENDIENTE';
+            }).length;
             const avancePromedio = prods.reduce((sum, p) => sum + p.porcentaje_ejecucion, 0) / prods.length;
             const presupuestoTotal = prods.reduce((sum, p) => sum + p.total_cuatrienio, 0);
 
@@ -1122,7 +1160,7 @@ export class PdmService {
 
         // Análisis por ODS
         const odsMap = new Map<string, ResumenProducto[]>();
-        productos.forEach(p => {
+        productosFiltrados.forEach(p => {
             const ods = p.ods || 'Sin ODS';
             if (!odsMap.has(ods)) {
                 odsMap.set(ods, []);
@@ -1145,7 +1183,7 @@ export class PdmService {
 
         // Análisis por línea estratégica
         const lineaMap = new Map<string, ResumenProducto[]>();
-        productos.forEach(p => {
+        productosFiltrados.forEach(p => {
             if (!lineaMap.has(p.linea_estrategica)) {
                 lineaMap.set(p.linea_estrategica, []);
             }
@@ -1154,7 +1192,11 @@ export class PdmService {
 
         const porLinea: AnalisisPorLineaEstrategica[] = [];
         lineaMap.forEach((prods, linea) => {
-            const completados = prods.filter(p => this.getEstadoProducto(p, anioFiltro) === 'COMPLETADO').length;
+            const completados = prods.filter(p => {
+                return anioFiltro === null 
+                    ? this.getEstadoProductoTodos(p) === 'COMPLETADO'
+                    : this.getEstadoProducto(p, anioFiltro) === 'COMPLETADO';
+            }).length;
             const metaTotal = prods.reduce((sum, p) => sum + p.meta_cuatrienio, 0);
             const metaEjecutada = prods.reduce((sum, p) => {
                 const avanceDecimal = p.porcentaje_ejecucion / 100;
@@ -1179,7 +1221,7 @@ export class PdmService {
             let presupuestoProgramado = 0;
             let presupuestoAsignado = 0;
 
-            productos.forEach(p => {
+            productosFiltrados.forEach(p => {
                 let presupAnio = 0;
                 switch(anio) {
                     case 2024: presupAnio = p.total_2024; break;
@@ -1207,13 +1249,39 @@ export class PdmService {
             });
         });
 
-        // Resumen general
-        const avanceGlobal = productos.reduce((sum, p) => sum + p.porcentaje_ejecucion, 0) / productos.length;
-        const presupuestoTotal = productos.reduce((sum, p) => sum + p.total_cuatrienio, 0);
-        const sinActividades = productos.filter(p => {
-            return [2024, 2025, 2026, 2027].every(anio => 
-                this.obtenerActividadesPorProductoYAnio(p.codigo, anio).length === 0
-            );
+        // Resumen general (usar productosFiltrados según el año seleccionado)
+        const avanceGlobal = productosFiltrados.length > 0
+            ? productosFiltrados.reduce((sum, p) => sum + p.porcentaje_ejecucion, 0) / productosFiltrados.length
+            : 0;
+        
+        // Calcular presupuesto según el filtro de año
+        let presupuestoTotal = 0;
+        if (anioFiltro === null) {
+            // Modo "Todos": sumar presupuesto del cuatrienio
+            presupuestoTotal = productosFiltrados.reduce((sum, p) => sum + p.total_cuatrienio, 0);
+        } else {
+            // Modo año específico: solo presupuesto de ese año
+            productosFiltrados.forEach(p => {
+                switch(anioFiltro) {
+                    case 2024: presupuestoTotal += p.total_2024; break;
+                    case 2025: presupuestoTotal += p.total_2025; break;
+                    case 2026: presupuestoTotal += p.total_2026; break;
+                    case 2027: presupuestoTotal += p.total_2027; break;
+                }
+            });
+        }
+        
+        // Productos sin actividades (considerar el filtro de año)
+        const sinActividades = productosFiltrados.filter(p => {
+            if (anioFiltro === null) {
+                // Modo "Todos": sin actividades en ningún año
+                return [2024, 2025, 2026, 2027].every(anio => 
+                    this.obtenerActividadesPorProductoYAnio(p.codigo, anio).length === 0
+                );
+            } else {
+                // Modo año específico: sin actividades en ese año
+                return this.obtenerActividadesPorProductoYAnio(p.codigo, anioFiltro).length === 0;
+            }
         }).length;
 
         return {
@@ -1223,7 +1291,7 @@ export class PdmService {
             por_linea_estrategica: porLinea,
             analisis_presupuestal: analisisPresup,
             resumen_general: {
-                total_productos: productos.length,
+                total_productos: productosFiltrados.length,
                 porcentaje_avance_global: avanceGlobal,
                 presupuesto_total: presupuestoTotal,
                 productos_sin_actividades: sinActividades
@@ -1234,7 +1302,7 @@ export class PdmService {
     /**
      * ✅ NUEVO: Genera análisis por secretaría
      */
-    generarAnaliasisPorSecretaria(productos: ResumenProducto[], anioFiltro: number): any[] {
+    generarAnaliasisPorSecretaria(productos: ResumenProducto[], anioFiltro: number | null): any[] {
         const secretariaMap = new Map<string | number, ResumenProducto[]>();
         
         productos.forEach(p => {
@@ -1252,22 +1320,50 @@ export class PdmService {
         
         secretariaMap.forEach((prods, secretaria) => {
             const totalProductos = prods.length;
-            const completados = prods.filter(p => this.getEstadoProducto(p, anioFiltro) === 'COMPLETADO').length;
-            const enProgreso = prods.filter(p => this.getEstadoProducto(p, anioFiltro) === 'EN_PROGRESO').length;
-            const pendientes = prods.filter(p => this.getEstadoProducto(p, anioFiltro) === 'PENDIENTE').length;
-            const porEjecutar = prods.filter(p => this.getEstadoProducto(p, anioFiltro) === 'POR_EJECUTAR').length;
+            const completados = prods.filter(p => {
+                return anioFiltro === null 
+                    ? this.getEstadoProductoTodos(p) === 'COMPLETADO'
+                    : this.getEstadoProducto(p, anioFiltro) === 'COMPLETADO';
+            }).length;
+            const enProgreso = prods.filter(p => {
+                return anioFiltro === null 
+                    ? this.getEstadoProductoTodos(p) === 'EN_PROGRESO'
+                    : this.getEstadoProducto(p, anioFiltro) === 'EN_PROGRESO';
+            }).length;
+            const pendientes = prods.filter(p => {
+                return anioFiltro === null 
+                    ? this.getEstadoProductoTodos(p) === 'PENDIENTE'
+                    : this.getEstadoProducto(p, anioFiltro) === 'PENDIENTE';
+            }).length;
+            const porEjecutar = prods.filter(p => {
+                return anioFiltro === null 
+                    ? this.getEstadoProductoTodos(p) === 'POR_EJECUTAR'
+                    : this.getEstadoProducto(p, anioFiltro) === 'POR_EJECUTAR';
+            }).length;
             
             const avancePromedio = prods.reduce((sum, p) => sum + p.porcentaje_ejecucion, 0) / totalProductos;
             const presupuestoTotal = prods.reduce((sum, p) => sum + p.total_cuatrienio, 0);
             
-            // Contar actividades
+            // Contar actividades (si es null, sumar todos los años)
             let totalActividades = 0;
             let actividadesCompletadas = 0;
-            prods.forEach(p => {
-                const resumen = this.obtenerResumenActividadesPorAnio(p, anioFiltro);
-                totalActividades += resumen.total_actividades;
-                actividadesCompletadas += resumen.actividades_completadas;
-            });
+            
+            if (anioFiltro === null) {
+                // Sumar actividades de todos los años
+                prods.forEach(p => {
+                    [2024, 2025, 2026, 2027].forEach(anio => {
+                        const resumen = this.obtenerResumenActividadesPorAnio(p, anio);
+                        totalActividades += resumen.total_actividades;
+                        actividadesCompletadas += resumen.actividades_completadas;
+                    });
+                });
+            } else {
+                prods.forEach(p => {
+                    const resumen = this.obtenerResumenActividadesPorAnio(p, anioFiltro);
+                    totalActividades += resumen.total_actividades;
+                    actividadesCompletadas += resumen.actividades_completadas;
+                });
+            }
 
             // Obtener el nombre real de la secretaría del primer producto
             const nombreSecretaria = prods[0]?.responsable_secretaria_nombre || 'Sin Secretaría';
@@ -1318,6 +1414,46 @@ export class PdmService {
         } else {
             // Año futuro
             return 'POR_EJECUTAR';
+        }
+    }
+
+    /**
+     * Obtiene el estado general de un producto considerando todos los años
+     * Usado cuando filtroAnio === 'todos'
+     */
+    private getEstadoProductoTodos(producto: ResumenProducto): string {
+        const anios = [2024, 2025, 2026, 2027];
+        let totalAvance = 0;
+        let aniosConMeta = 0;
+        
+        anios.forEach(anio => {
+            const meta = this.obtenerMetaProgramada(producto, anio);
+            if (meta > 0) {
+                const resumen = this.obtenerResumenActividadesPorAnio(producto, anio);
+                totalAvance += resumen.porcentaje_avance;
+                aniosConMeta++;
+            }
+        });
+        
+        if (aniosConMeta === 0) return 'POR_EJECUTAR';
+        
+        const avancePromedio = totalAvance / aniosConMeta;
+        
+        if (avancePromedio === 100) return 'COMPLETADO';
+        if (avancePromedio > 0) return 'EN_PROGRESO';
+        return 'PENDIENTE';
+    }
+    
+    /**
+     * Obtiene la meta programada de un producto para un año específico
+     */
+    private obtenerMetaProgramada(producto: ResumenProducto, anio: number): number {
+        switch(anio) {
+            case 2024: return producto.programacion_2024 || 0;
+            case 2025: return producto.programacion_2025 || 0;
+            case 2026: return producto.programacion_2026 || 0;
+            case 2027: return producto.programacion_2027 || 0;
+            default: return 0;
         }
     }
 

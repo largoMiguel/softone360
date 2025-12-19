@@ -6,6 +6,7 @@ from datetime import datetime, date, timedelta
 import base64
 import uuid as uuid_lib
 import os
+import traceback
 
 from app.config.database import get_db
 from app.config.settings import settings
@@ -48,14 +49,17 @@ def upload_foto_s3(foto_base64: str, prefix: str = "asistencia") -> str:
     """
     if not s3_client:
         # S3 no configurado, retornar None (foto no será almacenada)
+        print("[WARNING] S3 client no configurado - foto no se guardará")
         return None
     
     try:
         # Decodificar base64
         foto_data = base64.b64decode(foto_base64)
+        print(f"[DEBUG] Foto decodificada: {len(foto_data)} bytes")
         
         # Generar nombre único
         file_name = f"{prefix}/{datetime.now().strftime('%Y%m%d')}/{uuid_lib.uuid4()}.jpg"
+        print(f"[DEBUG] Nombre archivo S3: {file_name}")
         
         # Subir a S3
         s3_client.put_object(
@@ -66,10 +70,13 @@ def upload_foto_s3(foto_base64: str, prefix: str = "asistencia") -> str:
         )
         
         # Retornar URL
-        return f"https://{BUCKET_NAME}.s3.amazonaws.com/{file_name}"
+        url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{file_name}"
+        print(f"[DEBUG] URL generada: {url}")
+        return url
     except Exception as e:
         # Error al subir, pero no fallar el registro
-        print(f"Error al subir foto a S3: {str(e)}")
+        print(f"[ERROR] Error al subir foto a S3: {str(e)}")
+        traceback.print_exc()
         return None
 
 
@@ -137,6 +144,70 @@ def listar_equipos_registro(
     return query.all()
 
 
+@router.put("/equipos/{equipo_id}", response_model=EquipoRegistroResponse)
+def actualizar_equipo(
+    equipo_id: int,
+    equipo_update: EquipoRegistroUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Actualizar un equipo de registro.
+    """
+    # Verificar permisos
+    if current_user.role not in [UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.SECRETARIO]:
+        raise HTTPException(status_code=403, detail="No tiene permisos para actualizar equipos")
+    
+    # Buscar el equipo
+    db_equipo = db.query(EquipoRegistro).filter(EquipoRegistro.id == equipo_id).first()
+    if not db_equipo:
+        raise HTTPException(status_code=404, detail="Equipo no encontrado")
+    
+    # Si no es SUPERADMIN, validar que sea de su entidad
+    if current_user.role != UserRole.SUPERADMIN:
+        if current_user.entity_id != db_equipo.entity_id:
+            raise HTTPException(status_code=403, detail="Solo puede actualizar equipos de su entidad")
+    
+    # Actualizar campos
+    update_data = equipo_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_equipo, field, value)
+    
+    db.commit()
+    db.refresh(db_equipo)
+    
+    return db_equipo
+
+
+@router.delete("/equipos/{equipo_id}", status_code=status.HTTP_204_NO_CONTENT)
+def eliminar_equipo(
+    equipo_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Eliminar un equipo de registro.
+    """
+    # Verificar permisos
+    if current_user.role not in [UserRole.SUPERADMIN, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="No tiene permisos para eliminar equipos")
+    
+    # Buscar el equipo
+    db_equipo = db.query(EquipoRegistro).filter(EquipoRegistro.id == equipo_id).first()
+    if not db_equipo:
+        raise HTTPException(status_code=404, detail="Equipo no encontrado")
+    
+    # Si no es SUPERADMIN, validar que sea de su entidad
+    if current_user.role != UserRole.SUPERADMIN:
+        if current_user.entity_id != db_equipo.entity_id:
+            raise HTTPException(status_code=403, detail="Solo puede eliminar equipos de su entidad")
+    
+    db.delete(db_equipo)
+    db.commit()
+    
+    return None
+
+
 @router.post("/equipos/validar", response_model=ValidacionEquipoResponse)
 def validar_equipo(
     request: ValidacionEquipoRequest,
@@ -176,32 +247,46 @@ def crear_funcionario(
     """
     Crear un nuevo funcionario.
     """
-    # Verificar permisos
-    if current_user.role not in [UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.SECRETARIO]:
-        raise HTTPException(status_code=403, detail="No tiene permisos para crear funcionarios")
+    try:
+        print(f"\n=== CREAR FUNCIONARIO ===")
+        print(f"Usuario: {current_user.email}")
+        print(f"Datos recibidos: {funcionario.model_dump()}")
+        
+        # Verificar permisos
+        if current_user.role not in [UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.SECRETARIO]:
+            raise HTTPException(status_code=403, detail="No tiene permisos para crear funcionarios")
+        
+        # Si no es SUPERADMIN, validar que sea de su entidad
+        if current_user.role != UserRole.SUPERADMIN:
+            if current_user.entity_id != funcionario.entity_id:
+                raise HTTPException(status_code=403, detail="Solo puede crear funcionarios para su entidad")
+        
+        # Verificar que la entidad existe
+        entity = db.query(Entity).filter(Entity.id == funcionario.entity_id).first()
+        if not entity:
+            raise HTTPException(status_code=404, detail="Entidad no encontrada")
+        
+        # Verificar que la cédula no existe
+        existing = db.query(Funcionario).filter(Funcionario.cedula == funcionario.cedula).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="La cédula ya está registrada")
+        
+        # Crear funcionario
+        db_funcionario = Funcionario(**funcionario.model_dump())
+        db.add(db_funcionario)
+        db.commit()
+        db.refresh(db_funcionario)
+        
+        print(f"Funcionario creado exitosamente: ID {db_funcionario.id}")
+        return db_funcionario
     
-    # Si no es SUPERADMIN, validar que sea de su entidad
-    if current_user.role != UserRole.SUPERADMIN:
-        if current_user.entity_id != funcionario.entity_id:
-            raise HTTPException(status_code=403, detail="Solo puede crear funcionarios para su entidad")
-    
-    # Verificar que la entidad existe
-    entity = db.query(Entity).filter(Entity.id == funcionario.entity_id).first()
-    if not entity:
-        raise HTTPException(status_code=404, detail="Entidad no encontrada")
-    
-    # Verificar que la cédula no existe
-    existing = db.query(Funcionario).filter(Funcionario.cedula == funcionario.cedula).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="La cédula ya está registrada")
-    
-    # Crear funcionario
-    db_funcionario = Funcionario(**funcionario.model_dump())
-    db.add(db_funcionario)
-    db.commit()
-    db.refresh(db_funcionario)
-    
-    return db_funcionario
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"ERROR al crear funcionario: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
 
 
 @router.get("/funcionarios", response_model=List[FuncionarioResponse])
@@ -354,7 +439,14 @@ def crear_registro_asistencia(
     # Subir foto a S3 si se proporciona
     foto_url = None
     if registro.foto_base64:
+        print(f"[DEBUG] Foto recibida: {len(registro.foto_base64)} caracteres")
         foto_url = upload_foto_s3(registro.foto_base64, f"asistencia/{funcionario.cedula}")
+        if foto_url:
+            print(f"[DEBUG] Foto subida a S3: {foto_url}")
+        else:
+            print("[WARNING] Foto no se subió a S3 (S3 no configurado o error)")
+    else:
+        print("[WARNING] No se recibió foto_base64 en el request")
     
     # Crear registro
     db_registro = RegistroAsistencia(

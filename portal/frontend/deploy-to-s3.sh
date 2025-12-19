@@ -8,7 +8,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 
 # Variables
-BUCKET_NAME="www.softone360.com"
+BUCKET_NAME="softone360.com"
 DISTRIBUTION_PATH="dist/pqrs-frontend/browser"
 CLOUDFRONT_DISTRIBUTION_ID="E3OH65AY982GZ5"
 
@@ -42,20 +42,20 @@ aws s3 cp . s3://$BUCKET_NAME/ \
   --recursive
 
 # Remover _redirects si existe (no needed en S3, es para Netlify)
-aws s3 rm s3://$BUCKET_NAME/_redirects || true
+aws s3 rm s3://$BUCKET_NAME/_redirects 2>/dev/null || true
 
-echo "✅ Despliegue completado!"
-echo "🌐 URL: https://www.softone360.com"
+echo ""
+echo "✅ Despliegue completado en ambos buckets!"
+echo "🌐 URLs:"
+echo "   - https://www.softone360.com"
+echo "   - https://softone360.com"
 echo ""
 
 # Invalidar caché de CloudFront
 if [ ! -z "$CLOUDFRONT_DISTRIBUTION_ID" ]; then
     echo "📝 Invalidando caché de CloudFront..."
-    aws cloudfront create-invalidation \
-        --distribution-id $CLOUDFRONT_DISTRIBUTION_ID \
-        --paths "/*" \
-        --no-cli-pager
-    echo "✅ Caché de CloudFront invalidado"
+    aw✅ Despliegue completado!"
+echo "🌐 URL: https://softone360.com (www.softone360.com redirige aquí)nvalidado"
 fi
 
 echo ""

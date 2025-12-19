@@ -56,6 +56,14 @@ export class AsistenciaService {
     return this.http.post<EquipoRegistro>(`${this.apiUrl}/equipos`, equipo);
   }
 
+  updateEquipo(id: number, equipo: Partial<EquipoRegistro>): Observable<EquipoRegistro> {
+    return this.http.put<EquipoRegistro>(`${this.apiUrl}/equipos/${id}`, equipo);
+  }
+
+  deleteEquipo(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/equipos/${id}`);
+  }
+
   // ===== REGISTROS =====
 
   getRegistros(
