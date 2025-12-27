@@ -37,6 +37,14 @@ import os
 import base64
 from collections import defaultdict
 
+# Configurar matplotlib para uso en servidor (sin display)
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from matplotlib import patches
+import numpy as np
+plt.rcParams['font.family'] = 'DejaVu Sans'
+
 from sqlalchemy.orm import Session
 from app.models.pdm import PdmActividadEvidencia
 from app.models.pdm_ejecucion import PDMEjecucionPresupuestal
@@ -527,6 +535,210 @@ class PDMReportGenerator:
             # En caso de error, usar avance físico
             return self.calcular_avance_producto(producto)
     
+    def generate_grafica_moderna_lineas(self):
+        """Genera gráfica moderna de avance por líneas estratégicas"""
+        # Calcular avance por línea
+        lineas_data = {}
+        for prod in self.productos:
+            linea = prod.linea_estrategica or 'Sin Línea'
+            if linea not in lineas_data:
+                lineas_data[linea] = {'total': 0, 'suma_avance': 0}
+            lineas_data[linea]['total'] += 1
+            avance = self.calcular_avance_producto(prod)
+            lineas_data[linea]['suma_avance'] += avance
+        
+        lineas = []
+        avances = []
+        for linea, data in lineas_data.items():
+            if data['total'] > 0:
+                promedio = data['suma_avance'] / data['total']
+                lineas.append(linea[:40])
+                avances.append(promedio)
+        
+        if not lineas:
+            return
+        
+        try:
+            # Diseño moderno con colores institucionales
+            fig, ax = plt.subplots(figsize=(9, max(len(lineas) * 0.6, 4)))
+            fig.patch.set_facecolor('white')
+            
+            # Colores: verde institucional y gradientes
+            colors = ['#4F9A54' if a >= 70 else '#FFA726' if a >= 50 else '#EF5350' for a in avances]
+            
+            y_pos = np.arange(len(lineas))
+            bars = ax.barh(y_pos, avances, color=colors, height=0.6, alpha=0.9)
+            
+            # Agregar valores al final de cada barra
+            for i, (bar, val) in enumerate(zip(bars, avances)):
+                width = bar.get_width()
+                ax.text(width + 2, bar.get_y() + bar.get_height()/2, 
+                       f'{val:.1f}%', ha='left', va='center', 
+                       fontsize=10, fontweight='bold', color='#333')
+            
+            ax.set_yticks(y_pos)
+            ax.set_yticklabels(lineas, fontsize=9)
+            ax.set_xlabel('Porcentaje de Avance (%)', fontsize=11, fontweight='bold', color='#333')
+            ax.set_title('Avance por Línea Estratégica', fontsize=13, fontweight='bold', 
+                        color='#003366', pad=20)
+            ax.set_xlim(0, 110)
+            
+            # Estilo moderno
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            ax.spines['left'].set_color('#CCCCCC')
+            ax.spines['bottom'].set_color('#CCCCCC')
+            ax.grid(axis='x', alpha=0.2, linestyle='--', color='#CCCCCC')
+            ax.set_axisbelow(True)
+            
+            plt.tight_layout()
+            
+            img_buffer = BytesIO()
+            plt.savefig(img_buffer, format='png', dpi=150, bbox_inches='tight', facecolor='white')
+            img_buffer.seek(0)
+            plt.close(fig)
+            
+            img = RLImage(img_buffer, width=7*inch, height=max(len(lineas) * 0.6*inch, 3.5*inch))
+            self.story.append(img)
+            self.story.append(Spacer(1, 0.3*inch))
+            
+        except Exception as e:
+            print(f"   ❌ Error generando gráfica de líneas: {str(e)}")
+        finally:
+            plt.close('all')
+    
+    def generate_grafica_moderna_sectores(self):
+        """Genera gráfica moderna de avance por sectores MGA"""
+        sectores_data = defaultdict(lambda: {'total': 0, 'suma_avance': 0})
+        
+        for prod in self.productos:
+            sector = prod.sector_mga or 'Sin Sector'
+            sectores_data[sector]['total'] += 1
+            avance = self.calcular_avance_producto(prod)
+            sectores_data[sector]['suma_avance'] += avance
+        
+        sectores = []
+        avances = []
+        for sector, data in sectores_data.items():
+            if data['total'] > 0:
+                promedio = data['suma_avance'] / data['total']
+                sectores.append(sector[:40])
+                avances.append(promedio)
+        
+        if not sectores:
+            return
+        
+        try:
+            fig, ax = plt.subplots(figsize=(9, max(len(sectores) * 0.6, 4)))
+            fig.patch.set_facecolor('white')
+            
+            colors = ['#4F9A54' if a >= 70 else '#FFA726' if a >= 50 else '#EF5350' for a in avances]
+            
+            y_pos = np.arange(len(sectores))
+            bars = ax.barh(y_pos, avances, color=colors, height=0.6, alpha=0.9)
+            
+            for i, (bar, val) in enumerate(zip(bars, avances)):
+                width = bar.get_width()
+                ax.text(width + 2, bar.get_y() + bar.get_height()/2, 
+                       f'{val:.1f}%', ha='left', va='center', 
+                       fontsize=10, fontweight='bold', color='#333')
+            
+            ax.set_yticks(y_pos)
+            ax.set_yticklabels(sectores, fontsize=9)
+            ax.set_xlabel('Porcentaje de Avance (%)', fontsize=11, fontweight='bold', color='#333')
+            ax.set_title('Avance por Sector MGA', fontsize=13, fontweight='bold', 
+                        color='#003366', pad=20)
+            ax.set_xlim(0, 110)
+            
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            ax.spines['left'].set_color('#CCCCCC')
+            ax.spines['bottom'].set_color('#CCCCCC')
+            ax.grid(axis='x', alpha=0.2, linestyle='--', color='#CCCCCC')
+            ax.set_axisbelow(True)
+            
+            plt.tight_layout()
+            
+            img_buffer = BytesIO()
+            plt.savefig(img_buffer, format='png', dpi=150, bbox_inches='tight', facecolor='white')
+            img_buffer.seek(0)
+            plt.close(fig)
+            
+            img = RLImage(img_buffer, width=7*inch, height=max(len(sectores) * 0.6*inch, 3.5*inch))
+            self.story.append(img)
+            self.story.append(Spacer(1, 0.3*inch))
+            
+        except Exception as e:
+            print(f"   ❌ Error generando gráfica de sectores: {str(e)}")
+        finally:
+            plt.close('all')
+    
+    def generate_grafica_moderna_ods(self):
+        """Genera gráfica moderna de avance por ODS"""
+        ods_data = defaultdict(lambda: {'total': 0, 'suma_avance': 0})
+        
+        for prod in self.productos:
+            ods = prod.ods or 'Sin ODS'
+            ods_data[ods]['total'] += 1
+            avance = self.calcular_avance_producto(prod)
+            ods_data[ods]['suma_avance'] += avance
+        
+        ods_list = []
+        avances = []
+        for ods, data in ods_data.items():
+            if data['total'] > 0:
+                promedio = data['suma_avance'] / data['total']
+                ods_list.append(ods[:45])
+                avances.append(promedio)
+        
+        if not ods_list:
+            return
+        
+        try:
+            fig, ax = plt.subplots(figsize=(9, max(len(ods_list) * 0.6, 4)))
+            fig.patch.set_facecolor('white')
+            
+            colors = ['#4F9A54' if a >= 70 else '#FFA726' if a >= 50 else '#EF5350' for a in avances]
+            
+            y_pos = np.arange(len(ods_list))
+            bars = ax.barh(y_pos, avances, color=colors, height=0.6, alpha=0.9)
+            
+            for i, (bar, val) in enumerate(zip(bars, avances)):
+                width = bar.get_width()
+                ax.text(width + 2, bar.get_y() + bar.get_height()/2, 
+                       f'{val:.1f}%', ha='left', va='center', 
+                       fontsize=10, fontweight='bold', color='#333')
+            
+            ax.set_yticks(y_pos)
+            ax.set_yticklabels(ods_list, fontsize=9)
+            ax.set_xlabel('Porcentaje de Avance (%)', fontsize=11, fontweight='bold', color='#333')
+            ax.set_title('Avance por Objetivos de Desarrollo Sostenible', fontsize=13, 
+                        fontweight='bold', color='#003366', pad=20)
+            ax.set_xlim(0, 110)
+            
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            ax.spines['left'].set_color('#CCCCCC')
+            ax.spines['bottom'].set_color('#CCCCCC')
+            ax.grid(axis='x', alpha=0.2, linestyle='--', color='#CCCCCC')
+            ax.set_axisbelow(True)
+            
+            plt.tight_layout()
+            
+            img_buffer = BytesIO()
+            plt.savefig(img_buffer, format='png', dpi=150, bbox_inches='tight', facecolor='white')
+            img_buffer.seek(0)
+            plt.close(fig)
+            
+            img = RLImage(img_buffer, width=7*inch, height=max(len(ods_list) * 0.6*inch, 3.5*inch))
+            self.story.append(img)
+            self.story.append(Spacer(1, 0.3*inch))
+            
+        except Exception as e:
+            print(f"   ❌ Error generando gráfica de ODS: {str(e)}")
+        finally:
+            plt.close('all')
+    
     def generate_seccion_lineas(self):
         """Genera sección de avance por líneas estratégicas"""
         title_style = ParagraphStyle(
@@ -561,6 +773,9 @@ class PDMReportGenerator:
         
         self.story.append(Paragraph(concepto_lineas, justify_style))
         self.story.append(Spacer(1, 0.2*inch))
+        
+        # Generar gráfica moderna
+        self.generate_grafica_moderna_lineas()
         
         # Generar tablas de productos por línea estratégica
         self.generate_tabla_productos()
@@ -969,6 +1184,9 @@ class PDMReportGenerator:
         self.story.append(Paragraph(desc_text, justify_style))
         self.story.append(Spacer(1, 0.1*inch))
         
+        # Generar gráfica moderna de sectores
+        self.generate_grafica_moderna_sectores()
+        
         # Generar tablas de productos por sector
         self.generate_tabla_productos_por_sector()
         
@@ -1016,6 +1234,9 @@ class PDMReportGenerator:
         
         self.story.append(Paragraph(desc_text, justify_style))
         self.story.append(Spacer(1, 0.2*inch))
+        
+        # Generar gráfica moderna de ODS
+        self.generate_grafica_moderna_ods()
         
         # Generar tablas de productos por ODS
         self.generate_tabla_productos_por_ods()
@@ -1257,13 +1478,18 @@ class PDMReportGenerator:
                         self.story.append(evidencia_table)
                         self.story.append(Spacer(1, 0.1*inch))
                         
-                        # Imágenes de evidencia - FILA HORIZONTAL con tamaño uniforme
+                        # Imágenes de evidencia - DISPOSICIÓN VERTICAL (COLUMNAS)
                         if evidencia.imagenes and isinstance(evidencia.imagenes, list) and len(evidencia.imagenes) > 0:
-                            print(f"      📷 Procesando {len(evidencia.imagenes)} imágenes...")
+                            print(f"      📷 Procesando {len(evidencia.imagenes)} imágenes en vertical...")
                             
-                            # Procesar máximo 3 imágenes en una sola fila
-                            imagenes_procesadas = []
-                            for idx, img_base64 in enumerate(evidencia.imagenes[:3]):  # Máximo 3 imágenes
+                            # Procesar todas las imágenes (máximo 6)
+                            num_imagenes = min(len(evidencia.imagenes), 6)
+                            imagenes_por_fila = 3  # 3 columnas
+                            
+                            imagenes_data = []
+                            fila_actual = []
+                            
+                            for idx, img_base64 in enumerate(evidencia.imagenes[:num_imagenes]):
                                 try:
                                     # Decodificar base64
                                     if img_base64.startswith('data:image'):
@@ -1271,37 +1497,44 @@ class PDMReportGenerator:
                                     
                                     img_data = base64.b64decode(img_base64)
                                     
-                                    # Tamaño uniforme para todas las imágenes
+                                    # Tamaño ajustado para disposición vertical
                                     img_width = 2.2*inch
-                                    img_height = 1.8*inch
+                                    img_height = 2.2*inch  # Más cuadradas para mejor visualización vertical
                                     
                                     img = RLImage(BytesIO(img_data), width=img_width, height=img_height)
-                                    imagenes_procesadas.append(img)
+                                    fila_actual.append(img)
                                     
-                                    print(f"      ✅ Imagen {idx+1} agregada (tamaño uniforme: 2.2x1.8 in)")
+                                    print(f"      ✅ Imagen {idx+1} agregada")
+                                    
+                                    # Completar fila cuando tengamos 3 imágenes
+                                    if len(fila_actual) == imagenes_por_fila:
+                                        imagenes_data.append(fila_actual)
+                                        fila_actual = []
                                     
                                 except Exception as e:
                                     print(f"      ⚠️ Error procesando imagen {idx+1}: {e}")
                             
-                            # Organizar imágenes en UNA SOLA FILA HORIZONTAL
-                            if imagenes_procesadas:
-                                # Completar con celdas vacías si hay menos de 3 imágenes
-                                while len(imagenes_procesadas) < 3:
-                                    imagenes_procesadas.append('')
-                                
-                                # Crear tabla de 1 fila x 3 columnas
-                                img_table = Table([imagenes_procesadas], colWidths=[2.33*inch, 2.33*inch, 2.33*inch])
+                            # Agregar última fila si tiene imágenes
+                            if fila_actual:
+                                # Completar con espacios vacíos si es necesario
+                                while len(fila_actual) < imagenes_por_fila:
+                                    fila_actual.append('')
+                                imagenes_data.append(fila_actual)
+                            
+                            # Crear tabla con múltiples filas (disposición vertical)
+                            if imagenes_data:
+                                img_table = Table(imagenes_data, colWidths=[2.33*inch, 2.33*inch, 2.33*inch])
                                 img_table.setStyle(TableStyle([
                                     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                                     ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                                    ('LEFTPADDING', (0, 0), (-1, -1), 2),
-                                    ('RIGHTPADDING', (0, 0), (-1, -1), 2),
-                                    ('TOPPADDING', (0, 0), (-1, -1), 2),
-                                    ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                                    ('LEFTPADDING', (0, 0), (-1, -1), 3),
+                                    ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+                                    ('TOPPADDING', (0, 0), (-1, -1), 3),
+                                    ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
                                 ]))
                                 
                                 self.story.append(img_table)
-                                self.story.append(Spacer(1, 0.1*inch))
+                                self.story.append(Spacer(1, 0.15*inch))
                 
                 if not evidencias_encontradas:
                     evidencia_table = Table([[Paragraph('REGISTRO DE EVIDENCIA', white_style)],
