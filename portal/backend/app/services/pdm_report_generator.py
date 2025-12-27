@@ -1453,7 +1453,9 @@ class PDMReportGenerator:
                                     img_base64 = img_base64.split(',')[1]
                                 
                                 img_data = base64.b64decode(img_base64)
-                                img = RLImage(BytesIO(img_data), width=7*inch)
+                                
+                                # Ancho completo pero con altura máxima para evitar overflow
+                                img = RLImage(BytesIO(img_data), width=7*inch, height=5*inch, kind='proportional')
                                 
                                 img_table = Table([[img]], colWidths=[7*inch])
                                 img_table.setStyle(TableStyle([
