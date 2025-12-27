@@ -23,19 +23,24 @@ interface RegistroAgrupado {
     <div class="registros-container">
       <div class="header-section">
         <h2><i class="bi bi-calendar-check"></i> Registros de Asistencia</h2>
-        <div class="stats-cards">
-          <div class="stat-card entrada">
-            <i class="bi bi-box-arrow-in-right"></i>
-            <div class="stat-info">
-              <span class="stat-label">Entradas</span>
-              <span class="stat-value">{{ totalEntradas }}</span>
+        <div class="header-actions">
+          <button class="btn btn-success btn-export" (click)="exportarExcel()" [disabled]="registrosAgrupados.length === 0">
+            <i class="bi bi-file-earmark-excel"></i> Exportar a Excel
+          </button>
+          <div class="stats-cards">
+            <div class="stat-card entrada">
+              <i class="bi bi-box-arrow-in-right"></i>
+              <div class="stat-info">
+                <span class="stat-label">Entradas</span>
+                <span class="stat-value">{{ totalEntradas }}</span>
+              </div>
             </div>
-          </div>
-          <div class="stat-card salida">
-            <i class="bi bi-box-arrow-right"></i>
-            <div class="stat-info">
-              <span class="stat-label">Salidas</span>
-              <span class="stat-value">{{ totalSalidas }}</span>
+            <div class="stat-card salida">
+              <i class="bi bi-box-arrow-right"></i>
+              <div class="stat-info">
+                <span class="stat-label">Salidas</span>
+                <span class="stat-value">{{ totalSalidas }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -198,6 +203,42 @@ interface RegistroAgrupado {
       margin-bottom: 30px; 
       flex-wrap: wrap;
       gap: 20px;
+    }
+    
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .btn-export {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      font-weight: 600;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+    }
+    
+    .btn-export:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    }
+    
+    .btn-export:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .btn-export i {
+      font-size: 1.2rem;
     }
     
     .stats-cards { 
@@ -615,6 +656,49 @@ export class RegistrosAsistenciaComponent implements OnInit {
     horas = horas ? horas : 12; // Si es 0, mostrar 12
     
     return `${horas}:${minutos}:${segundos} ${ampm}`;
+  }
+
+  exportarExcel(): void {
+    import('xlsx').then(XLSX => {
+      // Preparar datos para Excel
+      const datosExcel: any[] = [];
+      
+      this.registrosAgrupados.forEach(registro => {
+        const entradasTexto = registro.entradas.map(e => this.formatearHora(e.fecha_hora)).join(', ') || '—';
+        const salidasTexto = registro.salidas.map(s => this.formatearHora(s.fecha_hora)).join(', ') || '—';
+        
+        datosExcel.push({
+          'Cédula': registro.funcionario_cedula,
+          'Funcionario': `${registro.funcionario_nombres} ${registro.funcionario_apellidos}`,
+          'Fecha': new Date(registro.fecha).toLocaleDateString('es-CO'),
+          'Entradas': entradasTexto,
+          'Salidas': salidasTexto,
+          'Equipo': registro.equipo_nombre || 'N/A'
+        });
+      });
+      
+      // Crear workbook y worksheet
+      const ws = XLSX.utils.json_to_sheet(datosExcel);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Registros de Asistencia');
+      
+      // Ajustar ancho de columnas
+      ws['!cols'] = [
+        { wch: 15 },  // Cédula
+        { wch: 30 },  // Funcionario
+        { wch: 12 },  // Fecha
+        { wch: 25 },  // Entradas
+        { wch: 25 },  // Salidas
+        { wch: 20 }   // Equipo
+      ];
+      
+      // Generar nombre de archivo con fecha
+      const fechaActual = new Date().toISOString().split('T')[0];
+      const nombreArchivo = `Registros_Asistencia_${fechaActual}.xlsx`;
+      
+      // Descargar archivo
+      XLSX.writeFile(wb, nombreArchivo);
+    });
   }
 
   verDetalle(registro: RegistroAsistencia): void {

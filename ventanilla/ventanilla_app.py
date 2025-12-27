@@ -8,29 +8,28 @@ from datetime import datetime
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QMessageBox, QComboBox,
-    QTextEdit, QGroupBox, QSplitter
+    QTextEdit, QGroupBox, QFrame, QStackedWidget
 )
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QImage, QPixmap, QFont
+from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve
+from PyQt6.QtGui import QImage, QPixmap, QFont, QPalette, QColor, QIcon
 
 
-class VentanillaApp(QMainWindow):
+class ModernVentanillaApp(QMainWindow):
     """
-    Aplicación de escritorio para registro de asistencia de funcionarios.
+    Aplicación moderna de escritorio para registro de asistencia.
+    Diseño intuitivo y profesional.
     """
     
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Sistema de Control de Asistencia")
-        self.setGeometry(100, 100, 1200, 700)
+        self.setWindowTitle("Control de Asistencia - Softone360")
+        self.setGeometry(100, 100, 1400, 800)
+        self.setMinimumSize(1200, 700)
         
         # Configuración
-        self.API_URL = "https://api.softone360.com"  # Cambiar por la URL de producción
-        # self.API_URL = "http://localhost:8000"  # Para desarrollo local
-        
+        self.API_URL = "https://api.softone360.com"
         self.equipo_uuid = self.get_machine_uuid()
         self.equipo_valido = False
-        self.entity_id = None
         self.entity_name = None
         
         # Cámara
@@ -38,29 +37,25 @@ class VentanillaApp(QMainWindow):
         self.current_frame = None
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_frame)
+        self.camera_active = False
         
         # UI
+        self.setup_styles()
         self.init_ui()
         
-        # Validar equipo al iniciar
+        # Validar equipo e iniciar cámara automáticamente
         self.validar_equipo()
     
     def get_machine_uuid(self):
-        """
-        Obtiene el UUID único de la máquina.
-        """
+        """Obtiene el UUID único de la máquina"""
         try:
-            # Windows: usa wmic para obtener UUID
             if sys.platform == "win32":
                 import subprocess
                 output = subprocess.check_output("wmic csproduct get uuid", shell=True)
-                uuid_str = output.decode().split('\n')[1].strip()
-                return uuid_str
+                return output.decode().split('\n')[1].strip()
             else:
-                # macOS/Linux: genera UUID basado en características de hardware
                 return str(uuid.UUID(int=uuid.getnode()))
         except:
-            # Fallback: genera UUID aleatorio y lo guarda
             config_file = "machine_uuid.txt"
             if os.path.exists(config_file):
                 with open(config_file, 'r') as f:
@@ -71,151 +66,280 @@ class VentanillaApp(QMainWindow):
                     f.write(new_uuid)
                 return new_uuid
     
+    def setup_styles(self):
+        """Configuración de estilos globales"""
+        self.setStyleSheet("""
+            QMainWindow {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #667eea, stop:1 #764ba2);
+            }
+            QLabel {
+                color: #2c3e50;
+            }
+            QGroupBox {
+                background: white;
+                border-radius: 15px;
+                padding: 20px;
+                font-weight: bold;
+                font-size: 14px;
+            }
+            QLineEdit {
+                padding: 12px;
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+                font-size: 16px;
+                background: white;
+            }
+            QLineEdit:focus {
+                border: 2px solid #667eea;
+            }
+            QComboBox {
+                padding: 12px;
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+                font-size: 16px;
+                background: white;
+            }
+            QPushButton {
+                padding: 15px 30px;
+                border-radius: 10px;
+                font-size: 16px;
+                font-weight: bold;
+                border: none;
+            }
+            QPushButton:disabled {
+                background: #bdc3c7;
+                color: #7f8c8d;
+            }
+        """)
+    
     def init_ui(self):
-        """
-        Inicializa la interfaz de usuario.
-        """
+        """Inicializa la interfaz moderna"""
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
         main_layout = QVBoxLayout(central_widget)
+        main_layout.setContentsMargins(30, 30, 30, 30)
         main_layout.setSpacing(20)
         
-        # Header
-        header = QLabel("Sistema de Control de Asistencia")
-        header.setFont(QFont("Arial", 24, QFont.Weight.Bold))
-        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        header.setStyleSheet("color: #2c3e50; padding: 20px;")
-        main_layout.addWidget(header)
+        # === HEADER MODERNO ===
+        header_frame = QFrame()
+        header_frame.setStyleSheet("""
+            QFrame {
+                background: white;
+                border-radius: 15px;
+                padding: 20px;
+            }
+        """)
+        header_layout = QHBoxLayout(header_frame)
+        
+        # Logo y título
+        title_layout = QVBoxLayout()
+        title = QLabel("🏢 Control de Asistencia")
+        title.setFont(QFont("Arial", 28, QFont.Weight.Bold))
+        title.setStyleSheet("color: #667eea;")
+        
+        self.status_label = QLabel("⏳ Validando equipo...")
+        self.status_label.setFont(QFont("Arial", 12))
+        self.status_label.setStyleSheet("color: #7f8c8d;")
+        
+        title_layout.addWidget(title)
+        title_layout.addWidget(self.status_label)
+        header_layout.addLayout(title_layout)
+        
+        header_layout.addStretch()
         
         # Info del equipo
-        self.info_equipo_label = QLabel(f"UUID del equipo: {self.equipo_uuid}")
-        self.info_equipo_label.setStyleSheet("color: #7f8c8d; padding: 5px;")
-        main_layout.addWidget(self.info_equipo_label)
+        info_layout = QVBoxLayout()
+        self.entity_label = QLabel("🏛️ Entidad: Cargando...")
+        self.entity_label.setFont(QFont("Arial", 11))
+        self.entity_label.setStyleSheet("color: #34495e;")
         
-        self.status_label = QLabel("Validando equipo...")
-        self.status_label.setStyleSheet("color: #e74c3c; font-weight: bold; padding: 5px;")
-        main_layout.addWidget(self.status_label)
+        uuid_label = QLabel(f"🔑 UUID: {self.equipo_uuid[:20]}...")
+        uuid_label.setFont(QFont("Arial", 9))
+        uuid_label.setStyleSheet("color: #95a5a6;")
         
-        # Splitter para dividir cámara y formulario
-        splitter = QSplitter(Qt.Orientation.Horizontal)
+        info_layout.addWidget(self.entity_label)
+        info_layout.addWidget(uuid_label)
+        header_layout.addLayout(info_layout)
         
-        # === Panel de cámara ===
-        camera_group = QGroupBox("Cámara")
-        camera_layout = QVBoxLayout()
+        main_layout.addWidget(header_frame)
         
-        self.camera_label = QLabel("Cámara no iniciada")
-        self.camera_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # === PANEL PRINCIPAL ===
+        content_frame = QFrame()
+        content_frame.setStyleSheet("""
+            QFrame {
+                background: white;
+                border-radius: 15px;
+            }
+        """)
+        content_layout = QHBoxLayout(content_frame)
+        content_layout.setSpacing(20)
+        content_layout.setContentsMargins(20, 20, 20, 20)
+        
+        # === IZQUIERDA: CÁMARA ===
+        camera_container = QWidget()
+        camera_layout = QVBoxLayout(camera_container)
+        camera_layout.setSpacing(15)
+        
+        camera_title = QLabel("📷 Vista en Vivo")
+        camera_title.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        camera_title.setStyleSheet("color: #667eea; margin-bottom: 10px;")
+        camera_layout.addWidget(camera_title)
+        
+        self.camera_label = QLabel()
         self.camera_label.setMinimumSize(640, 480)
-        self.camera_label.setStyleSheet("background-color: #ecf0f1; border: 2px solid #bdc3c7;")
+        self.camera_label.setMaximumSize(640, 480)
+        self.camera_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.camera_label.setStyleSheet("""
+            QLabel {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #f5f7fa, stop:1 #c3cfe2);
+                border: 3px solid #667eea;
+                border-radius: 15px;
+                color: #7f8c8d;
+                font-size: 18px;
+                font-weight: bold;
+            }
+        """)
+        self.camera_label.setText("🎥\n\nCámara Iniciándose...")
         camera_layout.addWidget(self.camera_label)
         
-        camera_buttons = QHBoxLayout()
-        self.btn_iniciar_camara = QPushButton("Iniciar Cámara")
-        self.btn_iniciar_camara.clicked.connect(self.iniciar_camara)
-        self.btn_iniciar_camara.setStyleSheet(self.get_button_style("#3498db"))
+        # Estado de la cámara
+        self.camera_status = QLabel("⏸️ Detenida")
+        self.camera_status.setFont(QFont("Arial", 12))
+        self.camera_status.setStyleSheet("color: #e74c3c; font-weight: bold;")
+        self.camera_status.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        camera_layout.addWidget(self.camera_status)
         
-        self.btn_capturar = QPushButton("Capturar Foto")
-        self.btn_capturar.clicked.connect(self.capturar_foto)
-        self.btn_capturar.setEnabled(False)
-        self.btn_capturar.setStyleSheet(self.get_button_style("#27ae60"))
+        content_layout.addWidget(camera_container, 55)
         
-        camera_buttons.addWidget(self.btn_iniciar_camara)
-        camera_buttons.addWidget(self.btn_capturar)
-        camera_layout.addLayout(camera_buttons)
+        # === DERECHA: FORMULARIO ===
+        form_container = QWidget()
+        form_layout = QVBoxLayout(form_container)
+        form_layout.setSpacing(20)
         
-        camera_group.setLayout(camera_layout)
-        splitter.addWidget(camera_group)
-        
-        # === Panel de formulario ===
-        form_group = QGroupBox("Registro de Asistencia")
-        form_layout = QVBoxLayout()
+        form_title = QLabel("✍️ Registrar Asistencia")
+        form_title.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        form_title.setStyleSheet("color: #667eea; margin-bottom: 10px;")
+        form_layout.addWidget(form_title)
         
         # Cédula
-        cedula_layout = QHBoxLayout()
-        cedula_layout.addWidget(QLabel("Cédula:"))
+        cedula_label = QLabel("Número de Cédula")
+        cedula_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        cedula_label.setStyleSheet("color: #34495e;")
+        form_layout.addWidget(cedula_label)
+        
         self.input_cedula = QLineEdit()
-        self.input_cedula.setPlaceholderText("Ingrese número de cédula")
-        self.input_cedula.setFont(QFont("Arial", 14))
+        self.input_cedula.setPlaceholderText("Ingrese el número de cédula")
+        self.input_cedula.setMaxLength(15)
         self.input_cedula.returnPressed.connect(self.registrar_asistencia)
-        cedula_layout.addWidget(self.input_cedula)
-        form_layout.addLayout(cedula_layout)
+        form_layout.addWidget(self.input_cedula)
         
         # Tipo de registro
-        tipo_layout = QHBoxLayout()
-        tipo_layout.addWidget(QLabel("Tipo:"))
+        tipo_label = QLabel("Tipo de Registro")
+        tipo_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        tipo_label.setStyleSheet("color: #34495e; margin-top: 15px;")
+        form_layout.addWidget(tipo_label)
+        
+        tipos_layout = QHBoxLayout()
         self.combo_tipo = QComboBox()
-        self.combo_tipo.addItems(["entrada", "salida"])
+        self.combo_tipo.addItems(["Entrada 📥", "Salida 📤"])
         self.combo_tipo.setFont(QFont("Arial", 14))
-        tipo_layout.addWidget(self.combo_tipo)
-        form_layout.addLayout(tipo_layout)
+        tipos_layout.addWidget(self.combo_tipo)
+        form_layout.addLayout(tipos_layout)
         
-        # Observaciones
-        form_layout.addWidget(QLabel("Observaciones (opcional):"))
-        self.input_observaciones = QTextEdit()
-        self.input_observaciones.setMaximumHeight(100)
-        self.input_observaciones.setPlaceholderText("Ingrese observaciones si es necesario")
-        form_layout.addWidget(self.input_observaciones)
+        # Botón de registro GRANDE
+        form_layout.addSpacing(30)
         
-        # Botón de registro
-        self.btn_registrar = QPushButton("Registrar Asistencia")
+        self.btn_registrar = QPushButton("🎯 REGISTRAR ASISTENCIA")
+        self.btn_registrar.setMinimumHeight(80)
+        self.btn_registrar.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        self.btn_registrar.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #667eea, stop:1 #764ba2);
+                color: white;
+                border-radius: 15px;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #5568d3, stop:1 #663a8b);
+            }
+            QPushButton:pressed {
+                background: #764ba2;
+            }
+            QPushButton:disabled {
+                background: #bdc3c7;
+            }
+        """)
         self.btn_registrar.clicked.connect(self.registrar_asistencia)
         self.btn_registrar.setEnabled(False)
-        self.btn_registrar.setStyleSheet(self.get_button_style("#e67e22"))
-        self.btn_registrar.setMinimumHeight(50)
-        self.btn_registrar.setFont(QFont("Arial", 16, QFont.Weight.Bold))
         form_layout.addWidget(self.btn_registrar)
         
         # Log de actividades
-        form_layout.addWidget(QLabel("Registro de actividad:"))
+        log_label = QLabel("📋 Registro de Actividad")
+        log_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        log_label.setStyleSheet("color: #34495e; margin-top: 20px;")
+        form_layout.addWidget(log_label)
+        
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
-        self.log_text.setMaximumHeight(200)
+        self.log_text.setMaximumHeight(150)
+        self.log_text.setStyleSheet("""
+            QTextEdit {
+                background: #f8f9fa;
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+                padding: 10px;
+                font-family: 'Courier New';
+                font-size: 11px;
+            }
+        """)
         form_layout.addWidget(self.log_text)
         
-        form_group.setLayout(form_layout)
-        splitter.addWidget(form_group)
+        form_layout.addStretch()
+        content_layout.addWidget(form_container, 45)
         
-        splitter.setSizes([600, 600])
-        main_layout.addWidget(splitter)
+        main_layout.addWidget(content_frame)
+        
+        # Iniciar cámara automáticamente
+        QTimer.singleShot(1000, self.iniciar_camara_auto)
     
-    def get_button_style(self, color):
-        """
-        Retorna el estilo CSS para botones.
-        """
-        return f"""
-            QPushButton {{
-                background-color: {color};
-                color: white;
-                border: none;
-                padding: 10px;
-                font-size: 14px;
-                font-weight: bold;
-                border-radius: 5px;
-            }}
-            QPushButton:hover {{
-                background-color: {self.darken_color(color)};
-            }}
-            QPushButton:disabled {{
-                background-color: #95a5a6;
-            }}
-        """
+    def iniciar_camara_auto(self):
+        """Inicia la cámara automáticamente"""
+        if not self.camera_active:
+            self.camera = cv2.VideoCapture(0)
+            if self.camera.isOpened():
+                self.timer.start(30)
+                self.camera_active = True
+                self.camera_status.setText("🎥 Activa")
+                self.camera_status.setStyleSheet("color: #27ae60; font-weight: bold;")
+                self.log("✅ Cámara iniciada automáticamente")
+            else:
+                self.camera_label.setText("❌\n\nError: No se puede acceder\na la cámara")
+                self.log("❌ Error: No se pudo acceder a la cámara")
     
-    def darken_color(self, hex_color):
-        """
-        Oscurece un color hexadecimal.
-        """
-        hex_color = hex_color.lstrip('#')
-        r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
-        r = max(0, r - 30)
-        g = max(0, g - 30)
-        b = max(0, b - 30)
-        return f"#{r:02x}{g:02x}{b:02x}"
+    def update_frame(self):
+        """Actualiza el frame de la cámara"""
+        if self.camera is not None:
+            ret, frame = self.camera.read()
+            if ret:
+                self.current_frame = frame
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                h, w, ch = rgb_frame.shape
+                bytes_per_line = ch * w
+                qt_image = QImage(rgb_frame.data, w, h, bytes_per_line, QImage.Format.Format_RGB888)
+                pixmap = QPixmap.fromImage(qt_image)
+                scaled_pixmap = pixmap.scaled(
+                    self.camera_label.size(),
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation
+                )
+                self.camera_label.setPixmap(scaled_pixmap)
     
     def validar_equipo(self):
-        """
-        Valida si el equipo está autorizado para registrar asistencia.
-        """
+        """Valida si el equipo está autorizado"""
         try:
             response = requests.post(
                 f"{self.API_URL}/api/asistencia/equipos/validar",
@@ -227,116 +351,61 @@ class VentanillaApp(QMainWindow):
                 data = response.json()
                 if data["valido"]:
                     self.equipo_valido = True
-                    self.entity_id = data["entity_id"]
-                    self.status_label.setText(f"✓ Equipo autorizado: {data['mensaje']}")
-                    self.status_label.setStyleSheet("color: #27ae60; font-weight: bold; padding: 5px;")
+                    self.entity_name = data.get("mensaje", "Entidad")
+                    self.status_label.setText(f"✅ Equipo Autorizado")
+                    self.status_label.setStyleSheet("color: #27ae60; font-weight: bold;")
+                    self.entity_label.setText(f"🏛️ {self.entity_name}")
                     self.btn_registrar.setEnabled(True)
-                    self.log(f"Equipo autorizado: {data['mensaje']}")
+                    self.log(f"✅ Equipo autorizado: {self.entity_name}")
+                    self.input_cedula.setFocus()
                 else:
-                    self.equipo_valido = False
-                    self.status_label.setText(f"✗ {data['mensaje']}")
-                    self.status_label.setStyleSheet("color: #e74c3c; font-weight: bold; padding: 5px;")
-                    QMessageBox.critical(
-                        self,
-                        "Equipo no autorizado",
-                        f"Este equipo no está autorizado para registrar asistencia.\n\n"
-                        f"UUID: {self.equipo_uuid}\n\n"
-                        f"Por favor, contacte al administrador del sistema."
-                    )
+                    self.mostrar_error_autorizacion(data["mensaje"])
             else:
                 raise Exception(f"Error {response.status_code}")
-        
         except Exception as e:
-            self.equipo_valido = False
-            self.status_label.setText(f"✗ Error de conexión: {str(e)}")
-            self.status_label.setStyleSheet("color: #e74c3c; font-weight: bold; padding: 5px;")
-            QMessageBox.critical(
-                self,
-                "Error de conexión",
-                f"No se pudo conectar con el servidor.\n\n{str(e)}\n\n"
-                f"Verifique su conexión a internet."
-            )
+            self.mostrar_error_conexion(str(e))
     
-    def iniciar_camara(self):
-        """
-        Inicia la cámara para captura de fotos.
-        """
-        if self.camera is None:
-            self.camera = cv2.VideoCapture(0)
-            if not self.camera.isOpened():
-                QMessageBox.critical(self, "Error", "No se pudo acceder a la cámara")
-                self.camera = None
-                return
-            
-            self.timer.start(30)  # Actualizar cada 30ms
-            self.btn_iniciar_camara.setText("Detener Cámara")
-            self.btn_capturar.setEnabled(True)
-            self.log("Cámara iniciada")
-        else:
-            self.detener_camara()
+    def mostrar_error_autorizacion(self, mensaje):
+        """Muestra error de autorización"""
+        self.status_label.setText(f"❌ No Autorizado")
+        self.status_label.setStyleSheet("color: #e74c3c; font-weight: bold;")
+        self.log(f"❌ {mensaje}")
+        QMessageBox.critical(
+            self,
+            "Equipo No Autorizado",
+            f"{mensaje}\n\nUUID: {self.equipo_uuid}\n\n"
+            "Contacte al administrador del sistema."
+        )
     
-    def detener_camara(self):
-        """
-        Detiene la cámara.
-        """
-        if self.camera is not None:
-            self.timer.stop()
-            self.camera.release()
-            self.camera = None
-            self.camera_label.setText("Cámara detenida")
-            self.btn_iniciar_camara.setText("Iniciar Cámara")
-            self.btn_capturar.setEnabled(False)
-            self.log("Cámara detenida")
-    
-    def update_frame(self):
-        """
-        Actualiza el frame de la cámara.
-        """
-        if self.camera is not None:
-            ret, frame = self.camera.read()
-            if ret:
-                self.current_frame = frame
-                # Convertir BGR a RGB
-                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                h, w, ch = rgb_frame.shape
-                bytes_per_line = ch * w
-                qt_image = QImage(rgb_frame.data, w, h, bytes_per_line, QImage.Format.Format_RGB888)
-                pixmap = QPixmap.fromImage(qt_image)
-                
-                # Escalar para ajustar al label
-                scaled_pixmap = pixmap.scaled(
-                    self.camera_label.width(),
-                    self.camera_label.height(),
-                    Qt.AspectRatioMode.KeepAspectRatio
-                )
-                self.camera_label.setPixmap(scaled_pixmap)
-    
-    def capturar_foto(self):
-        """
-        Captura la foto actual de la cámara.
-        """
-        if self.current_frame is not None:
-            self.log("Foto capturada")
-            QMessageBox.information(self, "Foto capturada", "La foto se enviará con el registro")
+    def mostrar_error_conexion(self, error):
+        """Muestra error de conexión"""
+        self.status_label.setText("❌ Error de Conexión")
+        self.status_label.setStyleSheet("color: #e74c3c; font-weight: bold;")
+        self.log(f"❌ Error de conexión: {error}")
+        QMessageBox.critical(
+            self,
+            "Error de Conexión",
+            f"No se pudo conectar con el servidor.\n\n{error}\n\n"
+            "Verifique su conexión a internet."
+        )
     
     def registrar_asistencia(self):
-        """
-        Registra la asistencia del funcionario.
-        """
+        """Registra la asistencia del funcionario"""
         if not self.equipo_valido:
             QMessageBox.warning(self, "Error", "Equipo no autorizado")
             return
         
         cedula = self.input_cedula.text().strip()
         if not cedula:
-            QMessageBox.warning(self, "Error", "Ingrese el número de cédula")
+            QMessageBox.warning(self, "Campo Requerido", "Por favor ingrese el número de cédula")
             self.input_cedula.setFocus()
             return
         
-        tipo_registro = self.combo_tipo.currentText()
-        observaciones = self.input_observaciones.toPlainText().strip()
+        # Detectar tipo basado en combo
+        tipo_texto = self.combo_tipo.currentText()
+        tipo_registro = "entrada" if "Entrada" in tipo_texto else "salida"
         
-        # Convertir foto a base64 si está disponible
+        # Convertir foto a base64
         foto_base64 = None
         if self.current_frame is not None:
             _, buffer = cv2.imencode('.jpg', self.current_frame)
@@ -344,14 +413,14 @@ class VentanillaApp(QMainWindow):
         
         # Enviar al servidor
         try:
-            self.log(f"Registrando {tipo_registro} para cédula {cedula}...")
+            self.log(f"⏳ Registrando {tipo_registro} para cédula {cedula}...")
             
             payload = {
                 "cedula": cedula,
                 "equipo_uuid": self.equipo_uuid,
                 "tipo_registro": tipo_registro,
                 "foto_base64": foto_base64,
-                "observaciones": observaciones if observaciones else None
+                "observaciones": None
             }
             
             response = requests.post(
@@ -362,55 +431,54 @@ class VentanillaApp(QMainWindow):
             
             if response.status_code == 201:
                 data = response.json()
-                nombre_completo = f"{data.get('funcionario_nombres', '')} {data.get('funcionario_apellidos', '')}"
+                nombre = f"{data.get('funcionario_nombres', '')} {data.get('funcionario_apellidos', '')}"
+                hora = datetime.now().strftime('%I:%M:%S %p')
                 
-                self.log(f"✓ Registro exitoso: {nombre_completo} - {tipo_registro}")
+                self.log(f"✅ {tipo_registro.upper()}: {nombre} - {hora}")
+                
                 QMessageBox.information(
                     self,
-                    "Registro exitoso",
-                    f"Registro de {tipo_registro} exitoso\n\n"
-                    f"Funcionario: {nombre_completo}\n"
-                    f"Cédula: {cedula}\n"
-                    f"Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                    "✅ Registro Exitoso",
+                    f"Registro de {tipo_registro} completado\n\n"
+                    f"👤 {nombre}\n"
+                    f"🆔 {cedula}\n"
+                    f"🕐 {hora}"
                 )
                 
-                # Limpiar formulario
                 self.input_cedula.clear()
-                self.input_observaciones.clear()
                 self.input_cedula.setFocus()
-                
             else:
                 error_data = response.json()
                 error_msg = error_data.get("detail", "Error desconocido")
-                self.log(f"✗ Error: {error_msg}")
+                self.log(f"❌ Error: {error_msg}")
                 QMessageBox.critical(self, "Error", f"Error al registrar:\n\n{error_msg}")
         
         except requests.exceptions.Timeout:
-            self.log("✗ Error: Timeout de conexión")
+            self.log("❌ Error: Tiempo de espera agotado")
             QMessageBox.critical(self, "Error", "Tiempo de espera agotado. Intente nuevamente.")
-        
         except Exception as e:
-            self.log(f"✗ Error: {str(e)}")
+            self.log(f"❌ Error: {str(e)}")
             QMessageBox.critical(self, "Error", f"Error al registrar:\n\n{str(e)}")
     
     def log(self, message):
-        """
-        Agrega un mensaje al log de actividades.
-        """
+        """Agrega mensaje al log"""
         timestamp = datetime.now().strftime("%H:%M:%S")
         self.log_text.append(f"[{timestamp}] {message}")
+        scrollbar = self.log_text.verticalScrollBar()
+        scrollbar.setValue(scrollbar.maximum())
     
     def closeEvent(self, event):
-        """
-        Maneja el cierre de la aplicación.
-        """
-        self.detener_camara()
+        """Maneja el cierre de la aplicación"""
+        if self.camera is not None:
+            self.timer.stop()
+            self.camera.release()
         event.accept()
 
 
 def main():
     app = QApplication(sys.argv)
-    window = VentanillaApp()
+    app.setStyle('Fusion')  # Estilo moderno
+    window = ModernVentanillaApp()
     window.show()
     sys.exit(app.exec())
 

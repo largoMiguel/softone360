@@ -3,6 +3,17 @@ import { CommonModule } from '@angular/common';
 import { AsistenciaService } from '../../../services/asistencia.service';
 import { EstadisticasAsistencia, RegistroAsistencia } from '../../../models/asistencia.model';
 
+interface RegistroAgrupado {
+  funcionario_cedula: string;
+  funcionario_nombres: string;
+  funcionario_apellidos: string;
+  fecha: string;
+  entradas: RegistroAsistencia[];
+  salidas: RegistroAsistencia[];
+  foto_url?: string;
+  equipo_nombre?: string;
+}
+
 @Component({
   selector: 'app-dashboard-asistencia',
   standalone: true,
@@ -88,47 +99,53 @@ import { EstadisticasAsistencia, RegistroAsistencia } from '../../../models/asis
           <i class="bi bi-info-circle"></i> No hay registros recientes
         </div>
 
-        <div class="table-responsive" *ngIf="!loading && registros.length > 0">
-          <table class="table table-hover">
+        <div class="tabla-container" *ngIf="!loading && registrosAgrupados.length > 0">
+          <table class="tabla-registros">
             <thead>
               <tr>
                 <th>Foto</th>
                 <th>Funcionario</th>
                 <th>Cédula</th>
-                <th>Cargo</th>
-                <th>Tipo</th>
-                <th>Fecha y Hora</th>
+                <th>Fecha</th>
+                <th>Entradas</th>
+                <th>Salidas</th>
                 <th>Equipo</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let registro of registros">
-                <td>
-                  <img 
-                    *ngIf="registro.funcionario_foto_url" 
-                    [src]="registro.funcionario_foto_url" 
-                    alt="Foto"
-                    class="foto-funcionario"
-                  >
-                  <div *ngIf="!registro.funcionario_foto_url" class="foto-placeholder">
-                    <i class="bi bi-person-circle"></i>
+              <tr *ngFor="let registro of registrosAgrupados" class="fila-registro">
+                <td class="col-foto">
+                  <div class="foto-wrapper">
+                    <img *ngIf="registro.foto_url" [src]="registro.foto_url" class="foto-thumbnail" alt="Foto">
+                    <div *ngIf="!registro.foto_url" class="foto-placeholder-small">
+                      <i class="bi bi-person-circle"></i>
+                    </div>
                   </div>
                 </td>
-                <td>
+                <td class="col-nombre">
                   <strong>{{ registro.funcionario_nombres }} {{ registro.funcionario_apellidos }}</strong>
                 </td>
-                <td>{{ registro.funcionario_cedula }}</td>
-                <td>{{ registro.funcionario_cargo || 'N/A' }}</td>
-                <td>
-                  <span class="badge" [class.badge-success]="registro.tipo_registro === 'entrada'"
-                        [class.badge-warning]="registro.tipo_registro === 'salida'">
-                    <i class="bi" [class.bi-box-arrow-in-right]="registro.tipo_registro === 'entrada'"
-                       [class.bi-box-arrow-right]="registro.tipo_registro === 'salida'"></i>
-                    {{ registro.tipo_registro | titlecase }}
-                  </span>
+                <td class="col-cedula">{{ registro.funcionario_cedula }}</td>
+                <td class="col-fecha">{{ registro.fecha | date:'dd/MM/yyyy' }}</td>
+                <td class="col-entradas">
+                  <div class="tiempos-lista">
+                    <div class="tiempo-badge entrada" *ngFor="let entrada of registro.entradas">
+                      <i class="bi bi-box-arrow-in-right"></i>
+                      {{ formatearHora(entrada.fecha_hora) }}
+                    </div>
+                    <span *ngIf="registro.entradas.length === 0" class="sin-registro">—</span>
+                  </div>
                 </td>
-                <td>{{ registro.fecha_hora | date:'dd/MM/yyyy HH:mm:ss' }}</td>
-                <td>{{ registro.equipo_nombre }}</td>
+                <td class="col-salidas">
+                  <div class="tiempos-lista">
+                    <div class="tiempo-badge salida" *ngFor="let salida of registro.salidas">
+                      <i class="bi bi-box-arrow-right"></i>
+                      {{ formatearHora(salida.fecha_hora) }}
+                    </div>
+                    <span *ngIf="registro.salidas.length === 0" class="sin-registro">—</span>
+                  </div>
+                </td>
+                <td class="col-equipo">{{ registro.equipo_nombre || 'N/A' }}</td>
               </tr>
             </tbody>
           </table>
@@ -226,45 +243,148 @@ import { EstadisticasAsistencia, RegistroAsistencia } from '../../../models/asis
       color: #333;
     }
 
-    .foto-funcionario {
-      width: 50px;
-      height: 50px;
+    .tabla-container {
+      overflow-x: auto;
+    }
+    
+    .tabla-registros {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    
+    .tabla-registros thead {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .tabla-registros th {
+      padding: 12px 10px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .tabla-registros tbody tr {
+      border-bottom: 1px solid #e9ecef;
+      transition: background-color 0.2s;
+    }
+    
+    .tabla-registros tbody tr:hover {
+      background-color: #f8f9fa;
+    }
+    
+    .tabla-registros td {
+      padding: 12px 10px;
+      vertical-align: middle;
+    }
+    
+    .col-foto {
+      width: 70px;
+      text-align: center;
+    }
+    
+    .foto-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .foto-thumbnail {
+      width: 45px;
+      height: 45px;
       border-radius: 50%;
       object-fit: cover;
+      border: 2px solid #667eea;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-
-    .foto-placeholder {
-      width: 50px;
-      height: 50px;
+    
+    .foto-placeholder-small {
+      width: 45px;
+      height: 45px;
       border-radius: 50%;
-      background: #f5f5f5;
+      background: #e9ecef;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 2rem;
-      color: #999;
+      color: #adb5bd;
+      font-size: 1.5rem;
     }
-
-    .badge {
-      padding: 5px 10px;
-      border-radius: 5px;
+    
+    .col-nombre {
+      min-width: 180px;
+      color: #2c3e50;
+    }
+    
+    .col-cedula {
+      min-width: 110px;
+      color: #6c757d;
+      font-family: 'Courier New', monospace;
       font-size: 0.85rem;
     }
-
-    .badge-success {
-      background: #e8f5e9;
-      color: #388e3c;
+    
+    .col-fecha {
+      min-width: 100px;
+      color: #495057;
+      font-size: 0.85rem;
     }
-
-    .badge-warning {
-      background: #fff3e0;
-      color: #f57c00;
+    
+    .col-entradas, .col-salidas {
+      min-width: 130px;
+    }
+    
+    .tiempos-lista {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    
+    .tiempo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    
+    .tiempo-badge.entrada {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+      color: #5a67d8;
+      border: 1px solid rgba(102, 126, 234, 0.3);
+    }
+    
+    .tiempo-badge.salida {
+      background: linear-gradient(135deg, rgba(240, 147, 251, 0.15) 0%, rgba(245, 87, 108, 0.15) 100%);
+      color: #e53e3e;
+      border: 1px solid rgba(245, 87, 108, 0.3);
+    }
+    
+    .tiempo-badge i {
+      font-size: 0.9rem;
+    }
+    
+    .sin-registro {
+      color: #adb5bd;
+      font-style: italic;
+      font-size: 0.85rem;
+    }
+    
+    .col-equipo {
+      min-width: 120px;
+      color: #6c757d;
+      font-size: 0.85rem;
     }
   `]
 })
 export class DashboardAsistenciaComponent implements OnInit {
   estadisticas: EstadisticasAsistencia | null = null;
   registros: RegistroAsistencia[] = [];
+  registrosAgrupados: RegistroAgrupado[] = [];
   loading = true;
 
   constructor(private asistenciaService: AsistenciaService) {}
@@ -286,10 +406,13 @@ export class DashboardAsistenciaComponent implements OnInit {
       }
     });
 
-    // Cargar últimos 20 registros
-    this.asistenciaService.getRegistros(undefined, undefined, undefined, undefined, undefined, 20, 0).subscribe({
+    // Cargar últimos 50 registros para poder agrupar
+    this.asistenciaService.getRegistros(undefined, undefined, undefined, undefined, undefined, 50, 0).subscribe({
       next: (data) => {
         this.registros = data;
+        this.agruparRegistros();
+        // Limitar a 10 registros agrupados
+        this.registrosAgrupados = this.registrosAgrupados.slice(0, 10);
         this.loading = false;
       },
       error: (error) => {
@@ -297,5 +420,52 @@ export class DashboardAsistenciaComponent implements OnInit {
         this.loading = false;
       }
     });
+  }
+
+  agruparRegistros(): void {
+    const grupos = new Map<string, RegistroAgrupado>();
+
+    this.registros.forEach(registro => {
+      const fecha = new Date(registro.fecha_hora).toISOString().split('T')[0];
+      const key = `${registro.funcionario_cedula}-${fecha}`;
+
+      if (!grupos.has(key)) {
+        grupos.set(key, {
+          funcionario_cedula: registro.funcionario_cedula,
+          funcionario_nombres: registro.funcionario_nombres,
+          funcionario_apellidos: registro.funcionario_apellidos,
+          fecha: fecha,
+          entradas: [],
+          salidas: [],
+          foto_url: registro.foto_url,
+          equipo_nombre: registro.equipo_nombre
+        });
+      }
+
+      const grupo = grupos.get(key)!;
+      if (registro.tipo_registro === 'entrada') {
+        grupo.entradas.push(registro);
+      } else {
+        grupo.salidas.push(registro);
+      }
+
+      if (!grupo.foto_url && registro.foto_url) {
+        grupo.foto_url = registro.foto_url;
+      }
+    });
+
+    this.registrosAgrupados = Array.from(grupos.values())
+      .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+  }
+
+  formatearHora(fechaHora: string): string {
+    const fecha = new Date(fechaHora);
+    let horas = fecha.getHours();
+    const minutos = fecha.getMinutes().toString().padStart(2, '0');
+    const segundos = fecha.getSeconds().toString().padStart(2, '0');
+    const ampm = horas >= 12 ? 'PM' : 'AM';
+    horas = horas % 12;
+    horas = horas ? horas : 12;
+    return `${horas}:${minutos}:${segundos} ${ampm}`;
   }
 }

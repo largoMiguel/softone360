@@ -928,11 +928,12 @@ export class PdmService {
         const metaAsignada = actividades.reduce((sum, a) => sum + a.meta_ejecutar, 0);
         
         // Suma de metas de actividades CON evidencia (completadas)
+        // ✅ ACTUALIZADO: Usar tiene_evidencia en lugar de evidencia
         const metaEjecutada = actividades
-            .filter(a => a.evidencia !== undefined && a.evidencia !== null)
+            .filter(a => (a as any).tiene_evidencia === true || a.estado === 'COMPLETADA')
             .reduce((sum, a) => sum + a.meta_ejecutar, 0);
         
-        const actividadesCompletadas = actividades.filter(a => a.evidencia !== undefined && a.evidencia !== null).length;
+        const actividadesCompletadas = actividades.filter(a => (a as any).tiene_evidencia === true || a.estado === 'COMPLETADA').length;
         
         // ✅ NUEVA LÓGICA según requerimiento:
         // - Sin actividades: 0%
@@ -1011,7 +1012,8 @@ export class PdmService {
 
             anios.forEach(anio => {
                 const actividades = this.obtenerActividadesPorProductoYAnio(codigoProducto, anio);
-                const actividadesCompletadas = actividades.filter(a => a.evidencia !== undefined && a.evidencia !== null).length;
+                // ✅ ACTUALIZADO: Usar tiene_evidencia en lugar de evidencia
+                const actividadesCompletadas = actividades.filter(a => (a as any).tiene_evidencia === true || a.estado === 'COMPLETADA').length;
                 const porcentajeAvance = actividades.length > 0 
                     ? (actividadesCompletadas / actividades.length) * 100 
                     : 0;
@@ -1037,8 +1039,9 @@ export class PdmService {
             const metaProgramada = metas[index];
             const actividades = this.obtenerActividadesPorProductoYAnio(codigoProducto, anio);
             
+            // ✅ ACTUALIZADO: Usar tiene_evidencia en lugar de evidencia
             const metaEjecutada = actividades
-                .filter(a => a.evidencia !== undefined && a.evidencia !== null)
+                .filter(a => (a as any).tiene_evidencia === true || a.estado === 'COMPLETADA')
                 .reduce((sum, a) => sum + a.meta_ejecutar, 0);
             
             if (metaProgramada > 0) {

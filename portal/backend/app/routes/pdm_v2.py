@@ -3,7 +3,7 @@ Rutas API para PDM - Versión 2
 Alineadas con la estructura del frontend
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, defer, noload
 from sqlalchemy import func
 from typing import List
 from datetime import datetime
@@ -307,9 +307,12 @@ async def get_pdm_data(
 ):
     """Obtiene los productos del PDM cargados con sus actividades y otros arrays del frontend
     
+    OPTIMIZACIÓN: Carga productos en lotes internos de 50 para evitar OOM
+    pero retorna todos en una sola respuesta
+    
     FILTRADO POR ROL EN BACKEND:
     - ADMIN: ve TODOS los productos
-    - SECRETARIO: ve SOLO sus productos asignados (responsable_user_id == current_user.id)
+    - SECRETARIO: ve SOLO sus productos asignados
     """
     try:
         print(f"\n📊 GET /pdm/v2/{slug}/data - Usuario: {current_user.username}")
@@ -317,8 +320,13 @@ async def get_pdm_data(
         entity = get_entity_or_404(db, slug)
         ensure_user_can_manage_entity(current_user, entity)
         
-        # Construir query base
-        query = db.query(PdmProducto).filter(PdmProducto.entity_id == entity.id)
+        # Construir query base con defer de campos JSON pesados
+        query = db.query(PdmProducto).options(
+            defer(PdmProducto.presupuesto_2024),
+            defer(PdmProducto.presupuesto_2025),
+            defer(PdmProducto.presupuesto_2026),
+            defer(PdmProducto.presupuesto_2027)
+        ).filter(PdmProducto.entity_id == entity.id)
         
         # FILTRADO POR ROL: Secretarios solo ven productos asignados a SU secretaría
         if current_user.role == UserRole.SECRETARIO:
@@ -333,148 +341,198 @@ async def get_pdm_data(
         else:
             print(f"👨‍💼 Usuario {current_user.role} - viendo TODOS los productos")
         
-        # Cargar productos CON sus actividades relacionadas (eager loading)
-        productos = query.all()
+        # Ordenar por código para resultados consistentes
+        query = query.order_by(PdmProducto.codigo_producto)
         
-        print(f"📊 Encontrados {len(productos)} productos para entidad {slug}")
+        # Contar total
+        total_productos = query.count()
+        print(f"📊 Total de productos en DB: {total_productos}")
         
-        # ✅ OPTIMIZACIÓN: Cargar TODAS las actividades de una sola vez CON evidencias
-        todas_actividades = db.query(PdmActividad).options(
-            joinedload(PdmActividad.evidencia)
-        ).filter(
-            PdmActividad.entity_id == entity.id
-        ).all()
-        
-        # Crear un diccionario para acceso rápido: codigo_producto -> [actividades]
-        actividades_por_codigo = {}
-        for act in todas_actividades:
-            if act.codigo_producto not in actividades_por_codigo:
-                actividades_por_codigo[act.codigo_producto] = []
-            actividades_por_codigo[act.codigo_producto].append(act)
-        
-        print(f"📦 Cargadas {len(todas_actividades)} actividades en total")
-        
-        # Validar cada producto antes de retornar
+        # ✅ OPTIMIZACIÓN CRÍTICA: Procesar en lotes de 10 para evitar OOM
+        # Cada lote se procesa COMPLETAMENTE antes de cargar el siguiente
+        BATCH_SIZE = 10
         productos_validos = []
-        lineas_set = set()  # Usar set para líneas únicas
+        lineas_set = set()
+        offset = 0
         
-        for p in productos:
-            try:
-                # Obtener actividades del diccionario (O(1) en lugar de query)
-                actividades = actividades_por_codigo.get(p.codigo_producto, [])
-                
-                # Asignar actividades al producto (para que Pydantic pueda validarlo)
-                p.actividades = actividades
-                
-                # Enriquecer con nombre del responsable (SECRETARÍA) si existe
-                responsable_nombre = None
-                
-                # ✅ Mostrar SECRETARÍA como responsable (no usuario)
-                if p.responsable_secretaria_nombre:
-                    responsable_nombre = p.responsable_secretaria_nombre
-                
-                # ✅ OPTIMIZACIÓN: No cargar presupuesto_XXXX (JSON pesado), solo totales
-                # Esto reduce payload de ~300KB a ~60KB por cada 100 productos
-                p.presupuesto_2024 = None
-                p.presupuesto_2025 = None
-                p.presupuesto_2026 = None
-                p.presupuesto_2027 = None
-                
-                prod_response = schemas.ProductoResponse.model_validate(p)
-                # Agregar el nombre de la secretaría responsable al response
-                prod_response.responsable_nombre = responsable_nombre
-
-                # ===============================
-                # Cálculo de avance de metas del cuatrienio
-                # Cada año con programacion_X > 0 se considera una meta.
-                # Una meta anual se cumple si suma(meta_ejecutar de actividades COMPLETADAS del año) >= programacion_X.
-                # Avance general = metas_cumplidas / metas_totales * 100.
-                # ===============================
-                programaciones_por_anio = {
-                    2024: p.programacion_2024 or 0,
-                    2025: p.programacion_2025 or 0,
-                    2026: p.programacion_2026 or 0,
-                    2027: p.programacion_2027 or 0,
+        while offset < total_productos:
+            # Cargar lote de productos
+            batch_productos = query.limit(BATCH_SIZE).offset(offset).all()
+            if not batch_productos:
+                break
+            
+            print(f"📦 Procesando lote {offset//BATCH_SIZE + 1}: {len(batch_productos)} productos")
+            
+            # Cargar actividades SOLO para este lote (SIN evidencias para evitar OOM)
+            codigos_batch = [p.codigo_producto for p in batch_productos]
+            actividades_batch = db.query(PdmActividad).filter(
+                PdmActividad.entity_id == entity.id,
+                PdmActividad.codigo_producto.in_(codigos_batch)
+            ).all()
+            
+            # Cargar IDs de actividades que tienen evidencia (query ligera)
+            actividades_ids = [act.id for act in actividades_batch]
+            evidencias_existentes = set()
+            if actividades_ids:
+                evidencias_query = db.query(PdmActividadEvidencia.actividad_id).filter(
+                    PdmActividadEvidencia.actividad_id.in_(actividades_ids)
+                ).all()
+                evidencias_existentes = {e[0] for e in evidencias_query}
+            
+            # Convertir actividades a dict y agregar tiene_evidencia
+            actividades_dict_por_codigo = {}
+            for act in actividades_batch:
+                # Crear dict desde el objeto ORM con TODOS los campos del schema
+                act_dict = {
+                    'id': act.id,
+                    'entity_id': act.entity_id,
+                    'codigo_producto': act.codigo_producto,
+                    'anio': act.anio,
+                    'nombre': act.nombre,
+                    'descripcion': act.descripcion,
+                    'responsable_secretaria_id': act.responsable_secretaria_id,
+                    'responsable_secretaria_nombre': act.responsable_secretaria.nombre if act.responsable_secretaria else None,
+                    'fecha_inicio': act.fecha_inicio,
+                    'fecha_fin': act.fecha_fin,
+                    'meta_ejecutar': act.meta_ejecutar,
+                    'estado': act.estado,
+                    'tiene_evidencia': act.id in evidencias_existentes,  # ✅ Campo agregado
+                    'created_at': act.created_at,
+                    'updated_at': act.updated_at
                 }
-
-                detalle_metas = []
-                metas_totales = 0
-                metas_cumplidas = 0
-                puede_agregar_actividad_anio = {}
-
-                actividades_por_anio = {}
-                for act in actividades:
-                    actividades_por_anio.setdefault(act.anio, []).append(act)
-
-                for anio, programado in programaciones_por_anio.items():
-                    if programado and programado > 0:
-                        metas_totales += 1
-                        lista_acts = actividades_por_anio.get(anio, [])
-                        ejecutado = sum(a.meta_ejecutar for a in lista_acts if a.estado == 'COMPLETADA')
-                        cumplida = ejecutado >= programado and ejecutado > 0
-                        if cumplida:
-                            metas_cumplidas += 1
-                        detalle_metas.append({
-                            "anio": anio,
-                            "programado": programado,
-                            "ejecutado": ejecutado,
-                            "cumplida": cumplida
-                        })
-                        # Puede agregar actividad si la meta del año no está cumplida
-                        puede_agregar_actividad_anio[str(anio)] = not cumplida
-                    else:
-                        lista_acts = actividades_por_anio.get(anio, [])
-                        ejecutado = sum(a.meta_ejecutar for a in lista_acts if a.estado == 'COMPLETADA') if lista_acts else 0
-                        detalle_metas.append({
-                            "anio": anio,
-                            "programado": 0,
-                            "ejecutado": ejecutado,
-                            "cumplida": False
-                        })
-                        puede_agregar_actividad_anio[str(anio)] = False
-
-                avance_general_porcentaje = (metas_cumplidas / metas_totales * 100) if metas_totales > 0 else 0
-                prod_response.metas_totales = metas_totales
-                prod_response.metas_cumplidas = metas_cumplidas
-                prod_response.avance_general_porcentaje = round(avance_general_porcentaje, 2)
-                prod_response.detalle_metas = detalle_metas
-                prod_response.puede_agregar_actividad_anio = puede_agregar_actividad_anio
                 
-                # ✅ OPTIMIZACIÓN: Calcular porcentaje_ejecucion en backend
-                # Esto evita que el frontend tenga que recalcular para cada producto
-                # Cálculo: promedio de avance por año basado en metas ejecutadas
-                sum_avances_anuales = 0
-                anios_con_meta = 0
-                
-                for detalle in detalle_metas:
-                    programado = detalle['programado']
-                    ejecutado = detalle['ejecutado']
-                    if programado > 0:
-                        avance_anual = min(100, (ejecutado / programado) * 100)
-                        sum_avances_anuales += avance_anual
-                        anios_con_meta += 1
-                
-                porcentaje_ejecucion = (sum_avances_anuales / anios_con_meta) if anios_con_meta > 0 else 0
-                prod_response.porcentaje_ejecucion = round(porcentaje_ejecucion, 2)
+                if act.codigo_producto not in actividades_dict_por_codigo:
+                    actividades_dict_por_codigo[act.codigo_producto] = []
+                actividades_dict_por_codigo[act.codigo_producto].append(act_dict)
+            
+            print(f"   ├─ Actividades: {len(actividades_batch)}")
+            
+            # Procesar productos del lote
+            for p in batch_productos:
+                try:
+                    # Obtener actividades del diccionario (ahora son dicts con tiene_evidencia)
+                    actividades_dicts = actividades_dict_por_codigo.get(p.codigo_producto, [])
+                    
+                    # Convertir dicts a objetos Pydantic para validación
+                    actividades_validadas = [schemas.ActividadResponse(**act_dict) for act_dict in actividades_dicts]
+                    
+                    # Enriquecer con nombre del responsable (SECRETARÍA) si existe
+                    responsable_nombre = None
+                    
+                    # ✅ Mostrar SECRETARÍA como responsable (no usuario)
+                    if p.responsable_secretaria_nombre:
+                        responsable_nombre = p.responsable_secretaria_nombre
+                    
+                    # ✅ OPTIMIZACIÓN: No cargar presupuesto_XXXX (JSON pesado), solo totales
+                    # Esto reduce payload de ~300KB a ~60KB por cada 100 productos
+                    p.presupuesto_2024 = None
+                    p.presupuesto_2025 = None
+                    p.presupuesto_2026 = None
+                    p.presupuesto_2027 = None
+                    
+                    # Validar el producto SIN las actividades Pydantic (que causarían error)
+                    prod_response = schemas.ProductoResponse.model_validate(p)
+                    
+                    # DESPUÉS de validar, asignar las actividades al response
+                    prod_response.actividades = actividades_validadas
+                    
+                    # Agregar el nombre de la secretaría responsable al response
+                    prod_response.responsable_nombre = responsable_nombre
 
-                productos_validos.append(prod_response)
-                
-                # Recolectar líneas estratégicas únicas
-                if p.linea_estrategica:
-                    lineas_set.add(p.linea_estrategica)
-                
-            except Exception as e:
-                print(f"⚠️ Error validando producto {p.id}: {str(e)}")
-                import traceback
-                traceback.print_exc()
-                # Si falla un producto, retornar lista vacía para evitar error 500
-                print(f"❌ Retornando lista vacía debido a error de validación")
-                return schemas.PDMDataResponse(
-                    productos_plan_indicativo=[],
-                    lineas_estrategicas=[],
-                    indicadores_resultado=[],
-                    iniciativas_sgr=[]
-                )
+                    # ===============================
+                    # Cálculo de avance de metas del cuatrienio
+                    # Cada año con programacion_X > 0 se considera una meta.
+                    # Una meta anual se cumple si suma(meta_ejecutar de actividades COMPLETADAS del año) >= programacion_X.
+                    # Avance general = metas_cumplidas / metas_totales * 100.
+                    # ===============================
+                    programaciones_por_anio = {
+                        2024: p.programacion_2024 or 0,
+                        2025: p.programacion_2025 or 0,
+                        2026: p.programacion_2026 or 0,
+                        2027: p.programacion_2027 or 0,
+                    }
+
+                    detalle_metas = []
+                    metas_totales = 0
+                    metas_cumplidas = 0
+                    puede_agregar_actividad_anio = {}
+
+                    actividades_por_anio = {}
+                    # Agrupar actividades por año
+                    for act_dict in actividades_dicts:
+                        anio = act_dict['anio']
+                        actividades_por_anio.setdefault(anio, []).append(act_dict)
+
+                    for anio, programado in programaciones_por_anio.items():
+                        if programado and programado > 0:
+                            metas_totales += 1
+                            lista_acts = actividades_por_anio.get(anio, [])
+                            ejecutado = sum(a['meta_ejecutar'] for a in lista_acts if a['estado'] == 'COMPLETADA')
+                            cumplida = ejecutado >= programado and ejecutado > 0
+                            if cumplida:
+                                metas_cumplidas += 1
+                            detalle_metas.append({
+                                "anio": anio,
+                                "programado": programado,
+                                "ejecutado": ejecutado,
+                                "cumplida": cumplida
+                            })
+                            # Puede agregar actividad si la meta del año no está cumplida
+                            puede_agregar_actividad_anio[str(anio)] = not cumplida
+                        else:
+                            lista_acts = actividades_por_anio.get(anio, [])
+                            ejecutado = sum(a['meta_ejecutar'] for a in lista_acts if a['estado'] == 'COMPLETADA') if lista_acts else 0
+                            detalle_metas.append({
+                                "anio": anio,
+                                "programado": 0,
+                                "ejecutado": ejecutado,
+                                "cumplida": False
+                            })
+                            puede_agregar_actividad_anio[str(anio)] = False
+
+                    avance_general_porcentaje = (metas_cumplidas / metas_totales * 100) if metas_totales > 0 else 0
+                    prod_response.metas_totales = metas_totales
+                    prod_response.metas_cumplidas = metas_cumplidas
+                    prod_response.avance_general_porcentaje = round(avance_general_porcentaje, 2)
+                    prod_response.detalle_metas = detalle_metas
+                    prod_response.puede_agregar_actividad_anio = puede_agregar_actividad_anio
+                    
+                    # ✅ OPTIMIZACIÓN: Calcular porcentaje_ejecucion en backend
+                    # Esto evita que el frontend tenga que recalcular para cada producto
+                    # Cálculo: promedio de avance por año basado en metas ejecutadas
+                    sum_avances_anuales = 0
+                    anios_con_meta = 0
+                    
+                    for detalle in detalle_metas:
+                        programado = detalle['programado']
+                        ejecutado = detalle['ejecutado']
+                        if programado > 0:
+                            avance_anual = min(100, (ejecutado / programado) * 100)
+                            sum_avances_anuales += avance_anual
+                            anios_con_meta += 1
+                    
+                    porcentaje_ejecucion = (sum_avances_anuales / anios_con_meta) if anios_con_meta > 0 else 0
+                    prod_response.porcentaje_ejecucion = round(porcentaje_ejecucion, 2)
+
+                    productos_validos.append(prod_response)
+                    
+                    # Recolectar líneas estratégicas únicas
+                    if p.linea_estrategica:
+                        lineas_set.add(p.linea_estrategica)
+                    
+                except Exception as e:
+                    print(f"⚠️ Error validando producto {p.id}: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+                    continue  # Continuar con el siguiente producto
+            
+            # Liberar memoria después de procesar el lote
+            db.expire_all()
+            print(f"   └─ Procesados: {len(batch_productos)} productos del lote")
+            
+            offset += BATCH_SIZE
+        
+        print(f"✅ Total productos procesados: {len(productos_validos)}")
         
         # ✅ Cargar iniciativas SGR desde la tabla separada (no del BPIN de productos)
         iniciativas_sgr_db = db.query(PdmIniciativaSGR).filter(
@@ -498,7 +556,11 @@ async def get_pdm_data(
             productos_plan_indicativo=productos_validos,
             lineas_estrategicas=lineas_estrategicas,
             indicadores_resultado=[],  # Empty for now
-            iniciativas_sgr=iniciativas_sgr
+            iniciativas_sgr=iniciativas_sgr,
+            total_productos=len(productos_validos),
+            limit=len(productos_validos),
+            offset=0,
+            has_more=False
         )
     except HTTPException:
         raise
@@ -945,4 +1007,40 @@ async def asignar_responsable_producto(
         "responsable_secretaria_id": producto.responsable_secretaria_id,
         "responsable_secretaria_nombre": producto.responsable_secretaria_nombre,
         "usuarios_notificados": len(usuarios_en_secretaria)
+    }
+
+
+@router.get("/actividades/{actividad_id}/evidencia/imagenes", response_model=dict)
+async def get_evidencia_imagenes(
+    actividad_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Endpoint para cargar las imágenes de la evidencia de una actividad específica.
+    Se carga bajo demanda para evitar OOM en el listado principal.
+    """
+    
+    # Verificar que la actividad existe y pertenece a la entidad del usuario
+    actividad = db.query(PdmActividad).filter(
+        PdmActividad.id == actividad_id,
+        PdmActividad.entity_id == current_user.entity_id
+    ).first()
+    
+    if not actividad:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Actividad no encontrada"
+        )
+    
+    # Cargar evidencia con imágenes
+    evidencia = db.query(PdmActividadEvidencia).filter(
+        PdmActividadEvidencia.actividad_id == actividad_id
+    ).first()
+    
+    if not evidencia:
+        return {"imagenes": []}
+    
+    return {
+        "imagenes": evidencia.imagenes or []
     }

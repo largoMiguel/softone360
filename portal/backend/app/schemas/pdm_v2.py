@@ -164,7 +164,7 @@ class EvidenciaResponse(EvidenciaActividadBase):
 class ActividadResponse(ActividadResponseBase):
     id: int
     entity_id: int
-    evidencia: Optional[EvidenciaResponse] = None
+    tiene_evidencia: bool = False  # ✅ Solo indicador, no cargar objeto completo
     created_at: datetime
     updated_at: Optional[datetime] = None  # Hacer opcional para evitar errores de serialización
 
@@ -215,6 +215,12 @@ class PDMDataResponse(BaseModel):
     lineas_estrategicas: List[Dict[str, Any]] = []  # Líneas estratégicas únicas
     indicadores_resultado: List[Dict[str, Any]] = []  # Indicadores de resultado
     iniciativas_sgr: List[Dict[str, Any]] = []  # Iniciativas SGR
+    
+    # Metadatos de paginación
+    total_productos: int = 0
+    limit: int = 50
+    offset: int = 0
+    has_more: bool = False
 
 
 class PDMLoadStatusResponse(BaseModel):

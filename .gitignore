@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+
+# macOS
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+
+# Node modules
+node_modules/
+
+# Backups
+*_backup_*.py
+*_old.py
+*.bak
+
+# Test files
+test_*.py
+
+# Build artifacts
+ventanilla/build/
+ventanilla/dist/
+
+# AWS
+.aws-sam/
+
+# Coverage
+.coverage
+htmlcov/

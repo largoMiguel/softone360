@@ -1788,16 +1788,16 @@ export class PdmComponent implements OnInit, OnDestroy {
                             'Año': act.anio,
                             'Nombre Actividad': act.nombre,
                             'Descripción': act.descripcion,
-                            'Estado': act.estado,
+                            'Estado': act.estado || 'PENDIENTE',
                             'Secretaría': act.responsable_secretaria_nombre || 'Sin asignar',
                             'Meta a Ejecutar': act.meta_ejecutar,
                             'Fecha Inicio': act.fecha_inicio,
                             'Fecha Fin': act.fecha_fin,
-                            'Tiene Evidencia': act.evidencia ? 'Sí' : 'No',
-                            'URL Evidencia': act.evidencia?.url_evidencia || '',
-                            'Descripción Evidencia': act.evidencia?.descripcion || '',
-                            'Cantidad Imágenes': act.evidencia?.imagenes?.length || 0,
-                            'Fecha Registro Evidencia': act.evidencia?.fecha_registro || ''
+                            'Tiene Evidencia': (act as any).tiene_evidencia ? 'Sí' : 'No',
+                            'URL Evidencia': '',
+                            'Descripción Evidencia': '',
+                            'Cantidad Imágenes': 0,
+                            'Fecha Registro Evidencia': ''
                         });
                     });
                 });
