@@ -773,24 +773,6 @@ class PDMReportGenerator:
         self.story.append(Paragraph(concepto_lineas, justify_style))
         self.story.append(Spacer(1, 0.2*inch))
         
-        desc_text_old = """
-        Las líneas estratégicas (también conocidas como pilares, ejes o dimensiones) son las grandes 
-        apuestas o enfoques prioritarios que una administración define para guiar y centrar sus acciones 
-        durante el periodo de vigencia del Plan de Desarrollo y su principal función es organizar y 
-        orientar la gestión pública.
-        """
-        
-        justify_style = ParagraphStyle(
-            'Justify',
-            parent=self.styles['BodyText'],
-            alignment=TA_JUSTIFY,
-            fontSize=10,
-            spaceAfter=12
-        )
-        
-        self.story.append(Paragraph(desc_text, justify_style))
-        self.story.append(Spacer(1, 0.1*inch))
-        
         # Agregar gráfico
         self.generate_grafico_lineas()
         
