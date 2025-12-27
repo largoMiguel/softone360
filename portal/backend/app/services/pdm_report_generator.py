@@ -351,14 +351,21 @@ class PDMReportGenerator:
             total_presupuesto = 0
             for prod in self.productos:
                 if self.anio == 0:
-                    # Presupuesto del cuatrienio completo
-                    total_presupuesto += float(prod.total_cuatrienio or 0)
-                else:
-                    # Suma simple de los 4 años (acumulado)
+                    # Presupuesto del cuatrienio completo (suma de todos los años)
                     total_presupuesto += float(prod.total_2024 or 0)
                     total_presupuesto += float(prod.total_2025 or 0)
                     total_presupuesto += float(prod.total_2026 or 0)
                     total_presupuesto += float(prod.total_2027 or 0)
+                else:
+                    # Presupuesto del año específico
+                    if self.anio == 2024:
+                        total_presupuesto += float(prod.total_2024 or 0)
+                    elif self.anio == 2025:
+                        total_presupuesto += float(prod.total_2025 or 0)
+                    elif self.anio == 2026:
+                        total_presupuesto += float(prod.total_2026 or 0)
+                    elif self.anio == 2027:
+                        total_presupuesto += float(prod.total_2027 or 0)
             
             # TABLA DE KPIs PRINCIPALES
             white_bold = ParagraphStyle('WhiteBold', parent=self.styles['Normal'], 
@@ -1396,14 +1403,20 @@ class PDMReportGenerator:
             
             # 5. CANTIDAD META FÍSICA | RECURSOS | RESPONSABLE
             if self.anio == 0:
-                total_recursos = prod.total_cuatrienio or 0
+                # Cuatrienio completo: suma de todos los años
+                total_recursos = (prod.total_2024 or 0) + (prod.total_2025 or 0) + (prod.total_2026 or 0) + (prod.total_2027 or 0)
             else:
-                total_recursos = sum([
-                    (prod.total_2024 or 0) if self.anio >= 2024 else 0,
-                    (prod.total_2025 or 0) if self.anio >= 2025 else 0,
-                    (prod.total_2026 or 0) if self.anio >= 2026 else 0,
-                    (prod.total_2027 or 0) if self.anio >= 2027 else 0
-                ])
+                # Año específico
+                if self.anio == 2024:
+                    total_recursos = prod.total_2024 or 0
+                elif self.anio == 2025:
+                    total_recursos = prod.total_2025 or 0
+                elif self.anio == 2026:
+                    total_recursos = prod.total_2026 or 0
+                elif self.anio == 2027:
+                    total_recursos = prod.total_2027 or 0
+                else:
+                    total_recursos = 0
             
             responsable = prod.responsable_secretaria.nombre if prod.responsable_secretaria else 'N/A'
             
