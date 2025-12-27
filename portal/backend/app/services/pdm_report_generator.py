@@ -1,6 +1,24 @@
 """
-Generador de Informes PDF para Plan de Desarrollo Municipal (PDM)
-Basado en el diseño del documento institucional oficial
+Generador de Informes Institucionales para Plan de Desarrollo Municipal (PDM)
+Basado en estándares colombianos de gestión pública territorial
+
+Este módulo genera informes de gestión institucional alineados con:
+- Constitución Política de Colombia de 1991
+- Normatividad en planeación territorial
+- Metodología General Ajustada (MGA) del DNP
+- Agenda 2030 y Objetivos de Desarrollo Sostenible
+
+Estructura del informe:
+1. Portada institucional (con equipo de gobierno)
+2. Introducción (marco legal y objetivo del informe)
+3. Avance por líneas estratégicas (pilares del plan)
+4. Avance por sectores MGA (áreas temáticas)
+5. Avance por ODS (alineación con Agenda 2030)
+6. Descripción de cumplimiento de metas
+7. Ejecución del plan de acción por vigencia
+
+Formato: PDF, DOCX, Excel
+Estilo: Lenguaje técnico-administrativo, formal, tercera persona
 """
 
 from reportlab.lib.pagesizes import letter
@@ -73,45 +91,82 @@ class PDMReportGenerator:
         canvas.restoreState()
     
     def generate_portada(self):
-        """Genera la portada estándar"""
-        # Título principal
+        """Genera la portada institucional según formato colombiano"""
+        # Título principal institucional
         title_style = ParagraphStyle(
             'CustomTitle',
             parent=self.styles['Title'],
             fontSize=24,
             textColor=colors.HexColor('#003366'),
             alignment=TA_CENTER,
-            spaceAfter=12
+            spaceAfter=12,
+            fontName='Helvetica-Bold'
         )
         
-        self.story.append(Spacer(1, 2*inch))
-        self.story.append(Paragraph("INFORME DE GESTIÓN", title_style))
-        anio_texto = "Todos los Años (2024-2027)" if self.anio == 0 else str(self.anio)
-        self.story.append(Paragraph(anio_texto, title_style))
+        self.story.append(Spacer(1, 1.5*inch))
+        self.story.append(Paragraph("INFORME DE GESTIÓN INSTITUCIONAL", title_style))
+        self.story.append(Spacer(1, 0.2*inch))
+        
+        # Año de vigencia
+        anio_texto = "Vigencia 2024-2027" if self.anio == 0 else f"Vigencia {self.anio}"
+        anio_style = ParagraphStyle(
+            'AnioStyle',
+            parent=self.styles['Heading2'],
+            fontSize=18,
+            textColor=colors.HexColor('#003366'),
+            alignment=TA_CENTER,
+            spaceAfter=20
+        )
+        self.story.append(Paragraph(anio_texto, anio_style))
         self.story.append(Spacer(1, 0.3*inch))
         
         # Nombre del plan
         plan_style = ParagraphStyle(
             'PlanTitle',
             parent=self.styles['Heading1'],
-            fontSize=18,
+            fontSize=16,
             textColor=colors.HexColor('#003366'),
-            alignment=TA_CENTER
+            alignment=TA_CENTER,
+            spaceAfter=12
         )
         
-        self.story.append(Paragraph("PLAN DE DESARROLLO MUNICIPAL", plan_style))
-        self.story.append(Spacer(1, 0.3*inch))
+        plan_name = getattr(self.entity, 'plan_name', None) or "PLAN DE DESARROLLO MUNICIPAL"
+        self.story.append(Paragraph(plan_name, plan_style))
+        self.story.append(Spacer(1, 0.2*inch))
         
-        # Entidad
+        # Tipo de informe
+        tipo_style = ParagraphStyle(
+            'TipoInforme',
+            parent=self.styles['Normal'],
+            fontSize=12,
+            alignment=TA_CENTER,
+            textColor=colors.HexColor('#666666'),
+            spaceAfter=6
+        )
+        self.story.append(Paragraph("Informe de Gestión / Rendición de Cuentas", tipo_style))
+        self.story.append(Spacer(1, 0.4*inch))
+        
+        # Entidad - Municipio
         entity_style = ParagraphStyle(
             'EntityName',
             parent=self.styles['Heading2'],
             fontSize=16,
             alignment=TA_CENTER,
-            textColor=colors.HexColor('#666666')
+            textColor=colors.HexColor('#003366'),
+            fontName='Helvetica-Bold'
         )
         self.story.append(Paragraph(self.entity.name.upper(), entity_style))
-        self.story.append(Spacer(1, 0.5*inch))
+        
+        alcaldia_style = ParagraphStyle(
+            'Alcaldia',
+            parent=self.styles['Normal'],
+            fontSize=14,
+            alignment=TA_CENTER,
+            textColor=colors.HexColor('#666666'),
+            spaceAfter=12
+        )
+        self.story.append(Paragraph("Alcaldía Municipal", alcaldia_style))
+        self.story.append(Spacer(1, 0.4*inch))
         
         # Información de filtros si existen
         if self.filtros:
@@ -140,45 +195,77 @@ class PDMReportGenerator:
                 for info in filter_info:
                     self.story.append(Paragraph(info, filter_style))
         
-        # Subtítulo
-        subtitle_style = ParagraphStyle(
-            'Subtitle',
-            parent=self.styles['Heading2'],
-            fontSize=14,
+        # Equipo de gobierno (si está disponible)
+        equipo_style = ParagraphStyle(
+            'EquipoGobierno',
+            parent=self.styles['Normal'],
+            fontSize=10,
             alignment=TA_CENTER,
-            textColor=colors.HexColor('#666666')
+            textColor=colors.HexColor('#666666'),
+            spaceAfter=4,
+            leading=14
         )
         
-        self.story.append(Spacer(1, 0.5*inch))
-        self.story.append(Paragraph("INFORME DE RENDICIÓN DE CUENTAS", subtitle_style))
+        self.story.append(Spacer(1, 0.3*inch))
+        self.story.append(Paragraph("<b>Equipo de Gobierno Municipal</b>", equipo_style))
+        
+        # Información del equipo (placeholder - puede venir de la entidad)
+        equipo_info = [
+            "Alcalde Municipal",
+            "Gestor(a) Social",
+            "Jefe de Planeación Municipal",
+            "Secretario de Gobierno",
+            "Comisaría de Familia",
+            "Inspector de Policía"
+        ]
+        
+        for cargo in equipo_info:
+            self.story.append(Paragraph(cargo, equipo_style))
         
         self.story.append(PageBreak())
     
     def generate_introduccion(self):
-        """Genera la página de introducción"""
+        """Genera la introducción institucional del informe"""
         title_style = ParagraphStyle(
             'SectionTitle',
             parent=self.styles['Heading1'],
             fontSize=16,
             textColor=colors.HexColor('#003366'),
-            spaceAfter=12,
-            spaceBefore=12
+            spaceAfter=16,
+            spaceBefore=12,
+            fontName='Helvetica-Bold'
         )
         
         self.story.append(Paragraph("INTRODUCCIÓN", title_style))
         
+        anio_texto = "el cuatrienio 2024-2027" if self.anio == 0 else f"la vigencia {self.anio}"
+        plan_name = getattr(self.entity, 'plan_name', 'Plan de Desarrollo Municipal')
+        
         intro_text = f"""
-        Los planes de desarrollo de las entidades territoriales son la carta de navegación y la principal 
-        herramienta de planeación para su desarrollo integral. Son un instrumento político y técnico, 
-        construido de forma democrática y pluralista, donde se concretan las decisiones, acciones, 
-        medios y recursos que orientan el desarrollo del territorio.
+        Los planes de desarrollo de las entidades territoriales constituyen la carta de navegación y el principal 
+        instrumento de planeación para el desarrollo integral del territorio. Se configuran como herramientas de 
+        carácter político y técnico, construidas mediante procesos democráticos y pluralistas, en las cuales se 
+        materializan las decisiones, acciones, medios y recursos que orientan la gestión pública hacia el logro de 
+        los objetivos de desarrollo territorial.
         <br/><br/>
-        El presente informe de gestión da cuenta del estado de ejecución del Plan de Desarrollo Municipal 
-        para la vigencia {self.anio}, presentando los resultados alcanzados a partir de las metas establecidas, 
-        los recursos administrativos, financieros y humanos ejecutados.
+        El Plan de Desarrollo Municipal "{plan_name}" fue adoptado mediante Acuerdo Municipal, en cumplimiento de 
+        lo establecido en la Constitución Política de Colombia de 1991 y la normatividad vigente en materia de 
+        planeación territorial. Este instrumento define las estrategias, programas y proyectos que guían la acción 
+        gubernamental del municipio de {self.entity.name}.
         <br/><br/>
-        Este documento contiene información sobre el avance de productos, actividades y evidencias de 
-        gestión, organizado por líneas estratégicas, sectores y objetivos de desarrollo sostenible.
+        El presente informe de gestión institucional tiene como objetivo presentar un balance integral de los 
+        resultados alcanzados durante {anio_texto}, evidenciando el estado de ejecución de las metas programadas, 
+        la inversión de recursos administrativos y financieros, así como el avance en el cumplimiento de los 
+        compromisos adquiridos con la comunidad.
+        <br/><br/>
+        Este documento describe los logros y avances obtenidos, identifica las metas pendientes de cumplimiento, 
+        y formula recomendaciones estratégicas para el fortalecimiento de la gestión pública municipal. La información 
+        contenida se encuentra organizada por líneas estratégicas, sectores de intervención y su alineación con los 
+        Objetivos de Desarrollo Sostenible (ODS) de la Agenda 2030.
+        <br/><br/>
+        El informe se estructura como un instrumento de rendición de cuentas ante la comunidad y de transparencia en 
+        la gestión integral del territorio, enmarcado en los principios de eficiencia, eficacia y efectividad de la 
+        administración pública.
         """
         
         justify_style = ParagraphStyle(
@@ -663,11 +750,30 @@ class PDMReportGenerator:
         )
         
         self.story.append(Paragraph(
-            "AVANCE DE CUMPLIMIENTO DE METAS PLAN DE DESARROLLO POR LÍNEAS ESTRATÉGICAS",
+            "AVANCE DE CUMPLIMIENTO DE METAS DEL PLAN DE DESARROLLO POR LÍNEAS ESTRATÉGICAS",
             title_style
         ))
         
-        desc_text = """
+        # Definición conceptual
+        justify_style = ParagraphStyle(
+            'Justify',
+            parent=self.styles['BodyText'],
+            alignment=TA_JUSTIFY,
+            fontSize=10,
+            spaceAfter=12
+        )
+        
+        concepto_lineas = """
+        Las líneas estratégicas constituyen los pilares, ejes o dimensiones fundamentales sobre los cuales 
+        se estructura el Plan de Desarrollo Municipal. Estas líneas orientan la gestión pública y la asignación 
+        de recursos hacia el logro de resultados específicos en áreas prioritarias del desarrollo territorial, 
+        garantizando coherencia entre los objetivos de gobierno y las necesidades de la población.
+        """
+        
+        self.story.append(Paragraph(concepto_lineas, justify_style))
+        self.story.append(Spacer(1, 0.2*inch))
+        
+        desc_text_old = """
         Las líneas estratégicas (también conocidas como pilares, ejes o dimensiones) son las grandes 
         apuestas o enfoques prioritarios que una administración define para guiar y centrar sus acciones 
         durante el periodo de vigencia del Plan de Desarrollo y su principal función es organizar y 
@@ -803,20 +909,25 @@ class PDMReportGenerator:
             fontSize=14,
             textColor=colors.HexColor('#003366'),
             spaceAfter=12,
+            spaceBefore=12,
             fontName='Helvetica-Bold'
         )
         
         self.story.append(Paragraph(
-            "AVANCE DE CUMPLIMIENTO DE METAS PLAN DE DESARROLLO POR SECTORES",
+            "AVANCE DE CUMPLIMIENTO DE METAS DEL PLAN DE DESARROLLO POR SECTORES",
             title_style
         ))
         
         desc_text = """
-        Los sectores del Plan de Desarrollo se refieren a las áreas temáticas o campos de 
-        acción específicos en los que se organiza la gestión pública para abordar las 
-        necesidades y prioridades de una entidad territorial. En esencia, son la división 
-        funcional de la acción estatal para abordar de manera sistemática y organizada los 
-        diferentes aspectos del desarrollo territorial.
+        Los sectores constituyen las áreas temáticas de acción gubernamental mediante las cuales se organiza 
+        la gestión pública municipal. Cada sector agrupa objetivos, metas y programas de inversión específicos 
+        orientados a atender las necesidades y prioridades de la población en campos determinados del desarrollo 
+        territorial. Esta clasificación sectorial permite una gestión integral y articulada de las políticas 
+        públicas, facilitando el seguimiento y evaluación de resultados por áreas de intervención.
+        <br/><br/>
+        La organización sectorial corresponde a la Metodología General Ajustada (MGA) establecida por el 
+        Departamento Nacional de Planeación (DNP) para la formulación y evaluación de proyectos de inversión 
+        pública en Colombia.
         """
         
         justify_style = ParagraphStyle(
@@ -913,16 +1024,24 @@ class PDMReportGenerator:
         )
         
         self.story.append(Paragraph(
-            "AVANCE DE CUMPLIMIENTO DE METAS PLAN DE DESARROLLO POR OBJETIVOS DE DESARROLLO SOSTENIBLE",
+            "AVANCE DE CUMPLIMIENTO DE METAS DEL PLAN DE DESARROLLO POR OBJETIVOS DE DESARROLLO SOSTENIBLE (ODS)",
             title_style
         ))
         
-        desc_text = """
-        Los Objetivos de Desarrollo Sostenible (ODS) son un conjunto de 17 objetivos globales 
-        establecidos por las Naciones Unidas en 2015 como parte de la Agenda 2030 para el 
-        Desarrollo Sostenible. Estos objetivos son un llamado universal a la acción para poner 
-        fin a la pobreza, proteger el planeta y garantizar que todas las personas gocen de paz 
-        y prosperidad para 2030.
+        desc_text = f"""
+        Los Objetivos de Desarrollo Sostenible (ODS) constituyen un conjunto de 17 objetivos globales establecidos 
+        por la Asamblea General de las Naciones Unidas en 2015, como parte integral de la Agenda 2030 para el 
+        Desarrollo Sostenible. Esta agenda representa un compromiso universal de los Estados miembros para erradicar 
+        la pobreza, proteger el planeta y garantizar que todas las personas gocen de paz, prosperidad y bienestar.
+        <br/><br/>
+        La República de Colombia, en cumplimiento de sus compromisos internacionales, ha incorporado los ODS en sus 
+        instrumentos de planeación nacional y territorial. El Plan de Desarrollo Municipal de {self.entity.name} se encuentra 
+        alineado con estos objetivos globales, contribuyendo desde el ámbito local al cumplimiento de las metas 
+        establecidas en la Agenda 2030.
+        <br/><br/>
+        La presente sección evidencia la articulación entre las líneas estratégicas y sectores del Plan de Desarrollo 
+        Municipal con los Objetivos de Desarrollo Sostenible, demostrando el compromiso de la administración municipal 
+        con el desarrollo sostenible del territorio y el bienestar de sus habitantes.
         """
         
         justify_style = ParagraphStyle(
@@ -1020,9 +1139,11 @@ class PDMReportGenerator:
             fontName='Helvetica-Bold'
         )
         
+        anio_vigencia = "EL CUATRIENIO 2024-2027" if self.anio == 0 else f"LA VIGENCIA {self.anio}"
+        
         self.story.append(PageBreak())
         self.story.append(Paragraph(
-            "EJECUCIÓN PLAN DE ACCIÓN - DETALLE POR PRODUCTO",
+            f"EJECUCIÓN DEL PLAN DE ACCIÓN - {anio_vigencia}",
             title_style
         ))
         self.story.append(Spacer(1, 0.3*inch))
