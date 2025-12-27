@@ -1293,7 +1293,7 @@ class PDMReportGenerator:
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
             ]))
             self.story.append(linea_table)
-            self.story.append(Spacer(1, 0.05*inch))
+            self.story.append(Spacer(1, 0.02*inch))
             
             # 2. PRODUCTO(S), INDICADOR, AVANCE DEL PRODUCTO, AVANCE FINANCIERO
             producto_nombre = prod.producto_mga or prod.codigo_producto
@@ -1307,8 +1307,8 @@ class PDMReportGenerator:
                 Paragraph('<b>AVANCE DEL PRODUCTO</b>', white_style),
                 Paragraph('<b>AVANCE FINANCIERO</b>', white_style)
             ], [
-                Paragraph(producto_nombre[:150], self.styles['Normal']),
-                Paragraph(indicador_nombre[:150], self.styles['Normal']),
+                Paragraph(producto_nombre, self.styles['Normal']),
+                Paragraph(indicador_nombre, self.styles['Normal']),
                 Paragraph(f'<b>{avance_fisico:.0f}%</b>', self.styles['Normal']),
                 Paragraph(f'<b>{avance_financiero:.0f}%</b>', self.styles['Normal'])
             ]]
@@ -1325,7 +1325,7 @@ class PDMReportGenerator:
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
             ]))
             self.story.append(producto_table)
-            self.story.append(Spacer(1, 0.05*inch))
+            self.story.append(Spacer(1, 0.02*inch))
             
             # 3. EJECUCIÓN PLAN DE ACCIÓN VIGENCIA
             actividades = actividades_por_producto.get(prod.codigo_producto, [])
@@ -1343,7 +1343,7 @@ class PDMReportGenerator:
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
             ]))
             self.story.append(ejecucion_table)
-            self.story.append(Spacer(1, 0.05*inch))
+            self.story.append(Spacer(1, 0.02*inch))
             
             # 4. META Y/O ACTIVIDADES | INFORME DE EJECUCIÓN
             if actividades:
@@ -1351,14 +1351,14 @@ class PDMReportGenerator:
                 completadas = sum(1 for act in actividades if act.estado == 'COMPLETADA')
                 
                 meta_text = f"La Meta No. <b>{total_actividades}</b> cuenta con la(s) siguiente(s) Actividades:<br/>"
-                for idx, act in enumerate(actividades[:3], 1):
-                    meta_text += f"<b>{idx}.</b> {act.nombre[:80]}<br/>"
+                for idx, act in enumerate(actividades, 1):
+                    meta_text += f"<b>{idx}.</b> {act.nombre}<br/>"
                 
                 informe_text = f"Se da cumplimiento a la meta con la ejecución de la siguiente contratación:<br/>"
                 informe_text += f"<b>Total actividades:</b> {total_actividades}<br/>"
                 informe_text += f"<b>Completadas:</b> {completadas}<br/>"
                 if actividades[0].descripcion:
-                    informe_text += f"{actividades[0].descripcion[:200]}"
+                    informe_text += f"{actividades[0].descripcion}"
             else:
                 meta_text = "Sin actividades registradas"
                 informe_text = "No hay información de ejecución disponible"
@@ -1384,7 +1384,7 @@ class PDMReportGenerator:
                 ('LEFTPADDING', (0, 0), (-1, -1), 8),
             ]))
             self.story.append(actividades_table)
-            self.story.append(Spacer(1, 0.05*inch))
+            self.story.append(Spacer(1, 0.02*inch))
             
             # 5. CANTIDAD META FÍSICA | RECURSOS | RESPONSABLE
             if self.anio == 0:
@@ -1421,7 +1421,7 @@ class PDMReportGenerator:
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
             ]))
             self.story.append(recursos_table)
-            self.story.append(Spacer(1, 0.05*inch))
+            self.story.append(Spacer(1, 0.02*inch))
             
             # 6. REGISTRO DE EVIDENCIA + IMÁGENES
             evidencias_encontradas = False
@@ -1443,31 +1443,44 @@ class PDMReportGenerator:
                         ('LEFTPADDING', (0, 0), (-1, -1), 10),
                     ]))
                     self.story.append(evidencia_table)
-                    self.story.append(Spacer(1, 0.1*inch))
+                    self.story.append(Spacer(1, 0.05*inch))
                     
-                    # Imágenes (máximo 3, una columna vertical)
+                    # Imágenes en grid 2x2 para ahorrar espacio (máximo 4)
                     if evidencia.imagenes and isinstance(evidencia.imagenes, list):
-                        for idx, img_base64 in enumerate(evidencia.imagenes[:3]):
+                        imagenes_cargadas = []
+                        for idx, img_base64 in enumerate(evidencia.imagenes[:4]):
                             try:
                                 if img_base64.startswith('data:image'):
                                     img_base64 = img_base64.split(',')[1]
                                 
                                 img_data = base64.b64decode(img_base64)
                                 
-                                # Ancho completo pero con altura máxima para evitar overflow
-                                img = RLImage(BytesIO(img_data), width=7*inch, height=5*inch, kind='proportional')
-                                
-                                img_table = Table([[img]], colWidths=[7*inch])
-                                img_table.setStyle(TableStyle([
-                                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                                ]))
-                                
-                                self.story.append(img_table)
-                                self.story.append(Spacer(1, 0.15*inch))
-                                print(f"      ✅ Imagen {idx+1} agregada")
+                                # Tamaño optimizado: 3.3x3.3 pulgadas para grid 2x2
+                                img = RLImage(BytesIO(img_data), width=3.3*inch, height=3.3*inch, kind='proportional')
+                                imagenes_cargadas.append(img)
+                                print(f"      ✅ Imagen {idx+1} agregada al grid")
                             except Exception as e:
                                 print(f"      ⚠️ Error imagen {idx+1}: {e}")
+                        
+                        # Organizar imágenes en grid 2x2
+                        if imagenes_cargadas:
+                            grid_data = []
+                            for i in range(0, len(imagenes_cargadas), 2):
+                                row = imagenes_cargadas[i:i+2]
+                                # Rellenar con celda vacía si es impar
+                                if len(row) == 1:
+                                    row.append('')
+                                grid_data.append(row)
+                            
+                            img_table = Table(grid_data, colWidths=[3.5*inch, 3.5*inch])
+                            img_table.setStyle(TableStyle([
+                                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                                ('TOPPADDING', (0, 0), (-1, -1), 5),
+                                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                            ]))
+                            
+                            self.story.append(img_table)
                     break
             
             if not evidencias_encontradas:
@@ -1485,7 +1498,7 @@ class PDMReportGenerator:
                 self.story.append(evidencia_table)
             
             # Separador entre productos
-            self.story.append(Spacer(1, 0.2*inch))
+            self.story.append(Spacer(1, 0.1*inch))
             self.story.append(PageBreak())
     
     def generate(self) -> bytes:
