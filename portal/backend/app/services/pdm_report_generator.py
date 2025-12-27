@@ -1465,29 +1465,25 @@ class PDMReportGenerator:
                         
                         evidencia_table = Table(evidencia_header, colWidths=[7*inch])
                         evidencia_table.setStyle(TableStyle([
-                            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#003366')),
-                            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4F9A54')),
+                            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                            ('TOPPADDING', (0, 0), (-1, -1), 6),
-                            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                            ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+                            ('TOPPADDING', (0, 0), (-1, -1), 8),
+                            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                            ('LEFTPADDING', (0, 0), (-1, -1), 10),
                         ]))
                         
                         self.story.append(evidencia_table)
                         self.story.append(Spacer(1, 0.1*inch))
                         
-                        # Imágenes de evidencia - DISPOSICIÓN VERTICAL (COLUMNAS)
+                        # Imágenes de evidencia - UNA COLUMNA VERTICAL
                         if evidencia.imagenes and isinstance(evidencia.imagenes, list) and len(evidencia.imagenes) > 0:
-                            print(f"      📷 Procesando {len(evidencia.imagenes)} imágenes en vertical...")
+                            print(f"      📷 Procesando {len(evidencia.imagenes)} imágenes en columna vertical...")
                             
-                            # Procesar todas las imágenes (máximo 6)
-                            num_imagenes = min(len(evidencia.imagenes), 6)
-                            imagenes_por_fila = 3  # 3 columnas
-                            
-                            imagenes_data = []
-                            fila_actual = []
+                            # Máximo 3 imágenes, una debajo de otra
+                            num_imagenes = min(len(evidencia.imagenes), 3)
                             
                             for idx, img_base64 in enumerate(evidencia.imagenes[:num_imagenes]):
                                 try:
@@ -1497,58 +1493,40 @@ class PDMReportGenerator:
                                     
                                     img_data = base64.b64decode(img_base64)
                                     
-                                    # Tamaño ajustado para disposición vertical
-                                    img_width = 2.2*inch
-                                    img_height = 2.2*inch  # Más cuadradas para mejor visualización vertical
+                                    # Tamaño: ancho completo de página
+                                    img_width = 6.5*inch
+                                    img_height = 3*inch
                                     
                                     img = RLImage(BytesIO(img_data), width=img_width, height=img_height)
-                                    fila_actual.append(img)
                                     
-                                    print(f"      ✅ Imagen {idx+1} agregada")
+                                    # Agregar imagen en tabla para centrado
+                                    img_table = Table([[img]], colWidths=[6.5*inch])
+                                    img_table.setStyle(TableStyle([
+                                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                                    ]))
                                     
-                                    # Completar fila cuando tengamos 3 imágenes
-                                    if len(fila_actual) == imagenes_por_fila:
-                                        imagenes_data.append(fila_actual)
-                                        fila_actual = []
+                                    self.story.append(img_table)
+                                    self.story.append(Spacer(1, 0.1*inch))
+                                    
+                                    print(f"      ✅ Imagen {idx+1} agregada en columna vertical")
                                     
                                 except Exception as e:
                                     print(f"      ⚠️ Error procesando imagen {idx+1}: {e}")
-                            
-                            # Agregar última fila si tiene imágenes
-                            if fila_actual:
-                                # Completar con espacios vacíos si es necesario
-                                while len(fila_actual) < imagenes_por_fila:
-                                    fila_actual.append('')
-                                imagenes_data.append(fila_actual)
-                            
-                            # Crear tabla con múltiples filas (disposición vertical)
-                            if imagenes_data:
-                                img_table = Table(imagenes_data, colWidths=[2.33*inch, 2.33*inch, 2.33*inch])
-                                img_table.setStyle(TableStyle([
-                                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                                    ('LEFTPADDING', (0, 0), (-1, -1), 3),
-                                    ('RIGHTPADDING', (0, 0), (-1, -1), 3),
-                                    ('TOPPADDING', (0, 0), (-1, -1), 3),
-                                    ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-                                ]))
-                                
-                                self.story.append(img_table)
-                                self.story.append(Spacer(1, 0.15*inch))
                 
                 if not evidencias_encontradas:
                     evidencia_table = Table([[Paragraph('REGISTRO DE EVIDENCIA', white_style)],
                                             [Paragraph('Sin evidencias registradas para este producto.', self.styles['Normal'])]], 
                                            colWidths=[7*inch])
                     evidencia_table.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#003366')),
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4F9A54')),
                         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                        ('TOPPADDING', (0, 0), (-1, -1), 6),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                        ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+                        ('TOPPADDING', (0, 0), (-1, -1), 8),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 10),
                     ]))
                     self.story.append(evidencia_table)
             
