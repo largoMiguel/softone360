@@ -99,7 +99,7 @@ export class PdmComponent implements OnInit, OnDestroy {
     filtroTipoAcumulacion = '';
     filtroEstado = '';
     filtroBusqueda = '';
-    filtroAnio: number | 'todos' = new Date().getFullYear(); // Año actual por defecto
+    filtroAnio: number = new Date().getFullYear(); // Año actual por defecto (0 = todos los años)
     filtroSecretaria = ''; // ✅ Nuevo filtro por secretaría
     
     // Años disponibles (incluyendo opción 'Todos')
@@ -188,8 +188,8 @@ export class PdmComponent implements OnInit, OnDestroy {
         // No hay que aplicar filtro de secretario aquí - el backend lo maneja
         // Los secretarios ya solo recibirán sus productos asignados
 
-        // Si filtroAnio es 'todos', usar año actual para dashboard principal
-        const anioParaFiltro = typeof this.filtroAnio === 'number' ? this.filtroAnio : new Date().getFullYear();
+        // Si filtroAnio es 0, usar año actual para dashboard principal
+        const anioParaFiltro = this.filtroAnio === 0 ? new Date().getFullYear() : this.filtroAnio;
 
         // Filtrar productos con meta > 0 para el año seleccionado
         productos = productos.filter(p => {
@@ -255,8 +255,8 @@ export class PdmComponent implements OnInit, OnDestroy {
         
         let productos = [...this.resumenProductos];
         
-        // Si filtroAnio es 'todos', usar año actual para dashboard principal
-        const anioParaFiltro = typeof this.filtroAnio === 'number' ? this.filtroAnio : new Date().getFullYear();
+        // Si filtroAnio es 0, usar año actual para dashboard principal
+        const anioParaFiltro = this.filtroAnio === 0 ? new Date().getFullYear() : this.filtroAnio;
         
         // Filtrar productos con meta > 0 para el año seleccionado
         productos = productos.filter(p => {
@@ -341,7 +341,7 @@ export class PdmComponent implements OnInit, OnDestroy {
      * ✅ Cambia el año del filtro y actualiza los caches
      */
     cambiarAnioFiltro(anio: number | string): void {
-        this.filtroAnio = anio === 'todos' ? 'todos' : Number(anio);
+        this.filtroAnio = anio === 'todos' ? 0 : Number(anio);
         this.actualizarCachesFiltros();
     }
 
@@ -2142,7 +2142,7 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Helper para obtener año como número (convierte 'todos' a año actual)
      */
     getFiltroAnioNumero(): number {
-        return typeof this.filtroAnio === 'number' ? this.filtroAnio : new Date().getFullYear();
+        return this.filtroAnio;
     }
 
     /**
@@ -2268,8 +2268,8 @@ export class PdmComponent implements OnInit, OnDestroy {
         por_ejecutar: number;
         total: number;
     } {
-        // Si filtroAnio es 'todos', usar año actual para dashboard principal
-        const anioParaFiltro = typeof this.filtroAnio === 'number' ? this.filtroAnio : new Date().getFullYear();
+        // Si filtroAnio es 0, usar año actual para dashboard principal
+        const anioParaFiltro = this.filtroAnio === 0 ? new Date().getFullYear() : this.filtroAnio;
         
         // Filtrar solo productos con meta > 0 para el año seleccionado
         const productos = this.resumenProductos.filter(producto => {
@@ -2584,8 +2584,8 @@ export class PdmComponent implements OnInit, OnDestroy {
             });
         }
         
-        // Si filtroAnio es 'todos', pasar null para agregación de todos los años
-        const anioParaAnalisis = this.filtroAnio === 'todos' ? null : this.filtroAnio as number;
+        // Si filtroAnio es 0, pasar 0 para agregación de todos los años
+        const anioParaAnalisis = this.filtroAnio === 0 ? 0 : this.filtroAnio as number;
         
         this.dashboardAnalytics = this.pdmService.generarDashboardAnalytics(
             productosFiltrados,
