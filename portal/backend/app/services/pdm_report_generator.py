@@ -1350,15 +1350,22 @@ class PDMReportGenerator:
                 total_actividades = len(actividades)
                 completadas = sum(1 for act in actividades if act.estado == 'COMPLETADA')
                 
+                # Mostrar hasta 10 actividades con nombres más largos
                 meta_text = f"La Meta No. <b>{total_actividades}</b> cuenta con la(s) siguiente(s) Actividades:<br/>"
-                for idx, act in enumerate(actividades, 1):
-                    meta_text += f"<b>{idx}.</b> {act.nombre}<br/>"
+                actividades_mostrar = actividades[:10]
+                for idx, act in enumerate(actividades_mostrar, 1):
+                    nombre_actividad = act.nombre[:200] if len(act.nombre) > 200 else act.nombre
+                    meta_text += f"<b>{idx}.</b> {nombre_actividad}<br/>"
+                
+                if len(actividades) > 10:
+                    meta_text += f"<i>... y {len(actividades) - 10} actividades más</i><br/>"
                 
                 informe_text = f"Se da cumplimiento a la meta con la ejecución de la siguiente contratación:<br/>"
                 informe_text += f"<b>Total actividades:</b> {total_actividades}<br/>"
                 informe_text += f"<b>Completadas:</b> {completadas}<br/>"
                 if actividades[0].descripcion:
-                    informe_text += f"{actividades[0].descripcion}"
+                    desc_limitada = actividades[0].descripcion[:400] if len(actividades[0].descripcion) > 400 else actividades[0].descripcion
+                    informe_text += f"{desc_limitada}"
             else:
                 meta_text = "Sin actividades registradas"
                 informe_text = "No hay información de ejecución disponible"
@@ -1371,7 +1378,8 @@ class PDMReportGenerator:
                 Paragraph(informe_text, self.styles['Normal'])
             ]]
             
-            actividades_table = Table(actividades_data, colWidths=[3.5*inch, 3.5*inch])
+            # splitByRow=True permite que la tabla se divida entre páginas
+            actividades_table = Table(actividades_data, colWidths=[3.5*inch, 3.5*inch], splitByRow=True)
             actividades_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#003366')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
