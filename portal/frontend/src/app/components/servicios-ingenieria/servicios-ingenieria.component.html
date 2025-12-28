@@ -1,0 +1,146 @@
+<div class="servicios-ingenieria-container">
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Cargando información...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error-container">
+    <i class="fas fa-exclamation-triangle"></i>
+    <p>{{ error }}</p>
+    <button class="btn-retry" (click)="cargarServicios()">Reintentar</button>
+  </div>
+
+  <!-- Content -->
+  <div *ngIf="data && !loading" class="content">
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="hero-overlay"></div>
+      <div class="hero-content">
+        <div class="hero-badge">
+          <i class="fas fa-certificate"></i>
+          <span>Ingeniero Civil Especializado</span>
+        </div>
+        <h1 class="hero-title">{{ data.titulo }}</h1>
+        <p class="hero-subtitle">{{ data.subtitulo }}</p>
+        <div class="hero-buttons">
+          <button class="btn btn-primary" (click)="enviarWhatsApp()">
+            <i class="fab fa-whatsapp"></i> Cotizar Proyecto
+          </button>
+          <button class="btn btn-secondary" (click)="enviarEmail()">
+            <i class="fas fa-envelope"></i> Consultar Ahora
+          </button>
+        </div>
+      </div>
+      <div class="hero-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+      </div>
+    </section>
+
+    <!-- Tecnologías Section -->
+    <section class="tecnologias-section">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-badge">Herramientas Profesionales</span>
+          <h2>Software Especializado</h2>
+          <p>Utilizamos las mejores herramientas del mercado para garantizar diseños precisos</p>
+        </div>
+        <div class="tecnologias-grid">
+          <div *ngFor="let tech of data.tecnologias" class="tech-card">
+            <div class="tech-icon">
+              <i [class]="tech.icono"></i>
+            </div>
+            <h3>{{ tech.nombre }}</h3>
+            <p>{{ tech.descripcion }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Filtros de Categoría -->
+    <section class="filtros-section">
+      <div class="container">
+        <h2 class="section-title">Nuestros Servicios</h2>
+        <div class="filtros-container">
+          <button 
+            class="filtro-btn"
+            [class.active]="categoriaSeleccionada === 'todos'"
+            (click)="filtrarPorCategoria('todos')">
+            Todos los Servicios
+          </button>
+          <button 
+            *ngFor="let cat of data.categorias"
+            class="filtro-btn"
+            [class.active]="categoriaSeleccionada === cat.nombre.toLowerCase()"
+            (click)="filtrarPorCategoria(cat.nombre.toLowerCase())">
+            {{ cat.nombre }}
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Servicios Grid -->
+    <section class="servicios-section">
+      <div class="container">
+        <div class="servicios-grid">
+          <div *ngFor="let servicio of serviciosFiltrados" class="servicio-card">
+            <div class="servicio-icon">
+              <i [class]="servicio.icono"></i>
+            </div>
+            <h3 class="servicio-nombre">{{ servicio.nombre }}</h3>
+            <p class="servicio-descripcion">{{ servicio.descripcion }}</p>
+            <span class="servicio-categoria">{{ servicio.categoria }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ventajas -->
+    <section class="ventajas-section">
+      <div class="container">
+        <h2 class="section-title">¿Por qué elegirnos?</h2>
+        <div class="ventajas-grid">
+          <div *ngFor="let ventaja of data.ventajas" class="ventaja-card">
+            <i class="fas fa-check-circle"></i>
+            <p>{{ ventaja }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contacto -->
+    <section class="contacto-section">
+      <div class="container">
+        <div class="contacto-card">
+          <div class="contacto-header">
+            <i class="fas fa-user-tie"></i>
+            <h2>{{ data.contacto.nombre }}</h2>
+            <p class="contacto-profesion">{{ data.contacto.profesion }}</p>
+            <p class="contacto-especialidad">{{ data.contacto.especialidad }}</p>
+          </div>
+          <div class="contacto-info">
+            <div class="contacto-item">
+              <i class="fas fa-envelope"></i>
+              <a [href]="'mailto:' + data.contacto.email">{{ data.contacto.email }}</a>
+            </div>
+            <div class="contacto-item">
+              <i class="fas fa-phone"></i>
+              <a [href]="'tel:' + data.contacto.telefono">{{ data.contacto.telefono }}</a>
+            </div>
+          </div>
+          <div class="contacto-actions">
+            <button class="btn btn-whatsapp" (click)="enviarWhatsApp()">
+              <i class="fab fa-whatsapp"></i> WhatsApp
+            </button>
+            <button class="btn btn-email" (click)="enviarEmail()">
+              <i class="fas fa-envelope"></i> Email
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>

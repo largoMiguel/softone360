@@ -2593,6 +2593,9 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Filtra por año y opcionalmente por secretaría
      */
     generarAnalytics(): void {
+        console.log('📈 Generando analytics - filtroAnio:', this.filtroAnio, 'tipo:', typeof this.filtroAnio);
+        console.log('📦 Productos disponibles:', this.resumenProductos.length);
+        
         // Filtrar productos según filtroSecretaria
         let productosFiltrados = this.resumenProductos;
         
@@ -2604,13 +2607,18 @@ export class PdmComponent implements OnInit, OnDestroy {
             });
         }
         
-        // Si filtroAnio es 0, pasar 0 para agregación de todos los años
-        const anioParaAnalisis = this.filtroAnio === 0 ? 0 : this.filtroAnio as number;
+        console.log('📦 Productos filtrados por secretaría:', productosFiltrados.length);
+        
+        // Si filtroAnio es 0 o string "0", pasar 0 para agregación de todos los años
+        const anioParaAnalisis = (this.filtroAnio === 0 || this.filtroAnio === '0') ? 0 : parseInt(String(this.filtroAnio), 10);
+        console.log('🎯 Año para análisis:', anioParaAnalisis);
         
         this.dashboardAnalytics = this.pdmService.generarDashboardAnalytics(
             productosFiltrados,
             anioParaAnalisis
         );
+        
+        console.log('✅ Dashboard analytics generado:', this.dashboardAnalytics.resumen_general);
         
         // ✅ Generar análisis por secretaría
         this.analisisPorSecretaria = this.pdmService.generarAnaliasisPorSecretaria(
@@ -2623,6 +2631,9 @@ export class PdmComponent implements OnInit, OnDestroy {
      * ✅ NUEVO: Cambia los filtros de analytics y regenera gráficos
      */
     cambiarFiltrosAnalytics(): void {
+        console.log('🔄 Cambiando filtros analytics - Año:', this.filtroAnio, 'Tipo:', typeof this.filtroAnio);
+        console.log('📊 Secretaría:', this.filtroSecretaria);
+        
         // Regenerar analytics con los nuevos filtros
         this.generarAnalytics();
         
