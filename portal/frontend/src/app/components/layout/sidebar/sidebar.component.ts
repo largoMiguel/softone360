@@ -90,6 +90,18 @@ export class SidebarComponent {
         this.sidebar.close();
     }
 
+    openCargarEjecucion() {
+        if (!this.slug) return;
+        this.router.navigate([`/${this.slug}/pdm`], { queryParams: { action: 'cargar-ejecucion' } });
+        this.sidebar.close();
+    }
+
+    openCargarNuevoArchivo() {
+        if (!this.slug) return;
+        this.router.navigate([`/${this.slug}/pdm`], { queryParams: { action: 'cargar-archivo' } });
+        this.sidebar.close();
+    }
+
     // Activos visuales
     isActiveUrl(regex: RegExp): boolean { return regex.test(this.router.url); }
     isActiveRoutePlanesDashboard(): boolean { return /\/planes-dashboard(\/?|\?|$)/.test(this.router.url); }

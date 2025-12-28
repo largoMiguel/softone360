@@ -2,6 +2,7 @@ import { Component, inject, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewI
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Location } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { PdmService } from '../../services/pdm.service';
 import { PdmEjecucionService } from '../../services/pdm-ejecucion.service';
 import { AlertsService, Alert } from '../../services/alerts.service';
@@ -45,6 +46,7 @@ export class PdmComponent implements OnInit, OnDestroy {
     private authService = inject(AuthService);
     private location = inject(Location);
     private navState = inject(NavigationStateService);
+    private route = inject(ActivatedRoute);
 
     // Listener para navegación
     private popstateListener: (() => void) | null = null;
@@ -368,6 +370,24 @@ export class PdmComponent implements OnInit, OnDestroy {
         
         // Verificar si hay que abrir un producto desde una alerta
         this.verificarProductoDesdeAlerta();
+        
+        // Escuchar query params para acciones desde el sidebar
+        this.route.queryParams.subscribe(params => {
+            if (params['action'] === 'cargar-ejecucion') {
+                // Esperar a que los datos estén cargados
+                setTimeout(() => {
+                    if (this.archivoExcelCargado) {
+                        this.abrirModalEjecucion();
+                    }
+                }, 500);
+            } else if (params['action'] === 'cargar-archivo') {
+                setTimeout(() => {
+                    if (this.archivoExcelCargado) {
+                        this.cargarNuevoArchivo();
+                    }
+                }, 500);
+            }
+        });
         
         // Interceptar el botón de retroceso del navegador
         this.popstateListener = () => {

@@ -94,6 +94,16 @@
                         <i class="fas fa-angle-right me-2"></i>Ingresar
                     </a>
                 </li>
+                <li *ngIf="isAdmin()">
+                    <a class="menu-link" (click)="openCargarEjecucion()">
+                        <i class="fas fa-angle-right me-2"></i>Cargar Ejecución
+                    </a>
+                </li>
+                <li *ngIf="isAdmin()">
+                    <a class="menu-link" (click)="openCargarNuevoArchivo()">
+                        <i class="fas fa-angle-right me-2"></i>Cargar Nuevo Archivo
+                    </a>
+                </li>
             </ul>
         </div>
 
