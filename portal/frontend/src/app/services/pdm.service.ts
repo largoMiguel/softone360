@@ -1072,7 +1072,8 @@ export class PdmService {
         // Filtrar productos según el año seleccionado
         let productosFiltrados: ResumenProducto[];
         
-        if (anioFiltro === null) {
+        // (anioFiltro === null || anioFiltro === 0) o anioFiltro === 0 significa "Todos los años"
+        if ((anioFiltro === null || anioFiltro === 0) || anioFiltro === 0) {
             // Modo "Todos": incluir productos con meta en cualquier año
             productosFiltrados = productos.filter(p => {
                 return [2024, 2025, 2026, 2027].some(anio => {
@@ -1093,7 +1094,8 @@ export class PdmService {
         const estadoMap = new Map<string, number>();
         
         productosFiltrados.forEach(p => {
-            if (anioFiltro === null) {
+            // (anioFiltro === null || anioFiltro === 0) o === 0 significa todos los años
+            if ((anioFiltro === null || anioFiltro === 0) || anioFiltro === 0) {
                 // Calcular estado general (promedio de todos los años)
                 const estado = this.getEstadoProductoTodos(p);
                 estadoMap.set(estado, (estadoMap.get(estado) || 0) + 1);
@@ -1133,17 +1135,17 @@ export class PdmService {
         const porSector: AnalisisPorSector[] = [];
         sectorMap.forEach((prods, sector) => {
             const completados = prods.filter(p => {
-                return anioFiltro === null 
+                return (anioFiltro === null || anioFiltro === 0) 
                     ? this.getEstadoProductoTodos(p) === 'COMPLETADO'
                     : this.getEstadoProducto(p, anioFiltro) === 'COMPLETADO';
             }).length;
             const enProgreso = prods.filter(p => {
-                return anioFiltro === null 
+                return (anioFiltro === null || anioFiltro === 0) 
                     ? this.getEstadoProductoTodos(p) === 'EN_PROGRESO'
                     : this.getEstadoProducto(p, anioFiltro) === 'EN_PROGRESO';
             }).length;
             const pendientes = prods.filter(p => {
-                return anioFiltro === null 
+                return (anioFiltro === null || anioFiltro === 0) 
                     ? this.getEstadoProductoTodos(p) === 'PENDIENTE'
                     : this.getEstadoProducto(p, anioFiltro) === 'PENDIENTE';
             }).length;
@@ -1196,7 +1198,7 @@ export class PdmService {
         const porLinea: AnalisisPorLineaEstrategica[] = [];
         lineaMap.forEach((prods, linea) => {
             const completados = prods.filter(p => {
-                return anioFiltro === null 
+                return ((anioFiltro === null || anioFiltro === 0) || anioFiltro === 0)
                     ? this.getEstadoProductoTodos(p) === 'COMPLETADO'
                     : this.getEstadoProducto(p, anioFiltro) === 'COMPLETADO';
             }).length;
@@ -1259,7 +1261,7 @@ export class PdmService {
         
         // Calcular presupuesto según el filtro de año
         let presupuestoTotal = 0;
-        if (anioFiltro === null) {
+        if ((anioFiltro === null || anioFiltro === 0)) {
             // Modo "Todos": sumar presupuesto del cuatrienio
             presupuestoTotal = productosFiltrados.reduce((sum, p) => sum + p.total_cuatrienio, 0);
         } else {
@@ -1276,7 +1278,7 @@ export class PdmService {
         
         // Productos sin actividades (considerar el filtro de año)
         const sinActividades = productosFiltrados.filter(p => {
-            if (anioFiltro === null) {
+            if ((anioFiltro === null || anioFiltro === 0)) {
                 // Modo "Todos": sin actividades en ningún año
                 return [2024, 2025, 2026, 2027].every(anio => 
                     this.obtenerActividadesPorProductoYAnio(p.codigo, anio).length === 0
@@ -1324,22 +1326,22 @@ export class PdmService {
         secretariaMap.forEach((prods, secretaria) => {
             const totalProductos = prods.length;
             const completados = prods.filter(p => {
-                return anioFiltro === null 
+                return (anioFiltro === null || anioFiltro === 0) 
                     ? this.getEstadoProductoTodos(p) === 'COMPLETADO'
                     : this.getEstadoProducto(p, anioFiltro) === 'COMPLETADO';
             }).length;
             const enProgreso = prods.filter(p => {
-                return anioFiltro === null 
+                return (anioFiltro === null || anioFiltro === 0) 
                     ? this.getEstadoProductoTodos(p) === 'EN_PROGRESO'
                     : this.getEstadoProducto(p, anioFiltro) === 'EN_PROGRESO';
             }).length;
             const pendientes = prods.filter(p => {
-                return anioFiltro === null 
+                return (anioFiltro === null || anioFiltro === 0) 
                     ? this.getEstadoProductoTodos(p) === 'PENDIENTE'
                     : this.getEstadoProducto(p, anioFiltro) === 'PENDIENTE';
             }).length;
             const porEjecutar = prods.filter(p => {
-                return anioFiltro === null 
+                return (anioFiltro === null || anioFiltro === 0) 
                     ? this.getEstadoProductoTodos(p) === 'POR_EJECUTAR'
                     : this.getEstadoProducto(p, anioFiltro) === 'POR_EJECUTAR';
             }).length;
@@ -1351,7 +1353,7 @@ export class PdmService {
             let totalActividades = 0;
             let actividadesCompletadas = 0;
             
-            if (anioFiltro === null) {
+            if ((anioFiltro === null || anioFiltro === 0)) {
                 // Sumar actividades de todos los años
                 prods.forEach(p => {
                     [2024, 2025, 2026, 2027].forEach(anio => {
