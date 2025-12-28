@@ -20,6 +20,9 @@
                 <button *ngIf="archivoExcelCargado && vistaActual === 'dashboard'" class="btn btn-success me-2" (click)="verAnalytics()">
                     <i class="fas fa-chart-pie"></i> Ver Análisis
                 </button>
+                <button *ngIf="archivoExcelCargado && vistaActual === 'dashboard'" class="btn btn-danger me-2" (click)="generarInforme()">
+                    <i class="fas fa-file-pdf"></i> Generar Informe
+                </button>
                 <button *ngIf="archivoExcelCargado && vistaActual === 'detalle'" class="btn btn-primary me-2" (click)="abrirModalAnalisisProducto()">
                     <i class="fas fa-chart-line"></i> Ver Análisis Detallado
                 </button>
@@ -81,9 +84,6 @@
                         <div class="list-group list-group-flush">
                             <button class="list-group-item list-group-item-action" (click)="navegarA('productos')">
                                 <i class="fas fa-list me-2 text-primary"></i> Ingresar al Plan
-                            </button>
-                            <button class="list-group-item list-group-item-action" (click)="generarInforme()">
-                                <i class="fas fa-file-pdf me-2 text-danger"></i> Generar Informe
                             </button>
                             <button *ngIf="puedeCargarArchivosEjecucion()" class="list-group-item list-group-item-action" (click)="abrirModalEjecucion()">
                                 <i class="fas fa-file-invoice-dollar me-2 text-success"></i> Cargar Ejecución
