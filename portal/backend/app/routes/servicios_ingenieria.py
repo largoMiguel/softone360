@@ -141,19 +141,35 @@ async def get_servicios_ingenieria():
                 "color": "#dc3545"
             }
         ],
-        "estadisticas": {
-            "km_disenados": "250+",
-            "proyectos_completados": "85+",
-            "municipios_atendidos": "20+",
-            "anios_experiencia": "10+"
-        },
         "ventajas": [
-            "Experiencia comprobada en proyectos viales",
+            "Diseños técnicos con software especializado",
             "Cumplimiento de normativa técnica vigente",
-            "Uso de software especializado",
-            "Respuesta rápida y profesional",
-            "Precios competitivos",
-            "Asesoría permanente durante el proyecto"
+            "Entregas rápidas y profesionales",
+            "Asesoría técnica permanente",
+            "Precios competitivos del mercado",
+            "Garantía de calidad en todos los proyectos"
+        ],
+        "tecnologias": [
+            {
+                "nombre": "AutoCAD Civil 3D",
+                "descripcion": "Diseño de vías y perfiles",
+                "icono": "fas fa-drafting-compass"
+            },
+            {
+                "nombre": "Software de Pavimentos",
+                "descripcion": "Cálculos estructurales especializados",
+                "icono": "fas fa-calculator"
+            },
+            {
+                "nombre": "MS Project",
+                "descripcion": "Cronogramas y planificación",
+                "icono": "fas fa-project-diagram"
+            },
+            {
+                "nombre": "Excel Avanzado",
+                "descripcion": "APU y presupuestos detallados",
+                "icono": "fas fa-file-excel"
+            }
         ]
     }
 
