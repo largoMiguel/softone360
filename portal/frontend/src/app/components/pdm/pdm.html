@@ -1306,8 +1306,9 @@
                     <div class="col-md-6">
                         <label class="form-label"><i class="fas fa-calendar-alt me-2"></i><strong>Filtrar por Año:</strong></label>
                         <select [(ngModel)]="filtroAnio" (change)="cambiarFiltrosAnalytics()" class="form-select">
-                            <option [value]="0">📊 Todos los Años (Agregado)</option>
-                            <option *ngFor="let anio of aniosDisponibles.slice(1)" [value]="anio">{{ anio }}</option>
+                            <option *ngFor="let anio of aniosDisponibles" [value]="anio">
+                                {{ anio === 0 ? '📊 Todos los Años (Agregado)' : anio }}
+                            </option>
                         </select>
                     </div>
                     <div class="col-md-6">

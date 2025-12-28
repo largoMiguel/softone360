@@ -102,8 +102,8 @@ export class PdmComponent implements OnInit, OnDestroy {
     filtroAnio: number = new Date().getFullYear(); // Año actual por defecto (0 = todos los años)
     filtroSecretaria = ''; // ✅ Nuevo filtro por secretaría
     
-    // Años disponibles (incluyendo opción 'Todos')
-    aniosDisponibles: (number | string)[] = ['todos', 2024, 2025, 2026, 2027];
+    // Años disponibles (incluyendo opción 'Todos' = 0)
+    aniosDisponibles: number[] = [0, 2024, 2025, 2026, 2027];
     
     // ✅ OPTIMIZACIÓN: Debounce timer para búsqueda
     private debounceTimer: any = null;
@@ -340,8 +340,8 @@ export class PdmComponent implements OnInit, OnDestroy {
     /**
      * ✅ Cambia el año del filtro y actualiza los caches
      */
-    cambiarAnioFiltro(anio: number | string): void {
-        this.filtroAnio = anio === 'todos' ? 0 : Number(anio);
+    cambiarAnioFiltro(anio: number): void {
+        this.filtroAnio = Number(anio);
         this.actualizarCachesFiltros();
     }
 
