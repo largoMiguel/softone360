@@ -23,20 +23,11 @@
                 <button *ngIf="archivoExcelCargado && vistaActual === 'detalle'" class="btn btn-primary me-2" (click)="abrirModalAnalisisProducto()">
                     <i class="fas fa-chart-line"></i> Ver Análisis Detallado
                 </button>
-                <button *ngIf="vistaActual === 'productos'" class="btn btn-success me-2" (click)="generarInforme()" title="Generar Informe PDF del Plan de Desarrollo">
-                    <i class="fas fa-file-pdf"></i> Generar Informe
-                </button>
                 <button *ngIf="vistaActual !== 'dashboard' && archivoExcelCargado" class="btn btn-outline-secondary me-2" (click)="volver()">
                     <i class="fas fa-arrow-left"></i> Volver
                 </button>
                 <button *ngIf="archivoExcelCargado && vistaActual === 'dashboard'" class="btn btn-outline-info me-2" (click)="exportarExcel()" title="Exportar PDM completo a Excel">
                     <i class="fas fa-file-excel"></i> Exportar Excel
-                </button>
-                <label *ngIf="archivoExcelCargado && vistaActual === 'dashboard' && puedeCargarArchivosEjecucion()" class="btn btn-outline-success me-2" (click)="abrirModalEjecucion()" title="Cargar Excel de Ejecución Presupuestal (Solo Admin)">
-                    <i class="fas fa-file-invoice-dollar"></i> Cargar Ejecución
-                </label>
-                <button *ngIf="archivoExcelCargado && (vistaActual === 'dashboard' || vistaActual === 'detalle') && puedeCargarArchivosEjecucion()" class="btn btn-outline-primary" (click)="cargarNuevoArchivo()" title="Cargar Nuevo Archivo (Solo Admin)">
-                    <i class="fas fa-upload"></i> Cargar Nuevo Archivo
                 </button>
             </div>
         </div>
@@ -79,6 +70,34 @@
 
     <!-- VISTA: DASHBOARD -->
     <div *ngIf="archivoExcelCargado && vistaActual === 'dashboard' && estadisticas" class="vista-dashboard">
+        <div class="row">
+            <!-- SIDEBAR CON ACCIONES RÁPIDAS -->
+            <div class="col-md-3 mb-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Acciones Rápidas</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush">
+                            <button class="list-group-item list-group-item-action" (click)="navegarA('productos')">
+                                <i class="fas fa-list me-2 text-primary"></i> Ingresar al Plan
+                            </button>
+                            <button class="list-group-item list-group-item-action" (click)="generarInforme()">
+                                <i class="fas fa-file-pdf me-2 text-danger"></i> Generar Informe
+                            </button>
+                            <button *ngIf="puedeCargarArchivosEjecucion()" class="list-group-item list-group-item-action" (click)="abrirModalEjecucion()">
+                                <i class="fas fa-file-invoice-dollar me-2 text-success"></i> Cargar Ejecución
+                            </button>
+                            <button *ngIf="puedeCargarArchivosEjecucion()" class="list-group-item list-group-item-action" (click)="cargarNuevoArchivo()">
+                                <i class="fas fa-upload me-2 text-info"></i> Cargar Nuevo Archivo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTENIDO PRINCIPAL -->
+            <div class="col-md-9">
         <!-- Estadísticas Generales -->
         <div class="row mb-4">
             <div class="col-md-3 mb-3">
@@ -314,6 +333,8 @@
                 <i class="fas fa-list me-2"></i> Ver Todos los Productos
             </button>
         </div>
+            </div><!-- /col-md-9 -->
+        </div><!-- /row -->
     </div>
 
     <!-- VISTA: PRODUCTOS -->
