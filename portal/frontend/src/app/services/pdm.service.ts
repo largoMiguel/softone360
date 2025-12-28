@@ -1069,6 +1069,8 @@ export class PdmService {
      * Genera análisis completo del PDM para dashboards
      */
     generarDashboardAnalytics(productos: ResumenProducto[], anioFiltro: number | null): DashboardAnalytics {
+        console.log('🔍 [Service] generarDashboardAnalytics - Año filtro:', anioFiltro, 'Productos entrada:', productos.length);
+        
         // Filtrar productos según el año seleccionado
         let productosFiltrados: ResumenProducto[];
         
@@ -1149,8 +1151,20 @@ export class PdmService {
                     ? this.getEstadoProductoTodos(p) === 'PENDIENTE'
                     : this.getEstadoProducto(p, anioFiltro) === 'PENDIENTE';
             }).length;
-            const avancePromedio = prods.reduce((sum, p) => sum + p.porcentaje_ejecucion, 0) / prods.length;
-            const presupuestoTotal = prods.reduce((sum, p) => sum + p.total_cuatrienio, 0);
+            
+            // Calcular avance y presupuesto según el año
+            let avancePromedio = 0;
+            let presupuestoTotal = 0;
+            
+            if (anioFiltro === null || anioFiltro === 0) {
+                // Modo "Todos": usar porcentaje global y presupuesto cuatrienio
+                avancePromedio = prods.reduce((sum, p) => sum + p.porcentaje_ejecucion, 0) / prods.length;
+                presupuestoTotal = prods.reduce((sum, p) => sum + p.total_cuatrienio, 0);
+            } else {
+                // Modo año específico: calcular avance del año y presupuesto del año
+                avancePromedio = prods.reduce((sum, p) => sum + this.calcularAvanceProductoAnio(p, anioFiltro), 0) / prods.length;
+                presupuestoTotal = prods.reduce((sum, p) => sum + this.obtenerPresupuestoAnio(p, anioFiltro), 0);
+            }
 
             porSector.push({
                 sector,
@@ -1175,8 +1189,19 @@ export class PdmService {
 
         const porODS: AnalisisPorODS[] = [];
         odsMap.forEach((prods, ods) => {
-            const avancePromedio = prods.reduce((sum, p) => sum + p.porcentaje_ejecucion, 0) / prods.length;
-            const presupuesto = prods.reduce((sum, p) => sum + p.total_cuatrienio, 0);
+            // Calcular avance y presupuesto según el año
+            let avancePromedio = 0;
+            let presupuesto = 0;
+            
+            if (anioFiltro === null || anioFiltro === 0) {
+                // Modo "Todos": usar porcentaje global y presupuesto cuatrienio
+                avancePromedio = prods.reduce((sum, p) => sum + p.porcentaje_ejecucion, 0) / prods.length;
+                presupuesto = prods.reduce((sum, p) => sum + p.total_cuatrienio, 0);
+            } else {
+                // Modo año específico: calcular avance del año y presupuesto del año
+                avancePromedio = prods.reduce((sum, p) => sum + this.calcularAvanceProductoAnio(p, anioFiltro), 0) / prods.length;
+                presupuesto = prods.reduce((sum, p) => sum + this.obtenerPresupuestoAnio(p, anioFiltro), 0);
+            }
 
             porODS.push({
                 ods,
@@ -1202,11 +1227,27 @@ export class PdmService {
                     ? this.getEstadoProductoTodos(p) === 'COMPLETADO'
                     : this.getEstadoProducto(p, anioFiltro) === 'COMPLETADO';
             }).length;
-            const metaTotal = prods.reduce((sum, p) => sum + p.meta_cuatrienio, 0);
-            const metaEjecutada = prods.reduce((sum, p) => {
-                const avanceDecimal = p.porcentaje_ejecucion / 100;
-                return sum + (p.meta_cuatrienio * avanceDecimal);
-            }, 0);
+            
+            // Calcular meta según el año
+            let metaTotal = 0;
+            let metaEjecutada = 0;
+            
+            if (anioFiltro === null || anioFiltro === 0) {
+                // Modo "Todos": usar meta cuatrienio
+                metaTotal = prods.reduce((sum, p) => sum + p.meta_cuatrienio, 0);
+                metaEjecutada = prods.reduce((sum, p) => {
+                    const avanceDecimal = p.porcentaje_ejecucion / 100;
+                    return sum + (p.meta_cuatrienio * avanceDecimal);
+                }, 0);
+            } else {
+                // Modo año específico: usar meta programada del año
+                metaTotal = prods.reduce((sum, p) => sum + this.obtenerMetaProgramada(p, anioFiltro), 0);
+                metaEjecutada = prods.reduce((sum, p) => {
+                    const metaAnio = this.obtenerMetaProgramada(p, anioFiltro);
+                    const avanceAnio = this.calcularAvanceProductoAnio(p, anioFiltro);
+                    return sum + (metaAnio * (avanceAnio / 100));
+                }, 0);
+            }
 
             porLinea.push({
                 linea,
@@ -1255,9 +1296,21 @@ export class PdmService {
         });
 
         // Resumen general (usar productosFiltrados según el año seleccionado)
-        const avanceGlobal = productosFiltrados.length > 0
-            ? productosFiltrados.reduce((sum, p) => sum + p.porcentaje_ejecucion, 0) / productosFiltrados.length
-            : 0;
+        let avanceGlobal = 0;
+        
+        if (anioFiltro === null || anioFiltro === 0) {
+            // Modo "Todos": usar porcentaje global
+            avanceGlobal = productosFiltrados.length > 0
+                ? productosFiltrados.reduce((sum, p) => sum + p.porcentaje_ejecucion, 0) / productosFiltrados.length
+                : 0;
+        } else {
+            // Modo año específico: calcular avance del año
+            avanceGlobal = productosFiltrados.length > 0
+                ? productosFiltrados.reduce((sum, p) => sum + this.calcularAvanceProductoAnio(p, anioFiltro), 0) / productosFiltrados.length
+                : 0;
+        }
+        
+        console.log('📊 [Service] Avance global calculado:', avanceGlobal.toFixed(2) + '%');
         
         // Calcular presupuesto según el filtro de año
         let presupuestoTotal = 0;
@@ -1266,15 +1319,10 @@ export class PdmService {
             presupuestoTotal = productosFiltrados.reduce((sum, p) => sum + p.total_cuatrienio, 0);
         } else {
             // Modo año específico: solo presupuesto de ese año
-            productosFiltrados.forEach(p => {
-                switch(anioFiltro) {
-                    case 2024: presupuestoTotal += p.total_2024; break;
-                    case 2025: presupuestoTotal += p.total_2025; break;
-                    case 2026: presupuestoTotal += p.total_2026; break;
-                    case 2027: presupuestoTotal += p.total_2027; break;
-                }
-            });
+            presupuestoTotal = productosFiltrados.reduce((sum, p) => sum + this.obtenerPresupuestoAnio(p, anioFiltro), 0);
         }
+        
+        console.log('💰 [Service] Presupuesto total calculado:', presupuestoTotal);
         
         // Productos sin actividades (considerar el filtro de año)
         const sinActividades = productosFiltrados.filter(p => {
@@ -1460,6 +1508,39 @@ export class PdmService {
             case 2027: return producto.programacion_2027 || 0;
             default: return 0;
         }
+    }
+
+    /**
+     * Obtiene el presupuesto de un producto para un año específico
+     */
+    private obtenerPresupuestoAnio(producto: ResumenProducto, anio: number): number {
+        switch(anio) {
+            case 2024: return producto.total_2024 || 0;
+            case 2025: return producto.total_2025 || 0;
+            case 2026: return producto.total_2026 || 0;
+            case 2027: return producto.total_2027 || 0;
+            default: return 0;
+        }
+    }
+
+    /**
+     * Calcula el avance de un producto para un año específico basado en actividades
+     */
+    private calcularAvanceProductoAnio(producto: ResumenProducto, anio: number): number {
+        const actividades = this.obtenerActividadesPorProductoYAnio(producto.codigo, anio);
+        if (actividades.length === 0) return 0;
+
+        const metaProgramada = this.obtenerMetaProgramada(producto, anio);
+        if (metaProgramada === 0) return 0;
+
+        const metaEjecutada = actividades.reduce((sum, act) => {
+            if (act.estado === 'COMPLETADA') {
+                return sum + (act.meta_ejecutar || 0);
+            }
+            return sum;
+        }, 0);
+
+        return (metaEjecutada / metaProgramada) * 100;
     }
 
     // ==================== MÉTODOS DE API BACKEND ====================
