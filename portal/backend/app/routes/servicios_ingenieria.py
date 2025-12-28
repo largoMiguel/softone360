@@ -142,7 +142,7 @@ async def get_servicios_ingenieria():
             }
         ],
         "estadisticas": {
-            "años_experiencia": "10+",
+            "anios_experiencia": "10+",
             "proyectos_completados": "50+",
             "clientes_satisfechos": "30+",
             "ciudades_atendidas": "15+"
