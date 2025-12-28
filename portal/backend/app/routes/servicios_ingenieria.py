@@ -142,10 +142,10 @@ async def get_servicios_ingenieria():
             }
         ],
         "estadisticas": {
-            "anios_experiencia": "10+",
-            "proyectos_completados": "50+",
-            "clientes_satisfechos": "30+",
-            "ciudades_atendidas": "15+"
+            "km_disenados": "250+",
+            "proyectos_completados": "85+",
+            "municipios_atendidos": "20+",
+            "anios_experiencia": "10+"
         },
         "ventajas": [
             "Experiencia comprobada en proyectos viales",
