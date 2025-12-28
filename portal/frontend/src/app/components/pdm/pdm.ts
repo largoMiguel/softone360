@@ -2609,8 +2609,8 @@ export class PdmComponent implements OnInit, OnDestroy {
         
         console.log('📦 Productos filtrados por secretaría:', productosFiltrados.length);
         
-        // Si filtroAnio es 0 o string "0", pasar 0 para agregación de todos los años
-        const anioParaAnalisis = (this.filtroAnio === 0 || this.filtroAnio === '0') ? 0 : parseInt(String(this.filtroAnio), 10);
+        // Convertir filtroAnio a número, 0 significa "todos los años"
+        const anioParaAnalisis = this.filtroAnio === 0 ? 0 : parseInt(String(this.filtroAnio), 10);
         console.log('🎯 Año para análisis:', anioParaAnalisis);
         
         this.dashboardAnalytics = this.pdmService.generarDashboardAnalytics(
