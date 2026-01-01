@@ -763,15 +763,7 @@ Límite: 250 palabras. Usa lenguaje formal y técnico apropiado para gestión p�
             self.story.append(Spacer(1, 0.3*inch))
             
         except Exception as e:
-            print(f"   ❌ Error generando gráfica de líneas:  con caché"""
-        # Verificar caché
-        cache_key = 'grafica_sectores'
-        if cache_key in self._cache_graficas:
-            print(f"   ⚡ Usando gráfica en caché: {cache_key}")
-            self.story.append(self._cache_graficas[cache_key])
-            self.story.append(Spacer(1, 0.3*inch))
-            return
-        r(e)}")
+            print(f"   ❌ Error generando gráfica de líneas: {str(e)}")
         finally:
             plt.close('all')
     
