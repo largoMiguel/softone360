@@ -297,36 +297,9 @@ async def generar_informe_pdm(
         actividades = actividades_query.all()
         print(f"   Actividades encontradas: {len(actividades)}")
         
-        # ============================================
-        # CARGAR EVIDENCIAS BAJO DEMANDA (OPTIMIZADO)
-        # ============================================
-        # Solo cargar IDs de actividades que tienen evidencia (query ligera)
-        # NO cargar las imágenes completas para evitar OOM
-        actividades_ids = [act.id for act in actividades]
-        evidencias_dict = {}
-        if actividades_ids:
-            from app.models.pdm import PdmActividadEvidencia
-            # Query ligera: solo ID y actividad_id (sin imágenes Base64)
-            evidencias_query = db.query(
-                PdmActividadEvidencia.actividad_id,
-                PdmActividadEvidencia.id
-            ).filter(
-                PdmActividadEvidencia.actividad_id.in_(actividades_ids)
-            ).all()
-            evidencias_dict = {e[0]: e[1] for e in evidencias_query}
-            print(f"   Actividades con evidencia: {len(evidencias_dict)}")
-        
-        # Marcar actividades que tienen evidencia (sin cargar el objeto completo)
-        for act in actividades:
-            if act.id in evidencias_dict:
-                # Crear un objeto mock con solo el ID para evitar consultas lazy
-                class EvidenciaMock:
-                    def __init__(self, eid):
-                        self.id = eid
-                        self.imagenes = None  # Se cargará solo si es necesario
-                act.evidencia = EvidenciaMock(evidencias_dict[act.id])
-            else:
-                act.evidencia = None
+        # Contar actividades con evidencias
+        actividades_con_evidencia = sum(1 for act in actividades if act.evidencia)
+        print(f"   Actividades con evidencia: {actividades_con_evidencia}")
         
         # ============================================
         # GENERAR INFORME EN EL FORMATO SOLICITADO
