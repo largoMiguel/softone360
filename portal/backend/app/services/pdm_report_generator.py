@@ -51,20 +51,32 @@ from app.models.pdm_ejecucion import PDMEjecucionPresupuestal
 from app.models.user import User
 
 class PDMReportGenerator:
-    """Generador de informes PDF con estructura general"""
+    """Generador de informes PDF con estructura general con mejoras de rendimiento y contenido"""
     
-    def __init__(self, entity, productos: List, actividades: List, anio: int, db: Session = None, filtros: dict = None):
+    def __init__(self, entity, productos: List, actividades: List, anio: int, db: Session = None, filtros: dict = None, usar_ia: bool = False):
         self.entity = entity
         self.productos = productos
         self.actividades = actividades
         self.anio = anio
         self.db = db
         self.filtros = filtros or {}
+        self.usar_ia = usar_ia  # Parámetro para habilitar resúmenes con IA
         self.buffer = BytesIO()
         self.doc = None
         self.styles = None
         self.story = []
         self.page_number = 0
+        self._cache_graficas = {}  # Caché para evitar regenerar gráficas
+        
+    def get_justify_style(self, fontSize=8):
+        """Helper para crear estilos justificados reutilizables"""
+        return ParagraphStyle(
+            'JustifyStyle',
+            parent=self.styles['Normal'],
+            alignment=TA_JUSTIFY,
+            fontSize=fontSize,
+            leading=fontSize + 2
+        )
         
     def add_header_footer(self, canvas, doc):
         """Encabezado y pie de página estándar"""
@@ -281,6 +293,10 @@ class PDMReportGenerator:
         # RESUMEN EJECUTIVO con KPIs principales
         self.generar_resumen_ejecutivo()
         
+        # RESUMEN CON IA (si está habilitado)
+        if self.usar_ia:
+            self.generar_resumen_ia()
+        
         self.story.append(PageBreak())
     
     def generar_resumen_ejecutivo(self):
@@ -442,17 +458,132 @@ class PDMReportGenerator:
             import traceback
             traceback.print_exc()
     
+    def generar_resumen_ia(self):
+        """
+        Genera un resumen narrativo con IA (OpenAI) sobre el estado del PDM
+        Mejora implementada: análisis inteligente opcional
+        """
+        try:
+            import os
+            from openai import OpenAI
+            
+            title_style = ParagraphStyle(
+                'AITitle',
+                parent=self.styles['Heading1'],
+                fontSize=14,
+                textColor=colors.HexColor('#003366'),
+                spaceAfter=12,
+                fontName='Helvetica-Bold'
+            )
+            
+            self.story.append(Spacer(1, 0.2*inch))
+            self.story.append(Paragraph("ANÁLISIS NARRATIVO CON INTELIGENCIA ARTIFICIAL", title_style))
+            
+            # Preparar datos para el prompt
+            total_productos = len(self.productos)
+            total_actividades = len([a for a in self.actividades if self.anio == 0 or a.anio == self.anio])
+            actividades_completadas = len([a for a in self.actividades if (self.anio == 0 or a.anio == self.anio) and a.estado == 'COMPLETADA'])
+            
+            suma_avances = sum(self.calcular_avance_producto(p) for p in self.productos)
+            avance_promedio = suma_avances / total_productos if total_productos > 0 else 0
+            
+            # Crear prompt para OpenAI
+            anio_texto = "todos los años del cuatrienio 2024-2027" if self.anio == 0 else f"el año {self.anio}"
+            
+            prompt = f"""Eres un analista experto en gestión pública territorial colombiana. 
+            
+Genera un análisis narrativo profesional y técnico del siguiente Plan de Desarrollo Municipal:
+
+DATOS DEL INFORME:
+- Entidad: {self.entity.name}
+- Período: {anio_texto}
+- Total de productos: {total_productos}
+- Total de actividades: {total_actividades}
+- Actividades completadas: {actividades_completadas} ({actividades_completadas/total_actividades*100 if total_actividades > 0 else 0:.1f}%)
+- Avance físico promedio: {avance_promedio:.1f}%
+
+El análisis debe:
+1. Evaluar el nivel de cumplimiento general (excelente, bueno, regular, bajo)
+2. Identificar fortalezas principales
+3. Señalar áreas de mejora o riesgos
+4. Dar recomendaciones estratégicas
+
+Límite: 250 palabras. Usa lenguaje formal y técnico apropiado para gestión pública."""
+
+            # Llamar a OpenAI
+            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "Eres un experto en análisis de gestión pública territorial en Colombia."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=500,
+                temperature=0.7
+            )
+            
+            resumen_ia = response.choices[0].message.content
+            
+            # Agregar resumen al informe
+            ia_style = ParagraphStyle(
+                'IAText',
+                parent=self.styles['BodyText'],
+                alignment=TA_JUSTIFY,
+                fontSize=10,
+                spaceAfter=12,
+                leftIndent=12,
+                rightIndent=12,
+                backColor=colors.HexColor('#F0F8FF'),
+                borderPadding=10
+            )
+            
+            self.story.append(Paragraph(f"<i>{resumen_ia}</i>", ia_style))
+            self.story.append(Spacer(1, 0.15*inch))
+            
+            # Nota al pie
+            nota_style = ParagraphStyle(
+                'NotaIA',
+                parent=self.styles['Normal'],
+                fontSize=8,
+                textColor=colors.HexColor('#666666'),
+                alignment=TA_CENTER
+            )
+            self.story.append(Paragraph(
+                "<i>* Análisis generado con Inteligencia Artificial (OpenAI GPT-4). "
+                "Este resumen es orientativo y debe ser validado por el equipo técnico.</i>",
+                nota_style
+            ))
+            
+            print("✅ Resumen con IA generado exitosamente")
+            
+        except ImportError:
+            print("⚠️ OpenAI no está instalado. Saltando resumen con IA.")
+        except Exception as e:
+            print(f"⚠️ Error generando resumen con IA: {e}")
+            # No lanzar excepción, solo advertir
+            import traceback
+            traceback.print_exc()
+    
     def calcular_avance_producto(self, producto):
         """
         Calcula el avance de un producto basado en meta ejecutada vs meta programada
-        Usa la misma lógica del frontend: promedio de avance de los años con meta programada
+        Respeta el año seleccionado (self.anio). Si anio=0, calcula promedio de todos los años.
         """
         try:
-            anios = [2024, 2025, 2026, 2027]
+            # Determinar años a calcular según self.anio
+            if self.anio == 0:
+                # Todos los años del cuatrienio
+                anios = [2024, 2025, 2026, 2027]
+            else:
+                # Solo el año seleccionado
+                anios = [self.anio]
+            
             suma_avances = 0
             total_anios_con_meta = 0
             
             print(f"\n🔍 Calculando avance para producto: {producto.codigo_producto}")
+            print(f"   Año(s) a calcular: {anios}")
             print(f"   Total actividades disponibles: {len(self.actividades)}")
             
             for anio in anios:
@@ -506,14 +637,23 @@ class PDMReportGenerator:
                 return self.calcular_avance_producto(producto)
             
             # Consultar ejecución presupuestal para este producto y año
-            ejecuciones = self.db.query(PDMEjecucionPresupuestal).filter(
-                PDMEjecucionPresupuestal.entity_id == self.entity.id,
-                PDMEjecucionPresupuestal.codigo_producto == producto.codigo_producto,
-                PDMEjecucionPresupuestal.anio == self.anio
-            ).all()
+            if self.anio == 0:
+                # Todos los años del cuatrienio
+                ejecuciones = self.db.query(PDMEjecucionPresupuestal).filter(
+                    PDMEjecucionPresupuestal.entity_id == self.entity.id,
+                    PDMEjecucionPresupuestal.codigo_producto == producto.codigo_producto
+                ).all()
+            else:
+                # Solo año específico
+                ejecuciones = self.db.query(PDMEjecucionPresupuestal).filter(
+                    PDMEjecucionPresupuestal.entity_id == self.entity.id,
+                    PDMEjecucionPresupuestal.codigo_producto == producto.codigo_producto,
+                    PDMEjecucionPresupuestal.anio == self.anio
+                ).all()
             
             if not ejecuciones:
-                print(f"      ℹ️ No hay ejecución presupuestal para {producto.codigo_producto} en {self.anio}")
+                anio_texto = "todos los años" if self.anio == 0 else str(self.anio)
+                print(f"      ℹ️ No hay ejecución presupuestal para {producto.codigo_producto} en {anio_texto}")
                 # Sin datos de ejecución, usar avance físico como estimación
                 return self.calcular_avance_producto(producto)
             
@@ -543,8 +683,16 @@ class PDMReportGenerator:
             return self.calcular_avance_producto(producto)
     
     def generate_grafica_moderna_lineas(self):
-        """Genera gráfica moderna de avance por líneas estratégicas"""
-        # Calcular avance por línea
+        """Genera gráfica moderna de avance por líneas estratégicas con caché"""
+        # Verificar caché (incluir año en la key)
+        cache_key = f'grafica_lineas_{self.anio}'
+        if cache_key in self._cache_graficas:
+            print(f"   ⚡ Usando gráfica en caché: {cache_key}")
+            self.story.append(self._cache_graficas[cache_key])
+            self.story.append(Spacer(1, 0.3*inch))
+            return
+        
+        # Calcular avance por línea (ya respeta self.anio por calcular_avance_producto)
         lineas_data = {}
         for prod in self.productos:
             linea = prod.linea_estrategica or 'Sin Línea'
@@ -606,11 +754,24 @@ class PDMReportGenerator:
             plt.close(fig)
             
             img = RLImage(img_buffer, width=7*inch, height=max(len(lineas) * 0.6*inch, 3.5*inch))
+            
+            # Guardar en caché
+            self._cache_graficas[cache_key] = img
+            print(f"   💾 Gráfica guardada en caché: {cache_key}")
+            
             self.story.append(img)
             self.story.append(Spacer(1, 0.3*inch))
             
         except Exception as e:
-            print(f"   ❌ Error generando gráfica de líneas: {str(e)}")
+            print(f"   ❌ Error generando gráfica de líneas:  con caché"""
+        # Verificar caché
+        cache_key = 'grafica_sectores'
+        if cache_key in self._cache_graficas:
+            print(f"   ⚡ Usando gráfica en caché: {cache_key}")
+            self.story.append(self._cache_graficas[cache_key])
+            self.story.append(Spacer(1, 0.3*inch))
+            return
+        r(e)}")
         finally:
             plt.close('all')
     
@@ -672,6 +833,11 @@ class PDMReportGenerator:
             plt.close(fig)
             
             img = RLImage(img_buffer, width=7*inch, height=max(len(sectores) * 0.6*inch, 3.5*inch))
+            
+            # Guardar en caché
+            self._cache_graficas[cache_key] = img
+            print(f"   💾 Gráfica guardada en caché: {cache_key}")
+            
             self.story.append(img)
             self.story.append(Spacer(1, 0.3*inch))
             
@@ -681,7 +847,15 @@ class PDMReportGenerator:
             plt.close('all')
     
     def generate_grafica_moderna_ods(self):
-        """Genera gráfica moderna de avance por ODS"""
+        """Genera gráfica moderna de avance por ODS con caché"""
+        # Verificar caché (incluir año en la key)
+        cache_key = f'grafica_ods_{self.anio}'
+        if cache_key in self._cache_graficas:
+            print(f"   ⚡ Usando gráfica en caché: {cache_key}")
+            self.story.append(self._cache_graficas[cache_key])
+            self.story.append(Spacer(1, 0.3*inch))
+            return
+        
         ods_data = defaultdict(lambda: {'total': 0, 'suma_avance': 0})
         
         for prod in self.productos:
@@ -738,6 +912,11 @@ class PDMReportGenerator:
             plt.close(fig)
             
             img = RLImage(img_buffer, width=7*inch, height=max(len(ods_list) * 0.6*inch, 3.5*inch))
+            
+            # Guardar en caché
+            self._cache_graficas[cache_key] = img
+            print(f"   💾 Gráfica guardada en caché: {cache_key}")
+            
             self.story.append(img)
             self.story.append(Spacer(1, 0.3*inch))
             
@@ -889,9 +1068,18 @@ class PDMReportGenerator:
                 avance_financiero_porcentaje = self.calcular_avance_financiero(prod)
                 avance_financiero = f"{avance_financiero_porcentaje:.1f}%"
                 
+                # Crear estilo justificado para textos largos
+                justify_cell = ParagraphStyle(
+                    'JustifyCell',
+                    parent=self.styles['Normal'],
+                    alignment=TA_JUSTIFY,
+                    fontSize=8,
+                    leading=10
+                )
+                
                 data.append([
-                    Paragraph(producto_text[:100], self.styles['Normal']),
-                    Paragraph(indicador_text[:100], self.styles['Normal']),
+                    Paragraph(producto_text, justify_cell),  # Texto justificado completo
+                    Paragraph(indicador_text, justify_cell),  # Texto justificado completo
                     Paragraph(avance_fisico, self.styles['Normal']),
                     Paragraph(avance_financiero, self.styles['Normal'])
                 ])
@@ -1008,8 +1196,8 @@ class PDMReportGenerator:
                 avance_financiero_porcentaje = self.calcular_avance_financiero(prod)
                 
                 data.append([
-                    Paragraph(producto_text[:100], self.styles['Normal']),
-                    Paragraph(indicador_text[:100], self.styles['Normal']),
+                    Paragraph(producto_text, self.get_justify_style()),
+                    Paragraph(indicador_text, self.get_justify_style()),
                     Paragraph(f"{avance_fisico_porcentaje:.1f}%", self.styles['Normal']),
                     Paragraph(f"{avance_financiero_porcentaje:.1f}%", self.styles['Normal'])
                 ])
@@ -1126,8 +1314,8 @@ class PDMReportGenerator:
                 avance_financiero_porcentaje = self.calcular_avance_financiero(prod)
                 
                 data.append([
-                    Paragraph(producto_text[:100], self.styles['Normal']),
-                    Paragraph(indicador_text[:100], self.styles['Normal']),
+                    Paragraph(producto_text, self.get_justify_style()),
+                    Paragraph(indicador_text, self.get_justify_style()),
                     Paragraph(f"{avance_fisico_porcentaje:.1f}%", self.styles['Normal']),
                     Paragraph(f"{avance_financiero_porcentaje:.1f}%", self.styles['Normal'])
                 ])
@@ -1278,11 +1466,14 @@ class PDMReportGenerator:
             if self.anio == 0 or act.anio == self.anio:
                 actividades_por_producto[act.codigo_producto].append(act)
         
-        # Procesar cada producto
+        # Procesar cada producto (SIN LÍMITE - mejora implementada)
         white_style = ParagraphStyle('WhiteText', parent=self.styles['Normal'], textColor=colors.white, fontName='Helvetica-Bold', fontSize=10)
         
-        for prod in self.productos[:15]:
-            print(f"   📦 Procesando producto: {prod.codigo_producto}")
+        total_productos = len(self.productos)
+        print(f"   📦 Procesando {total_productos} productos...")
+        
+        for idx, prod in enumerate(self.productos, 1):
+            print(f"   📦 Procesando producto {idx}/{total_productos}: {prod.codigo_producto}")
             
             # 1. LÍNEA ESTRATÉGICA (encabezado verde)
             linea_header = [[Paragraph('LÍNEA ESTRATÉGICA', white_style)]]
@@ -1357,11 +1548,12 @@ class PDMReportGenerator:
                 total_actividades = len(actividades)
                 completadas = sum(1 for act in actividades if act.estado == 'COMPLETADA')
                 
-                # Mostrar hasta 10 actividades con nombres más largos
+                # Mostrar hasta 10 actividades con nombres completos (sin cortar)
                 meta_text = f"La Meta No. <b>{total_actividades}</b> cuenta con la(s) siguiente(s) Actividades:<br/>"
                 actividades_mostrar = actividades[:10]
                 for idx, act in enumerate(actividades_mostrar, 1):
-                    nombre_actividad = act.nombre[:200] if len(act.nombre) > 200 else act.nombre
+                    # Mostrar nombre completo sin recortar
+                    nombre_actividad = act.nombre
                     meta_text += f"<b>{idx}.</b> {nombre_actividad}<br/>"
                 
                 if len(actividades) > 10:
@@ -1371,18 +1563,27 @@ class PDMReportGenerator:
                 informe_text += f"<b>Total actividades:</b> {total_actividades}<br/>"
                 informe_text += f"<b>Completadas:</b> {completadas}<br/>"
                 if actividades[0].descripcion:
-                    desc_limitada = actividades[0].descripcion[:400] if len(actividades[0].descripcion) > 400 else actividades[0].descripcion
-                    informe_text += f"{desc_limitada}"
+                    # Mostrar descripción completa sin recortar
+                    informe_text += f"{actividades[0].descripcion}"
             else:
                 meta_text = "Sin actividades registradas"
                 informe_text = "No hay información de ejecución disponible"
+            
+            # Crear estilos justificados para contenido
+            justify_style = ParagraphStyle(
+                'JustifyContent',
+                parent=self.styles['Normal'],
+                alignment=TA_JUSTIFY,
+                fontSize=9,
+                leading=12
+            )
             
             actividades_data = [[
                 Paragraph('<b>Meta y/o Actividades</b>', white_style),
                 Paragraph('<b>Informe de Ejecución</b>', white_style)
             ], [
-                Paragraph(meta_text, self.styles['Normal']),
-                Paragraph(informe_text, self.styles['Normal'])
+                Paragraph(meta_text, justify_style),  # Texto justificado
+                Paragraph(informe_text, justify_style)  # Texto justificado
             ]]
             
             # splitByRow=True permite que la tabla se divida entre páginas
@@ -1390,13 +1591,15 @@ class PDMReportGenerator:
             actividades_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#003366')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),  # Títulos centrados
+                ('ALIGN', (0, 1), (-1, -1), 'LEFT'),  # Contenido justificado (via Paragraph)
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                 ('GRID', (0, 0), (-1, -1), 1, colors.grey),
                 ('TOPPADDING', (0, 0), (-1, -1), 8),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
                 ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
             ]))
             self.story.append(actividades_table)
             self.story.append(Spacer(1, 0.02*inch))
@@ -1444,32 +1647,43 @@ class PDMReportGenerator:
             self.story.append(recursos_table)
             self.story.append(Spacer(1, 0.02*inch))
             
-            # 6. REGISTRO DE EVIDENCIA + IMÁGENES
+            # 6. REGISTRO DE EVIDENCIA + IMÁGENES (TODAS LAS EVIDENCIAS - mejora implementada)
             evidencias_encontradas = False
-            for actividad in actividades:
-                if self.db and actividad.evidencia:
-                    evidencias_encontradas = True
+            evidencias_con_imagenes = [act for act in actividades if self.db and act.evidencia and act.evidencia.imagenes]
+            
+            if evidencias_con_imagenes:
+                evidencias_encontradas = True
+                evidencia_header = [[Paragraph('<b>REGISTRO DE EVIDENCIAS</b>', white_style)]]
+                evidencia_table = Table(evidencia_header, colWidths=[7*inch])
+                evidencia_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4F9A54')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Título centrado
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+                    ('TOPPADDING', (0, 0), (-1, -1), 8),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                ]))
+                self.story.append(evidencia_table)
+                self.story.append(Spacer(1, 0.05*inch))
+                
+                # Procesar TODAS las evidencias
+                for num_evidencia, actividad in enumerate(evidencias_con_imagenes, 1):
                     evidencia = actividad.evidencia
                     
-                    evidencia_header = [[Paragraph('<b>REGISTRO DE EVIDENCIA</b>', white_style)]]
-                    evidencia_table = Table(evidencia_header, colWidths=[7*inch])
-                    evidencia_table.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4F9A54')),
-                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                        ('GRID', (0, 0), (-1, -1), 1, colors.grey),
-                        ('TOPPADDING', (0, 0), (-1, -1), 8),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-                        ('LEFTPADDING', (0, 0), (-1, -1), 10),
-                    ]))
-                    self.story.append(evidencia_table)
+                    # Subtítulo por actividad
+                    actividad_nombre = actividad.nombre[:80] if len(actividad.nombre) > 80 else actividad.nombre
+                    self.story.append(Paragraph(
+                        f"<b>Actividad {num_evidencia}:</b> {actividad_nombre}",
+                        ParagraphStyle('EvidenciaTitle', parent=self.styles['Normal'], fontSize=9, textColor=colors.HexColor('#003366'))
+                    ))
                     self.story.append(Spacer(1, 0.05*inch))
                     
-                    # Imágenes en grid 2x2 para ahorrar espacio (máximo 4)
+                    # Imágenes en grid 2x2 (sin límite de 4, pero paginadas)
                     if evidencia.imagenes and isinstance(evidencia.imagenes, list):
                         imagenes_cargadas = []
-                        for idx, img_base64 in enumerate(evidencia.imagenes[:4]):
+                        for idx, img_base64 in enumerate(evidencia.imagenes):  # SIN LÍMITE
                             try:
                                 if img_base64.startswith('data:image'):
                                     img_base64 = img_base64.split(',')[1]
@@ -1479,9 +1693,9 @@ class PDMReportGenerator:
                                 # Tamaño optimizado: 3.3x3.3 pulgadas para grid 2x2
                                 img = RLImage(BytesIO(img_data), width=3.3*inch, height=3.3*inch, kind='proportional')
                                 imagenes_cargadas.append(img)
-                                print(f"      ✅ Imagen {idx+1} agregada al grid")
+                                print(f"      ✅ Evidencia {num_evidencia} - Imagen {idx+1} agregada")
                             except Exception as e:
-                                print(f"      ⚠️ Error imagen {idx+1}: {e}")
+                                print(f"      ⚠️ Error evidencia {num_evidencia} imagen {idx+1}: {e}")
                         
                         # Organizar imágenes en grid 2x2
                         if imagenes_cargadas:
@@ -1502,7 +1716,7 @@ class PDMReportGenerator:
                             ]))
                             
                             self.story.append(img_table)
-                    break
+                            self.story.append(Spacer(1, 0.1*inch))
             
             if not evidencias_encontradas:
                 evidencia_header = [[Paragraph('<b>REGISTRO DE EVIDENCIA</b>', white_style)]]
@@ -1510,7 +1724,7 @@ class PDMReportGenerator:
                 evidencia_table.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4F9A54')),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Título centrado
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                     ('GRID', (0, 0), (-1, -1), 1, colors.grey),
                     ('TOPPADDING', (0, 0), (-1, -1), 8),
@@ -1635,23 +1849,61 @@ class PDMReportGenerator:
             
             doc.add_page_break()
             
-            # TABLA DE PRODUCTOS
-            doc.add_heading('PRODUCTOS Y AVANCES', 1)
+            # TABLA DE PRODUCTOS CON MÁS DETALLES (mejora implementada)
+            doc.add_heading('PRODUCTOS Y AVANCES DETALLADOS', 1)
             
-            table = doc.add_table(rows=1, cols=4)
+            table = doc.add_table(rows=1, cols=7)
             table.style = 'Light Grid Accent 1'
             hdr_cells = table.rows[0].cells
-            hdr_cells[0].text = 'Producto'
-            hdr_cells[1].text = 'Indicador'
-            hdr_cells[2].text = 'Avance Físico'
-            hdr_cells[3].text = 'Avance Financiero'
+            hdr_cells[0].text = 'Código'
+            hdr_cells[1].text = 'Producto'
+            hdr_cells[2].text = 'Indicador'
+            hdr_cells[3].text = 'Meta'
+            hdr_cells[4].text = 'Avance Físico'
+            hdr_cells[5].text = 'Avance Financiero'
+            hdr_cells[6].text = 'Responsable'
             
             for prod in self.productos:
                 row_cells = table.add_row().cells
-                row_cells[0].text = prod.producto_mga or prod.codigo_producto
-                row_cells[1].text = prod.indicador_producto_mga or 'N/A'
-                row_cells[2].text = f"{self.calcular_avance_producto(prod):.1f}%"
-                row_cells[3].text = f"{self.calcular_avance_financiero(prod):.1f}%"
+                row_cells[0].text = prod.codigo_producto
+                row_cells[1].text = (prod.producto_mga or prod.codigo_producto)[:100]
+                row_cells[2].text = (prod.indicador_producto_mga or 'N/A')[:100]
+                row_cells[3].text = str(prod.meta_cuatrienio or 0)
+                row_cells[4].text = f"{self.calcular_avance_producto(prod):.1f}%"
+                row_cells[5].text = f"{self.calcular_avance_financiero(prod):.1f}%"
+                row_cells[6].text = prod.responsable_secretaria.nombre if prod.responsable_secretaria else 'N/A'
+            
+            doc.add_page_break()
+            
+            # SECCIÓN DE ACTIVIDADES POR PRODUCTO (nueva)
+            doc.add_heading('ACTIVIDADES POR PRODUCTO', 1)
+            
+            actividades_por_producto = {}
+            for act in self.actividades:
+                if self.anio == 0 or act.anio == self.anio:
+                    if act.codigo_producto not in actividades_por_producto:
+                        actividades_por_producto[act.codigo_producto] = []
+                    actividades_por_producto[act.codigo_producto].append(act)
+            
+            for prod in self.productos[:20]:  # Primeros 20 para no sobrecargar
+                actividades = actividades_por_producto.get(prod.codigo_producto, [])
+                if actividades:
+                    doc.add_heading(f'{prod.codigo_producto} - {(prod.producto_mga or "")[:80]}', 2)
+                    
+                    act_table = doc.add_table(rows=1, cols=4)
+                    act_table.style = 'Light List Accent 1'
+                    act_hdr = act_table.rows[0].cells
+                    act_hdr[0].text = 'Actividad'
+                    act_hdr[1].text = 'Estado'
+                    act_hdr[2].text = 'Meta'
+                    act_hdr[3].text = 'Evidencia'
+                    
+                    for act in actividades[:10]:  # Max 10 por producto
+                        act_row = act_table.add_row().cells
+                        act_row[0].text = act.nombre[:100]
+                        act_row[1].text = act.estado
+                        act_row[2].text = str(act.meta_ejecutar or 0)
+                        act_row[3].text = '✓ Sí' if act.evidencia else '✗ No'
             
             # Guardar en BytesIO
             from io import BytesIO
@@ -1750,6 +2002,64 @@ class PDMReportGenerator:
             for col in range(1, 9):
                 ws2.column_dimensions[get_column_letter(col)].width = 20
             
+            # HOJA 3: Actividades (mejora implementada)
+            ws3 = wb.create_sheet("Actividades")
+            ws3['A1'] = "ACTIVIDADES Y ESTADOS"
+            ws3['A1'].font = Font(size=14, bold=True)
+            
+            headers_act = ['Código Producto', 'Actividad', 'Estado', 'Año', 'Meta Ejecutar', 'Fecha Inicio', 'Fecha Fin', 'Responsable', 'Evidencia']
+            for col, header in enumerate(headers_act, 1):
+                cell = ws3.cell(row=3, column=col)
+                cell.value = header
+                cell.font = Font(bold=True)
+                cell.fill = PatternFill(start_color="4F9A54", end_color="4F9A54", fill_type="solid")
+                cell.font = Font(bold=True, color="FFFFFF")
+            
+            row = 4
+            for act in self.actividades:
+                if self.anio == 0 or act.anio == self.anio:
+                    ws3[f'A{row}'] = act.codigo_producto
+                    ws3[f'B{row}'] = act.nombre[:100]
+                    ws3[f'C{row}'] = act.estado
+                    ws3[f'D{row}'] = act.anio
+                    ws3[f'E{row}'] = act.meta_ejecutar or 0
+                    ws3[f'F{row}'] = act.fecha_inicio.strftime('%Y-%m-%d') if act.fecha_inicio else ''
+                    ws3[f'G{row}'] = act.fecha_fin.strftime('%Y-%m-%d') if act.fecha_fin else ''
+                    ws3[f'H{row}'] = act.responsable_secretaria.nombre if act.responsable_secretaria else 'N/A'
+                    ws3[f'I{row}'] = 'Sí' if act.evidencia else 'No'
+                    row += 1
+            
+            # Ajustar anchos
+            for col in range(1, 10):
+                ws3.column_dimensions[get_column_letter(col)].width = 18
+            
+            # HOJA 4: Estadísticas de Evidencias (mejora implementada)
+            ws4 = wb.create_sheet("Evidencias")
+            ws4['A1'] = "RESUMEN DE EVIDENCIAS"
+            ws4['A1'].font = Font(size=14, bold=True)
+            
+            ws4['A3'] = 'Métrica'
+            ws4['B3'] = 'Valor'
+            ws4['A3'].font = Font(bold=True)
+            ws4['B3'].font = Font(bold=True)
+            
+            total_actividades = len([a for a in self.actividades if self.anio == 0 or a.anio == self.anio])
+            actividades_con_evidencia = len([a for a in self.actividades if (self.anio == 0 or a.anio == self.anio) and a.evidencia])
+            porcentaje_evidencia = (actividades_con_evidencia / total_actividades * 100) if total_actividades > 0 else 0
+            
+            ws4['A4'] = 'Total Actividades'
+            ws4['B4'] = total_actividades
+            ws4['A5'] = 'Actividades con Evidencia'
+            ws4['B5'] = actividades_con_evidencia
+            ws4['A6'] = 'Porcentaje Documentado'
+            ws4['B6'] = f"{porcentaje_evidencia:.1f}%"
+            
+            ws4['A8'] = 'Productos'
+            ws4['B8'] = len(self.productos)
+            ws4['A9'] = 'Avance Físico Promedio'
+            suma_avances = sum(self.calcular_avance_producto(p) for p in self.productos)
+            ws4['B9'] = f"{suma_avances / len(self.productos):.1f}%" if self.productos else "0%"
+            
             # Guardar en BytesIO
             from io import BytesIO
             excel_buffer = BytesIO()
@@ -1757,7 +2067,7 @@ class PDMReportGenerator:
             excel_bytes = excel_buffer.getvalue()
             excel_buffer.close()
             
-            print(f"✅ Excel generado exitosamente ({len(excel_bytes)} bytes)")
+            print(f"✅ Excel generado exitosamente con 4 hojas ({len(excel_bytes)} bytes)")
             return excel_bytes
             
         except ImportError as ie:

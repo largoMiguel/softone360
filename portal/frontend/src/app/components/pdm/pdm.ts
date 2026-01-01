@@ -152,7 +152,8 @@ export class PdmComponent implements OnInit, OnDestroy {
         fecha_inicio: '',
         fecha_fin: '',
         estados: [] as string[],
-        formato: 'pdf'
+        formato: 'pdf',
+        usar_ia: false  // Mejora: resúmenes con IA
     };
     generandoInforme = false;
 
@@ -931,6 +932,9 @@ export class PdmComponent implements OnInit, OnDestroy {
         }
         if (this.filtrosInforme.formato) {
             filtros.formato = this.filtrosInforme.formato;
+        }
+        if (this.filtrosInforme.usar_ia) {
+            filtros.usar_ia = this.filtrosInforme.usar_ia;
         }
         
         const formatoNombre = this.filtrosInforme.formato === 'pdf' ? 'PDF' : 

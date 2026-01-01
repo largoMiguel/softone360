@@ -1929,14 +1929,15 @@ export class PdmService {
     /**
      * Genera y descarga el informe PDF del Plan de Desarrollo Municipal
      * @param anio Año del informe (2024-2027)
-     * @param filtros Filtros opcionales (secretarías, fechas, estados, formato)
+     * @param filtros Filtros opcionales (secretarías, fechas, estados, formato, usar_ia)
      */
     generarInformePDF(anio: number, filtros?: {
         secretaria_ids?: number[],
         fecha_inicio?: string,
         fecha_fin?: string,
         estados?: string[],
-        formato?: string
+        formato?: string,
+        usar_ia?: boolean
     }): Observable<Blob> {
         if (!this.entitySlug) {
             console.warn('⚠️ No hay slug de entidad disponible');
@@ -1961,6 +1962,9 @@ export class PdmService {
         }
         if (filtros?.formato) {
             params.append('formato', filtros.formato);
+        }
+        if (filtros?.usar_ia) {
+            params.append('usar_ia', 'true');
         }
 
         const queryString = params.toString();

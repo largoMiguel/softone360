@@ -114,6 +114,7 @@ async def generar_informe_pdm(
     fecha_fin: Optional[str] = Query(None, description="Fecha fin (YYYY-MM-DD)"),
     estados: Optional[List[str]] = Query(None, description="Estados de actividades"),
     formato: str = Query("pdf", description="Formato del informe (pdf, docx, excel)"),
+    usar_ia: bool = Query(False, description="Habilitar resúmenes con IA (OpenAI)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
@@ -126,6 +127,7 @@ async def generar_informe_pdm(
     - fecha_inicio/fecha_fin: Rango de fechas de actividades
     - estados: Estados de actividades (PENDIENTE, EN_PROGRESO, COMPLETADA, CANCELADA)
     - formato: Formato de salida (pdf, docx, excel) - Por defecto: pdf
+    - usar_ia: Habilitar análisis narrativo con IA (experimental)
     
     Permisos:
     - Admin: puede filtrar por cualquier secretaría o ver todas
@@ -195,12 +197,14 @@ async def generar_informe_pdm(
         print(f"     - Estados: {estados}")
         
         # ============================================
-        # OBTENER PRODUCTOS CON FILTROS
+        # OBTENER PRODUCTOS CON FILTROS (OPTIMIZADO)
         # ============================================
-        from sqlalchemy.orm import joinedload
+        from sqlalchemy.orm import joinedload, selectinload
+        from sqlalchemy import or_
         
+        # Usar selectinload en lugar de joinedload para mejor performance con muchos registros
         productos_query = db.query(PdmProducto).options(
-            joinedload(PdmProducto.responsable_secretaria)
+            selectinload(PdmProducto.responsable_secretaria)
         ).filter(
             PdmProducto.entity_id == entity.id
         )
@@ -221,7 +225,6 @@ async def generar_informe_pdm(
             )
         else:
             # Incluir productos que tengan meta en al menos un año
-            from sqlalchemy import or_
             productos_query = productos_query.filter(
                 or_(
                     PdmProducto.programacion_2024 > 0,
@@ -241,11 +244,12 @@ async def generar_informe_pdm(
             )
         
         # ============================================
-        # OBTENER ACTIVIDADES CON FILTROS
+        # OBTENER ACTIVIDADES CON FILTROS (OPTIMIZADO)
         # ============================================
+        # Usar selectinload para mejor performance
         actividades_query = db.query(PdmActividad).options(
-            joinedload(PdmActividad.evidencia),
-            joinedload(PdmActividad.responsable_secretaria)
+            selectinload(PdmActividad.evidencia),
+            selectinload(PdmActividad.responsable_secretaria)
         ).filter(
             PdmActividad.entity_id == entity.id
         )
@@ -316,7 +320,8 @@ async def generar_informe_pdm(
                 'fecha_inicio': fecha_inicio,
                 'fecha_fin': fecha_fin,
                 'estados': estados
-            }
+            },
+            usar_ia=usar_ia
         )
         
         # Generar según formato solicitado
@@ -482,7 +487,8 @@ async def preview_informe_pdm(
                 'fecha_inicio': fecha_inicio,
                 'fecha_fin': fecha_fin,
                 'estados': estados
-            }
+            },
+            usar_ia=usar_ia
         )
         
         pdf_bytes = generator.generate()
