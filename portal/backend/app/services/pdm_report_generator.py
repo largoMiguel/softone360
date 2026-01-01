@@ -1647,55 +1647,78 @@ Límite: 250 palabras. Usa lenguaje formal y técnico apropiado para gestión p�
             self.story.append(recursos_table)
             self.story.append(Spacer(1, 0.02*inch))
             
-            # 6. REGISTRO DE EVIDENCIA + IMÁGENES (TODAS LAS EVIDENCIAS - mejora implementada)
+            # 6. REGISTRO DE EVIDENCIA + IMÁGENES (OPTIMIZADO - carga bajo demanda)
             evidencias_encontradas = False
-            evidencias_con_imagenes = [act for act in actividades if self.db and act.evidencia and act.evidencia.imagenes]
             
-            if evidencias_con_imagenes:
-                evidencias_encontradas = True
-                evidencia_header = [[Paragraph('<b>REGISTRO DE EVIDENCIAS</b>', white_style)]]
-                evidencia_table = Table(evidencia_header, colWidths=[7*inch])
-                evidencia_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4F9A54')),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Título centrado
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.grey),
-                    ('TOPPADDING', (0, 0), (-1, -1), 8),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 10),
-                ]))
-                self.story.append(evidencia_table)
-                self.story.append(Spacer(1, 0.05*inch))
+            # OPTIMIZACIÓN: Solo verificar si hay evidencias (sin cargar imágenes aún)
+            actividades_con_evidencia = [act for act in actividades if act.evidencia]
+            
+            if actividades_con_evidencia and self.db:
+                # Cargar imágenes SOLO de las actividades con evidencia (query selectiva)
+                from app.models.pdm import PdmActividadEvidencia
+                actividades_ids_con_evidencia = [act.id for act in actividades_con_evidencia]
                 
-                # Procesar TODAS las evidencias
-                for num_evidencia, actividad in enumerate(evidencias_con_imagenes, 1):
-                    evidencia = actividad.evidencia
-                    
-                    # Subtítulo por actividad
-                    actividad_nombre = actividad.nombre[:80] if len(actividad.nombre) > 80 else actividad.nombre
-                    self.story.append(Paragraph(
-                        f"<b>Actividad {num_evidencia}:</b> {actividad_nombre}",
-                        ParagraphStyle('EvidenciaTitle', parent=self.styles['Normal'], fontSize=9, textColor=colors.HexColor('#003366'))
-                    ))
+                # Query selectiva: solo imagenes de actividades con evidencia
+                evidencias_completas = self.db.query(PdmActividadEvidencia).filter(
+                    PdmActividadEvidencia.actividad_id.in_(actividades_ids_con_evidencia),
+                    PdmActividadEvidencia.imagenes.isnot(None)
+                ).all()
+                
+                # Crear diccionario de evidencias por actividad_id
+                evidencias_dict = {ev.actividad_id: ev for ev in evidencias_completas}
+                
+                # Filtrar actividades que tienen imágenes
+                evidencias_con_imagenes = [
+                    act for act in actividades_con_evidencia 
+                    if act.id in evidencias_dict and evidencias_dict[act.id].imagenes
+                ]
+                
+                if evidencias_con_imagenes:
+                    evidencias_encontradas = True
+                    evidencia_header = [[Paragraph('<b>REGISTRO DE EVIDENCIAS</b>', white_style)]]
+                    evidencia_table = Table(evidencia_header, colWidths=[7*inch])
+                    evidencia_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4F9A54')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Título centrado
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+                        ('TOPPADDING', (0, 0), (-1, -1), 8),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                    ]))
+                    self.story.append(evidencia_table)
                     self.story.append(Spacer(1, 0.05*inch))
                     
-                    # Imágenes en grid 2x2 (sin límite de 4, pero paginadas)
-                    if evidencia.imagenes and isinstance(evidencia.imagenes, list):
-                        imagenes_cargadas = []
-                        for idx, img_base64 in enumerate(evidencia.imagenes):  # SIN LÍMITE
-                            try:
-                                if img_base64.startswith('data:image'):
-                                    img_base64 = img_base64.split(',')[1]
-                                
-                                img_data = base64.b64decode(img_base64)
-                                
-                                # Tamaño optimizado: 3.3x3.3 pulgadas para grid 2x2
-                                img = RLImage(BytesIO(img_data), width=3.3*inch, height=3.3*inch, kind='proportional')
-                                imagenes_cargadas.append(img)
-                                print(f"      ✅ Evidencia {num_evidencia} - Imagen {idx+1} agregada")
-                            except Exception as e:
-                                print(f"      ⚠️ Error evidencia {num_evidencia} imagen {idx+1}: {e}")
+                    # Procesar TODAS las evidencias
+                    for num_evidencia, actividad in enumerate(evidencias_con_imagenes, 1):
+                        evidencia = evidencias_dict[actividad.id]  # Obtener evidencia del dict
+                        
+                        # Subtítulo por actividad
+                        actividad_nombre = actividad.nombre[:80] if len(actividad.nombre) > 80 else actividad.nombre
+                        self.story.append(Paragraph(
+                            f"<b>Actividad {num_evidencia}:</b> {actividad_nombre}",
+                            ParagraphStyle('EvidenciaTitle', parent=self.styles['Normal'], fontSize=9, textColor=colors.HexColor('#003366'))
+                        ))
+                        self.story.append(Spacer(1, 0.05*inch))
+                        
+                        # Imágenes en grid 2x2 (sin límite de 4, pero paginadas)
+                        if evidencia.imagenes and isinstance(evidencia.imagenes, list):
+                            imagenes_cargadas = []
+                            for idx, img_base64 in enumerate(evidencia.imagenes):  # SIN LÍMITE
+                                try:
+                                    if img_base64.startswith('data:image'):
+                                        img_base64 = img_base64.split(',')[1]
+                                    
+                                    img_data = base64.b64decode(img_base64)
+                                    
+                                    # Tamaño optimizado: 3.3x3.3 pulgadas para grid 2x2
+                                    img = RLImage(BytesIO(img_data), width=3.3*inch, height=3.3*inch, kind='proportional')
+                                    imagenes_cargadas.append(img)
+                                    print(f"      ✅ Evidencia {num_evidencia} - Imagen {idx+1} agregada")
+                                except Exception as e:
+                                    print(f"      ⚠️ Error evidencia {num_evidencia} imagen {idx+1}: {e}")
+                        
                         
                         # Organizar imágenes en grid 2x2
                         if imagenes_cargadas:
