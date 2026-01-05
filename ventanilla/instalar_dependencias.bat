@@ -22,12 +22,24 @@ if errorlevel 1 (
 python --version
 echo.
 
-REM Instalar dependencias
+REM Verificar version de Python y ajustar dependencias
 echo Instalando dependencias... esto toma 2-3 minutos...
 echo.
 
-pip install --upgrade pip
-pip install PyQt6==6.5.0 opencv-python-headless==4.8.1.78 numpy==1.24.3 requests==2.31.0
+python -m pip install --upgrade pip
+
+REM Usar versiones compatibles con Python 3.10+
+echo Instalando PyQt6...
+python -m pip install PyQt6==6.7.0
+
+echo Instalando numpy...
+python -m pip install numpy>=1.26.0
+
+echo Instalando OpenCV...
+python -m pip install opencv-python-headless>=4.8.0
+
+echo Instalando requests...
+python -m pip install requests>=2.31.0
 
 if errorlevel 1 (
     echo [ERROR] No se pudieron instalar las dependencias

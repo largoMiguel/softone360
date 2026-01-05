@@ -3,9 +3,11 @@
 ## Opción 1: Con Python instalado (RECOMENDADO)
 
 ### Paso 1: Instalar Python
-1. Descarga Python 3.10 desde https://www.python.org/downloads/
+1. Descarga Python 3.10, 3.11, 3.12 o 3.13 desde https://www.python.org/downloads/
 2. **IMPORTANTE**: Marca la opción "Add Python to PATH" durante la instalación
 3. Reinicia tu PC
+
+**Nota**: Si tienes Python 3.13, las dependencias se instalarán automáticamente en las versiones correctas.
 
 ### Paso 2: Instalar dependencias
 1. Abre una carpeta con los archivos de la aplicación
@@ -50,7 +52,7 @@ La solución más confiable es ejecutar el código Python directamente, que es l
 ## Requisitos Mínimos
 
 - Windows 10 o superior
-- Python 3.10 o superior
+- Python 3.10, 3.11, 3.12 o 3.13
 - Cámara web conectada
 - Conexión a internet
 
