@@ -18,13 +18,14 @@ for package in ['cv2', 'numpy']:
 # Agregar DLLs de numpy explícitamente
 binaries += collect_dynamic_libs('numpy')
 
-# Imports ocultos críticos
+# Agregar más imports críticos
 hiddenimports += [
     'cv2',
     'numpy',
     'numpy.core',
     'numpy.core.multiarray',
     'numpy.core._multiarray_umath',
+    'numpy.core._multiarray_tests',
     'numpy.core._methods',
     'numpy.lib.format',
     'numpy.fft',
@@ -32,6 +33,7 @@ hiddenimports += [
     'numpy.random',
     'numpy.core._dtype',
     'numpy.core._dtype_ctypes',
+    'numpy._distributor_init',
     'PyQt6',
     'PyQt6.QtCore',
     'PyQt6.QtGui',
@@ -55,7 +57,7 @@ a = Analysis(
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[],
+    runtime_hooks=['hook-runtime-opencv.py'],
     excludes=['matplotlib', 'tkinter', 'PIL', 'scipy'],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
