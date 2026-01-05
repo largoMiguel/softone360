@@ -23,18 +23,7 @@ if exist "build" rmdir /s /q build
 if exist "*.spec" del /q *.spec
 
 echo [2/3] Compilando aplicación con PyInstaller...
-pyinstaller --name="ControlAsistencia" ^
-            --windowed ^
-            --onefile ^
-            --icon=NONE ^
-            --clean ^
-            --noconfirm ^
-            --hidden-import=cv2 ^
-            --hidden-import=numpy ^
-            --hidden-import=numpy.core.multiarray ^
-            --collect-all cv2 ^
-            --collect-all numpy ^
-            ventanilla_app.py
+pyinstaller --clean --noconfirm ControlAsistencia.spec
 
 if errorlevel 1 (
     echo [ERROR] La compilación falló
