@@ -29,6 +29,11 @@ pyinstaller --name="ControlAsistencia" ^
             --icon=NONE ^
             --clean ^
             --noconfirm ^
+            --hidden-import=cv2 ^
+            --hidden-import=numpy ^
+            --hidden-import=numpy.core.multiarray ^
+            --collect-all cv2 ^
+            --collect-all numpy ^
             ventanilla_app.py
 
 if errorlevel 1 (
