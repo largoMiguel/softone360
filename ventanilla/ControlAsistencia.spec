@@ -1,27 +1,25 @@
 # -*- mode: python ; coding: utf-8 -*-
 import sys
 import os
-from PyInstaller.utils.hooks import collect_all, collect_submodules, collect_data_files
+from PyInstaller.utils.hooks import collect_all, collect_submodules, collect_data_files, collect_dynamic_libs
 
-# Recolectar todas las dependencias de OpenCV y numpy
-datas_cv2 = []
-binaries_cv2 = []
-hiddenimports_cv2 = []
-tmp_ret_cv2 = collect_all('cv2')
-datas_cv2 += tmp_ret_cv2[0]
-binaries_cv2 += tmp_ret_cv2[1]
-hiddenimports_cv2 += tmp_ret_cv2[2]
+# Recolectar todas las dependencias de OpenCV y numpy de manera más completa
+datas = []
+binaries = []
+hiddenimports = []
 
-datas_numpy = []
-binaries_numpy = []
-hiddenimports_numpy = []
-tmp_ret_numpy = collect_all('numpy')
-datas_numpy += tmp_ret_numpy[0]
-binaries_numpy += tmp_ret_numpy[1]
-hiddenimports_numpy += tmp_ret_numpy[2]
+# OpenCV - recolectar todo
+for package in ['cv2', 'numpy']:
+    tmp = collect_all(package)
+    datas += tmp[0]
+    binaries += tmp[1]
+    hiddenimports += tmp[2]
 
-# Imports ocultos adicionales
-hiddenimports = [
+# Agregar DLLs de numpy explícitamente
+binaries += collect_dynamic_libs('numpy')
+
+# Imports ocultos críticos
+hiddenimports += [
     'cv2',
     'numpy',
     'numpy.core',
@@ -32,11 +30,18 @@ hiddenimports = [
     'numpy.fft',
     'numpy.linalg',
     'numpy.random',
+    'numpy.core._dtype',
+    'numpy.core._dtype_ctypes',
     'PyQt6',
     'PyQt6.QtCore',
     'PyQt6.QtGui',
     'PyQt6.QtWidgets',
+    'PyQt6.sip',
     'requests',
+    'urllib3',
+    'charset_normalizer',
+    'idna',
+    'certifi',
     'uuid',
     'base64',
     'datetime',
@@ -45,13 +50,13 @@ hiddenimports = [
 a = Analysis(
     ['ventanilla_app.py'],
     pathex=[],
-    binaries=binaries_cv2 + binaries_numpy,
-    datas=datas_cv2 + datas_numpy,
-    hiddenimports=hiddenimports + hiddenimports_cv2 + hiddenimports_numpy,
+    binaries=binaries,
+    datas=datas,
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['matplotlib', 'tkinter', 'PIL', 'scipy'],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=None,
