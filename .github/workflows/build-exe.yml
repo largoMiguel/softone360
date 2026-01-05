@@ -32,7 +32,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ControlAsistencia-Windows
-        path: ventanilla/dist/ControlAsistencia.exe
+        path: ventanilla/dist/ControlAsistencia/
         retention-days: 30
     
     - name: Create Release (opcional)

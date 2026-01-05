@@ -40,9 +40,10 @@ echo ========================================
 echo  COMPILACION EXITOSA
 echo ========================================
 echo.
-echo El ejecutable está en: dist\ControlAsistencia.exe
+echo La aplicación está en: dist\ControlAsistencia\
+echo Ejecutable: dist\ControlAsistencia\ControlAsistencia.exe
 echo.
-echo Puedes distribuir ese archivo a cualquier PC con Windows
-echo sin necesidad de instalar Python.
+echo IMPORTANTE: Debes distribuir la CARPETA COMPLETA "ControlAsistencia"
+echo no solo el .exe, ya que contiene todas las DLLs necesarias.
 echo.
 pause
