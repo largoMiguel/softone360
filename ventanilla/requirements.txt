@@ -1,4 +1,4 @@
-PyQt6>=6.7.0
-opencv-python-headless>=4.8.0
-numpy>=1.26.0
-requests>=2.31.0
+PyQt6==6.6.1
+opencv-python-headless==4.9.0.80
+numpy==1.26.4
+requests==2.31.0
