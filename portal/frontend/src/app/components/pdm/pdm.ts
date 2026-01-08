@@ -8,6 +8,7 @@ import { PdmEjecucionService } from '../../services/pdm-ejecucion.service';
 import { AlertsService, Alert } from '../../services/alerts.service';
 import { AuthService } from '../../services/auth.service';
 import { NavigationStateService } from '../../services/navigation-state.service';
+import { environment } from '../../../environments/environment';
 import {
     PDMData,
     ResumenProducto,
@@ -156,6 +157,12 @@ export class PdmComponent implements OnInit, OnDestroy {
         usar_ia: false  // Mejora: resúmenes con IA
     };
     generandoInforme = false;
+
+    // ✅ NUEVO: Modal Plan de Acción
+    mostrarModalPlanAccion = false;
+    planAccionAnio: number = new Date().getFullYear();
+    planAccionSecretariaIds: number[] = [];  // Array para múltiples secretarías
+    exportandoPlanAccion = false;
 
     // Charts
     chartEstados: any = null;
@@ -852,7 +859,8 @@ export class PdmComponent implements OnInit, OnDestroy {
             fecha_inicio: '',
             fecha_fin: '',
             estados: [],
-            formato: 'pdf'  // Formato por defecto
+            formato: 'pdf',  // Formato por defecto
+            usar_ia: false
         };
     }
 
@@ -3654,6 +3662,99 @@ export class PdmComponent implements OnInit, OnDestroy {
             const filtrosElement = document.querySelector('.filtros-section');
             if (filtrosElement) {
                 filtrosElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    }
+
+    // ============================================
+    // ✅ PLAN DE ACCIÓN - EXPORTACIÓN EXCEL
+    // ============================================
+
+    /**
+     * Abre el modal para exportar Plan de Acción
+     */
+    abrirModalPlanAccion(): void {
+        this.mostrarModalPlanAccion = true;
+        this.planAccionAnio = new Date().getFullYear();
+        this.planAccionSecretariaIds = [];  // Vacío = todas
+        
+        // Cargar filtros disponibles (secretarías) si no están cargados
+        if (!this.filtrosInformeDisponibles) {
+            this.cargarFiltrosInforme();
+        }
+    }
+
+    /**
+     * Cierra el modal de Plan de Acción
+     */
+    cerrarModalPlanAccion(): void {
+        this.mostrarModalPlanAccion = false;
+        this.planAccionAnio = new Date().getFullYear();
+        this.planAccionSecretariaIds = [];
+        this.exportandoPlanAccion = false;
+    }
+
+    /**
+     * Toggle para seleccionar/deseleccionar todas las secretarías
+     */
+    toggleTodasSecretarias(): void {
+        // Toggle: si hay alguna seleccionada, limpiar; si está vacío, mantener vacío
+        if (this.planAccionSecretariaIds.length > 0) {
+            this.planAccionSecretariaIds = [];
+        }
+        // No hacer nada si ya está vacío (ya está en modo "todas")
+    }
+
+    /**
+     * Toggle para agregar/quitar una secretaría de la selección
+     */
+    toggleSecretaria(secretariaId: number): void {
+        const index = this.planAccionSecretariaIds.indexOf(secretariaId);
+        if (index > -1) {
+            // Ya está seleccionada, quitarla
+            this.planAccionSecretariaIds.splice(index, 1);
+        } else {
+            // No está seleccionada, agregarla
+            this.planAccionSecretariaIds.push(secretariaId);
+        }
+    }
+
+    /**
+     * Confirma y ejecuta la exportación del Plan de Acción
+     */
+    confirmarExportarPlanAccion(): void {
+        const slug = this.pdmService.getEntitySlug();
+        if (!slug) {
+            alert('Error: No se pudo obtener la entidad actual');
+            return;
+        }
+
+        this.exportandoPlanAccion = true;
+
+        // Construir URL usando environment directamente
+        let url = `${environment.apiUrl}/pdm/informes/${slug}/exportar/plan-accion/${this.planAccionAnio}`;
+        
+        // Agregar secretarías si están seleccionadas (solo para admins)
+        if (this.isAdmin() && this.planAccionSecretariaIds.length > 0) {
+            const params = this.planAccionSecretariaIds.map(id => `secretaria_ids=${id}`).join('&');
+            url += `?${params}`;
+        }
+
+        console.log('📥 Exportando Plan de Acción:', url);
+
+        // Descargar archivo
+        this.pdmService.descargarArchivo(url, `plan-accion-${this.planAccionAnio}.xlsx`).subscribe({
+            next: () => {
+                console.log('✅ Plan de Acción exportado');
+                this.exportandoPlanAccion = false;
+                this.cerrarModalPlanAccion();
+                alert('Plan de Acción exportado exitosamente');
+            },
+            error: (error) => {
+                console.error('❌ Error exportando Plan de Acción:', error);
+                this.exportandoPlanAccion = false;
+                const mensaje = error.error?.detail || error.message || 'Error desconocido';
+                alert(`Error al exportar Plan de Acción: ${mensaje}`);
             }
         });
     }

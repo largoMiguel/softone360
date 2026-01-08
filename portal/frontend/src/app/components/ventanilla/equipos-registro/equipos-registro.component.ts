@@ -160,7 +160,12 @@ export class EquiposRegistroComponent implements OnInit {
   }
 
   deleteEquipo(equipo: EquipoRegistro): void {
-    if (!confirm(`¿Estás seguro de eliminar el equipo "${equipo.nombre}"?`)) {
+    const confirmacion = confirm(
+      `¿Está seguro de eliminar el equipo "${equipo.nombre}"?\n\n` +
+      `Esta acción no se puede deshacer y eliminará también todos los registros de asistencia asociados.`
+    );
+    
+    if (!confirmacion) {
       return;
     }
 
@@ -170,8 +175,16 @@ export class EquiposRegistroComponent implements OnInit {
         this.loadEquipos();
       },
       error: (error) => {
-        console.error('Error:', error);
-        alert('Error al eliminar el equipo: ' + (error.error?.detail || error.message));
+        console.error('Error completo:', error);
+        let errorMsg = 'Error al eliminar el equipo';
+        if (error.error?.detail) {
+          errorMsg += ': ' + error.error.detail;
+        } else if (error.message) {
+          errorMsg += ': ' + error.message;
+        } else if (error.status === 0) {
+          errorMsg += ': No se pudo conectar con el servidor. Verifica tu conexión o contacta al administrador.';
+        }
+        alert(errorMsg);
       }
     });
   }

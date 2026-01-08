@@ -80,16 +80,24 @@ import { EntityContextService } from '../../../services/entity-context.service';
                 </span>
               </td>
               <td>
-                <button class="btn btn-sm btn-outline-primary me-2" (click)="editFuncionario(funcionario)">
+                <button class="btn btn-sm btn-outline-primary me-2" (click)="editFuncionario(funcionario)" title="Editar">
                   <i class="bi bi-pencil"></i>
                 </button>
                 <button 
-                  class="btn btn-sm" 
+                  class="btn btn-sm me-2" 
                   [class.btn-outline-danger]="funcionario.is_active"
                   [class.btn-outline-success]="!funcionario.is_active"
                   (click)="toggleActive(funcionario)"
+                  [title]="funcionario.is_active ? 'Desactivar' : 'Activar'"
                 >
                   <i class="bi" [class.bi-x-circle]="funcionario.is_active" [class.bi-check-circle]="!funcionario.is_active"></i>
+                </button>
+                <button 
+                  class="btn btn-sm btn-outline-danger" 
+                  (click)="deleteFuncionario(funcionario)"
+                  title="Eliminar"
+                >
+                  <i class="bi bi-trash"></i>
                 </button>
               </td>
             </tr>
@@ -325,6 +333,30 @@ export class FuncionariosComponent implements OnInit {
         alert('Error al actualizar el estado del funcionario');
       }
     });
+  }
+
+  deleteFuncionario(funcionario: Funcionario): void {
+    const confirmacion = confirm(
+      `¿Está seguro de eliminar al funcionario ${funcionario.nombres} ${funcionario.apellidos}?\n\n` +
+      `Esta acción no se puede deshacer y eliminará también todos los registros de asistencia asociados.`
+    );
+    
+    if (confirmacion) {
+      this.asistenciaService.deleteFuncionario(funcionario.id).subscribe({
+        next: () => {
+          alert('Funcionario eliminado exitosamente');
+          this.loadFuncionarios();
+        },
+        error: (error) => {
+          console.error('Error al eliminar funcionario:', error);
+          let errorMsg = 'Error al eliminar el funcionario';
+          if (error.error?.detail) {
+            errorMsg += ': ' + error.error.detail;
+          }
+          alert(errorMsg);
+        }
+      });
+    }
   }
 
   saveFuncionario(): void {

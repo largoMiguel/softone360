@@ -42,6 +42,10 @@ export class AsistenciaService {
     return this.http.put<Funcionario>(`${this.apiUrl}/funcionarios/${id}`, funcionario);
   }
 
+  deleteFuncionario(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/funcionarios/${id}`);
+  }
+
   // ===== EQUIPOS =====
 
   getEquipos(entityId?: number, isActive?: boolean): Observable<EquipoRegistro[]> {

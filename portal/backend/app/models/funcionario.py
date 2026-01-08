@@ -55,7 +55,7 @@ class EquipoRegistro(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relaciones
-    registros_asistencia = relationship("RegistroAsistencia", back_populates="equipo")
+    registros_asistencia = relationship("RegistroAsistencia", back_populates="equipo", cascade="all, delete-orphan")
 
 
 class RegistroAsistencia(Base):

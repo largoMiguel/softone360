@@ -515,3 +515,116 @@ async def preview_informe_pdm(
             status_code=500,
             detail=f"Error generando vista previa: {str(e)}"
         )
+
+
+@router.get("/{slug}/exportar/plan-accion/{anio}")
+async def exportar_plan_accion_excel(
+    slug: str,
+    anio: int,
+    secretaria_ids: Optional[List[int]] = Query(None, description="IDs de secretarías para filtrar"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Exporta el Plan de Acción en formato Excel similar al formato institucional
+    
+    Columnas:
+    - ITEM
+    - LÍNEA ESTRATÉGICA
+    - SECTOR
+    - PROGRAMA MGA
+    - CÓDIGO DE PRODUCTO
+    - PRODUCTO
+    - INDICADOR DE PRODUCTO
+    - CANTIDAD META PROGRAMADA AÑO {anio}
+    - UNIDAD DE MEDIDA
+    - PRESUPUESTO ASIGNADO {anio}
+    - DEPENDENCIA RESPONSABLE
+    
+    Args:
+        slug: Slug de la entidad
+        anio: Año del plan (2024-2027)
+        secretaria_ids: Lista de IDs de secretarías (opcional, para filtrar múltiples)
+        
+    Returns:
+        Archivo Excel descargable
+    """
+    try:
+        from app.services.pdm_excel_generator import PDMExcelGenerator
+        
+        print(f"\n📊 Exportando Plan de Acción Excel para {slug} - Año {anio}")
+        
+        # Obtener entidad
+        entity = get_entity_or_404(db, slug)
+        print(f"   Entidad: {entity.name}")
+        
+        # Control de permisos
+        is_admin = current_user.role in [UserRole.ADMIN, UserRole.SUPERADMIN]
+        
+        # Si el usuario es secretario y no especifica secretarías, usar la suya
+        if not is_admin and (not secretaria_ids or len(secretaria_ids) == 0):
+            if hasattr(current_user, 'secretaria_id') and current_user.secretaria_id:
+                secretaria_ids = [current_user.secretaria_id]
+                print(f"   Usuario secretario - Filtrado por Secretaría ID: {secretaria_ids}")
+            else:
+                # Buscar secretaría por email
+                secretaria = db.query(Secretaria).filter(
+                    Secretaria.entity_id == entity.id,
+                    Secretaria.email == current_user.email
+                ).first()
+                
+                if secretaria:
+                    secretaria_ids = [secretaria.id]
+                    print(f"   Secretaría encontrada por email: {secretaria.nombre}")
+        
+        # Validar año
+        if anio not in [2024, 2025, 2026, 2027]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Año inválido. Debe ser entre 2024 y 2027"
+            )
+        
+        # Obtener nombres de secretarías para el filename
+        secretaria_nombre = ""
+        if secretaria_ids and len(secretaria_ids) > 0:
+            if len(secretaria_ids) == 1:
+                secretaria = db.query(Secretaria).filter(Secretaria.id == secretaria_ids[0]).first()
+                if secretaria:
+                    secretaria_nombre = f"-{secretaria.nombre.replace(' ', '-')[:20]}"
+            else:
+                secretaria_nombre = f"-{len(secretaria_ids)}sec"
+        
+        # Generar Excel
+        excel_file = PDMExcelGenerator.generar_plan_accion(
+            db=db,
+            entity_id=entity.id,
+            anio=anio,
+            secretaria_ids=secretaria_ids
+        )
+        
+        # Nombre del archivo
+        fecha_actual = datetime.now().strftime("%Y-%m-%d")
+        filename = f"plan-accion-{slug}-{anio}{secretaria_nombre}-{fecha_actual}.xlsx"
+        
+        print(f"✅ Excel generado exitosamente: {filename}\n")
+        
+        # Retornar archivo
+        return StreamingResponse(
+            excel_file,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error exportando Plan de Acción: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error exportando Plan de Acción: {str(e)}"
+        )

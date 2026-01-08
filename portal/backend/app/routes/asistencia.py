@@ -188,24 +188,35 @@ def eliminar_equipo(
     """
     Eliminar un equipo de registro.
     """
-    # Verificar permisos
-    if current_user.role not in [UserRole.SUPERADMIN, UserRole.ADMIN]:
-        raise HTTPException(status_code=403, detail="No tiene permisos para eliminar equipos")
-    
-    # Buscar el equipo
-    db_equipo = db.query(EquipoRegistro).filter(EquipoRegistro.id == equipo_id).first()
-    if not db_equipo:
-        raise HTTPException(status_code=404, detail="Equipo no encontrado")
-    
-    # Si no es SUPERADMIN, validar que sea de su entidad
-    if current_user.role != UserRole.SUPERADMIN:
-        if current_user.entity_id != db_equipo.entity_id:
-            raise HTTPException(status_code=403, detail="Solo puede eliminar equipos de su entidad")
-    
-    db.delete(db_equipo)
-    db.commit()
-    
-    return None
+    try:
+        # Verificar permisos
+        if current_user.role not in [UserRole.SUPERADMIN, UserRole.ADMIN]:
+            raise HTTPException(status_code=403, detail="No tiene permisos para eliminar equipos")
+        
+        # Buscar el equipo
+        db_equipo = db.query(EquipoRegistro).filter(EquipoRegistro.id == equipo_id).first()
+        if not db_equipo:
+            raise HTTPException(status_code=404, detail="Equipo no encontrado")
+        
+        # Si no es SUPERADMIN, validar que sea de su entidad
+        if current_user.role != UserRole.SUPERADMIN:
+            if current_user.entity_id != db_equipo.entity_id:
+                raise HTTPException(status_code=403, detail="Solo puede eliminar equipos de su entidad")
+        
+        # Eliminar equipo (los registros asociados se eliminan en cascada)
+        db.delete(db_equipo)
+        db.commit()
+        
+        print(f"Equipo {equipo_id} eliminado exitosamente por usuario {current_user.email}")
+        return None
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"ERROR al eliminar equipo {equipo_id}: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al eliminar el equipo: {str(e)}")
 
 
 @router.post("/equipos/validar", response_model=ValidacionEquipoResponse)
@@ -375,6 +386,37 @@ def actualizar_funcionario(
     db.refresh(funcionario)
     
     return funcionario
+
+
+@router.delete("/funcionarios/{funcionario_id}", status_code=status.HTTP_204_NO_CONTENT)
+def eliminar_funcionario(
+    funcionario_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Eliminar un funcionario.
+    Solo SUPERADMIN y ADMIN pueden eliminar funcionarios.
+    """
+    # Verificar permisos
+    if current_user.role not in [UserRole.SUPERADMIN, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="No tiene permisos para eliminar funcionarios")
+    
+    # Buscar el funcionario
+    funcionario = db.query(Funcionario).filter(Funcionario.id == funcionario_id).first()
+    if not funcionario:
+        raise HTTPException(status_code=404, detail="Funcionario no encontrado")
+    
+    # Si no es SUPERADMIN, validar que sea de su entidad
+    if current_user.role != UserRole.SUPERADMIN:
+        if funcionario.entity_id != current_user.entity_id:
+            raise HTTPException(status_code=403, detail="Solo puede eliminar funcionarios de su entidad")
+    
+    # Eliminar funcionario
+    db.delete(funcionario)
+    db.commit()
+    
+    return None
 
 
 # ===== REGISTROS DE ASISTENCIA =====

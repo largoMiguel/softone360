@@ -32,6 +32,9 @@
                 <button *ngIf="archivoExcelCargado && vistaActual === 'dashboard'" class="btn btn-outline-info me-2" (click)="exportarExcel()" title="Exportar PDM completo a Excel">
                     <i class="fas fa-file-excel"></i> Exportar Excel
                 </button>
+                <button *ngIf="archivoExcelCargado && vistaActual === 'dashboard'" class="btn btn-outline-success me-2" (click)="abrirModalPlanAccion()" title="Exportar Plan de Acción">
+                    <i class="fas fa-table"></i> Plan de Acción
+                </button>
             </div>
         </div>
     </div>
@@ -2051,6 +2054,101 @@
             </div>
         </div>
     </div>
+
+    <!-- ✅ MODAL: Exportar Plan de Acción -->
+    <div class="modal fade" [class.show]="mostrarModalPlanAccion" [style.display]="mostrarModalPlanAccion ? 'block' : 'none'" tabindex="-1" *ngIf="mostrarModalPlanAccion">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-table me-2"></i>
+                        Exportar Plan de Acción
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" (click)="cerrarModalPlanAccion()" [disabled]="exportandoPlanAccion"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Genere un archivo Excel con el formato institucional de Plan de Acción
+                    </p>
+
+                    <!-- Año -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-calendar me-1"></i> Año <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" [(ngModel)]="planAccionAnio">
+                            <option [value]="2024">2024</option>
+                            <option [value]="2025">2025</option>
+                            <option [value]="2026">2026</option>
+                            <option [value]="2027">2027</option>
+                        </select>
+                    </div>
+
+                    <!-- Secretarías (solo admins) -->
+                    <div class="mb-3" *ngIf="isAdmin() && filtrosInformeDisponibles?.secretarias && filtrosInformeDisponibles.secretarias.length > 0">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-building me-1"></i> Secretarías
+                        </label>
+                        
+                        <!-- Checkbox "Todas" -->
+                        <div class="form-check mb-2">
+                            <input 
+                                class="form-check-input" 
+                                type="checkbox" 
+                                id="todasSecretarias"
+                                [checked]="planAccionSecretariaIds.length === 0"
+                                (change)="toggleTodasSecretarias()">
+                            <label class="form-check-label fw-bold" for="todasSecretarias">
+                                Todas las secretarías
+                            </label>
+                        </div>
+
+                        <!-- Lista de secretarías con checkboxes -->
+                        <div class="secretarias-list" style="max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 4px; padding: 10px;">
+                            <div class="form-check" *ngFor="let sec of filtrosInformeDisponibles.secretarias">
+                                <input 
+                                    class="form-check-input" 
+                                    type="checkbox" 
+                                    [id]="'sec-' + sec.id"
+                                    [checked]="planAccionSecretariaIds.includes(sec.id)"
+                                    (change)="toggleSecretaria(sec.id)">
+                                <label class="form-check-label" [for]="'sec-' + sec.id">
+                                    {{ sec.nombre }}
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <small class="text-muted mt-2 d-block">
+                            <span *ngIf="planAccionSecretariaIds.length === 0">Se exportarán todas las secretarías</span>
+                            <span *ngIf="planAccionSecretariaIds.length > 0">{{ planAccionSecretariaIds.length }} secretaría(s) seleccionada(s)</span>
+                        </small>
+                    </div>
+
+                    <!-- Mensaje para secretarios -->
+                    <div class="alert alert-info" *ngIf="!isAdmin()">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Se exportarán los productos de su secretaría
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" (click)="cerrarModalPlanAccion()" [disabled]="exportandoPlanAccion">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-success" (click)="confirmarExportarPlanAccion()" [disabled]="exportandoPlanAccion">
+                        <span *ngIf="!exportandoPlanAccion">
+                            <i class="fas fa-file-excel me-1"></i> Exportar Excel
+                        </span>
+                        <span *ngIf="exportandoPlanAccion">
+                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            Generando...
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade" [class.show]="mostrarModalPlanAccion" *ngIf="mostrarModalPlanAccion"></div>
 
     <!-- Modal: Análisis Detallado del Producto -->
 </div>

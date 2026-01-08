@@ -2027,5 +2027,46 @@ export class PdmService {
         
         console.log(`✅ Informe descargado: ${link.download}`);
     }
+
+    /**
+     * Descarga un archivo desde una URL (método genérico)
+     * @param url URL del archivo a descargar
+     * @param nombreArchivo Nombre del archivo (opcional)
+     */
+    descargarArchivo(url: string, nombreArchivo?: string): Observable<void> {
+        return this.http.get(url, { 
+            responseType: 'blob',
+            observe: 'response'
+        }).pipe(
+            map(response => {
+                const blob = response.body!;
+                const urlBlob = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = urlBlob;
+                
+                // Obtener nombre del archivo del header Content-Disposition o usar el proporcionado
+                let filename = nombreArchivo || 'archivo.xlsx';
+                const contentDisposition = response.headers.get('Content-Disposition');
+                if (contentDisposition) {
+                    const matches = /filename="?([^"]+)"?/.exec(contentDisposition);
+                    if (matches && matches[1]) {
+                        filename = matches[1];
+                    }
+                }
+                
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(urlBlob);
+                
+                console.log(`✅ Archivo descargado: ${filename}`);
+            }),
+            catchError(error => {
+                console.error('❌ Error al descargar archivo:', error);
+                throw error;
+            })
+        );
+    }
 }
 
