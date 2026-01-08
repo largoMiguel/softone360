@@ -26,6 +26,12 @@ export const routes: Routes = [
 
     // Ruta de login global (sin slug de entidad)
     { path: 'login', component: LoginComponent, canActivate: [loginGuard] },
+    
+    // Ruta de login para Control de Asistencia (sin slug)
+    { 
+        path: 'asistencia-login', 
+        loadComponent: () => import('./components/ventanilla/login-asistencia/login-asistencia.component').then(m => m.LoginAsistenciaComponent)
+    },
 
     // Ruta de super administración (global, no depende de entidad)
     { path: 'soft-admin', component: SoftAdminComponent, canActivate: [superAdminGuard] },

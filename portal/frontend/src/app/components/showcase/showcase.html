@@ -157,41 +157,6 @@
     </div>
 </div>
 
-<!-- Modal Selector de Entidades para Talento Humano -->
-<div class="modal-overlay" *ngIf="showEntityModalAsistencia" (click)="cerrarModalAsistencia()">
-    <div class="modal-content" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-            <h3 class="modal-title">
-                <i class="fas fa-clock me-2"></i>Control de Asistencia - Seleccione una Entidad
-            </h3>
-            <button class="btn-close" (click)="cerrarModalAsistencia()">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="modal-body">
-            <div class="alert alert-info mb-3">
-                <i class="fas fa-info-circle me-2"></i>
-                Seleccione la entidad para acceder al módulo de Control de Asistencia
-            </div>
-            <div class="entities-grid">
-                <div class="entity-item" *ngFor="let entity of entities" (click)="seleccionarEntidadAsistencia(entity)">
-                    <div class="entity-logo-container">
-                        <img [src]="entity.logo_url || 'assets/logos/logo_talento.png'" 
-                             [alt]="entity.name" 
-                             class="entity-logo">
-                    </div>
-                    <h4 class="entity-name">{{ entity.name }}</h4>
-                    <p class="entity-slug text-muted">{{ entity.slug }}</p>
-                </div>
-            </div>
-            <div *ngIf="entities.length === 0" class="text-center py-5 text-muted">
-                <i class="fas fa-building fa-3x mb-3"></i>
-                <p>No hay entidades disponibles en este momento</p>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Features Section -->
 <section class="features-section py-5" id="features">
     <div class="container">

@@ -127,7 +127,6 @@ export class ShowcaseComponent implements OnInit {
     // Para el selector de entidades
     entities: any[] = [];
     showEntityModal = false;
-    showEntityModalAsistencia = false;
 
     // Para el modal de alertas
     showAlert = false;
@@ -255,54 +254,8 @@ export class ShowcaseComponent implements OnInit {
     }
 
     irATalento(): void {
-        // Redirigir al módulo de Control de Asistencia (Talento Humano)
-        this.abrirSelectorEntidadesAsistencia();
-    }
-
-    abrirSelectorEntidadesAsistencia(): void {
-        // Cargar entidades usando el servicio
-        this.entityService.getPublicEntities().subscribe({
-            next: (entities) => {
-                this.entities = entities;
-                this.showEntityModalAsistencia = true;
-            },
-            error: (error) => {
-                console.error('Error cargando entidades:', error);
-                
-                // Determinar el tipo de error y mostrar modal
-                let mensaje = '';
-                let tipo: 'error' | 'warning' | 'success' | 'info' = 'error';
-                
-                if (error.status === 0) {
-                    mensaje = 'El servicio no está disponible en este momento. Por favor, intente más tarde.';
-                    tipo = 'error';
-                } else if (error.status === 404) {
-                    mensaje = 'No hay entidades disponibles.';
-                    tipo = 'warning';
-                } else if (error.status === 401 || error.status === 403) {
-                    mensaje = 'No tienes permisos para acceder a las entidades.';
-                    tipo = 'error';
-                } else if (error.status >= 500) {
-                    mensaje = 'Error en el servidor. Por favor, intente más tarde.';
-                    tipo = 'error';
-                } else {
-                    mensaje = 'Error al cargar las entidades. Por favor, intente nuevamente.';
-                    tipo = 'error';
-                }
-                
-                this.mostrarAlerta(tipo, 'Error', mensaje);
-            }
-        });
-    }
-
-    seleccionarEntidadAsistencia(entity: any): void {
-        this.showEntityModalAsistencia = false;
-        // Redirigir al módulo de ventanilla (control de asistencia)
-        this.router.navigate([`/${entity.slug}/ventanilla`]);
-    }
-
-    cerrarModalAsistencia(): void {
-        this.showEntityModalAsistencia = false;
+        // Redirigir directamente al login de Control de Asistencia
+        this.router.navigate(['/asistencia-login']);
     }
 
     mostrarAlerta(tipo: 'error' | 'warning' | 'success' | 'info', title: string, mensaje: string): void {

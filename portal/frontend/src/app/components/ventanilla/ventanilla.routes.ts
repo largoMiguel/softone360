@@ -4,6 +4,7 @@ import { DashboardAsistenciaComponent } from './dashboard-asistencia/dashboard-a
 import { FuncionariosComponent } from './funcionarios/funcionarios.component';
 import { RegistrosAsistenciaComponent } from './registros-asistencia/registros-asistencia.component';
 import { EquiposRegistroComponent } from './equipos-registro/equipos-registro.component';
+import { LoginAsistenciaComponent } from './login-asistencia/login-asistencia.component';
 
 export const VENTANILLA_ROUTES: Routes = [
   {
@@ -17,4 +18,9 @@ export const VENTANILLA_ROUTES: Routes = [
       { path: 'equipos', component: EquiposRegistroComponent }
     ]
   }
+];
+
+// Ruta independiente para login de asistencia
+export const LOGIN_ASISTENCIA_ROUTE: Routes = [
+  { path: 'asistencia-login', component: LoginAsistenciaComponent }
 ];

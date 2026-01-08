@@ -1,0 +1,94 @@
+<div class="login-asistencia-container">
+    <div class="login-card">
+        <!-- Logo y Header -->
+        <div class="login-header">
+            <div class="logo-container">
+                <i class="fas fa-user-clock"></i>
+            </div>
+            <h1>Control de Asistencia</h1>
+            <p class="subtitle">Registro de entrada y salida del personal</p>
+        </div>
+
+        <!-- Formulario -->
+        <form (ngSubmit)="onSubmit()" class="login-form">
+            <!-- Email -->
+            <div class="form-group">
+                <label for="username">
+                    <i class="fas fa-envelope"></i>
+                    Correo Electrónico
+                </label>
+                <input
+                    type="email"
+                    id="username"
+                    name="username"
+                    [(ngModel)]="credentials.username"
+                    placeholder="correo@ejemplo.com"
+                    [disabled]="isLoading"
+                    required
+                    autocomplete="email"
+                />
+            </div>
+
+            <!-- Password -->
+            <div class="form-group">
+                <label for="password">
+                    <i class="fas fa-lock"></i>
+                    Contraseña
+                </label>
+                <div class="password-input-wrapper">
+                    <input
+                        [type]="showPassword ? 'text' : 'password'"
+                        id="password"
+                        name="password"
+                        [(ngModel)]="credentials.password"
+                        placeholder="••••••••"
+                        [disabled]="isLoading"
+                        required
+                        autocomplete="current-password"
+                    />
+                    <button
+                        type="button"
+                        class="toggle-password"
+                        (click)="togglePassword()"
+                        [disabled]="isLoading"
+                        tabindex="-1"
+                    >
+                        <i [class]="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Botón Iniciar Sesión -->
+            <button
+                type="submit"
+                class="btn-login"
+                [disabled]="isLoading"
+            >
+                <span *ngIf="!isLoading">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Iniciar Sesión
+                </span>
+                <span *ngIf="isLoading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    Iniciando sesión...
+                </span>
+            </button>
+        </form>
+
+        <!-- Link para volver -->
+        <div class="login-footer">
+            <button type="button" class="btn-volver" (click)="volverAlInicio()">
+                <i class="fas fa-arrow-left"></i>
+                Volver al inicio
+            </button>
+        </div>
+    </div>
+
+    <!-- Footer informativo -->
+    <div class="info-footer">
+        <p>
+            <i class="fas fa-info-circle"></i>
+            Acceso exclusivo para personal autorizado
+        </p>
+    </div>
+</div>
