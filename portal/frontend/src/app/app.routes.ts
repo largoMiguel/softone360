@@ -57,6 +57,8 @@ export const routes: Routes = [
         resolve: { entity: entityResolver },
         children: [
             { path: '', component: VentanillaComponent, canActivate: [sessionRedirectGuard] },
+            // Redirección de la ruta antigua de ventanilla al nuevo módulo independiente
+            { path: 'ventanilla', redirectTo: '/talento-humano', pathMatch: 'prefix' },
             // El portal ciudadano no requiere permisos por módulos ni autenticación
             { path: 'portal-ciudadano', component: PortalCiudadanoComponent, canActivate: [ciudadanoGuard, pqrsEnabledGuard] },
             { path: 'dashboard', loadComponent: () => import('./components/dashboard/dashboard').then(m => m.DashboardComponent), canActivate: [adminPortalGuard, enforceUserEntityGuard] },
