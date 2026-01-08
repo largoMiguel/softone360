@@ -11,6 +11,7 @@ from sqlalchemy import func
 
 from app.models.pdm import PdmProducto
 from app.models.secretaria import Secretaria
+from app.models.pdm_ejecucion import PDMEjecucionPresupuestal
 
 
 class PDMExcelGenerator:
@@ -94,20 +95,29 @@ class PDMExcelGenerator:
         for idx, producto in enumerate(productos, 2):
             # Obtener meta programada según el año
             meta_programada = 0
-            presupuesto_asignado = 0
             
             if anio == 2024:
                 meta_programada = producto.programacion_2024 or 0
-                presupuesto_asignado = producto.total_2024 or 0
             elif anio == 2025:
                 meta_programada = producto.programacion_2025 or 0
-                presupuesto_asignado = producto.total_2025 or 0
             elif anio == 2026:
                 meta_programada = producto.programacion_2026 or 0
-                presupuesto_asignado = producto.total_2026 or 0
             elif anio == 2027:
                 meta_programada = producto.programacion_2027 or 0
-                presupuesto_asignado = producto.total_2027 or 0
+            
+            # Obtener presupuesto definitivo de la ejecución presupuestal
+            presupuesto_asignado = 0
+            if producto.codigo_producto:
+                # Sumar el presupuesto definitivo de todas las fuentes para este producto y año
+                presupuesto_total = db.query(
+                    func.sum(PDMEjecucionPresupuestal.pto_definitivo)
+                ).filter(
+                    PDMEjecucionPresupuestal.entity_id == entity_id,
+                    PDMEjecucionPresupuestal.codigo_producto == producto.codigo_producto,
+                    PDMEjecucionPresupuestal.anio == anio
+                ).scalar()
+                
+                presupuesto_asignado = float(presupuesto_total) if presupuesto_total else 0
             
             # Obtener nombre de secretaría
             dependencia = producto.responsable_secretaria_nombre or ""
