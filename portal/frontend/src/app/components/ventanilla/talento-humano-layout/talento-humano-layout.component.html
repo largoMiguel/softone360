@@ -1,0 +1,61 @@
+<div class="talento-humano-layout">
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-content">
+            <div class="header-left">
+                <i class="fas fa-user-clock"></i>
+                <div class="header-title">
+                    <h1>Control de Asistencia</h1>
+                    <p class="entity-name">{{ entityName }}</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span>{{ currentUser?.username }}</span>
+                </div>
+                <button class="btn-logout" (click)="cerrarSesion()" title="Cerrar sesión">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Salir
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+        <button 
+            class="nav-tab" 
+            [class.active]="activeTab === 'dashboard'"
+            (click)="navigateTo('dashboard')">
+            <i class="fas fa-chart-line"></i>
+            Dashboard
+        </button>
+        <button 
+            class="nav-tab" 
+            [class.active]="activeTab === 'funcionarios'"
+            (click)="navigateTo('funcionarios')">
+            <i class="fas fa-users"></i>
+            Funcionarios
+        </button>
+        <button 
+            class="nav-tab" 
+            [class.active]="activeTab === 'registros'"
+            (click)="navigateTo('registros')">
+            <i class="fas fa-clipboard-list"></i>
+            Registros
+        </button>
+        <button 
+            class="nav-tab" 
+            [class.active]="activeTab === 'equipos'"
+            (click)="navigateTo('equipos')">
+            <i class="fas fa-laptop"></i>
+            Equipos
+        </button>
+    </nav>
+
+    <!-- Content Area -->
+    <main class="main-content">
+        <router-outlet></router-outlet>
+    </main>
+</div>

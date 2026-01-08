@@ -63,7 +63,7 @@ export class LoginAsistenciaComponent {
 
                 // Redirigir al dashboard de asistencia de su entidad
                 this.alertService.success('Bienvenido al Control de Asistencia');
-                this.router.navigate([`/${user.entity.slug}/ventanilla/dashboard`]);
+                this.router.navigate(['/talento-humano/dashboard']);
             },
             error: (error) => {
                 console.error('Error en login:', error);

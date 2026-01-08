@@ -7,6 +7,7 @@ import { PortalCiudadanoComponent } from './components/portal-ciudadano/portal-c
 import { SoftAdminComponent } from './components/soft-admin/soft-admin';
 import { authGuard, loginGuard, adminPortalGuard, ciudadanoGuard } from './guards/auth.guard';
 import { superAdminGuard } from './guards/superadmin.guard';
+import { asistenciaGuard } from './guards/asistencia.guard';
 import { planesEnabledGuard, pqrsEnabledGuard, contratacionEnabledGuard, pdmEnabledGuard } from './guards/feature.guard';
 import { ShowcaseComponent } from './components/showcase/showcase';
 import { ensureEntityGuard } from './guards/ensure-entity.guard';
@@ -27,10 +28,17 @@ export const routes: Routes = [
     // Ruta de login global (sin slug de entidad)
     { path: 'login', component: LoginComponent, canActivate: [loginGuard] },
     
-    // Ruta de login para Control de Asistencia (sin slug)
+    // Ruta de login para Control de Asistencia (independiente)
     { 
         path: 'asistencia-login', 
         loadComponent: () => import('./components/ventanilla/login-asistencia/login-asistencia.component').then(m => m.LoginAsistenciaComponent)
+    },
+    
+    // Módulo de Control de Asistencia (Talento Humano) - Completamente independiente del portal administrativo
+    {
+        path: 'talento-humano',
+        loadChildren: () => import('./components/ventanilla/ventanilla.routes').then(m => m.VENTANILLA_ROUTES),
+        canActivate: [asistenciaGuard]
     },
 
     // Ruta de super administración (global, no depende de entidad)
@@ -49,11 +57,6 @@ export const routes: Routes = [
         resolve: { entity: entityResolver },
         children: [
             { path: '', component: VentanillaComponent, canActivate: [sessionRedirectGuard] },
-            { 
-                path: 'ventanilla', 
-                loadChildren: () => import('./components/ventanilla/ventanilla.routes').then(m => m.VENTANILLA_ROUTES),
-                canActivate: [adminPortalGuard, enforceUserEntityGuard]
-            },
             // El portal ciudadano no requiere permisos por módulos ni autenticación
             { path: 'portal-ciudadano', component: PortalCiudadanoComponent, canActivate: [ciudadanoGuard, pqrsEnabledGuard] },
             { path: 'dashboard', loadComponent: () => import('./components/dashboard/dashboard').then(m => m.DashboardComponent), canActivate: [adminPortalGuard, enforceUserEntityGuard] },
