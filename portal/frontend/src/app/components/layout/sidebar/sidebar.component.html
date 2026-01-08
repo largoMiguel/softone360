@@ -106,19 +106,5 @@
                 </li>
             </ul>
         </div>
-
-        <!-- Control de Asistencia -->
-        <div class="menu-group" *ngIf="canAccessAsistencia()">
-            <div class="menu-title">
-                <i class="fas fa-clock me-2"></i>CONTROL DE ASISTENCIA
-            </div>
-            <ul class="list-unstyled ms-1">
-                <li>
-                    <a class="menu-link" [class.active]="isActiveRouteAsistencia()" (click)="goAsistencia()">
-                        <i class="fas fa-angle-right me-2"></i>Ingresar
-                    </a>
-                </li>
-            </ul>
-        </div>
     </div>
 </div>

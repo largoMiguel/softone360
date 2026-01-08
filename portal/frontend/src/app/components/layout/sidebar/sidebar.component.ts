@@ -47,7 +47,6 @@ export class SidebarComponent {
     canAccessPlanes(): boolean { return this.planesEnabled() && this.userHasModule('planes_institucionales'); }
     canAccessContratacion(): boolean { return this.contratacionEnabled() && this.userHasModule('contratacion'); }
     canAccessPdm(): boolean { return this.pdmEnabled() && this.userHasModule('pdm'); }
-    canAccessAsistencia(): boolean { return this.isAdmin(); } // Solo admins y secretarios
 
     // ===== Navegación =====
     goDashboard(view: 'welcome' | 'dashboard' | 'mis-pqrs' | 'nueva-pqrs' | 'usuarios' = 'dashboard') {
@@ -85,10 +84,6 @@ export class SidebarComponent {
         if (!this.slug) return; this.router.navigate([`/${this.slug}/pdm-dashboard`]);
         this.sidebar.close();
     }
-    goAsistencia() {
-        if (!this.slug) return; this.router.navigate([`/${this.slug}/ventanilla`]);
-        this.sidebar.close();
-    }
 
     openCargarEjecucion() {
         if (!this.slug) return;
@@ -115,7 +110,6 @@ export class SidebarComponent {
     }
     isActiveRoutePdm(): boolean { return /\/pdm(\/?|\?|$)/.test(this.router.url); }
     isActiveRoutePdmDashboard(): boolean { return /\/pdm-dashboard(\/?|\?|$)/.test(this.router.url); }
-    isActiveRouteAsistencia(): boolean { return /\/ventanilla(\/?|\?|$)/.test(this.router.url); }
     isActiveView(view: 'welcome' | 'dashboard' | 'mis-pqrs' | 'nueva-pqrs' | 'usuarios'): boolean {
         const url = this.router.url;
         if (!/\/(dashboard)(\b|\?)/.test(url)) return false;
