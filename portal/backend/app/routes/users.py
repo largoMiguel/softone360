@@ -211,6 +211,8 @@ async def create_user(
                 valid_modules.append("pdm")
             if entity.enable_contratacion:
                 valid_modules.append("contratacion")
+            if entity.enable_asistencia:
+                valid_modules.append("asistencia")
             if entity.enable_reports_pdf:
                 valid_modules.append("reports_pdf")
             if entity.enable_ai_reports:

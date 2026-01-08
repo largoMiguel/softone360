@@ -12,7 +12,7 @@
             <div class="header-right">
                 <div class="user-info">
                     <i class="fas fa-user-circle"></i>
-                    <span>{{ currentUser?.username }}</span>
+                    <span>{{ currentUser?.full_name?.toUpperCase() || currentUser?.username }}</span>
                 </div>
                 <button class="btn-logout" (click)="cerrarSesion()" title="Cerrar sesión">
                     <i class="fas fa-sign-out-alt"></i>

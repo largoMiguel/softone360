@@ -2,6 +2,7 @@ export interface EntityBasic {
     id: number;
     name: string;
     slug: string;
+    enable_asistencia?: boolean;
 }
 
 export interface User {
@@ -15,6 +16,7 @@ export interface User {
     entity?: EntityBasic;  // Datos básicos de la entidad (incluye slug)
     user_type?: 'secretario' | 'contratista' | null;  // Tipo de usuario (para secretarios/contratistas)
     allowed_modules?: string[];  // Módulos permitidos: ["pqrs", "planes_institucionales", "contratacion"]
+    is_talento_humano?: boolean;  // Indica si el usuario puede acceder al módulo de Talento Humano
     secretaria?: string;  // Nombre de la secretaría
     secretaria_id?: number;  // ID de la secretaría (para comparaciones)
     cedula?: string;
@@ -43,6 +45,7 @@ export interface CreateUserRequest {
     entity_id?: number;
     user_type?: 'secretario' | 'contratista' | null;
     allowed_modules?: string[];
+    is_talento_humano?: boolean;
     secretaria?: string;
     cedula?: string;
     telefono?: string;

@@ -271,6 +271,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       module_planes: [false],
       module_contratacion: [false],
       module_pdm: [false],
+      is_talento_humano: [false],
       password: ['', [Validators.required, Validators.minLength(6)]],
       password_confirm: ['', Validators.required]
     }, { validators: this.passwordMatchValidator });
@@ -1109,12 +1110,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
       if (module_planes) allowed_modules.push('planes_institucionales');
       if (module_contratacion) allowed_modules.push('contratacion');
       if (module_pdm) allowed_modules.push('pdm');
+      
+      // Si tiene acceso a Talento Humano, agregar módulo de asistencia
+      if (userData.is_talento_humano) {
+        allowed_modules.push('asistencia');
+      }
 
       // Agregar el rol de secretario y los módulos
       const createData = {
         ...userData,
         role: 'secretario',
-        allowed_modules
+        allowed_modules,
+        is_talento_humano: userData.is_talento_humano || false
       };
 
       this.userService.createUser(createData).subscribe({
@@ -1842,7 +1849,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return form.get('module_pqrs')?.value ||
       form.get('module_planes')?.value ||
       form.get('module_contratacion')?.value ||
-      form.get('module_pdm')?.value;
+      form.get('module_pdm')?.value ||
+      form.get('is_talento_humano')?.value;
   }
 
   getModuleName(module: string): string {
@@ -1850,7 +1858,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       'pqrs': 'PQRS',
       'planes_institucionales': 'Planes',
       'contratacion': 'Contratación',
-      'pdm': 'PDM'
+      'pdm': 'PDM',
+      'asistencia': 'Control de Asistencia'
     };
     return names[module] || module;
   }

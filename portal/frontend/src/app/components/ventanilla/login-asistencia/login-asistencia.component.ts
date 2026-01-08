@@ -52,6 +52,14 @@ export class LoginAsistenciaComponent {
                     this.isLoading = false;
                     return;
                 }
+                
+                // Verificar que la entidad tenga el módulo de asistencia habilitado
+                if (!user.entity.enable_asistencia) {
+                    this.alertService.error('El módulo \'asistencia\' no está activo en esta entidad. Contacte al superadministrador.');
+                    this.authService.logout();
+                    this.isLoading = false;
+                    return;
+                }
 
                 // Verificar que tenga rol de secretario, admin o superadmin
                 if (!['secretario', 'admin', 'superadmin'].includes(user.role)) {
@@ -59,6 +67,32 @@ export class LoginAsistenciaComponent {
                     this.authService.logout();
                     this.isLoading = false;
                     return;
+                }
+
+                // Admins y superadmins tienen acceso completo
+                if (user.role === 'admin' || user.role === 'superadmin') {
+                    this.alertService.success('Bienvenido al Control de Asistencia');
+                    this.router.navigate(['/talento-humano/dashboard']);
+                    return;
+                }
+
+                // Verificar permisos para secretarios
+                if (user.role === 'secretario') {
+                    // Verificar marca de Talento Humano
+                    if (!user.is_talento_humano) {
+                        this.alertService.error('Su usuario no tiene acceso al módulo de Talento Humano. Contacte al administrador.');
+                        this.authService.logout();
+                        this.isLoading = false;
+                        return;
+                    }
+                    
+                    // Verificar que tenga el módulo de asistencia en allowed_modules
+                    if (!user.allowed_modules || !user.allowed_modules.includes('asistencia')) {
+                        this.alertService.error('No tiene el módulo de Control de Asistencia activo. Contacte al administrador.');
+                        this.authService.logout();
+                        this.isLoading = false;
+                        return;
+                    }
                 }
 
                 // Redirigir al dashboard de asistencia de su entidad

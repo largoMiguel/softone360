@@ -53,7 +53,8 @@ export class SoftAdminComponent implements OnInit {
         enable_ai_reports: true,
         enable_planes_institucionales: true,
         enable_pdm: true,
-        enable_contratacion: true
+        enable_contratacion: true,
+        enable_asistencia: true
     };
 
     editingEntity: Entity | null = null;
@@ -173,7 +174,8 @@ export class SoftAdminComponent implements OnInit {
             enable_ai_reports: (entity as any).enable_ai_reports ?? true,
             enable_planes_institucionales: (entity as any).enable_planes_institucionales ?? true,
             enable_pdm: (entity as any).enable_pdm ?? true,
-            enable_contratacion: (entity as any).enable_contratacion ?? true
+            enable_contratacion: (entity as any).enable_contratacion ?? true,
+            enable_asistencia: (entity as any).enable_asistencia ?? true
         };
         this.currentView = 'edit-entity';
     }

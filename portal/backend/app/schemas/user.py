@@ -8,6 +8,7 @@ class EntityBasic(BaseModel):
     id: int
     name: str
     slug: str
+    enable_asistencia: Optional[bool] = True
     
     class Config:
         from_attributes = True
@@ -21,6 +22,7 @@ class UserBase(BaseModel):
     entity_id: Optional[int] = None  # ID de la entidad a la que pertenece
     user_type: Optional[UserType] = None  # Tipo: secretario o contratista
     allowed_modules: Optional[List[str]] = None  # Módulos permitidos: ["pqrs", "planes_institucionales", "contratacion"]
+    is_talento_humano: Optional[bool] = False  # Permiso para acceder al módulo de Talento Humano
 
 class UserCreate(UserBase):
     password: str
@@ -34,6 +36,7 @@ class UserUpdate(BaseModel):
     entity_id: Optional[int] = None
     user_type: Optional[UserType] = None
     allowed_modules: Optional[List[str]] = None
+    is_talento_humano: Optional[bool] = None
     password: Optional[str] = None
 
 class User(UserBase):
@@ -47,6 +50,7 @@ class User(UserBase):
 
 class UserResponse(UserBase):
     id: int
+    is_talento_humano: Optional[bool] = False
     is_active: bool
     secretaria: Optional[str] = None  # Campo de texto con el nombre de la secretaría
     secretaria_id: Optional[int] = None  # ID numérico de la secretaría (FK)

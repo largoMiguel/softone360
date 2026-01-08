@@ -34,6 +34,8 @@ class Entity(Base):
     enable_contratacion = Column(Boolean, nullable=False, default=True)
     # Nuevo módulo de Plan de Desarrollo Municipal (PDM)
     enable_pdm = Column(Boolean, nullable=False, default=True)
+    # Nuevo módulo de Control de Asistencia
+    enable_asistencia = Column(Boolean, nullable=False, default=True)
     
     # Personalización de informes PDM
     plan_name = Column(String(500), nullable=True)  # Nombre del plan de desarrollo

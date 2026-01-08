@@ -24,6 +24,7 @@ class EntityBase(BaseModel):
     enable_planes_institucionales: Optional[bool] = True
     enable_contratacion: Optional[bool] = True
     enable_pdm: Optional[bool] = True
+    enable_asistencia: Optional[bool] = True
 
 
 class EntityCreate(EntityBase):
@@ -52,6 +53,7 @@ class EntityUpdate(BaseModel):
     enable_planes_institucionales: Optional[bool] = None
     enable_contratacion: Optional[bool] = None
     enable_pdm: Optional[bool] = None
+    enable_asistencia: Optional[bool] = None
 
 
 class EntityResponse(EntityBase):

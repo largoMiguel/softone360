@@ -60,6 +60,9 @@ class User(Base):
     # Ejemplo: ["pqrs", "planes_institucionales", "contratacion"]
     allowed_modules = Column(JSON, nullable=True, default=list)
     
+    # Permiso para acceder al módulo de Talento Humano (Control de Asistencia)
+    is_talento_humano = Column(Boolean, nullable=False, server_default="0", default=False)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     is_active = Column(Boolean, nullable=False, server_default="1", default=True)
