@@ -18,9 +18,11 @@ export class App {
 
   get showGlobalNav() {
     const url = this.router.url;
-    // Ocultar en rutas públicas: showcase, login, portal-ciudadano, root de entidad, soft-admin
+    // Ocultar en rutas públicas: showcase, login, portal-ciudadano, root de entidad, soft-admin, talento-humano
     if (/^\/(\?|#|$)/.test(url)) return false; // Raíz (showcase/home)
     if (/^\/login(\?|#|$|\/)/i.test(url)) return false; // /login
+    if (/^\/asistencia-login(\?|#|$|\/)/i.test(url)) return false; // /asistencia-login
+    if (/^\/talento-humano(\?|#|$|\/)/i.test(url)) return false; // /talento-humano (módulo independiente)
     if (/^\/showcase(\?|#|$|\/)/i.test(url)) return false; // /showcase
     if (/^\/soft-admin(\?|#|$|\/)/i.test(url)) return false; // /soft-admin
     if (/\/portal-ciudadano(\?|#|$|\/)/i.test(url)) return false; // portal ciudadano
