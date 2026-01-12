@@ -18,10 +18,11 @@
 
         <!-- Dashboard Group -->
         <div class="menu-group" *ngIf="canAccessPqrs()">
-            <div class="menu-title">
+            <div class="menu-title clickable" (click)="toggleMenu('pqrs')">
                 <i class="fas fa-tachometer-alt me-2"></i>GESTIÓN DE PQRS
+                <i class="fas fa-chevron-down ms-auto chevron" [class.rotated]="menuStates.pqrs"></i>
             </div>
-            <ul class="list-unstyled ms-1">
+            <ul class="list-unstyled ms-1 submenu" [class.expanded]="menuStates.pqrs">
                 <li>
                     <a class="menu-link" [class.active]="isActiveView('dashboard')" (click)="goDashboard('dashboard')">
                         <i class="fas fa-chart-pie me-2"></i>Resumen
@@ -32,16 +33,16 @@
                         <i class="fas fa-list me-2"></i>Mis PQRS
                     </a>
                 </li>
-
             </ul>
         </div>
 
         <!-- Usuarios (independiente) -->
         <div class="menu-group" *ngIf="isAdmin() && usersAdminEnabled()">
-            <div class="menu-title">
-                <i class="fas fa-users me-2"></i>Usuarios
+            <div class="menu-title clickable" (click)="toggleMenu('usuarios')">
+                <i class="fas fa-users me-2"></i>USUARIOS
+                <i class="fas fa-chevron-down ms-auto chevron" [class.rotated]="menuStates.usuarios"></i>
             </div>
-            <ul class="list-unstyled ms-1">
+            <ul class="list-unstyled ms-1 submenu" [class.expanded]="menuStates.usuarios">
                 <li>
                     <a class="menu-link" [class.active]="isActiveView('usuarios')" (click)="goDashboard('usuarios')">
                         <i class="fas fa-user-cog me-2"></i>Administrar
@@ -52,10 +53,11 @@
 
         <!-- Planes -->
         <div class="menu-group" *ngIf="canAccessPlanes()">
-            <div class="menu-title">
-                <i class="fas fa-clipboard-list me-2"></i>Planes Institucionales
+            <div class="menu-title clickable" (click)="toggleMenu('planes')">
+                <i class="fas fa-clipboard-list me-2"></i>PLANES INSTITUCIONALES
+                <i class="fas fa-chevron-down ms-auto chevron" [class.rotated]="menuStates.planes"></i>
             </div>
-            <ul class="list-unstyled ms-1">
+            <ul class="list-unstyled ms-1 submenu" [class.expanded]="menuStates.planes">
                 <li>
                     <a class="menu-link" [class.active]="isActiveRoutePlanes()" (click)="goPlanes()">
                         <i class="fas fa-angle-right me-2"></i>Ingresar
@@ -66,10 +68,11 @@
 
         <!-- Contratación -->
         <div class="menu-group" *ngIf="canAccessContratacion()">
-            <div class="menu-title">
-                <i class="fas fa-file-contract me-2"></i>Contratación
+            <div class="menu-title clickable" (click)="toggleMenu('contratacion')">
+                <i class="fas fa-file-contract me-2"></i>CONTRATACIÓN
+                <i class="fas fa-chevron-down ms-auto chevron" [class.rotated]="menuStates.contratacion"></i>
             </div>
-            <ul class="list-unstyled ms-1">
+            <ul class="list-unstyled ms-1 submenu" [class.expanded]="menuStates.contratacion">
                 <li>
                     <a class="menu-link" [class.active]="isActiveRouteContratacion('secop2')" (click)="goContratacion('secop2')">
                         <i class="fas fa-angle-right me-2"></i>SECOP II
@@ -85,10 +88,11 @@
 
         <!-- PDM -->
         <div class="menu-group" *ngIf="canAccessPdm()">
-            <div class="menu-title">
+            <div class="menu-title clickable" (click)="toggleMenu('pdm')">
                 <i class="fas fa-chart-line me-2"></i>PLAN DE DESARROLLO
+                <i class="fas fa-chevron-down ms-auto chevron" [class.rotated]="menuStates.pdm"></i>
             </div>
-            <ul class="list-unstyled ms-1">
+            <ul class="list-unstyled ms-1 submenu" [class.expanded]="menuStates.pdm">
                 <li>
                     <a class="menu-link" [class.active]="isActiveRoutePdm()" (click)="goPdmUpload()">
                         <i class="fas fa-angle-right me-2"></i>Ingresar

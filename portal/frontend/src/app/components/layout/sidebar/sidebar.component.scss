@@ -13,6 +13,30 @@
     opacity: .9;
     margin-top: .5rem;
     margin-bottom: .25rem;
+    display: flex;
+    align-items: center;
+    user-select: none;
+    
+    &.clickable {
+        cursor: pointer;
+        padding: .5rem;
+        border-radius: .25rem;
+        transition: background .2s ease;
+        
+        &:hover {
+            background: rgba(255, 255, 255, .1);
+            opacity: 1;
+        }
+    }
+    
+    .chevron {
+        font-size: 0.7rem;
+        transition: transform .3s ease;
+        
+        &.rotated {
+            transform: rotate(180deg);
+        }
+    }
 }
 
 .menu-link {
@@ -32,6 +56,18 @@
 .menu-link.active {
     background: #195683;
     color: #fff;
+}
+
+.submenu {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .3s ease, opacity .3s ease;
+    opacity: 0;
+    
+    &.expanded {
+        max-height: 500px;
+        opacity: 1;
+    }
 }
 
 .menu-group+.menu-group {

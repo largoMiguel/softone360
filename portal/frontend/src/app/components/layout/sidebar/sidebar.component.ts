@@ -15,10 +15,25 @@ import { EntityContextService } from '../../../services/entity-context.service';
 export class SidebarComponent {
     sidebar = inject(SidebarService);
     private router = inject(Router);
+    
+    // Estados de expansión para cada sección del menú
+    menuStates = {
+        pqrs: false,
+        usuarios: false,
+        planes: false,
+        contratacion: false,
+        pdm: false
+    };
+
     constructor(
         public auth: AuthService,
         public entityContext: EntityContextService
     ) { }
+
+    // Toggle para expandir/contraer secciones del menú
+    toggleMenu(section: keyof typeof this.menuStates) {
+        this.menuStates[section] = !this.menuStates[section];
+    }
 
     // ===== Helpers de permisos (mismos criterios que en GlobalNavbar) =====
     private get slug(): string | undefined {
