@@ -1,0 +1,120 @@
+.badge-warning {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.badge-success {
+    background-color: #28a745;
+    color: #fff;
+}
+
+.badge-danger {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+.table {
+    th {
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: #495057;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    tbody tr {
+        transition: all 0.2s ease;
+
+        &:hover {
+            background-color: #f8f9fa;
+        }
+    }
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.modal {
+    &.show {
+        display: block;
+        background: rgba(0, 0, 0, 0.5);
+    }
+}
+
+.modal-backdrop {
+    &.show {
+        opacity: 0.5;
+    }
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid #e9ecef;
+}
+
+.input-group-text {
+    background-color: #f8f9fa;
+    border-right: 0;
+}
+
+.input-group .form-control {
+    border-left: 0;
+
+    &:focus {
+        border-color: #ced4da;
+        box-shadow: none;
+    }
+}
+
+.pagination {
+    .page-link {
+        color: #216ba8;
+        border-color: #dee2e6;
+
+        &:hover {
+            background-color: #e9ecef;
+            border-color: #dee2e6;
+        }
+    }
+
+    .page-item.active .page-link {
+        background-color: #216ba8;
+        border-color: #216ba8;
+    }
+
+    .page-item.disabled .page-link {
+        color: #6c757d;
+        pointer-events: none;
+    }
+}
+
+.text-muted {
+    color: #6c757d !important;
+}
+
+h2 {
+    color: #212529;
+    font-weight: 600;
+}
+
+.btn-primary {
+    background-color: #216ba8;
+    border-color: #216ba8;
+
+    &:hover {
+        background-color: #195683;
+        border-color: #195683;
+    }
+}
+
+.btn-outline-primary {
+    color: #216ba8;
+    border-color: #216ba8;
+
+    &:hover {
+        background-color: #216ba8;
+        border-color: #216ba8;
+        color: #fff;
+    }
+}

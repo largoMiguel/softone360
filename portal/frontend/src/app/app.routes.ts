@@ -66,6 +66,9 @@ export const routes: Routes = [
             { path: 'planes-institucionales', loadComponent: () => import('./components/planes-institucionales-v2/planes-institucionales-v2').then(m => m.PlanesInstitucionalesV2Component), canActivate: [adminPortalGuard, enforceUserEntityGuard, planesEnabledGuard, moduleAccessGuard('planes_institucionales')] },
             { path: 'pdm', loadComponent: () => import('./components/pdm/pdm').then(m => m.PdmComponent), canActivate: [adminPortalGuard, enforceUserEntityGuard, pdmEnabledGuard, moduleAccessGuard('pdm')] },
             { path: 'contratacion', loadComponent: () => import('./components/contratacion/contratacion').then(m => m.ContratacionComponent), canActivate: [adminPortalGuard, enforceUserEntityGuard, contratacionEnabledGuard, moduleAccessGuard('contratacion')] },
+            // Solicitudes
+            { path: 'solicitudes/cdp', loadComponent: () => import('./components/solicitudes/solicitud-cdp/solicitud-cdp.component').then(m => m.SolicitudCDPComponent), canActivate: [adminPortalGuard, enforceUserEntityGuard] },
+            { path: 'solicitudes/certificacion-bpp', loadComponent: () => import('./components/solicitudes/certificacion-bpp/certificacion-bpp.component').then(m => m.CertificacionBPPComponent), canActivate: [adminPortalGuard, enforceUserEntityGuard] },
             // Administración de usuarios se gestiona desde el Dashboard (vista interna ?v=usuarios)
         ]
     },
