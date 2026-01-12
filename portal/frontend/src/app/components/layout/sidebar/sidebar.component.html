@@ -110,5 +110,25 @@
                 </li>
             </ul>
         </div>
+
+        <!-- Solicitudes -->
+        <div class="menu-group" *ngIf="isAdmin()">
+            <div class="menu-title clickable" (click)="toggleMenu('solicitudes')">
+                <i class="fas fa-file-invoice me-2"></i>SOLICITUDES
+                <i class="fas fa-chevron-down ms-auto chevron" [class.rotated]="menuStates.solicitudes"></i>
+            </div>
+            <ul class="list-unstyled ms-1 submenu" [class.expanded]="menuStates.solicitudes">
+                <li>
+                    <a class="menu-link" [class.active]="isActiveRouteSolicitudCDP()" (click)="goSolicitudCDP()">
+                        <i class="fas fa-angle-right me-2"></i>CDP
+                    </a>
+                </li>
+                <li>
+                    <a class="menu-link" [class.active]="isActiveRouteCertificacionBPP()" (click)="goCertificacionBPP()">
+                        <i class="fas fa-angle-right me-2"></i>Certificación de BPP
+                    </a>
+                </li>
+            </ul>
+        </div>
     </div>
 </div>

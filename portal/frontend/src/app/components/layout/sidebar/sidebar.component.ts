@@ -22,7 +22,8 @@ export class SidebarComponent {
         usuarios: false,
         planes: false,
         contratacion: false,
-        pdm: false
+        pdm: false,
+        solicitudes: false
     };
 
     constructor(
@@ -30,9 +31,15 @@ export class SidebarComponent {
         public entityContext: EntityContextService
     ) { }
 
-    // Toggle para expandir/contraer secciones del menú
+    // Toggle para expandir/contraer secciones del menú (comportamiento acordeón)
     toggleMenu(section: keyof typeof this.menuStates) {
-        this.menuStates[section] = !this.menuStates[section];
+        const wasExpanded = this.menuStates[section];
+        // Cerrar todos los menús
+        Object.keys(this.menuStates).forEach(key => {
+            this.menuStates[key as keyof typeof this.menuStates] = false;
+        });
+        // Si estaba cerrado, abrirlo; si estaba abierto, dejarlo cerrado
+        this.menuStates[section] = !wasExpanded;
     }
 
     // ===== Helpers de permisos (mismos criterios que en GlobalNavbar) =====
@@ -112,6 +119,19 @@ export class SidebarComponent {
         this.sidebar.close();
     }
 
+    // Navegación de Solicitudes
+    goSolicitudCDP() {
+        if (!this.slug) return;
+        this.router.navigate([`/${this.slug}/solicitudes/cdp`]);
+        this.sidebar.close();
+    }
+
+    goCertificacionBPP() {
+        if (!this.slug) return;
+        this.router.navigate([`/${this.slug}/solicitudes/certificacion-bpp`]);
+        this.sidebar.close();
+    }
+
     // Activos visuales
     isActiveUrl(regex: RegExp): boolean { return regex.test(this.router.url); }
     isActiveRoutePlanesDashboard(): boolean { return /\/planes-dashboard(\/?|\?|$)/.test(this.router.url); }
@@ -125,6 +145,8 @@ export class SidebarComponent {
     }
     isActiveRoutePdm(): boolean { return /\/pdm(\/?|\?|$)/.test(this.router.url); }
     isActiveRoutePdmDashboard(): boolean { return /\/pdm-dashboard(\/?|\?|$)/.test(this.router.url); }
+    isActiveRouteSolicitudCDP(): boolean { return /\/solicitudes\/cdp(\/?|\?|$)/.test(this.router.url); }
+    isActiveRouteCertificacionBPP(): boolean { return /\/solicitudes\/certificacion-bpp(\/?|\?|$)/.test(this.router.url); }
     isActiveView(view: 'welcome' | 'dashboard' | 'mis-pqrs' | 'nueva-pqrs' | 'usuarios'): boolean {
         const url = this.router.url;
         if (!/\/(dashboard)(\b|\?)/.test(url)) return false;
