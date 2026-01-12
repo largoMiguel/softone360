@@ -72,12 +72,12 @@
                                 <strong>{{ solicitud.numero_cdp }}</strong>
                             </td>
                             <td>{{ solicitud.fecha_solicitud | date:'dd/MM/yyyy' }}</td>
-                            <td>{{ solicitud.solicitante }}</td>
+                            <td>{{ solicitud.quien_solicita?.nombres_apellidos }}</td>
                             <td>
-                                <small class="text-muted">{{ solicitud.dependencia }}</small>
+                                <small class="text-muted">{{ solicitud.quien_solicita?.dependencia }}</small>
                             </td>
                             <td>
-                                <strong>{{ formatCurrency(solicitud.valor) }}</strong>
+                                <strong>{{ formatCurrency(solicitud.valor_numeros) }}</strong>
                             </td>
                             <td>
                                 <span class="badge" [ngClass]="getEstadoBadgeClass(solicitud.estado)">
@@ -155,7 +155,13 @@
             </div>
             <div class="modal-body">
                 <form>
-                    <div class="row g-3">
+                    <!-- Encabezado -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <h6 class="text-uppercase fw-bold text-primary border-bottom pb-2">
+                                <i class="fas fa-calendar me-2"></i>Información General
+                            </h6>
+                        </div>
                         <div class="col-md-6">
                             <label class="form-label">Fecha de Solicitud <span class="text-danger">*</span></label>
                             <input 
@@ -163,51 +169,6 @@
                                 class="form-control" 
                                 [(ngModel)]="currentSolicitud.fecha_solicitud"
                                 name="fecha_solicitud"
-                                required
-                            >
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Solicitante <span class="text-danger">*</span></label>
-                            <input 
-                                type="text" 
-                                class="form-control" 
-                                [(ngModel)]="currentSolicitud.solicitante"
-                                name="solicitante"
-                                placeholder="Nombre del solicitante"
-                                required
-                            >
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Dependencia <span class="text-danger">*</span></label>
-                            <input 
-                                type="text" 
-                                class="form-control" 
-                                [(ngModel)]="currentSolicitud.dependencia"
-                                name="dependencia"
-                                placeholder="Ej: Secretaría de Hacienda"
-                                required
-                            >
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Rubro Presupuestal <span class="text-danger">*</span></label>
-                            <input 
-                                type="text" 
-                                class="form-control" 
-                                [(ngModel)]="currentSolicitud.rubro_presupuestal"
-                                name="rubro_presupuestal"
-                                placeholder="Ej: 2.3.1.01.001"
-                                required
-                            >
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Valor <span class="text-danger">*</span></label>
-                            <input 
-                                type="number" 
-                                class="form-control" 
-                                [(ngModel)]="currentSolicitud.valor"
-                                name="valor"
-                                placeholder="0"
-                                min="0"
                                 required
                             >
                         </div>
@@ -224,17 +185,271 @@
                                 <option value="rechazado">Rechazado</option>
                             </select>
                         </div>
+                    </div>
+
+                    <!-- Tipo de Gasto -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <h6 class="text-uppercase fw-bold text-primary border-bottom pb-2">
+                                <i class="fas fa-tags me-2"></i>Tipo de Gasto
+                            </h6>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Tipo <span class="text-danger">*</span></label>
+                            <select 
+                                class="form-select" 
+                                [(ngModel)]="currentSolicitud.tipo_gasto"
+                                name="tipo_gasto"
+                                required
+                            >
+                                <option value="funcionamiento">Funcionamiento</option>
+                                <option value="inversion">Inversión</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Sector</label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                [(ngModel)]="currentSolicitud.sector"
+                                name="sector"
+                                placeholder="Ej: Desarrollo Social"
+                            >
+                        </div>
+                        <div class="col-12" *ngIf="currentSolicitud.tipo_gasto === 'inversion'">
+                            <label class="form-label">Programa MGA</label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                [(ngModel)]="currentSolicitud.programa_mga"
+                                name="programa_mga"
+                                placeholder="Programa del MGA"
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Quien Solicita -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <h6 class="text-uppercase fw-bold text-primary border-bottom pb-2">
+                                <i class="fas fa-user me-2"></i>Quien Solicita
+                            </h6>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Seleccionar Persona <span class="text-danger">*</span></label>
+                            <select 
+                                class="form-select" 
+                                [(ngModel)]="currentSolicitud.quien_solicita_id"
+                                name="quien_solicita_id"
+                                required
+                            >
+                                <option [value]="null" disabled selected>Seleccione una persona</option>
+                                <option *ngFor="let persona of personasDisponibles" [value]="persona.id">
+                                    {{ persona.nombres_apellidos }} - {{ persona.cargo }}
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-6" *ngIf="currentSolicitud.quien_solicita_id">
+                            <label class="form-label text-muted">Cargo</label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                [value]="personasDisponibles.find(p => p.id === currentSolicitud.quien_solicita_id)?.cargo"
+                                readonly
+                                disabled
+                            >
+                        </div>
+                        <div class="col-md-6" *ngIf="currentSolicitud.quien_solicita_id">
+                            <label class="form-label text-muted">Dependencia</label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                [value]="personasDisponibles.find(p => p.id === currentSolicitud.quien_solicita_id)?.dependencia"
+                                readonly
+                                disabled
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Dependencia que Sugiere -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <h6 class="text-uppercase fw-bold text-primary border-bottom pb-2">
+                                <i class="fas fa-lightbulb me-2"></i>Dependencia que Sugiere la Necesidad
+                            </h6>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Seleccionar Persona <span class="text-danger">*</span></label>
+                            <select 
+                                class="form-select" 
+                                [(ngModel)]="currentSolicitud.dependencia_sugiere_id"
+                                name="dependencia_sugiere_id"
+                                required
+                            >
+                                <option [value]="null" disabled selected>Seleccione una persona</option>
+                                <option *ngFor="let persona of personasDisponibles" [value]="persona.id">
+                                    {{ persona.nombres_apellidos }} - {{ persona.cargo }}
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-6" *ngIf="currentSolicitud.dependencia_sugiere_id">
+                            <label class="form-label text-muted">Cargo</label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                [value]="personasDisponibles.find(p => p.id === currentSolicitud.dependencia_sugiere_id)?.cargo"
+                                readonly
+                                disabled
+                            >
+                        </div>
+                        <div class="col-md-6" *ngIf="currentSolicitud.dependencia_sugiere_id">
+                            <label class="form-label text-muted">Dependencia</label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                [value]="personasDisponibles.find(p => p.id === currentSolicitud.dependencia_sugiere_id)?.dependencia"
+                                readonly
+                                disabled
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Solicitud Dirigida A -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <h6 class="text-uppercase fw-bold text-primary border-bottom pb-2">
+                                <i class="fas fa-paper-plane me-2"></i>Solicitud Dirigida A
+                            </h6>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Seleccionar Persona <span class="text-danger">*</span></label>
+                            <select 
+                                class="form-select" 
+                                [(ngModel)]="currentSolicitud.solicitud_dirigida_id"
+                                name="solicitud_dirigida_id"
+                                required
+                            >
+                                <option [value]="null" disabled selected>Seleccione una persona</option>
+                                <option *ngFor="let persona of personasDisponibles" [value]="persona.id">
+                                    {{ persona.nombres_apellidos }} - {{ persona.cargo }}
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-6" *ngIf="currentSolicitud.solicitud_dirigida_id">
+                            <label class="form-label text-muted">Cargo</label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                [value]="personasDisponibles.find(p => p.id === currentSolicitud.solicitud_dirigida_id)?.cargo"
+                                readonly
+                                disabled
+                            >
+                        </div>
+                        <div class="col-md-6" *ngIf="currentSolicitud.solicitud_dirigida_id">
+                            <label class="form-label text-muted">Dependencia</label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                [value]="personasDisponibles.find(p => p.id === currentSolicitud.solicitud_dirigida_id)?.dependencia"
+                                readonly
+                                disabled
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Valores -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <h6 class="text-uppercase fw-bold text-primary border-bottom pb-2">
+                                <i class="fas fa-dollar-sign me-2"></i>Valor
+                            </h6>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Valor en Números <span class="text-danger">*</span></label>
+                            <input 
+                                type="number" 
+                                class="form-control" 
+                                [(ngModel)]="currentSolicitud.valor_numeros"
+                                name="valor_numeros"
+                                placeholder="0"
+                                min="0"
+                                (ngModelChange)="onValorChange()"
+                                required
+                            >
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fuentes de Financiación</label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                [(ngModel)]="currentSolicitud.fuentes_financiacion"
+                                name="fuentes_financiacion"
+                                placeholder="Ej: Recursos propios, SGP"
+                            >
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Valor en Letras</label>
+                            <input 
+                                type="text" 
+                                class="form-control bg-light" 
+                                [value]="currentSolicitud.valor_letras"
+                                readonly
+                                disabled
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Producto MGA -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <h6 class="text-uppercase fw-bold text-primary border-bottom pb-2">
+                                <i class="fas fa-box me-2"></i>Producto MGA
+                            </h6>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Código del Producto (MGA)</label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                [(ngModel)]="currentSolicitud.codigo_producto_mga"
+                                name="codigo_producto_mga"
+                                placeholder="Ej: 1702014"
+                            >
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Producto (MGA)</label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                [(ngModel)]="currentSolicitud.producto_mga"
+                                name="producto_mga"
+                                placeholder="Descripción del producto"
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Objeto Contractual -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <h6 class="text-uppercase fw-bold text-primary border-bottom pb-2">
+                                <i class="fas fa-file-contract me-2"></i>Objeto Contractual
+                            </h6>
+                        </div>
                         <div class="col-12">
                             <label class="form-label">Descripción <span class="text-danger">*</span></label>
                             <textarea 
                                 class="form-control" 
-                                rows="3"
-                                [(ngModel)]="currentSolicitud.descripcion"
-                                name="descripcion"
-                                placeholder="Describa el objeto de la solicitud..."
+                                rows="4"
+                                [(ngModel)]="currentSolicitud.objeto_contractual"
+                                name="objeto_contractual"
+                                placeholder="Describa el objeto contractual de la solicitud..."
                                 required
                             ></textarea>
                         </div>
+                    </div>
+
+                    <!-- Observaciones -->
+                    <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label">Observaciones</label>
                             <textarea 
