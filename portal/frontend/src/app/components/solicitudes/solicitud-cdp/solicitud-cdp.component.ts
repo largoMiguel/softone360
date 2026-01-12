@@ -31,6 +31,8 @@ export class SolicitudCDPComponent implements OnInit {
     private entityContext = inject(EntityContextService);
     private authService = inject(AuthService);
 
+    Math = Math; // Exponer Math al template
+
     solicitudes: SolicitudCDP[] = [];
     filteredSolicitudes: SolicitudCDP[] = [];
     
