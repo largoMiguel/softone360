@@ -331,6 +331,45 @@ export class SolicitudCDPComponent implements OnInit {
         return persona ? persona.nombres_apellidos : '';
     }
 
+    // Getters para quien solicita
+    getQuienSolicitaCargo(): string {
+        if (!this.currentSolicitud.quien_solicita_id) return '';
+        const persona = this.personasDisponibles.find(p => p.id === this.currentSolicitud.quien_solicita_id);
+        return persona ? persona.cargo : '';
+    }
+
+    getQuienSolicitaDependencia(): string {
+        if (!this.currentSolicitud.quien_solicita_id) return '';
+        const persona = this.personasDisponibles.find(p => p.id === this.currentSolicitud.quien_solicita_id);
+        return persona ? persona.dependencia : '';
+    }
+
+    // Getters para dependencia que sugiere
+    getDependenciaSugiereCargo(): string {
+        if (!this.currentSolicitud.dependencia_sugiere_id) return '';
+        const persona = this.personasDisponibles.find(p => p.id === this.currentSolicitud.dependencia_sugiere_id);
+        return persona ? persona.cargo : '';
+    }
+
+    getDependenciaSugiereDependencia(): string {
+        if (!this.currentSolicitud.dependencia_sugiere_id) return '';
+        const persona = this.personasDisponibles.find(p => p.id === this.currentSolicitud.dependencia_sugiere_id);
+        return persona ? persona.dependencia : '';
+    }
+
+    // Getters para solicitud dirigida a
+    getSolicitudDirigidaCargo(): string {
+        if (!this.currentSolicitud.solicitud_dirigida_id) return '';
+        const persona = this.personasDisponibles.find(p => p.id === this.currentSolicitud.solicitud_dirigida_id);
+        return persona ? persona.cargo : '';
+    }
+
+    getSolicitudDirigidaDependencia(): string {
+        if (!this.currentSolicitud.solicitud_dirigida_id) return '';
+        const persona = this.personasDisponibles.find(p => p.id === this.currentSolicitud.solicitud_dirigida_id);
+        return persona ? persona.dependencia : '';
+    }
+
     nextPage() {
         if (this.currentPage < this.totalPages) {
             this.currentPage++;

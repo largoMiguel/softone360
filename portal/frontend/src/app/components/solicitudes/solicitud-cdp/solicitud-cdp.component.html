@@ -254,7 +254,7 @@
                             <input 
                                 type="text" 
                                 class="form-control" 
-                                [value]="personasDisponibles.find(p => p.id === currentSolicitud.quien_solicita_id)?.cargo"
+                                [value]="getQuienSolicitaCargo()"
                                 readonly
                                 disabled
                             >
@@ -264,7 +264,7 @@
                             <input 
                                 type="text" 
                                 class="form-control" 
-                                [value]="personasDisponibles.find(p => p.id === currentSolicitud.quien_solicita_id)?.dependencia"
+                                [value]="getQuienSolicitaDependencia()"
                                 readonly
                                 disabled
                             >
@@ -297,7 +297,7 @@
                             <input 
                                 type="text" 
                                 class="form-control" 
-                                [value]="personasDisponibles.find(p => p.id === currentSolicitud.dependencia_sugiere_id)?.cargo"
+                                [value]="getDependenciaSugiereCargo()"
                                 readonly
                                 disabled
                             >
@@ -307,7 +307,7 @@
                             <input 
                                 type="text" 
                                 class="form-control" 
-                                [value]="personasDisponibles.find(p => p.id === currentSolicitud.dependencia_sugiere_id)?.dependencia"
+                                [value]="getDependenciaSugiereDependencia()"
                                 readonly
                                 disabled
                             >
@@ -340,7 +340,7 @@
                             <input 
                                 type="text" 
                                 class="form-control" 
-                                [value]="personasDisponibles.find(p => p.id === currentSolicitud.solicitud_dirigida_id)?.cargo"
+                                [value]="getSolicitudDirigidaCargo()"
                                 readonly
                                 disabled
                             >
@@ -350,7 +350,7 @@
                             <input 
                                 type="text" 
                                 class="form-control" 
-                                [value]="personasDisponibles.find(p => p.id === currentSolicitud.solicitud_dirigida_id)?.dependencia"
+                                [value]="getSolicitudDirigidaDependencia()"
                                 readonly
                                 disabled
                             >
