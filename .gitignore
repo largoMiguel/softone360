@@ -54,3 +54,7 @@ ventanilla/dist/
 # Coverage
 .coverage
 htmlcov/
+
+# Environment files with credentials
+env
+env.production

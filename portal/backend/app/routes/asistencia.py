@@ -23,29 +23,44 @@ from app.models.user import User, UserRole
 
 router = APIRouter(prefix="/asistencia", tags=["Asistencia"])
 
-# Configuración de S3 para almacenar fotos (opcional)
+# Configuración de S3 para almacenar fotos de asistencia
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
-BUCKET_NAME = os.getenv("AWS_S3_BUCKET", "softone360-pqrs-archivos")
+# Usar bucket específico para fotos de asistencia
+BUCKET_NAME = os.getenv("AWS_S3_BUCKET_ASISTENCIA", os.getenv("AWS_S3_BUCKET_PHOTOS", "softone360-humano-photos"))
 
-# Inicializar S3 client solo si hay credenciales
+# Inicializar S3 client
 s3_client = None
-if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY:
+try:
     import boto3
     from botocore.exceptions import ClientError
-    s3_client = boto3.client(
-        's3',
-        aws_access_key_id=AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-        region_name=AWS_REGION
-    )
+    
+    # Intentar con credenciales explícitas primero, luego con credenciales del perfil
+    if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY:
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id=AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+            region_name=AWS_REGION
+        )
+        print(f"[INFO] S3 client inicializado con credenciales explícitas. Bucket: {BUCKET_NAME}")
+    else:
+        # Intentar con credenciales del perfil ~/.aws/credentials
+        s3_client = boto3.client('s3', region_name=AWS_REGION)
+        print(f"[INFO] S3 client inicializado con credenciales del perfil AWS. Bucket: {BUCKET_NAME}")
+except Exception as e:
+    print(f"[ERROR] No se pudo inicializar S3 client: {str(e)}")
+    s3_client = None
 
 
 def upload_foto_s3(foto_base64: str, prefix: str = "asistencia") -> str:
     """
-    Sube una foto en base64 a S3 y retorna la URL.
+    Sube una foto en base64 a S3 y retorna la URL pública.
     Si S3 no está configurado, retorna None.
+    
+    Nota: El bucket debe tener una política que permita lectura pública
+    para la ruta asistencia/*
     """
     if not s3_client:
         # S3 no configurado, retornar None (foto no será almacenada)
@@ -61,7 +76,7 @@ def upload_foto_s3(foto_base64: str, prefix: str = "asistencia") -> str:
         file_name = f"{prefix}/{datetime.now().strftime('%Y%m%d')}/{uuid_lib.uuid4()}.jpg"
         print(f"[DEBUG] Nombre archivo S3: {file_name}")
         
-        # Subir a S3
+        # Subir a S3 (sin ACL, la política del bucket controla el acceso)
         s3_client.put_object(
             Bucket=BUCKET_NAME,
             Key=file_name,
@@ -69,8 +84,8 @@ def upload_foto_s3(foto_base64: str, prefix: str = "asistencia") -> str:
             ContentType='image/jpeg'
         )
         
-        # Retornar URL
-        url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{file_name}"
+        # Retornar URL pública
+        url = f"https://{BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{file_name}"
         print(f"[DEBUG] URL generada: {url}")
         return url
     except Exception as e:
