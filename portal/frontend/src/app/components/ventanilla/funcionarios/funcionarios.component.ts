@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AsistenciaService } from '../../../services/asistencia.service';
 import { Funcionario } from '../../../models/asistencia.model';
-import { EntityContextService } from '../../../services/entity-context.service';
+import { AuthService } from '../../../services/auth.service';
 
 @Component({
   selector: 'app-funcionarios',
@@ -282,7 +282,7 @@ export class FuncionariosComponent implements OnInit {
 
   constructor(
     private asistenciaService: AsistenciaService,
-    private entityContext: EntityContextService
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -360,7 +360,8 @@ export class FuncionariosComponent implements OnInit {
   }
 
   saveFuncionario(): void {
-    const entityId = this.entityContext.currentEntity?.id;
+    const currentUser = this.authService.getCurrentUserValue();
+    const entityId = currentUser?.entity?.id;
     
     if (!entityId) {
       alert('Error: No se pudo obtener la entidad actual');

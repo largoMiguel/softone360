@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AsistenciaService } from '../../../services/asistencia.service';
 import { EquipoRegistro } from '../../../models/asistencia.model';
-import { EntityContextService } from '../../../services/entity-context.service';
+import { AuthService } from '../../../services/auth.service';
 
 @Component({
   selector: 'app-equipos-registro',
@@ -126,7 +126,7 @@ export class EquiposRegistroComponent implements OnInit {
 
   constructor(
     private asistenciaService: AsistenciaService,
-    private entityContext: EntityContextService
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -217,7 +217,8 @@ export class EquiposRegistroComponent implements OnInit {
       });
     } else {
       // Modo creación
-      const entityId = this.entityContext.currentEntity?.id;
+      const currentUser = this.authService.getCurrentUserValue();
+      const entityId = currentUser?.entity?.id;
       
       if (!entityId) {
         alert('Error: No se pudo obtener la entidad actual');

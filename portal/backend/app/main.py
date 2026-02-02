@@ -178,6 +178,8 @@ from app.routes import pdm_ejecucion
 app.include_router(pdm_ejecucion.router, prefix="/api/pdm/ejecucion", tags=["PDM Ejecución"])
 from app.routes import pdm_informes
 app.include_router(pdm_informes.router, prefix="/api", tags=["PDM Informes"])
+from app.routes import pdm_contratos
+app.include_router(pdm_contratos.router, prefix="/api", tags=["PDM Contratos RPS"])
 app.include_router(alerts.router, prefix="/api", tags=["Alerts"])
 app.include_router(secretarias.router, prefix="/api", tags=["Secretarías"])
 app.include_router(bpin.router, tags=["BPIN"])

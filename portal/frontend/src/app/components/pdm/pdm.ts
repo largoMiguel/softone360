@@ -5,6 +5,7 @@ import { Location } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { PdmService } from '../../services/pdm.service';
 import { PdmEjecucionService } from '../../services/pdm-ejecucion.service';
+import { PdmContratosService } from '../../services/pdm-contratos.service';
 import { AlertsService, Alert } from '../../services/alerts.service';
 import { AuthService } from '../../services/auth.service';
 import { NavigationStateService } from '../../services/navigation-state.service';
@@ -24,6 +25,7 @@ import {
     ProyectoBPIN
 } from '../../models/pdm.model';
 import { PDMEjecucionResumen } from '../../models/pdm-ejecucion.model';
+import { ResumenContratos } from '../../models/pdm-contratos.model';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { forkJoin, of, Subscription } from 'rxjs';
@@ -42,6 +44,7 @@ Chart.register(...registerables, ChartDataLabels);
 export class PdmComponent implements OnInit, OnDestroy {
     private pdmService = inject(PdmService);
     private pdmEjecucionService = inject(PdmEjecucionService);
+    private pdmContratosService = inject(PdmContratosService);
     private fb = inject(FormBuilder);
     private alertsService = inject(AlertsService);
     private authService = inject(AuthService);
@@ -128,6 +131,14 @@ export class PdmComponent implements OnInit, OnDestroy {
     mostrarModalEjecucion = false;
     anioEjecucionSeleccionado = 2025;
     archivoEjecucionTemporal: File | null = null;
+
+    // ✅ NUEVO: Contratos RPS
+    contratosRPS: ResumenContratos | null = null;
+    cargandoContratos = false;
+    archivoContratosCargado = false;
+    mostrarModalContratos = false;
+    anioContratosSeleccionado = 2025;
+    archivoContratosTemporal: File | null = null;
 
     // ✅ NUEVO: Indicador de carga de actividades desde backend
     cargandoActividadesBackend = false;
@@ -353,6 +364,9 @@ export class PdmComponent implements OnInit, OnDestroy {
     cambiarAnioFiltro(anio: number): void {
         this.filtroAnio = Number(anio);
         this.actualizarCachesFiltros();
+        
+        // Limpiar contratos RPS cuando cambia el año
+        this.contratosRPS = null;
     }
 
     /**
@@ -670,6 +684,116 @@ export class PdmComponent implements OnInit, OnDestroy {
         });
     }
 
+    // ========== GESTIÓN DE CONTRATOS RPS ==========
+
+    /**
+     * ✅ NUEVO: Maneja la selección de archivo Excel/CSV de contratos RPS
+     */
+    onContratosFileSelected(event: Event) {
+        const input = event.target as HTMLInputElement;
+        if (!input.files || input.files.length === 0) {
+            this.archivoContratosTemporal = null;
+            return;
+        }
+
+        const file = input.files[0];
+        
+        // Validar extensión
+        const extension = file.name.split('.').pop()?.toLowerCase();
+        if (extension !== 'xlsx' && extension !== 'xls' && extension !== 'csv') {
+            this.showToast('Por favor seleccione un archivo válido (.xlsx, .xls o .csv)', 'error');
+            this.archivoContratosTemporal = null;
+            return;
+        }
+
+        this.archivoContratosTemporal = file;
+    }
+
+    /**
+     * ✅ NUEVO: Abre el modal para seleccionar año y archivo de contratos
+     */
+    abrirModalContratos() {
+        this.mostrarModalContratos = true;
+        this.anioContratosSeleccionado = new Date().getFullYear();
+        this.archivoContratosTemporal = null;
+    }
+
+    /**
+     * ✅ NUEVO: Cierra el modal de contratos
+     */
+    cerrarModalContratos() {
+        this.mostrarModalContratos = false;
+        this.archivoContratosTemporal = null;
+    }
+
+    /**
+     * ✅ NUEVO: Confirma y procesa la carga de contratos RPS
+     */
+    confirmarCargaContratos() {
+        // Guardar referencia antes de que el modal limpie la variable
+        const file = this.archivoContratosTemporal;
+        if (!file) {
+            this.showToast('Por favor seleccione un archivo', 'error');
+            return;
+        }
+        // Cerrar modal (esto limpia archivoContratosTemporal)
+        this.cerrarModalContratos();
+        // Iniciar carga con la referencia guardada
+        this.cargarArchivoContratos(file);
+    }
+
+    /**
+     * ✅ NUEVO: Carga el archivo de contratos RPS al backend (procesa EN MEMORIA)
+     */
+    private cargarArchivoContratos(file: File) {
+        if (!file) {
+            console.error('⚠️ cargarArchivoContratos invocado sin archivo');
+            return;
+        }
+        
+        this.cargandoContratos = true;
+        const mensaje = `Procesando contratos RPS para el año ${this.anioContratosSeleccionado}...`;
+        console.log('📊', mensaje, `FILE(${file.name}, size=${file.size})`);
+        
+        // Enviar código del producto seleccionado para filtrar
+        const codigoProducto = this.productoSeleccionado?.codigo;
+        
+        this.pdmContratosService.uploadContratos(file, codigoProducto, this.anioContratosSeleccionado).subscribe({
+            next: (response) => {
+                this.cargandoContratos = false;
+                this.archivoContratosCargado = true;
+                
+                // ✅ Mostrar datos procesados directamente
+                this.contratosRPS = {
+                    contratos: response.contratos,
+                    total_contratado: response.contratos.reduce((sum, c) => sum + c.valor, 0),
+                    cantidad_contratos: response.contratos_agrupados,
+                    anio: this.anioContratosSeleccionado
+                };
+                
+                const msg = `✅ Procesados ${response.registros_procesados} registros → ${response.contratos_agrupados} contratos agrupados (Total: ${this.formatearMoneda(this.contratosRPS.total_contratado)})`;
+                this.showToast(msg, 'success');
+                
+                console.log('📊 Contratos procesados:', this.contratosRPS);
+                
+                // Si hay errores, mostrarlos en consola
+                if (response.errores && response.errores.length > 0) {
+                    console.warn('⚠️ Errores al procesar contratos:', response.errores);
+                }
+                
+                // Limpiar referencia del archivo después de procesar
+                this.archivoContratosTemporal = null;
+            },
+            error: (error) => {
+                console.error('❌ Error al procesar contratos:', error);
+                this.cargandoContratos = false;
+                this.archivoContratosTemporal = null;
+                const mensaje = error.error?.detail || 'Error al procesar el archivo de contratos';
+                this.showToast(mensaje, 'error');
+            }
+        });
+    }
+
     /**
      * Maneja la selección de archivo Excel
      */
@@ -775,6 +899,8 @@ export class PdmComponent implements OnInit, OnDestroy {
             this.actualizarResumenActividades(false);
             // Cargar ejecución presupuestal si está disponible
             this.cargarEjecucionPresupuestal(producto.codigo);
+            // ✅ NUEVO: Cargar contratos RPS si están disponibles
+            this.cargarContratosRPS(producto.codigo);
             // ✅ Actualizar cache de comparativa presupuestal
             this.getComparativaPresupuestal();
             // ✅ Actualizar cache de meta ejecutada total
@@ -1013,6 +1139,34 @@ export class PdmComponent implements OnInit, OnDestroy {
                 this.cargandoEjecucion = false;
                 // ✅ Actualizar cache incluso si no hay ejecución
                 this.getComparativaPresupuestal();
+            }
+        });
+    }
+
+    /**
+     * ✅ NUEVO: Carga los contratos RPS para un producto PDM
+     * Filtra por el año seleccionado en actividades
+     */
+    private cargarContratosRPS(codigoProducto: string, anio?: number): void {
+        this.cargandoContratos = true;
+        this.contratosRPS = null;
+
+        // Usar el año seleccionado en actividades si no se proporciona uno específico
+        const anioFiltro = anio || this.anioSeleccionado;
+
+        this.pdmContratosService.getContratosPorProducto(codigoProducto, anioFiltro).subscribe({
+            next: (contratos) => {
+                this.contratosRPS = contratos;
+                this.cargandoContratos = false;
+                console.log(`✅ Contratos RPS cargados: ${contratos.cantidad_contratos} contratos, total: ${contratos.total_contratado}`);
+            },
+            error: (error) => {
+                // No mostrar error 404, es normal que no haya contratos para todos los productos
+                if (error.status !== 404) {
+                    console.warn('⚠️ Error al cargar contratos RPS:', error);
+                }
+                this.contratosRPS = null;
+                this.cargandoContratos = false;
             }
         });
     }

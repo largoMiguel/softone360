@@ -20,11 +20,17 @@
                 <button *ngIf="archivoExcelCargado && vistaActual === 'dashboard'" class="btn btn-success me-2" (click)="verAnalytics()">
                     <i class="fas fa-chart-pie"></i> Ver Análisis
                 </button>
+                <button *ngIf="archivoExcelCargado && vistaActual === 'dashboard'" class="btn btn-warning me-2" (click)="abrirModalContratos()" title="Cargar archivo de contratos RPS">
+                    <i class="fas fa-file-contract"></i> Contratos RPS
+                </button>
                 <button *ngIf="archivoExcelCargado && vistaActual === 'dashboard'" class="btn btn-danger me-2" (click)="generarInforme()">
                     <i class="fas fa-file-pdf"></i> Generar Informe
                 </button>
                 <button *ngIf="archivoExcelCargado && vistaActual === 'detalle'" class="btn btn-primary me-2" (click)="abrirModalAnalisisProducto()">
                     <i class="fas fa-chart-line"></i> Ver Análisis Detallado
+                </button>
+                <button *ngIf="archivoExcelCargado && vistaActual === 'detalle'" class="btn btn-warning me-2" (click)="abrirModalContratos()" title="Cargar contratos RPS para este producto">
+                    <i class="fas fa-file-contract"></i> Contratos RPS
                 </button>
                 <button *ngIf="vistaActual !== 'dashboard' && archivoExcelCargado" class="btn btn-outline-secondary me-2" (click)="volver()">
                     <i class="fas fa-arrow-left"></i> Volver
@@ -1016,6 +1022,43 @@
                                 No hay datos de ejecución presupuestal disponibles para este producto.
                             </div>
                         </div>
+
+                        <!-- ✅ NUEVO: Sección de Contratos RPS -->
+                        <div *ngIf="!cargandoContratos && contratosRPS && contratosRPS.cantidad_contratos > 0" class="mt-4">
+                            <hr>
+                            <label class="text-muted small"><strong>Contratos RPS ({{ anioSeleccionado }})</strong></label>
+                            <div class="alert alert-primary small mb-2" role="alert">
+                                <i class="fas fa-file-contract me-2"></i>
+                                <strong>{{ contratosRPS.cantidad_contratos }}</strong> contrato(s) - Total contratado: <strong>{{ formatearMoneda(contratosRPS.total_contratado) }}</strong>
+                            </div>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-muted small">No. CRP</th>
+                                            <th class="text-muted small">Concepto</th>
+                                            <th class="text-muted small text-end">Valor</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr *ngFor="let contrato of contratosRPS.contratos">
+                                            <td class="small"><strong>{{ contrato.no_crp }}</strong></td>
+                                            <td class="small">{{ contrato.concepto || 'Sin concepto' }}</td>
+                                            <td class="small text-end text-success"><strong>{{ formatearMoneda(contrato.valor) }}</strong></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Loading contratos -->
+                        <div *ngIf="cargandoContratos" class="mt-4 text-center py-3">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                            <p class="text-muted small mt-2">Cargando contratos RPS...</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1842,6 +1885,59 @@
                     <button type="button" class="btn btn-secondary" (click)="cerrarModalEjecucion()">Cancelar</button>
                     <button type="button" class="btn btn-success" (click)="confirmarCargaEjecucion()" [disabled]="!archivoEjecucionTemporal">
                         <i class="fas fa-upload me-1"></i> Cargar Ejecución
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ MODAL: Cargar Contratos RPS -->
+    <div *ngIf="mostrarModalContratos" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-file-contract me-2"></i>
+                        Cargar Contratos RPS
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" (click)="cerrarModalContratos()"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Modo de Prueba:</strong> Los contratos se procesarán EN MEMORIA y NO se guardarán en la base de datos. Los datos se mostrarán solo para el producto actual.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Año de Contratos <span class="text-danger">*</span></label>
+                        <select class="form-select" [(ngModel)]="anioContratosSeleccionado">
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                            <option value="2027">2027</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Archivo Excel/CSV</label>
+                        <input type="file" class="form-control" accept=".xlsx,.xls,.csv" (change)="onContratosFileSelected($event)" #fileContratosInput>
+                        <small class="text-muted d-block mt-1">Formatos aceptados: .xlsx, .xls, .csv</small>
+                    </div>
+
+                    <div class="alert alert-secondary small">
+                        <strong>Columnas requeridas:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li><strong>PRODUCTO:</strong> Código del producto PDM</li>
+                            <li><strong>NO CRP:</strong> Número del CRP (agrupador)</li>
+                            <li><strong>VALOR:</strong> Valor del contrato</li>
+                            <li><strong>CONCEPTO:</strong> Descripción del contrato (opcional)</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" (click)="cerrarModalContratos()">Cancelar</button>
+                    <button type="button" class="btn btn-primary" (click)="confirmarCargaContratos()" [disabled]="!archivoContratosTemporal">
+                        <i class="fas fa-upload me-1"></i> Cargar Contratos
                     </button>
                 </div>
             </div>
