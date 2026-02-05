@@ -77,13 +77,13 @@ class PdmProducto(Base):
     # Relación con secretaría responsable
     responsable_secretaria = relationship("Secretaria", foreign_keys=[responsable_secretaria_id])
     
-    # Relación con actividades (lazy loading, se cargan bajo demanda)
+    # Relación con actividades (selectinload para evitar N+1 queries)
     actividades = relationship(
         "PdmActividad",
         foreign_keys="PdmActividad.codigo_producto",
         primaryjoin="PdmProducto.codigo_producto == PdmActividad.codigo_producto",
         viewonly=True,
-        lazy="select"
+        lazy="selectinload"  # ✅ OPTIMIZADO: Carga en batch automáticamente
     )
 
 

@@ -3,11 +3,12 @@ Rutas API para PDM - Versión 2
 Alineadas con la estructura del frontend
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session, joinedload, defer, noload
+from sqlalchemy.orm import Session, joinedload, defer, noload, selectinload
 from sqlalchemy import func
 from typing import List
 from datetime import datetime
 import base64
+import re
 
 from app.config.database import get_db
 from app.models.entity import Entity
@@ -65,11 +66,12 @@ def validar_imagenes_evidencia(imagenes: List[str]) -> None:
                 )
             
             # Extraer datos Base64 (puede venir con prefijo data:image/...)
+            imagen_data = imagen_b64
             if ',' in imagen_b64:
-                imagen_b64 = imagen_b64.split(',', 1)[1]
+                imagen_data = imagen_b64.split(',', 1)[1]
             
-            # Calcular tamaño en bytes
-            tamaño_bytes = len(imagen_b64)
+            # ✅ OPTIMIZADO: Calcular tamaño sin decodificar (más rápido)
+            tamaño_bytes = len(imagen_data)
             tamaño_mb = tamaño_bytes / (1024 * 1024)
             
             # Validar tamaño
@@ -80,10 +82,10 @@ def validar_imagenes_evidencia(imagenes: List[str]) -> None:
                            f"Por favor, comprime la imagen antes de subirla."
                 )
             
-            # Opcional: Validar que sea Base64 válido
-            try:
-                base64.b64decode(imagen_b64, validate=True)
-            except Exception:
+            # ✅ OPTIMIZADO: Validar Base64 solo con regex (sin decodificar)
+            # Base64 solo contiene: A-Z, a-z, 0-9, +, /, = (padding)
+            import re
+            if not re.match(r'^[A-Za-z0-9+/]*={0,2}$', imagen_data):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Imagen {idx}: Formato Base64 inválido."
@@ -320,12 +322,13 @@ async def get_pdm_data(
         entity = get_entity_or_404(db, slug)
         ensure_user_can_manage_entity(current_user, entity)
         
-        # Construir query base con defer de campos JSON pesados
+        # ✅ OPTIMIZADO: Construir query con defer + selectinload para evitar N+1
         query = db.query(PdmProducto).options(
             defer(PdmProducto.presupuesto_2024),
             defer(PdmProducto.presupuesto_2025),
             defer(PdmProducto.presupuesto_2026),
-            defer(PdmProducto.presupuesto_2027)
+            defer(PdmProducto.presupuesto_2027),
+            selectinload(PdmProducto.responsable_secretaria)  # Precarga secretarías
         ).filter(PdmProducto.entity_id == entity.id)
         
         # FILTRADO POR ROL: Secretarios solo ven productos asignados a SU secretaría
@@ -363,9 +366,11 @@ async def get_pdm_data(
             
             print(f"📦 Procesando lote {offset//BATCH_SIZE + 1}: {len(batch_productos)} productos")
             
-            # Cargar actividades SOLO para este lote (SIN evidencias para evitar OOM)
+            # ✅ OPTIMIZADO: Cargar actividades con selectinload de secretaría
             codigos_batch = [p.codigo_producto for p in batch_productos]
-            actividades_batch = db.query(PdmActividad).filter(
+            actividades_batch = db.query(PdmActividad).options(
+                selectinload(PdmActividad.responsable_secretaria)
+            ).filter(
                 PdmActividad.entity_id == entity.id,
                 PdmActividad.codigo_producto.in_(codigos_batch)
             ).all()

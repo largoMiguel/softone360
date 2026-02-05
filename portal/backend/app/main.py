@@ -180,6 +180,9 @@ from app.routes import pdm_informes
 app.include_router(pdm_informes.router, prefix="/api", tags=["PDM Informes"])
 from app.routes import pdm_contratos
 app.include_router(pdm_contratos.router, prefix="/api", tags=["PDM Contratos RPS"])
+# ⚠️ TEMPORAL: Router para ejecutar migraciones PDM
+from app.routes import admin_migrations
+app.include_router(admin_migrations.router, prefix="/api", tags=["Admin Migrations"])
 app.include_router(alerts.router, prefix="/api", tags=["Alerts"])
 app.include_router(secretarias.router, prefix="/api", tags=["Secretarías"])
 app.include_router(bpin.router, tags=["BPIN"])
