@@ -5,27 +5,16 @@
     </button>
 
     <div class="menu px-3 py-2">
-        <!-- Inicio -->
+        <!-- Ventanilla (reemplaza Inicio) -->
         <div class="menu-group">
-            <ul class="list-unstyled">
-                <li>
-                    <a class="menu-link" [class.active]="isActiveView('welcome')" (click)="goDashboard('welcome')">
-                        <i class="fas fa-home me-2"></i>Inicio
-                    </a>
-                </li>
-            </ul>
-        </div>
-
-        <!-- Dashboard Group -->
-        <div class="menu-group" *ngIf="canAccessPqrs()">
-            <div class="menu-title clickable" (click)="toggleMenu('pqrs')">
-                <i class="fas fa-tachometer-alt me-2"></i>GESTIÓN DE PQRS
-                <i class="fas fa-chevron-down ms-auto chevron" [class.rotated]="menuStates.pqrs"></i>
+            <div class="menu-title clickable" (click)="toggleMenu('ventanilla')">
+                <i class="fas fa-home me-2"></i>VENTANILLA
+                <i class="fas fa-chevron-down ms-auto chevron" [class.rotated]="menuStates.ventanilla"></i>
             </div>
-            <ul class="list-unstyled ms-1 submenu" [class.expanded]="menuStates.pqrs">
-                <li>
+            <ul class="list-unstyled ms-1 submenu" [class.expanded]="menuStates.ventanilla">
+                <li *ngIf="canAccessPqrs()">
                     <a class="menu-link" [class.active]="isActiveView('dashboard')" (click)="goDashboard('dashboard')">
-                        <i class="fas fa-chart-pie me-2"></i>Resumen
+                        <i class="fas fa-chart-pie me-2"></i>Resumen PQRS
                     </a>
                 </li>
                 <li *ngIf="canAccessPqrs()">
@@ -33,43 +22,59 @@
                         <i class="fas fa-list me-2"></i>Mis PQRS
                     </a>
                 </li>
-            </ul>
-        </div>
-
-        <!-- Usuarios (independiente) -->
-        <div class="menu-group" *ngIf="isAdmin() && usersAdminEnabled()">
-            <div class="menu-title clickable" (click)="toggleMenu('usuarios')">
-                <i class="fas fa-users me-2"></i>USUARIOS
-                <i class="fas fa-chevron-down ms-auto chevron" [class.rotated]="menuStates.usuarios"></i>
-            </div>
-            <ul class="list-unstyled ms-1 submenu" [class.expanded]="menuStates.usuarios">
                 <li>
-                    <a class="menu-link" [class.active]="isActiveView('usuarios')" (click)="goDashboard('usuarios')">
-                        <i class="fas fa-user-cog me-2"></i>Administrar
+                    <a class="menu-link" [class.active]="isActiveView('correspondencia')" (click)="goDashboard('correspondencia')">
+                        <i class="fas fa-envelope me-2"></i>Correspondencia
                     </a>
                 </li>
             </ul>
         </div>
 
         <!-- Planes -->
-        <div class="menu-group" *ngIf="canAccessPlanes()">
+        <div class="menu-group" *ngIf="canAccessPlanes() || canAccessPdm()">
             <div class="menu-title clickable" (click)="toggleMenu('planes')">
-                <i class="fas fa-clipboard-list me-2"></i>PLANES INSTITUCIONALES
+                <i class="fas fa-clipboard-list me-2"></i>PLANES
                 <i class="fas fa-chevron-down ms-auto chevron" [class.rotated]="menuStates.planes"></i>
             </div>
             <ul class="list-unstyled ms-1 submenu" [class.expanded]="menuStates.planes">
-                <li>
-                    <a class="menu-link" [class.active]="isActiveRoutePlanes()" (click)="goPlanes()">
-                        <i class="fas fa-angle-right me-2"></i>Ingresar
+                <!-- Planes Institucionales -->
+                <li *ngIf="canAccessPlanes()">
+                    <a class="menu-link" (click)="goPlanes()">
+                        <i class="fas fa-angle-right me-2"></i>Planes Institucionales
                     </a>
+                </li>
+                
+                <!-- PDM con submenu -->
+                <li *ngIf="canAccessPdm()" class="submenu-nested">
+                    <div class="menu-link clickable" (click)="toggleMenu('pdm'); $event.stopPropagation()">
+                        <i class="fas fa-angle-right me-2"></i>PDM
+                        <i class="fas fa-chevron-down ms-auto chevron-small" [class.rotated]="menuStates.pdm"></i>
+                    </div>
+                    <ul class="list-unstyled ms-3 submenu-level-2" [class.expanded]="menuStates.pdm">
+                        <li>
+                            <a class="menu-link menu-link-nested" (click)="goPdmUpload()">
+                                <i class="fas fa-circle me-2" style="font-size: 0.4rem;"></i>Ingresar
+                            </a>
+                        </li>
+                        <li *ngIf="isAdmin()">
+                            <a class="menu-link menu-link-nested" (click)="openCargarEjecucion()">
+                                <i class="fas fa-circle me-2" style="font-size: 0.4rem;"></i>Cargar Ejecución
+                            </a>
+                        </li>
+                        <li *ngIf="isAdmin()">
+                            <a class="menu-link menu-link-nested" (click)="openCargarNuevoArchivo()">
+                                <i class="fas fa-circle me-2" style="font-size: 0.4rem;"></i>Cargar Archivo
+                            </a>
+                        </li>
+                    </ul>
                 </li>
             </ul>
         </div>
 
-        <!-- Contratación -->
+        <!-- Contrataciones -->
         <div class="menu-group" *ngIf="canAccessContratacion()">
             <div class="menu-title clickable" (click)="toggleMenu('contratacion')">
-                <i class="fas fa-file-contract me-2"></i>CONTRATACIÓN
+                <i class="fas fa-file-contract me-2"></i>CONTRATACIONES
                 <i class="fas fa-chevron-down ms-auto chevron" [class.rotated]="menuStates.contratacion"></i>
             </div>
             <ul class="list-unstyled ms-1 submenu" [class.expanded]="menuStates.contratacion">
@@ -86,38 +91,13 @@
             </ul>
         </div>
 
-        <!-- PDM -->
-        <div class="menu-group" *ngIf="canAccessPdm()">
-            <div class="menu-title clickable" (click)="toggleMenu('pdm')">
-                <i class="fas fa-chart-line me-2"></i>PLAN DE DESARROLLO
-                <i class="fas fa-chevron-down ms-auto chevron" [class.rotated]="menuStates.pdm"></i>
-            </div>
-            <ul class="list-unstyled ms-1 submenu" [class.expanded]="menuStates.pdm">
-                <li>
-                    <a class="menu-link" [class.active]="isActiveRoutePdm()" (click)="goPdmUpload()">
-                        <i class="fas fa-angle-right me-2"></i>Ingresar
-                    </a>
-                </li>
-                <li *ngIf="isAdmin()">
-                    <a class="menu-link" (click)="openCargarEjecucion()">
-                        <i class="fas fa-angle-right me-2"></i>Cargar Ejecución
-                    </a>
-                </li>
-                <li *ngIf="isAdmin()">
-                    <a class="menu-link" (click)="openCargarNuevoArchivo()">
-                        <i class="fas fa-angle-right me-2"></i>Cargar Nuevo Archivo
-                    </a>
-                </li>
-            </ul>
-        </div>
-
-        <!-- Solicitudes -->
+        <!-- Presupuesto (antes Solicitudes) -->
         <div class="menu-group" *ngIf="isAdmin()">
-            <div class="menu-title clickable" (click)="toggleMenu('solicitudes')">
-                <i class="fas fa-file-invoice me-2"></i>SOLICITUDES
-                <i class="fas fa-chevron-down ms-auto chevron" [class.rotated]="menuStates.solicitudes"></i>
+            <div class="menu-title clickable" (click)="toggleMenu('presupuesto')">
+                <i class="fas fa-coins me-2"></i>PRESUPUESTO
+                <i class="fas fa-chevron-down ms-auto chevron" [class.rotated]="menuStates.presupuesto"></i>
             </div>
-            <ul class="list-unstyled ms-1 submenu" [class.expanded]="menuStates.solicitudes">
+            <ul class="list-unstyled ms-1 submenu" [class.expanded]="menuStates.presupuesto">
                 <li>
                     <a class="menu-link" [class.active]="isActiveRouteSolicitudCDP()" (click)="goSolicitudCDP()">
                         <i class="fas fa-angle-right me-2"></i>CDP

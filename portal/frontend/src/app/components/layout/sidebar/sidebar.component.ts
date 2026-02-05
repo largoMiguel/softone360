@@ -18,12 +18,11 @@ export class SidebarComponent {
     
     // Estados de expansión para cada sección del menú
     menuStates = {
-        pqrs: false,
-        usuarios: false,
+        ventanilla: false,
         planes: false,
-        contratacion: false,
         pdm: false,
-        solicitudes: false
+        contratacion: false,
+        presupuesto: false
     };
 
     constructor(
@@ -34,7 +33,14 @@ export class SidebarComponent {
     // Toggle para expandir/contraer secciones del menú (comportamiento acordeón)
     toggleMenu(section: keyof typeof this.menuStates) {
         const wasExpanded = this.menuStates[section];
-        // Cerrar todos los menús
+        
+        // Si es PDM (submenú), solo toggle sin cerrar otros
+        if (section === 'pdm') {
+            this.menuStates.pdm = !wasExpanded;
+            return;
+        }
+        
+        // Para menús principales, cerrar todos los demás
         Object.keys(this.menuStates).forEach(key => {
             this.menuStates[key as keyof typeof this.menuStates] = false;
         });
@@ -71,7 +77,7 @@ export class SidebarComponent {
     canAccessPdm(): boolean { return this.pdmEnabled() && this.userHasModule('pdm'); }
 
     // ===== Navegación =====
-    goDashboard(view: 'welcome' | 'dashboard' | 'mis-pqrs' | 'nueva-pqrs' | 'usuarios' = 'dashboard') {
+    goDashboard(view: 'welcome' | 'dashboard' | 'mis-pqrs' | 'nueva-pqrs' | 'usuarios' | 'correspondencia' = 'dashboard') {
         if (!this.slug) return;
         const queryParams: any = {};
         if (view === 'welcome') {
@@ -147,7 +153,7 @@ export class SidebarComponent {
     isActiveRoutePdmDashboard(): boolean { return /\/pdm-dashboard(\/?|\?|$)/.test(this.router.url); }
     isActiveRouteSolicitudCDP(): boolean { return /\/solicitudes\/cdp(\/?|\?|$)/.test(this.router.url); }
     isActiveRouteCertificacionBPP(): boolean { return /\/solicitudes\/certificacion-bpp(\/?|\?|$)/.test(this.router.url); }
-    isActiveView(view: 'welcome' | 'dashboard' | 'mis-pqrs' | 'nueva-pqrs' | 'usuarios'): boolean {
+    isActiveView(view: 'welcome' | 'dashboard' | 'mis-pqrs' | 'nueva-pqrs' | 'usuarios' | 'correspondencia'): boolean {
         const url = this.router.url;
         if (!/\/(dashboard)(\b|\?)/.test(url)) return false;
         const m = url.match(/\bv=([^&#]+)/);

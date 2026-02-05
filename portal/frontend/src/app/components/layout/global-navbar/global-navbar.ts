@@ -172,6 +172,13 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
         this.notifications.markAllRead().subscribe();
     }
 
+    // ===== Navegación =====
+    goUsuarios() {
+        const slug = this.entityContext.currentEntity?.slug;
+        if (!slug) return;
+        this.router.navigate([`/${slug}/dashboard`], { queryParams: { v: 'usuarios' } });
+    }
+
     // ===== Navegación de pestañas globales =====
     private get slug(): string | undefined {
         return this.entityContext.currentEntity?.slug;

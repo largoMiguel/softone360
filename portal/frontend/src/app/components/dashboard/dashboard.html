@@ -23,10 +23,22 @@
                                 Utiliza el menú de la izquierda para navegar entre las diferentes secciones del sistema.
                             </div>
 
+                            <!-- Mensaje de Ventanilla -->
+                            <div class="card bg-light border-primary mb-4">
+                                <div class="card-body">
+                                    <h4 class="card-title text-primary">
+                                        <i class="fas fa-home me-2"></i>Ventanilla de Servicios
+                                    </h4>
+                                    <p class="card-text">
+                                        Accede rápidamente a los servicios más utilizados desde la sección Ventanilla en el menú lateral.
+                                    </p>
+                                </div>
+                            </div>
+
                             <!-- Accesos rápidos -->
-                            <div class="row g-3 mt-4" *ngIf="canAccessPqrs() || canAccessPlanes() || canAccessContratacion() || canAccessPdm()">
+                            <div class="row g-3 mt-4">
                                 <div class="col-12">
-                                    <h5 class="text-muted mb-3">Accesos Rápidos</h5>
+                                    <h5 class="text-muted mb-3">Módulos Disponibles</h5>
                                 </div>
                                 
                                 <!-- PQRS -->
@@ -1164,6 +1176,52 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vista de Correspondencia -->
+        <div *ngIf="activeView === 'correspondencia'">
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-primary text-white">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-envelope fa-2x me-3"></i>
+                                <div>
+                                    <h4 class="mb-0">Correspondencia</h4>
+                                    <small>Gestión de comunicaciones oficiales</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body p-5">
+                            <div class="text-center mb-4">
+                                <i class="fas fa-tools fa-4x text-muted mb-3"></i>
+                                <h5 class="text-muted">Módulo en Desarrollo</h5>
+                                <p class="text-muted">
+                                    El módulo de correspondencia estará disponible próximamente.<br>
+                                    Aquí podrás gestionar la correspondencia entrante y saliente de la entidad.
+                                </p>
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <h6 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Funcionalidades Planeadas</h6>
+                                <ul class="mb-0">
+                                    <li>Registro de correspondencia recibida</li>
+                                    <li>Gestión de correspondencia enviada</li>
+                                    <li>Radicación de documentos</li>
+                                    <li>Trazabilidad de comunicaciones oficiales</li>
+                                    <li>Generación de reportes</li>
+                                </ul>
+                            </div>
+
+                            <div class="text-center mt-4">
+                                <button class="btn btn-primary" (click)="setActiveView('welcome')">
+                                    <i class="fas fa-arrow-left me-2"></i>Volver al Inicio
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

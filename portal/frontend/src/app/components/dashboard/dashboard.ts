@@ -312,7 +312,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
         'dashboard': true,
         'mis-pqrs': true,
         'nueva-pqrs': true,
-        'usuarios': true
+        'usuarios': true,
+        'correspondencia': true
       };
       if (allowed[v]) {
         this.activeView = v;
@@ -510,7 +511,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   setActiveView(view: string) {
     this.activeView = view;
     // Actualizar ?v= en la URL para mantener sincronizada la pestaña global
-    const topViews = new Set(['dashboard', 'mis-pqrs', 'nueva-pqrs', 'usuarios', 'welcome']);
+    const topViews = new Set(['dashboard', 'mis-pqrs', 'nueva-pqrs', 'usuarios', 'welcome', 'correspondencia']);
     if (topViews.has(view)) {
       this.updateQueryParamV(view);
     }

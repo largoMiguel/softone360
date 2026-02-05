@@ -4,7 +4,7 @@
     padding: 0;
     height: 100%;
     overflow-y: auto;
-    background: linear-gradient(180deg, #1a2332 0%, #0f1419 100%);
+    background: linear-gradient(180deg, #216ba8 0%, #195683 100%);
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
     
     /* Custom scrollbar */
@@ -32,41 +32,41 @@
 
 .menu-title {
     text-transform: uppercase;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 1.2px;
-    opacity: .65;
+    opacity: .85;
     margin: 1.5rem 1rem 0.5rem 1rem;
     display: flex;
     align-items: center;
     user-select: none;
-    color: #8b95a5;
+    color: #e8f0f8;
     transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
     
     i:first-child {
-        font-size: 0.85rem;
-        opacity: 0.7;
+        font-size: 0.9rem;
+        opacity: 0.9;
     }
     
     &.clickable {
         cursor: pointer;
-        padding: .75rem 1rem;
+        padding: .85rem 1rem;
         margin: 0.5rem 0.75rem;
         border-radius: .75rem;
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
         
         &:hover {
-            background: rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.15);
             opacity: 1;
             color: #fff;
-            border-color: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.2);
             transform: translateX(2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
             
             i:first-child {
                 opacity: 1;
-                color: #216ba8;
+                color: #fff;
             }
         }
         
@@ -76,9 +76,9 @@
     }
     
     .chevron {
-        font-size: 0.65rem;
+        font-size: 0.7rem;
         transition: transform .3s cubic-bezier(0.4, 0, 0.2, 1);
-        opacity: 0.6;
+        opacity: 0.8;
         
         &.rotated {
             transform: rotate(180deg);
@@ -90,10 +90,10 @@
 .menu-link {
     display: flex;
     align-items: center;
-    color: #cbd5e1;
-    padding: .65rem 1.25rem;
+    color: #e8f0f8;
+    padding: .7rem 1.25rem;
     margin: 0.25rem 1rem;
-    border-radius: .5rem;
+    border-radius: .6rem;
     text-decoration: none;
     font-size: 0.9rem;
     font-weight: 500;
@@ -104,7 +104,7 @@
     i {
         width: 20px;
         font-size: 0.9rem;
-        opacity: 0.8;
+        opacity: 0.85;
         transition: all .25s ease;
     }
     
@@ -115,30 +115,30 @@
         top: 0;
         height: 100%;
         width: 3px;
-        background: linear-gradient(180deg, #216ba8 0%, #195683 100%);
+        background: linear-gradient(180deg, #fff 0%, #e8f0f8 100%);
         transform: scaleY(0);
         transition: transform .25s ease;
     }
     
     &:hover {
-        background: rgba(33, 107, 168, 0.12);
+        background: rgba(255, 255, 255, 0.15);
         color: #fff;
         transform: translateX(4px);
         padding-left: 1.5rem;
         
         i {
             opacity: 1;
-            color: #216ba8;
+            color: #fff;
             transform: scale(1.1);
         }
     }
     
     &.active {
-        background: linear-gradient(135deg, rgba(33, 107, 168, 0.25) 0%, rgba(25, 86, 131, 0.15) 100%);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.15) 100%);
         color: #fff;
         font-weight: 600;
-        box-shadow: 0 2px 8px rgba(33, 107, 168, 0.2);
-        border: 1px solid rgba(33, 107, 168, 0.3);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
         
         &::before {
             transform: scaleY(1);
@@ -146,7 +146,7 @@
         
         i {
             opacity: 1;
-            color: #216ba8;
+            color: #fff;
         }
     }
 }
@@ -166,6 +166,13 @@
         opacity: 1;
         margin-top: 0.5rem;
         margin-bottom: 0.5rem;
+    }
+    
+    // Evitar efecto de selección por defecto en submenus
+    .menu-link {
+        background: transparent !important;
+        border: none !important;
+        font-weight: 500 !important;
     }
     
     li {
@@ -197,24 +204,27 @@
     position: relative;
     
     &:first-child {
-        .menu-link {
-            background: rgba(33, 107, 168, 0.08);
-            border: 1px solid rgba(33, 107, 168, 0.2);
-            font-weight: 600;
+        .menu-title.clickable {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
             
             &:hover {
-                background: rgba(33, 107, 168, 0.15);
+                background: rgba(255, 255, 255, 0.2);
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
             }
             
-            i {
-                color: #216ba8;
+            i:first-child {
+                color: #fff;
+                font-size: 1rem;
             }
         }
     }
     
     + .menu-group {
-        margin-top: .5rem;
-        padding-top: 0;
+        margin-top: .75rem;
+        padding-top: 0.5rem;
         
         &::before {
             content: '';
@@ -225,7 +235,7 @@
             height: 1px;
             background: linear-gradient(90deg, 
                 transparent 0%, 
-                rgba(255, 255, 255, 0.12) 50%, 
+                rgba(255, 255, 255, 0.2) 50%, 
                 transparent 100%);
         }
     }
@@ -252,5 +262,63 @@
 @media (max-width: 991.98px) {
     .sidebar {
         width: 280px;
+    }
+}
+
+// Estilos para submenús anidados
+.submenu-nested {
+    position: relative;
+    
+    .menu-link.clickable {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        user-select: none;
+        
+        .chevron-small {
+            font-size: 0.6rem;
+            transition: transform .3s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0.7;
+            margin-left: auto;
+            
+            &.rotated {
+                transform: rotate(180deg);
+                opacity: 1;
+            }
+        }
+    }
+}
+
+.submenu-level-2 {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .4s cubic-bezier(0.4, 0, 0.2, 1), 
+                opacity .3s ease,
+                margin .3s ease;
+    opacity: 0;
+    margin-top: 0;
+    padding-left: 0;
+    
+    &.expanded {
+        max-height: 400px;
+        opacity: 1;
+        margin-top: 0.25rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .menu-link-nested {
+        font-size: 0.85rem;
+        padding: 0.5rem 1rem;
+        opacity: 0.9;
+        
+        &:hover {
+            opacity: 1;
+            padding-left: 1.25rem;
+        }
+        
+        i.fa-circle {
+            opacity: 0.5;
+        }
     }
 }
