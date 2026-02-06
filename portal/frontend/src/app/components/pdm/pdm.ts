@@ -2301,13 +2301,15 @@ export class PdmComponent implements OnInit, OnDestroy {
             return [];
         }
 
-        // 1. Priorizar URLs S3 si existen y está migrada
-        if (evidencia.migrated_to_s3 && evidencia.imagenes_s3_urls && evidencia.imagenes_s3_urls.length > 0) {
+        // 1. Priorizar URLs S3 si existen (incluso si migrated_to_s3 es false/undefined por cache)
+        if (evidencia.imagenes_s3_urls && evidencia.imagenes_s3_urls.length > 0) {
+            console.log('✅ Mostrando imágenes desde S3:', evidencia.imagenes_s3_urls);
             return evidencia.imagenes_s3_urls;
         }
 
-        // 2. Fallback a imagenes Base64 (legacy)
+        // 2. Fallback a imagenes Base64 (legacy o evidencias no migradas)
         if (evidencia.imagenes && evidencia.imagenes.length > 0) {
+            console.log('⚠️ Mostrando imágenes Base64 (legacy)');
             // Convertir a data URLs si es Base64 puro
             return evidencia.imagenes.map(img => {
                 // Si ya tiene prefijo data:image, retornar tal cual
