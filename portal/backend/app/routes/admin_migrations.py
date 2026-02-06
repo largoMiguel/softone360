@@ -173,3 +173,84 @@ async def migrate_images_to_s3(
         traceback.print_exc()
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+def limpiar_base64(imagen_str: str) -> str:
+    """Limpia el string Base64 removiendo prefijos y espacios"""
+    if imagen_str.startswith('data:image'):
+        if ';base64,' in imagen_str:
+            imagen_str = imagen_str.split(';base64,')[1]
+    imagen_str = imagen_str.strip().replace('\n', '').replace('\r', '').replace(' ', '')
+    return imagen_str
+
+
+@router.post("/fix-corrupted-images")
+async def fix_corrupted_images(db: Session = Depends(get_db)):
+    """Re-sube las imágenes S3 limpiando correctamente el Base64"""
+    try:
+        s3_client = boto3.client('s3', region_name=S3_REGION)
+        
+        evidencias = db.query(PdmActividadEvidencia).filter(
+            PdmActividadEvidencia.migrated_to_s3 == True,
+            PdmActividadEvidencia.imagenes.isnot(None)
+        ).all()
+        
+        fixed_count = 0
+        error_count = 0
+        
+        for evidencia in evidencias:
+            imagenes = evidencia.imagenes
+            if not imagenes or len(imagenes) == 0:
+                continue
+            
+            for idx, imagen_base64 in enumerate(imagenes):
+                if not imagen_base64 or len(imagen_base64) < 100:
+                    continue
+                
+                try:
+                    # LIMPIAR Base64
+                    imagen_limpia = limpiar_base64(imagen_base64)
+                    
+                    # Decodificar
+                    imagen_data = base64.b64decode(imagen_limpia)
+                    
+                    # Verificar que sea JPEG válido
+                    if not imagen_data.startswith(b'\xff\xd8\xff'):
+                        error_count += 1
+                        continue
+                    
+                    # Obtener key S3 actual
+                    if evidencia.imagenes_s3_urls and idx < len(evidencia.imagenes_s3_urls):
+                        url_actual = evidencia.imagenes_s3_urls[idx]
+                        s3_key = url_actual.split('.amazonaws.com/')[1]
+                    else:
+                        unique_id = str(uuid.uuid4())[:8]
+                        s3_key = f"entity_{evidencia.entity_id}/evidencia_{evidencia.id}/imagen_{idx}_{unique_id}.jpg"
+                    
+                    # RE-SUBIR a S3
+                    s3_client.put_object(
+                        Bucket=S3_BUCKET,
+                        Key=s3_key,
+                        Body=imagen_data,
+                        ContentType='image/jpeg',
+                        CacheControl='max-age=31536000',
+                        ServerSideEncryption='AES256'
+                    )
+                    
+                    fixed_count += 1
+                    
+                except Exception as e:
+                    print(f"❌ Error evidencia {evidencia.id} imagen {idx}: {e}")
+                    error_count += 1
+        
+        return {
+            "success": True,
+            "fixed": fixed_count,
+            "errors": error_count
+        }
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
