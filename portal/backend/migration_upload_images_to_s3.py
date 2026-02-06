@@ -31,9 +31,9 @@ except ImportError as e:
 DB_CONFIG = {
     'host': 'softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com',
     'port': 5432,
-    'database': 'postgres',
-    'user': 'dbadmin',
-    'password': 'TuPassSeguro123!'
+    'database': 'softone360',
+    'user': 'postgresuser',
+    'password': 'Sistemas.2024'
 }
 
 S3_BUCKET = 'softone-pdm-evidencias'
@@ -287,6 +287,66 @@ def main():
     conn = conectar_db()
     print("✅ Conexión DB exitosa")
     
+    # Mostrar estadísticas actuales
+    print("\n" + "="*70)
+    print("📊 ESTADO ACTUAL DE LA BASE DE DATOS")
+    print("="*70)
+    
+    try:
+        cursor = conn.cursor()
+        
+        # Total evidencias
+        cursor.execute("SELECT COUNT(*) FROM pdm_actividades_evidencias")
+        total = cursor.fetchone()[0]
+        print(f"\n📋 Total de evidencias: {total}")
+        
+        # Migradas
+        cursor.execute("SELECT COUNT(*) FROM pdm_actividades_evidencias WHERE migrated_to_s3 = TRUE")
+        migradas = cursor.fetchone()[0]
+        print(f"✅ Ya migradas a S3: {migradas}")
+        
+        # Pendientes
+        pendientes = total - migradas
+        print(f"⏳ Pendientes de migrar: {pendientes}")
+        
+        # Análisis detallado de pendientes
+        cursor.execute("""
+            SELECT COUNT(*) FROM pdm_actividades_evidencias 
+            WHERE migrated_to_s3 IS NOT TRUE 
+            AND imagenes IS NULL
+        """)
+        null_count = cursor.fetchone()[0]
+        
+        cursor.execute("""
+            SELECT COUNT(*) FROM pdm_actividades_evidencias 
+            WHERE migrated_to_s3 IS NOT TRUE 
+            AND imagenes = '[]'::jsonb
+        """)
+        empty_count = cursor.fetchone()[0]
+        
+        cursor.execute("""
+            SELECT COUNT(*) FROM pdm_actividades_evidencias 
+            WHERE migrated_to_s3 IS NOT TRUE 
+            AND imagenes IS NOT NULL
+            AND imagenes != '[]'::jsonb
+            AND jsonb_array_length(imagenes) > 0
+            AND length(imagenes->0->>'0') >= 100
+        """)
+        valid_pending = cursor.fetchone()[0]
+        
+        print(f"\n📊 Análisis de pendientes:")
+        print(f"   ❌ NULL: {null_count}")
+        print(f"   📭 Vacías: {empty_count}")
+        print(f"   ✅ Válidas para migrar: {valid_pending}")
+        
+        cursor.close()
+        
+    except Exception as e:
+        print(f"⚠️  Error obteniendo estadísticas: {e}")
+    
+    print("\n" + "="*70)
+    
+    # Validación de conexión S3
     print("\n🔌 Conectando a S3...")
     s3_client = conectar_s3()
     print(f"✅ Conexión S3 exitosa (Bucket: {S3_BUCKET})")

@@ -2294,6 +2294,35 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
+     * Obtiene las imágenes a mostrar de una evidencia (prioriza S3 sobre Base64)
+     */
+    obtenerImagenesParaMostrar(evidencia?: EvidenciaActividad): string[] {
+        if (!evidencia) {
+            return [];
+        }
+
+        // 1. Priorizar URLs S3 si existen y está migrada
+        if (evidencia.migrated_to_s3 && evidencia.imagenes_s3_urls && evidencia.imagenes_s3_urls.length > 0) {
+            return evidencia.imagenes_s3_urls;
+        }
+
+        // 2. Fallback a imagenes Base64 (legacy)
+        if (evidencia.imagenes && evidencia.imagenes.length > 0) {
+            // Convertir a data URLs si es Base64 puro
+            return evidencia.imagenes.map(img => {
+                // Si ya tiene prefijo data:image, retornar tal cual
+                if (img.startsWith('http://') || img.startsWith('https://') || img.startsWith('data:image/')) {
+                    return img;
+                }
+                // Si es Base64 puro, agregar prefijo
+                return `data:image/jpeg;base64,${img}`;
+            });
+        }
+
+        return [];
+    }
+
+    /**
      * Abre una imagen en una nueva ventana para verla en grande
      */
     verImagenGrande(imagenBase64: string) {

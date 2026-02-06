@@ -9,6 +9,7 @@ from typing import List
 from datetime import datetime
 import base64
 import re
+import uuid
 
 from app.config.database import get_db
 from app.models.entity import Entity
@@ -24,12 +25,99 @@ from app.models.pdm import (
 from app.schemas import pdm_v2 as schemas
 from app.utils.auth import get_current_active_user
 
-router = APIRouter(prefix="/pdm/v2", tags=["PDM V2"])
+# S3 para almacenamiento de imágenes
+try:
+    import boto3
+    from botocore.exceptions import ClientError
+    S3_AVAILABLE = True
+    S3_BUCKET = 'softone-pdm-evidencias'
+    S3_REGION = 'us-east-1'
+except ImportError:
+    S3_AVAILABLE = False
+    print("⚠️ boto3 no disponible - imágenes se guardarán en DB")
+
+router = APIRouter(prefix="/pdm/v2", tags=["PDM V2 "])
 
 
 # ==============================================
 # Helpers
 # ==============================================
+
+def subir_imagenes_a_s3(imagenes_base64: List[str], entity_id: int, evidencia_id: int) -> List[str]:
+    """
+    Sube imágenes Base64 a S3 y retorna lista de URLs.
+    
+    Args:
+        imagenes_base64: Lista de strings Base64
+        entity_id: ID de la entidad
+        evidencia_id: ID de la evidencia
+    
+    Returns:
+        Lista de URLs S3
+    
+    Raises:
+        HTTPException: Si falla la subida a S3
+    """
+    if not S3_AVAILABLE:
+        raise HTTPException(
+            status_code=500,
+            detail="Servicio S3 no disponible - contacte al administrador"
+        )
+    
+    if not imagenes_base64:
+        return []
+    
+    try:
+        s3_client = boto3.client('s3', region_name=S3_REGION)
+        urls = []
+        
+        for idx, imagen_base64 in enumerate(imagenes_base64):
+            # Decodificar Base64
+            try:
+                imagen_data = base64.b64decode(imagen_base64)
+            except Exception as e:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Imagen {idx + 1} tiene formato Base64 inválido"
+                )
+            
+            # Determinar extensión (por defecto jpg)
+            extension = 'jpg'
+            if imagen_base64.startswith('/9j/'):
+                extension = 'jpg'
+            elif imagen_base64.startswith('iVBORw0KGgo'):
+                extension = 'png'
+            
+            # Generar key S3 única
+            unique_id = str(uuid.uuid4())[:8]
+            s3_key = f"entity_{entity_id}/evidencia_{evidencia_id}/imagen_{idx}_{unique_id}.{extension}"
+            
+            # Subir a S3
+            s3_client.put_object(
+                Bucket=S3_BUCKET,
+                Key=s3_key,
+                Body=imagen_data,
+                ContentType=f'image/{extension}',
+                CacheControl='max-age=31536000'  # Cache 1 año
+            )
+            
+            # Generar URL pública
+            url = f"https://{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/{s3_key}"
+            urls.append(url)
+        
+        return urls
+        
+    except ClientError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error subiendo imágenes a S3: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error inesperado: {str(e)}"
+        )
+
 
 def validar_imagenes_evidencia(imagenes: List[str]) -> None:
     """
@@ -844,14 +932,60 @@ async def create_evidencia(
     if evidencia.imagenes:
         validar_imagenes_evidencia(evidencia.imagenes)
     
-    nueva_evidencia = PdmActividadEvidencia(
-        actividad_id=actividad_id,
-        entity_id=entity.id,
-        fecha_registro=datetime.utcnow(),
-        **evidencia.model_dump()
-    )
+    # ✅ SUBIR IMÁGENES A S3 (si está disponible)
+    imagenes_s3_urls = []
+    migrated_to_s3 = False
     
-    db.add(nueva_evidencia)
+    if evidencia.imagenes and S3_AVAILABLE:
+        try:
+            # Crear evidencia temporal para obtener ID
+            nueva_evidencia = PdmActividadEvidencia(
+                actividad_id=actividad_id,
+                entity_id=entity.id,
+                fecha_registro=datetime.utcnow(),
+                descripcion=evidencia.descripcion,
+                fecha_ejecucion=evidencia.fecha_ejecucion,
+                porcentaje_avance=evidencia.porcentaje_avance,
+                observaciones=evidencia.observaciones,
+                imagenes=[],  # Vacío mientras subimos
+                imagenes_s3_urls=[],
+                migrated_to_s3=False
+            )
+            db.add(nueva_evidencia)
+            db.flush()  # Obtener ID sin commit
+            
+            # Subir imágenes a S3
+            imagenes_s3_urls = subir_imagenes_a_s3(
+                evidencia.imagenes,
+                entity.id,
+                nueva_evidencia.id
+            )
+            
+            # Actualizar con URLs S3
+            nueva_evidencia.imagenes_s3_urls = imagenes_s3_urls
+            nueva_evidencia.migrated_to_s3 = True
+            migrated_to_s3 = True
+            
+        except HTTPException:
+            # Error subiendo a S3 - revertir y usar Base64 como fallback
+            db.rollback()
+            print(f"⚠️  Error subiendo a S3 - usando fallback Base64")
+            nueva_evidencia = PdmActividadEvidencia(
+                actividad_id=actividad_id,
+                entity_id=entity.id,
+                fecha_registro=datetime.utcnow(),
+                **evidencia.model_dump()
+            )
+            db.add(nueva_evidencia)
+    else:
+        # S3 no disponible o sin imágenes - guardar Base64
+        nueva_evidencia = PdmActividadEvidencia(
+            actividad_id=actividad_id,
+            entity_id=entity.id,
+            fecha_registro=datetime.utcnow(),
+            **evidencia.model_dump()
+        )
+        db.add(nueva_evidencia)
     
     # Actualizar estado de la actividad a COMPLETADA
     actividad.estado = 'COMPLETADA'

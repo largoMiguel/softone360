@@ -257,7 +257,9 @@ export interface EvidenciaActividad {
     actividad_id?: number;
     descripcion: string;
     url_evidencia?: string; // URL externa opcional
-    imagenes: string[]; // Base64 o URLs de imágenes (máximo 4, 2MB c/u)
+    imagenes: string[]; // Base64 o URLs de imágenes (máximo 4, 2MB c/u) - LEGACY
+    imagenes_s3_urls?: string[]; // URLs S3 de imágenes (nuevo formato)
+    migrated_to_s3?: boolean; // Indica si está migrada a S3
     fecha_registro: string; // ISO date string
 }
 

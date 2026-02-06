@@ -823,9 +823,9 @@
                                                     <i class="fas fa-external-link-alt me-1"></i> Ver Evidencia Externa
                                                 </a>
                                             </div>
-                                            <div *ngIf="actividad.evidencia.imagenes && actividad.evidencia.imagenes.length > 0" class="row">
-                                                <div *ngFor="let imagen of actividad.evidencia.imagenes" class="col-md-3 mb-2">
-                                                    <img [src]="imagen" class="img-thumbnail" style="cursor: pointer;" (click)="verImagenGrande(imagen)">
+                                            <div *ngIf="obtenerImagenesParaMostrar(actividad.evidencia).length > 0" class="row">
+                                                <div *ngFor="let imagen of obtenerImagenesParaMostrar(actividad.evidencia)" class="col-md-3 mb-2">
+                                                    <img [src]="imagen" class="img-thumbnail" style="cursor: pointer;" (click)="verImagenGrande(imagen)" alt="Evidencia">
                                                 </div>
                                             </div>
                                         </div>
