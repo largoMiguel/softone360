@@ -156,6 +156,8 @@ class EvidenciaResponse(EvidenciaActividadBase):
     entity_id: int
     fecha_registro: datetime
     created_at: datetime
+    imagenes_s3_urls: Optional[List[str]] = None  # URLs S3
+    migrated_to_s3: Optional[bool] = False  # Flag de migración
 
     class Config:
         from_attributes = True
@@ -165,6 +167,7 @@ class ActividadResponse(ActividadResponseBase):
     id: int
     entity_id: int
     tiene_evidencia: bool = False  # ✅ Solo indicador, no cargar objeto completo
+    evidencia: Optional[EvidenciaResponse] = None  # ✅ NUEVO: Objeto evidencia completo
     created_at: datetime
     updated_at: Optional[datetime] = None  # Hacer opcional para evitar errores de serialización
 
