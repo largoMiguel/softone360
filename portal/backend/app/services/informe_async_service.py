@@ -9,12 +9,13 @@ from typing import Optional, Dict, Any
 import boto3
 from botocore.exceptions import ClientError
 from sqlalchemy.orm import Session
-from app.config.database import SessionLocal
+from app.config.database import SessionLocal, get_db
 from app.models.informe import InformeEstado
 from app.models.alert import Alert
 from app.services.pdm_report_generator import PDMReportGenerator
 import os
 import tempfile
+import sys
 
 
 class InformeGeneratorService:
@@ -69,17 +70,18 @@ class InformeGeneratorService:
         db.commit()
         db.refresh(informe)
         
-        print(f"🚀 Iniciando generación async del informe {informe.id}...")
+        print(f"🚀 Iniciando generación async del informe {informe.id}...", flush=True)
         
-        # Iniciar generación en background
+        # Iniciar generación en background (NO daemon para debugging)
         thread = threading.Thread(
             target=self._generar_informe_background,
             args=(informe.id, slug),
-            daemon=True
+            daemon=False,  # Cambiar a False temporalmente para debug
+            name=f"informe-{informe.id}"
         )
         thread.start()
         
-        print(f"✅ Thread lanzado para informe {informe.id}")
+        print(f"✅ Thread '{thread.name}' lanzado para informe {informe.id}, is_alive={thread.is_alive()}", flush=True)
         
         return informe
     
@@ -87,24 +89,37 @@ class InformeGeneratorService:
         """
         Función que se ejecuta en background thread para generar el informe.
         """
-        print(f"🔵 Thread iniciado para informe {informe_id}")
-        db = SessionLocal()
         try:
-            print(f"🔍 Buscando informe {informe_id} en DB...")
+            print(f"🔵 Thread iniciado para informe {informe_id}", flush=True)
+            print(f"🔍 Intentando crear SessionLocal()...", flush=True)
+            
+            db = SessionLocal()
+            
+            print(f"✅ SessionLocal() creado exitosamente", flush=True)
+            print(f"🔍 Buscando informe {informe_id} en DB...", flush=True)
+            
+        except Exception as e:
+            print(f"❌ ERROR FATAL al inicio del thread para informe {informe_id}: {type(e).__name__}: {e}", flush=True)
+            print(f"❌ Traceback completo:", flush=True)
+            traceback.print_exc(file=sys.stdout)
+            sys.stdout.flush()
+            return
+        
+        try:
             # Obtener informe
             informe = db.query(InformeEstado).filter(InformeEstado.id == informe_id).first()
             if not informe:
-                print(f"❌ Informe {informe_id} no encontrado")
+                print(f"❌ Informe {informe_id} no encontrado", flush=True)
                 return
             
-            print(f"✅ Informe {informe_id} encontrado, actualizando a 'processing'...")
+            print(f"✅ Informe {informe_id} encontrado, actualizando a 'processing'...", flush=True)
             # Actualizar estado a processing
             informe.estado = 'processing'
             informe.started_at = datetime.utcnow()
             informe.progreso = 10
             db.commit()
             
-            print(f"📊 Generando informe {informe_id} para año {informe.anio}, formato {informe.formato}")
+            print(f"📊 Generando informe {informe_id} para año {informe.anio}, formato {informe.formato}", flush=True)
             
             # Generar informe usando lógica existente
             try:
@@ -321,19 +336,27 @@ class InformeGeneratorService:
             self._crear_notificacion_exito(db, informe)
             
         except Exception as e:
-            print(f"❌ Error inesperado generando informe {informe_id}: {e}")
-            traceback.print_exc()
+            print(f"❌ Error inesperado generando informe {informe_id}: {type(e).__name__}: {e}", flush=True)
+            print(f"❌ Traceback completo:", flush=True)
+            traceback.print_exc(file=sys.stdout)
+            sys.stdout.flush()
             
             try:
                 informe.estado = 'failed'
-                informe.error_message = str(e)
+                informe.error_message = str(e)[:500]  # Truncar mensaje si es muy largo
                 informe.completed_at = datetime.utcnow()
                 db.commit()
-            except Exception:
+                print(f"✅ Estado actualizado a 'failed' para informe {informe_id}", flush=True)
+            except Exception as e2:
+                print(f"❌ Error al actualizar estado a failed: {e2}", flush=True)
                 pass
         
         finally:
-            db.close()
+            try:
+                db.close()
+                print(f"✅ Sesión DB cerrada para informe {informe_id}", flush=True)
+            except Exception as e:
+                print(f"❌ Error cerrando sesión: {e}", flush=True)
     
     def _crear_notificacion_exito(self, db: Session, informe: InformeEstado):
         """Crea notificación cuando el informe está listo."""
