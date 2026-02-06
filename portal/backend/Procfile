@@ -1,1 +1,1 @@
-web: gunicorn app.main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --timeout 300 --keep-alive 75 --graceful-timeout 30 --limit-request-line 8190
+web: gunicorn app.main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --timeout 600 --keep-alive 75 --graceful-timeout 60 --limit-request-line 8190
