@@ -249,13 +249,15 @@ async def generar_informe_pdm(
             )
         
         # ============================================
-        # OBTENER ACTIVIDADES CON FILTROS (OPTIMIZADO v2)
+        # OBTENER ACTIVIDADES CON FILTROS (OPTIMIZADO v3)
         # ============================================
-        # ✅ OPTIMIZADO: NO cargar evidencia (muy pesada), solo secretaría
-        # Uso de selectinload evita N+1 queries en informes con múltiples actividades
+        # ✅ OPTIMIZADO: NO cargar evidencia completa (muy pesada), pero sí verificar existencia
+        # Usamos has() para verificar si existe evidencia sin cargarla
+        from sqlalchemy import exists, func
+        
         actividades_query = db.query(PdmActividad).options(
             selectinload(PdmActividad.responsable_secretaria),
-            noload(PdmActividad.evidencia)  # Explícitamente no cargar evidencias
+            noload(PdmActividad.evidencia)  # No cargar evidencias (pesadas)
         ).filter(
             PdmActividad.entity_id == entity.id
         )
@@ -298,8 +300,26 @@ async def generar_informe_pdm(
         actividades = actividades_query.all()
         print(f"   Actividades encontradas: {len(actividades)}")
         
-        # Contar actividades con evidencias
-        actividades_con_evidencia = sum(1 for act in actividades if act.evidencia)
+        # ============================================
+        # MARCAR ACTIVIDADES CON EVIDENCIA (sin cargar objeto completo)
+        # ============================================
+        # Como usamos noload() para evidencias, act.evidencia siempre es None
+        # Agregamos un flag tiene_evidencia consultando directamente la tabla
+        from app.models.pdm import PdmActividadEvidencia
+        
+        actividades_ids = [act.id for act in actividades]
+        
+        # Consultar qué actividades tienen evidencia (solo IDs)
+        evidencias_existentes = db.query(PdmActividadEvidencia.actividad_id).filter(
+            PdmActividadEvidencia.actividad_id.in_(actividades_ids)
+        ).all()
+        evidencias_ids_set = {ev[0] for ev in evidencias_existentes}
+        
+        # Agregar flag tiene_evidencia a cada actividad
+        for act in actividades:
+            act.tiene_evidencia = act.id in evidencias_ids_set
+        
+        actividades_con_evidencia = sum(1 for act in actividades if act.tiene_evidencia)
         print(f"   Actividades con evidencia: {actividades_con_evidencia}")
         
         # ============================================

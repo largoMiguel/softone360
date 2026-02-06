@@ -599,13 +599,17 @@ Límite: 250 palabras. Usa lenguaje formal y técnico apropiado para gestión p�
                     
                     print(f"   Año {anio}: meta_programada={meta_programada}, actividades={len(actividades_anio)}")
                     
-                    # Sumar meta_ejecutar de actividades que tienen evidencia (objeto no None)
+                    # Sumar meta_ejecutar de actividades que tienen evidencia
+                    # Usar el flag tiene_evidencia agregado en el router (optimización para no cargar objetos)
                     meta_ejecutada = sum(
                         act.meta_ejecutar for act in actividades_anio 
-                        if act.evidencia is not None  # evidencia es un objeto relationship, no string
+                        if hasattr(act, 'tiene_evidencia') and act.tiene_evidencia
                     )
                     
-                    actividades_con_evidencia = sum(1 for act in actividades_anio if act.evidencia is not None)
+                    actividades_con_evidencia = sum(
+                        1 for act in actividades_anio 
+                        if hasattr(act, 'tiene_evidencia') and act.tiene_evidencia
+                    )
                     print(f"   Año {anio}: meta_ejecutada={meta_ejecutada}, actividades_con_evidencia={actividades_con_evidencia}")
                     
                     # Calcular porcentaje de avance (topar en 100%)
@@ -1643,7 +1647,7 @@ Límite: 250 palabras. Usa lenguaje formal y técnico apropiado para gestión p�
             evidencias_encontradas = False
             
             # OPTIMIZACIÓN: Solo verificar si hay evidencias (sin cargar imágenes aún)
-            actividades_con_evidencia = [act for act in actividades if act.evidencia]
+            actividades_con_evidencia = [act for act in actividades if hasattr(act, 'tiene_evidencia') and act.tiene_evidencia]
             
             if actividades_con_evidencia and self.db:
                 # Cargar imágenes SOLO de las actividades con evidencia (query selectiva)
@@ -1918,7 +1922,7 @@ Límite: 250 palabras. Usa lenguaje formal y técnico apropiado para gestión p�
                         act_row[0].text = act.nombre[:100]
                         act_row[1].text = act.estado
                         act_row[2].text = str(act.meta_ejecutar or 0)
-                        act_row[3].text = '✓ Sí' if act.evidencia else '✗ No'
+                        act_row[3].text = '✓ Sí' if (hasattr(act, 'tiene_evidencia') and act.tiene_evidencia) else '✗ No'
             
             # Guardar en BytesIO
             from io import BytesIO
@@ -2041,7 +2045,7 @@ Límite: 250 palabras. Usa lenguaje formal y técnico apropiado para gestión p�
                     ws3[f'F{row}'] = act.fecha_inicio.strftime('%Y-%m-%d') if act.fecha_inicio else ''
                     ws3[f'G{row}'] = act.fecha_fin.strftime('%Y-%m-%d') if act.fecha_fin else ''
                     ws3[f'H{row}'] = act.responsable_secretaria.nombre if act.responsable_secretaria else 'N/A'
-                    ws3[f'I{row}'] = 'Sí' if act.evidencia else 'No'
+                    ws3[f'I{row}'] = 'Sí' if (hasattr(act, 'tiene_evidencia') and act.tiene_evidencia) else 'No'
                     row += 1
             
             # Ajustar anchos
