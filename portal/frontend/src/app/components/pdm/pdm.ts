@@ -1047,7 +1047,8 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Genera el informe con los filtros seleccionados
+     * ✨ NUEVO: Genera el informe con los filtros seleccionados (ASÍNCRONO).
+     * El usuario recibirá una notificación cuando esté listo.
      */
     confirmarGenerarInforme(): void {
         // Prevenir múltiples clics
@@ -1056,10 +1057,7 @@ export class PdmComponent implements OnInit, OnDestroy {
             return;
         }
         
-        console.log('📊 Generando informe con filtros:', this.filtrosInforme);
-        
-        // ✅ OPTIMIZACIÓN: Cancelar cualquier generación previa
-        this.cancelarInformeAnterior.next();
+        console.log('📊 Solicitando generación de informe con filtros:', this.filtrosInforme);
         
         this.generandoInforme = true;
         
@@ -1088,42 +1086,41 @@ export class PdmComponent implements OnInit, OnDestroy {
         const formatoNombre = this.filtrosInforme.formato === 'pdf' ? 'PDF' : 
                              this.filtrosInforme.formato === 'docx' ? 'Word' : 'Excel';
         
-        console.log(`⏳ Generando informe ${formatoNombre}... esto puede tardar 1-3 minutos para informes grandes`);
+        const anioTexto = this.filtrosInforme.anio === 0 ? 'todos los años' : `año ${this.filtrosInforme.anio}`;
         
-        // Generar informe con takeUntil para permitir cancelación
-        this.pdmService.generarInformePDF(this.filtrosInforme.anio, filtros)
-            .pipe(
-                takeUntil(this.cancelarInformeAnterior)
-            )
+        // ✨ NUEVO: Solicitar generación asíncrona
+        this.pdmService.solicitarInformeAsync(this.filtrosInforme.anio, filtros)
             .subscribe({
-            next: (fileBlob) => {
-                console.log(`✅ ${formatoNombre} generado correctamente`);
-                // Descargar el archivo con formato correcto
-                this.pdmService.descargarInformePDF(fileBlob, this.filtrosInforme.anio, this.filtrosInforme.formato);
+            next: (response) => {
+                console.log(`✅ Informe ${formatoNombre} solicitado correctamente:`, response);
                 
                 this.generandoInforme = false;
                 this.cerrarModalFiltrosInforme();
                 
-                alert(`✅ INFORME ${formatoNombre.toUpperCase()} GENERADO EXITOSAMENTE\n\nAño: ${this.filtrosInforme.anio}\n\nEl archivo ha sido descargado.`);
+                // Mostrar mensaje de éxito con instrucciones
+                alert(`✅ INFORME ${formatoNombre.toUpperCase()} SOLICITADO\n\n` +
+                      `Año: ${anioTexto}\n\n` +
+                      `Tu informe se está generando en segundo plano.\n\n` +
+                      `Recibirás una notificación 🔔 cuando esté listo para descargar.\n\n` +
+                      `Puedes seguir trabajando mientras tanto.`);
             },
             error: (error) => {
-                console.error('❌ Error generando informe:', error);
+                console.error('❌ Error solicitando informe:', error);
                 this.generandoInforme = false;
                 
-                let mensaje = `❌ ERROR AL GENERAR INFORME\n\nAño solicitado: ${this.filtrosInforme.anio}\n\n`;
+                let mensaje = `❌ ERROR AL SOLICITAR INFORME\n\nAño solicitado: ${anioTexto}\n\n`;
                 
                 if (error.status === 404) {
                     mensaje += 'No hay productos para los filtros especificados.';
                 } else if (error.status === 403) {
                     mensaje += 'No tiene permisos para generar este informe.';
+                } else if (error.status === 400) {
+                    mensaje += error.error?.detail || 'Parámetros inválidos.';
                 } else if (error.status === 500) {
                     mensaje += 'Error interno del servidor.';
                     if (error.error?.detail) {
                         mensaje += `\n\nDetalle: ${error.error.detail}`;
                     }
-                } else if (error.message && error.message.includes('tiempo')) {
-                    mensaje += error.message;
-                    mensaje += '\n\nSugerencia: Intenta filtrar por una secretaría específica o un rango de fechas más corto.';
                 } else if (error.error?.detail) {
                     mensaje += error.error.detail;
                 } else {

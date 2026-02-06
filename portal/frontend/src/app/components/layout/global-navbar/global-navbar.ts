@@ -7,6 +7,7 @@ import { NotificationsService, AlertItem } from '../../../services/notifications
 import { AlertsEventsService } from '../../../services/alerts-events.service';
 import { SidebarService } from '../../../services/sidebar.service';
 import { NavigationStateService } from '../../../services/navigation-state.service';
+import { PdmService } from '../../../services/pdm.service';
 
 @Component({
     selector: 'app-global-navbar',
@@ -29,7 +30,8 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
         public auth: AuthService,
         private notifications: NotificationsService,
         private alertsEvents: AlertsEventsService,
-        public sidebar: SidebarService
+        public sidebar: SidebarService,
+        private pdmService: PdmService
     ) {
         this.alerts$ = this.notifications.alertsStream;
         this.unreadCount$ = this.notifications.unreadCountStream;
@@ -153,6 +155,13 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
             // Alerta de Planes - redirigir al módulo de planes y emitir evento
             await this.router.navigate([`/${slug}/planes-institucionales`]);
             setTimeout(() => this.alertsEvents.requestOpen(alert), 100);
+        } else if (alert.type === 'INFORME_PDM_READY') {
+            // Informe PDM generado - descargar automáticamente
+            if (data.informe_id) {
+                this.pdmService.descargarInformeAsync(data.informe_id);
+            } else {
+                console.error('ID de informe no encontrado en la notificación');
+            }
         } else if (alert.type === 'NEW_PQRS' || alert.type === 'PQRS_ASSIGNED') {
             // Alerta de PQRS - comportamiento original
             await this.goToDashboardIfNeeded();

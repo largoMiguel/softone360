@@ -2097,5 +2097,117 @@ export class PdmService {
             })
         );
     }
-}
 
+    // ============================================
+    // NUEVOS MÉTODOS: GENERACIÓN ASÍNCRONA DE INFORMES
+    // ============================================
+
+    /**
+     * ✨ NUEVO: Solicita la generación asíncrona de un informe PDM.
+     * El usuario recibirá una notificación cuando esté listo.
+     * 
+     * @param anio Año del informe (2024-2027) o 0 para todos los años
+     * @param filtros Filtros opcionales
+     * @returns Observable con el ID del informe y estado inicial
+     */
+    solicitarInformeAsync(anio: number, filtros?: {
+        secretaria_ids?: number[],
+        fecha_inicio?: string,
+        fecha_fin?: string,
+        estados?: string[],
+        formato?: string,
+        usar_ia?: boolean
+    }): Observable<any> {
+        if (!this.entitySlug) {
+            console.warn('⚠️ No hay slug de entidad disponible');
+            return throwError(() => new Error('No hay entidad seleccionada'));
+        }
+
+        let url = `${environment.apiUrl}/pdm/informes/${this.entitySlug}/solicitar/${anio}`;
+        
+        // Agregar query params si hay filtros
+        const params = new URLSearchParams();
+        if (filtros?.secretaria_ids && filtros.secretaria_ids.length > 0) {
+            filtros.secretaria_ids.forEach(id => params.append('secretaria_ids', id.toString()));
+        }
+        if (filtros?.fecha_inicio) {
+            params.append('fecha_inicio', filtros.fecha_inicio);
+        }
+        if (filtros?.fecha_fin) {
+            params.append('fecha_fin', filtros.fecha_fin);
+        }
+        if (filtros?.estados && filtros.estados.length > 0) {
+            filtros.estados.forEach(estado => params.append('estados', estado));
+        }
+        if (filtros?.formato) {
+            params.append('formato', filtros.formato);
+        }
+        if (filtros?.usar_ia) {
+            params.append('usar_ia', 'true');
+        }
+
+        const queryString = params.toString();
+        if (queryString) {
+            url += `?${queryString}`;
+        }
+        
+        const formatoTexto = filtros?.formato?.toUpperCase() || 'PDF';
+        console.log(`📊 Solicitando informe ${formatoTexto} PDM para año ${anio}...`);
+        
+        return this.http.post(url, null).pipe(
+            tap(response => {
+                console.log('✅ Informe solicitado:', response);
+            }),
+            catchError(error => {
+                console.error('❌ Error al solicitar informe:', error);
+                throw error;
+            })
+        );
+    }
+
+    /**
+     * Consulta el estado de un informe en generación
+     * @param informeId ID del informe
+     * @returns Observable con el estado actual
+     */
+    consultarEstadoInforme(informeId: number): Observable<any> {
+        const url = `${environment.apiUrl}/pdm/informes/estado/${informeId}`;
+        
+        return this.http.get(url).pipe(
+            catchError(error => {
+                console.error('❌ Error al consultar estado del informe:', error);
+                throw error;
+            })
+        );
+    }
+
+    /**
+     * Descarga un informe completado desde S3
+     * Redirige directamente a la URL de S3
+     * @param informeId ID del informe
+     */
+    descargarInformeAsync(informeId: number): void {
+        const url = `${environment.apiUrl}/pdm/informes/descargar/${informeId}`;
+        
+        console.log(`📥 Descargando informe ${informeId}...`);
+        
+        // Redirigir directamente - el backend hace redirect a S3
+        window.location.href = url;
+    }
+
+    /**
+     * Lista los informes generados por el usuario actual
+     * @param limite Cantidad máxima de informes a retornar
+     * @returns Observable con la lista de informes
+     */
+    listarMisInformes(limite: number = 10): Observable<any> {
+        const url = `${environment.apiUrl}/pdm/informes/mis-informes?limite=${limite}`;
+        
+        return this.http.get(url).pipe(
+            catchError(error => {
+                console.error('❌ Error al listar informes:', error);
+                throw error;
+            })
+        );
+    }
+}
