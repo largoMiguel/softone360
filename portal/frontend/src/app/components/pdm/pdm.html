@@ -844,7 +844,14 @@
                                                 </div>
                                                 <div *ngIf="obtenerImagenesParaMostrar(actividad.evidencia).length > 0" class="row">
                                                     <div *ngFor="let imagen of obtenerImagenesParaMostrar(actividad.evidencia)" class="col-md-3 mb-2">
-                                                        <img [src]="imagen" class="img-thumbnail" style="cursor: pointer;" (click)="verImagenGrande(imagen)" alt="Evidencia">
+                                                        <img [src]="imagen" 
+                                                             class="img-thumbnail" 
+                                                             style="cursor: pointer; min-height: 100px; background: #f0f0f0;" 
+                                                             (click)="verImagenGrande(imagen)" 
+                                                             (error)="onImageError($event, imagen)"
+                                                             (load)="onImageLoad($event, imagen)"
+                                                             alt="Evidencia"
+                                                             crossorigin="anonymous">
                                                     </div>
                                                 </div>
                                             </div>

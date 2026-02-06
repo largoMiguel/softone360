@@ -2369,6 +2369,7 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Abre una imagen en una nueva ventana para verla en grande
      */
     verImagenGrande(imagenBase64: string) {
+        console.log('🖼️ Abriendo imagen:', imagenBase64.substring(0, 100));
         const ventana = window.open('', '_blank');
         if (ventana) {
             ventana.document.write(`
@@ -2381,11 +2382,32 @@ export class PdmComponent implements OnInit, OnDestroy {
                         </style>
                     </head>
                     <body>
-                        <img src="${imagenBase64}" alt="Evidencia">
+                        <img src="${imagenBase64}" alt="Evidencia" onerror="document.body.innerHTML='<p style=color:white>Error cargando imagen: ${imagenBase64.substring(0, 100)}</p>'">
                     </body>
                 </html>
             `);
         }
+    }
+
+    /**
+     * Handler cuando una imagen se carga correctamente
+     */
+    onImageLoad(event: Event, url: string) {
+        console.log('✅ Imagen cargada OK:', url);
+    }
+
+    /**
+     * Handler cuando una imagen falla al cargar
+     */
+    onImageError(event: Event, url: string) {
+        console.error('❌ Error cargando imagen:', url);
+        const img = event.target as HTMLImageElement;
+        console.error('Error details:', {
+            src: img.src,
+            naturalWidth: img.naturalWidth,
+            naturalHeight: img.naturalHeight,
+            complete: img.complete
+        });
     }
 
     /**
