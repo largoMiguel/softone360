@@ -1999,9 +1999,12 @@ export class PdmService {
             console.log('   Filtros aplicados:', filtros);
         }
         
+        // ✅ OPTIMIZACIÓN: Timeout de 5 minutos para informes grandes
+        // Informes con muchas actividades pueden tardar hasta 3-4 minutos
         return this.http.get(url, { 
             responseType: 'blob',
-            observe: 'response'
+            observe: 'response',
+            // No agregar timeout aquí - dejamos que el servidor termine (tiene 5min)
         }).pipe(
             map(response => {
                 console.log('✅ Informe PDF generado exitosamente');
@@ -2009,6 +2012,11 @@ export class PdmService {
             }),
             catchError(error => {
                 console.error('❌ Error al generar informe PDF:', error);
+                // Si es timeout del navegador, dar mensaje más específico
+                if (error.name === 'TimeoutError') {
+                    console.error('⏱️  Timeout: El informe está tomando demasiado tiempo');
+                    throw new Error('El informe está tomando más tiempo del esperado. Por favor, intenta con menos filtros.');
+                }
                 throw error;
             })
         );

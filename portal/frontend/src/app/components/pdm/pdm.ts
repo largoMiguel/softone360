@@ -28,8 +28,8 @@ import { PDMEjecucionResumen } from '../../models/pdm-ejecucion.model';
 import { ResumenContratos } from '../../models/pdm-contratos.model';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-import { forkJoin, of, Subscription } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { forkJoin, of, Subscription, Subject } from 'rxjs';
+import { catchError, tap, takeUntil } from 'rxjs/operators';
 
 // Registrar los componentes de Chart.js
 Chart.register(...registerables, ChartDataLabels);
@@ -97,6 +97,9 @@ export class PdmComponent implements OnInit, OnDestroy {
 
     // ✅ OPTIMIZACIÓN: Gestión de subscripciones para evitar memory leaks
     private subscriptions = new Subscription();
+    
+    // ✅ OPTIMIZACIÓN: Subject para cancelar generación de informes previos
+    private cancelarInformeAnterior = new Subject<void>();
 
     // Filtros
     filtroLinea = '';
@@ -514,6 +517,10 @@ export class PdmComponent implements OnInit, OnDestroy {
         if (this.debounceTimer) {
             clearTimeout(this.debounceTimer);
         }
+        
+        // ✅ Cancelar cualquier generación de informe en curso
+        this.cancelarInformeAnterior.next();
+        this.cancelarInformeAnterior.complete();
         
         // ✅ Unsubscribe de todas las subscripciones
         this.subscriptions.unsubscribe();
@@ -1043,9 +1050,16 @@ export class PdmComponent implements OnInit, OnDestroy {
      * Genera el informe con los filtros seleccionados
      */
     confirmarGenerarInforme(): void {
-        if (this.generandoInforme) return;
+        // Prevenir múltiples clics
+        if (this.generandoInforme) {
+            console.warn('⚠️ Ya hay un informe generándose, espere por favor...');
+            return;
+        }
         
         console.log('📊 Generando informe con filtros:', this.filtrosInforme);
+        
+        // ✅ OPTIMIZACIÓN: Cancelar cualquier generación previa
+        this.cancelarInformeAnterior.next();
         
         this.generandoInforme = true;
         
@@ -1074,8 +1088,14 @@ export class PdmComponent implements OnInit, OnDestroy {
         const formatoNombre = this.filtrosInforme.formato === 'pdf' ? 'PDF' : 
                              this.filtrosInforme.formato === 'docx' ? 'Word' : 'Excel';
         
-        // Generar informe
-        this.pdmService.generarInformePDF(this.filtrosInforme.anio, filtros).subscribe({
+        console.log(`⏳ Generando informe ${formatoNombre}... esto puede tardar 1-3 minutos para informes grandes`);
+        
+        // Generar informe con takeUntil para permitir cancelación
+        this.pdmService.generarInformePDF(this.filtrosInforme.anio, filtros)
+            .pipe(
+                takeUntil(this.cancelarInformeAnterior)
+            )
+            .subscribe({
             next: (fileBlob) => {
                 console.log(`✅ ${formatoNombre} generado correctamente`);
                 // Descargar el archivo con formato correcto
@@ -1101,6 +1121,9 @@ export class PdmComponent implements OnInit, OnDestroy {
                     if (error.error?.detail) {
                         mensaje += `\n\nDetalle: ${error.error.detail}`;
                     }
+                } else if (error.message && error.message.includes('tiempo')) {
+                    mensaje += error.message;
+                    mensaje += '\n\nSugerencia: Intenta filtrar por una secretaría específica o un rango de fechas más corto.';
                 } else if (error.error?.detail) {
                     mensaje += error.error.detail;
                 } else {
