@@ -13,7 +13,6 @@ from app.config.database import SessionLocal
 from app.models.informe import InformeEstado
 from app.models.alert import Alert
 from app.services.pdm_report_generator import PDMReportGenerator
-from app.routes.pdm_informes import generar_informe_pdm  # Función existente
 import os
 import tempfile
 
