@@ -89,10 +89,11 @@ async def migrate_images_to_s3(
         print(f"🚀 Iniciando migración de imágenes a S3...")
         
         # Obtener evidencias pendientes de migrar
+        # Usar text() para comparar JSON correctamente
         evidencias_pendientes = db.query(PdmActividadEvidencia).filter(
-            PdmActividadEvidencia.migrated_to_s3 != True,
-            PdmActividadEvidencia.imagenes != None,
-            PdmActividadEvidencia.imagenes != '[]'
+            text("migrated_to_s3 IS NOT TRUE"),
+            text("imagenes IS NOT NULL"),
+            text("jsonb_array_length(imagenes::jsonb) > 0")
         ).limit(batch_size).all()
         
         total_procesadas = 0
