@@ -203,7 +203,6 @@ class InformeGeneratorService:
                 # Filtrar por fechas
                 if fecha_inicio:
                     try:
-                        from datetime import datetime
                         fecha_inicio_dt = datetime.strptime(fecha_inicio, "%Y-%m-%d")
                         actividades_query = actividades_query.filter(
                             PdmActividad.fecha_inicio >= fecha_inicio_dt
