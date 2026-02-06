@@ -1005,7 +1005,10 @@ async def get_evidencia(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Obtiene la evidencia de una actividad"""
+    """Obtiene la evidencia de una actividad
+    
+    OPTIMIZACIÓN: Si está migrada a S3, no envía imágenes Base64 para reducir payload
+    """
     entity = get_entity_or_404(db, slug)
     ensure_user_can_manage_entity(current_user, entity)
     
@@ -1016,6 +1019,13 @@ async def get_evidencia(
     
     if not evidencia:
         raise HTTPException(status_code=404, detail="Evidencia no encontrada")
+    
+    # ✅ OPTIMIZACIÓN: Si está migrada a S3, limpiar Base64 para reducir payload
+    if evidencia.migrated_to_s3 and evidencia.imagenes_s3_urls:
+        # Crear copia sin modificar el ORM original
+        evidencia_dict = schemas.EvidenciaResponse.model_validate(evidencia).model_dump()
+        evidencia_dict['imagenes'] = []  # Limpiar Base64, frontend usará S3
+        return schemas.EvidenciaResponse(**evidencia_dict)
     
     return schemas.EvidenciaResponse.model_validate(evidencia)
 
