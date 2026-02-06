@@ -69,6 +69,8 @@ class InformeGeneratorService:
         db.commit()
         db.refresh(informe)
         
+        print(f"🚀 Iniciando generación async del informe {informe.id}...")
+        
         # Iniciar generación en background
         thread = threading.Thread(
             target=self._generar_informe_background,
@@ -77,20 +79,25 @@ class InformeGeneratorService:
         )
         thread.start()
         
+        print(f"✅ Thread lanzado para informe {informe.id}")
+        
         return informe
     
     def _generar_informe_background(self, informe_id: int, slug: str):
         """
         Función que se ejecuta en background thread para generar el informe.
         """
+        print(f"🔵 Thread iniciado para informe {informe_id}")
         db = SessionLocal()
         try:
+            print(f"🔍 Buscando informe {informe_id} en DB...")
             # Obtener informe
             informe = db.query(InformeEstado).filter(InformeEstado.id == informe_id).first()
             if not informe:
                 print(f"❌ Informe {informe_id} no encontrado")
                 return
             
+            print(f"✅ Informe {informe_id} encontrado, actualizando a 'processing'...")
             # Actualizar estado a processing
             informe.estado = 'processing'
             informe.started_at = datetime.utcnow()

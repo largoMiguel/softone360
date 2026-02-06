@@ -1199,17 +1199,22 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * ✨ NUEVO: Formatea la fecha para mostrar
+     * ✨ NUEVO: Formatea la fecha para mostrar en hora de Colombia (UTC-5)
      */
     formatearFecha(fechaStr: string): string {
         if (!fechaStr) return '-';
+        
+        // Crear fecha desde string UTC
         const fecha = new Date(fechaStr);
+        
+        // Formatear usando timezone de Colombia (America/Bogota)
         return fecha.toLocaleString('es-CO', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
             hour: '2-digit',
-            minute: '2-digit'
+            minute: '2-digit',
+            timeZone: 'America/Bogota'  // ✅ Hora de Colombia (UTC-5)
         });
     }
 
