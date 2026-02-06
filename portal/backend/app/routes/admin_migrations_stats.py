@@ -97,3 +97,41 @@ async def get_migration_stats(db: Session = Depends(get_db)):
             "status": "error",
             "error": str(e)
         }
+
+
+@router.get("/evidencia/{evidencia_id}")
+async def get_evidencia_debug(evidencia_id: int, db: Session = Depends(get_db)):
+    """
+    Obtiene detalle completo de una evidencia para debug
+    """
+    try:
+        from app.models.pdm import PdmActividadEvidencia
+        
+        evidencia = db.query(PdmActividadEvidencia).filter(
+            PdmActividadEvidencia.id == evidencia_id
+        ).first()
+        
+        if not evidencia:
+            return {"error": "No encontrada"}
+        
+        # Convertir a dict para ver todos los campos
+        return {
+            "id": evidencia.id,
+            "actividad_id": evidencia.actividad_id,
+            "entity_id": evidencia.entity_id,
+            "tiene_imagenes_base64": evidencia.imagenes is not None and len(evidencia.imagenes) > 0 if isinstance(evidencia.imagenes, list) else False,
+            "num_imagenes_base64": len(evidencia.imagenes) if evidencia.imagenes and isinstance(evidencia.imagenes, list) else 0,
+            "tiene_urls_s3": evidencia.imagenes_s3_urls is not None and len(evidencia.imagenes_s3_urls) > 0 if hasattr(evidencia, 'imagenes_s3_urls') and evidencia.imagenes_s3_urls else False,
+            "num_urls_s3": len(evidencia.imagenes_s3_urls) if hasattr(evidencia, 'imagenes_s3_urls') and evidencia.imagenes_s3_urls else 0,
+            "migrated_to_s3": evidencia.migrated_to_s3 if hasattr(evidencia, 'migrated_to_s3') else None,
+            "imagenes_s3_urls": evidencia.imagenes_s3_urls if hasattr(evidencia, 'imagenes_s3_urls') else None,
+            "descripcion": evidencia.descripcion[:100] if evidencia.descripcion else None
+        }
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {
+            "status": "error",
+            "error": str(e)
+        }
