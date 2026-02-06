@@ -1791,6 +1791,27 @@ export class PdmService {
     }
 
     /**
+     * Obtiene la evidencia de una actividad (carga bajo demanda para optimización)
+     */
+    obtenerEvidenciaActividad(actividadId: number): Observable<EvidenciaActividad | null> {
+        if (!this.entitySlug) {
+            throw new Error('No hay slug de entidad disponible');
+        }
+        return this.http.get<EvidenciaActividad>(
+            `${this.API_URL}/${this.entitySlug}/actividades/${actividadId}/evidencia`
+        ).pipe(
+            catchError(error => {
+                // Si es 404, la actividad no tiene evidencia
+                if (error.status === 404) {
+                    return of(null);
+                }
+                console.error('Error al obtener evidencia:', error);
+                throw error;
+            })
+        );
+    }
+
+    /**
      * Consulta la información de un proyecto BPIN desde la API de datos.gov.co
      * Usa el proxy del backend para evitar problemas de CORS
      * @param bpin Código BPIN del proyecto

@@ -2323,6 +2323,31 @@ export class PdmComponent implements OnInit, OnDestroy {
     }
 
     /**
+     * Carga la evidencia de una actividad bajo demanda (optimización para evitar OOM en backend)
+     */
+    cargarEvidenciaActividad(actividad: ActividadPDM) {
+        if (!actividad.id || actividad.evidencia || !(actividad as any).tiene_evidencia) {
+            return; // Ya está cargada o no tiene evidencia
+        }
+
+        // Marcar como cargando
+        (actividad as any).cargandoEvidencia = true;
+
+        this.pdmService.obtenerEvidenciaActividad(actividad.id).subscribe({
+            next: (evidencia) => {
+                if (evidencia) {
+                    actividad.evidencia = evidencia;
+                }
+                (actividad as any).cargandoEvidencia = false;
+            },
+            error: (error) => {
+                console.error('Error cargando evidencia:', error);
+                (actividad as any).cargandoEvidencia = false;
+            }
+        });
+    }
+
+    /**
      * Abre una imagen en una nueva ventana para verla en grande
      */
     verImagenGrande(imagenBase64: string) {
