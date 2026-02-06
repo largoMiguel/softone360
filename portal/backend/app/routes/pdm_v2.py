@@ -454,17 +454,26 @@ async def get_pdm_data(
             
             print(f"📦 Procesando lote {offset//BATCH_SIZE + 1}: {len(batch_productos)} productos")
             
-            # ✅ OPTIMIZADO: Cargar actividades con selectinload de secretaría Y evidencia
+            # ✅ OPTIMIZADO: Cargar actividades con selectinload de secretaría (SIN evidencias para no causar OOM)
             codigos_batch = [p.codigo_producto for p in batch_productos]
             actividades_batch = db.query(PdmActividad).options(
-                selectinload(PdmActividad.responsable_secretaria),
-                selectinload(PdmActividad.evidencia)  # ✅ NUEVO: Cargar evidencias
+                selectinload(PdmActividad.responsable_secretaria)
+                # NO cargar evidencias aquí - se cargan bajo demanda para evitar OOM
             ).filter(
                 PdmActividad.entity_id == entity.id,
                 PdmActividad.codigo_producto.in_(codigos_batch)
             ).all()
             
-            # Convertir actividades a dict y agregar evidencia
+            # Obtener IDs de actividades con evidencia (eficiente con SQL)
+            actividad_ids = [act.id for act in actividades_batch]
+            evidencias_existentes = set()
+            if actividad_ids:
+                evidencias_query = db.query(PdmActividadEvidencia.actividad_id).filter(
+                    PdmActividadEvidencia.actividad_id.in_(actividad_ids)
+                ).all()
+                evidencias_existentes = {ev.actividad_id for ev in evidencias_query}
+            
+            # Convertir actividades a dict (SIN evidencias completas para evitar OOM)
             actividades_dict_por_codigo = {}
             for act in actividades_batch:
                 # Crear dict desde el objeto ORM con TODOS los campos del schema
@@ -481,8 +490,8 @@ async def get_pdm_data(
                     'fecha_fin': act.fecha_fin,
                     'meta_ejecutar': act.meta_ejecutar,
                     'estado': act.estado,
-                    'tiene_evidencia': act.evidencia is not None,  # ✅ Basado en relación cargada
-                    'evidencia': schemas.EvidenciaResponse.model_validate(act.evidencia) if act.evidencia else None,  # ✅ NUEVO
+                    'tiene_evidencia': act.id in evidencias_existentes,  # ✅ Basado en query eficiente
+                    # NO incluir evidencia completa aquí - se carga bajo demanda
                     'created_at': act.created_at,
                     'updated_at': act.updated_at
                 }
