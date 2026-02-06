@@ -246,7 +246,9 @@ export interface ActividadPDM {
     fecha_inicio: string; // ISO date string
     fecha_fin: string; // ISO date string
     meta_ejecutar: number; // Cantidad de la meta que se ejecutará en esta actividad
-    evidencia?: EvidenciaActividad; // Evidencia de cumplimiento
+    evidencia?: EvidenciaActividad; // Evidencia de cumplimiento (carga bajo demanda)
+    tiene_evidencia?: boolean; // Flag para saber si tiene evidencia (sin cargar los datos pesados)
+    cargandoEvidencia?: boolean; // Flag temporal para UI (carga en progreso)
     fecha_creacion?: string;
     fecha_actualizacion?: string;
 }
