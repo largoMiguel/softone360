@@ -14,8 +14,10 @@ from app.models.user import User
 from app.models.pdm import PdmProducto, PdmActividad
 from app.models.secretaria import Secretaria
 from app.models.user import UserRole
+from app.models.informe import InformeEstado
 from app.utils.auth import get_current_active_user
 from app.services.pdm_report_generator import PDMReportGenerator
+from app.services.informe_async_service import informe_service
 
 router = APIRouter(prefix="/pdm/informes", tags=["PDM Informes"])
 
@@ -649,3 +651,259 @@ async def exportar_plan_accion_excel(
             status_code=500,
             detail=f"Error exportando Plan de Acción: {str(e)}"
         )
+
+
+# ================================================================================
+# NUEVOS ENDPOINTS: GENERACIÓN ASÍNCRONA CON NOTIFICACIONES
+# ================================================================================
+
+@router.post("/{slug}/solicitar/{anio}")
+async def solicitar_informe_async(
+    slug: str,
+    anio: int,
+    secretaria_ids: Optional[List[int]] = Query(None, description="IDs de secretarías a filtrar"),
+    fecha_inicio: Optional[str] = Query(None, description="Fecha inicio (YYYY-MM-DD)"),
+    fecha_fin: Optional[str] = Query(None, description="Fecha fin (YYYY-MM-DD)"),
+    estados: Optional[List[str]] = Query(None, description="Estados de actividades"),
+    formato: str = Query("pdf", description="Formato del informe (pdf, docx, excel)"),
+    usar_ia: bool = Query(False, description="Habilitar resúmenes con IA (OpenAI)"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    ✨ NUEVO: Solicita la generación asíncrona de un informe PDM.
+    
+    Flujo:
+    1. Usuario solicita informe → Retorna informe_id inmediatamente
+    2. Backend genera informe en background
+    3. Usuario recibe notificación cuando está listo
+    4. Usuario descarga desde endpoint /descargar/{informe_id}
+    
+    Ventajas:
+    - No hay timeouts (puede tardar minutos sin problema)
+    - Usuario puede seguir trabajando
+    - Notificación en la bandeja cuando termine
+    - Archivo guardado en S3 por 7 días
+    
+    Returns:
+        {
+            "informe_id": 123,
+            "estado": "pending",
+            "mensaje": "Tu informe se está generando. Recibirás una notificación cuando esté listo."
+        }
+    """
+    try:
+        # Validar formato
+        formato = formato.lower()
+        if formato not in ["pdf", "docx", "excel"]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Formato '{formato}' no soportado. Use: pdf, docx o excel"
+            )
+        
+        # Validar año
+        if anio not in [0, 2024, 2025, 2026, 2027]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Año inválido. Debe ser 0 (todos) o entre 2024 y 2027"
+            )
+        
+        # Obtener entidad
+        entity = get_entity_or_404(db, slug)
+        
+        # Control de permisos
+        is_admin = current_user.role in [UserRole.ADMIN, UserRole.SUPERADMIN]
+        if not is_admin and hasattr(current_user, 'secretaria_id'):
+            # Secretarios solo pueden generar informes de su secretaría
+            secretaria_ids = [current_user.secretaria_id]
+        elif not is_admin:
+            # Usuario sin secretaría no puede generar informes
+            raise HTTPException(
+                status_code=403,
+                detail="No tienes permisos para generar informes"
+            )
+        
+        # Preparar filtros
+        filtros = {}
+        if secretaria_ids:
+            filtros['secretaria_ids'] = secretaria_ids
+        if fecha_inicio:
+            filtros['fecha_inicio'] = fecha_inicio
+        if fecha_fin:
+            filtros['fecha_fin'] = fecha_fin 
+        if estados:
+            filtros['estados'] = estados
+        if usar_ia:
+            filtros['usar_ia'] = usar_ia
+        
+        # Iniciar generación asíncrona
+        informe = informe_service.iniciar_generacion(
+            db=db,
+            entity_id=entity.id,
+            user_id=current_user.id,
+            slug=slug,
+            anio=anio,
+            formato=formato,
+            filtros=filtros if filtros else None
+        )
+        
+        anio_texto = "todos los años" if anio == 0 else f"año {anio}"
+        formato_nombre = formato.upper()
+        
+        print(f"✅ Informe {informe.id} solicitado para {slug} - {anio_texto} ({formato_nombre})")
+        
+        return {
+            "informe_id": informe.id,
+            "estado": informe.estado,
+            "anio": anio,
+            "formato": formato,
+            "mensaje": f"Tu informe {formato_nombre} del {anio_texto} se está generando. Recibirás una notificación cuando esté listo."
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error solicitando informe: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error solicitando informe: {str(e)}"
+        )
+
+
+@router.get("/estado/{informe_id}")
+async def consultar_estado_informe(
+    informe_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Consulta el estado de un informe en generación.
+    
+    Estados posibles:
+    - pending: En cola de generación
+    - processing: Generando actualmente 
+    - completed: Listo para descargar
+    - failed: Error en generación
+    
+    Returns:
+        {
+            "informe_id": 123,
+            "estado": "completed",
+            "progreso": 100,
+            "s3_url": "https://...",
+            "filename": "informe-pdm-2025.pdf",
+            "created_at": "2025-01-15T10:30:00",
+            "completed_at": "2025-01-15T10:35:00"
+        }
+    """
+    informe = informe_service.obtener_estado(db, informe_id)
+    
+    if not informe:
+        raise HTTPException(status_code=404, detail="Informe no encontrado")
+    
+    # Verificar permisos (solo el usuario que lo solicitó o admin)
+    is_admin = current_user.role in [UserRole.ADMIN, UserRole.SUPERADMIN]
+    if not is_admin and informe.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="No tienes permisos para ver este informe")
+    
+    return {
+        "informe_id": informe.id,
+        "estado": informe.estado,
+        "progreso": informe.progreso,
+        "anio": informe.anio,
+        "formato": informe.formato,
+        "s3_url": informe.s3_url if informe.estado == 'completed' else None,
+        "filename": informe.filename,
+        "file_size": informe.file_size,
+        "error_message": informe.error_message if informe.estado == 'failed' else None,
+        "created_at": informe.created_at.isoformat() if informe.created_at else None,
+        "started_at": informe.started_at.isoformat() if informe.started_at else None,
+        "completed_at": informe.completed_at.isoformat() if informe.completed_at else None,
+        "downloaded": informe.downloaded
+    }
+
+
+@router.get("/descargar/{informe_id}")
+async def descargar_informe(
+    informe_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Descarga un informe completado desde S3.
+    Marca el informe como descargado para tracking.
+    
+    Returns:
+        Redirect a la URL de S3 para streaming directo
+    """
+    from fastapi.responses import RedirectResponse
+    
+    informe = informe_service.obtener_estado(db, informe_id)
+    
+    if not informe:
+        raise HTTPException(status_code=404, detail="Informe no encontrado")
+    
+    # Verificar permisos
+    is_admin = current_user.role in [UserRole.ADMIN, UserRole.SUPERADMIN]
+    if not is_admin and informe.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="No tienes permisos para descargar este informe")
+    
+    # Verificar estado
+    if informe.estado != 'completed':
+        raise HTTPException(
+            status_code=400,
+            detail=f"El informe aún no está listo. Estado actual: {informe.estado}"
+        )
+    
+    if not informe.s3_url:
+        raise HTTPException(status_code=500, detail="URL de descarga no disponible")
+    
+    # Marcar como descargado
+    informe_service.marcar_descargado(db, informe_id)
+    
+    print(f"📥 Informe {informe_id} descargado por usuario {current_user.id}")
+    
+    # Redirect a S3 para streaming directo
+    return RedirectResponse(url=informe.s3_url, status_code=302)
+
+
+@router.get("/mis-informes")
+async def listar_mis_informes(
+    limite: int = Query(10, ge=1, le=50, description="Cantidad de informes a retornar"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Lista los informes generados por el usuario actual.
+    Ordenados por fecha de creación (más recientes primero).
+    
+    Returns:
+        Lista de informes con su estado y URLs de descarga
+    """
+    informes = db.query(InformeEstado).filter(
+        InformeEstado.user_id == current_user.id
+    ).order_by(
+        InformeEstado.created_at.desc()
+    ).limit(limite).all()
+    
+    return {
+        "total": len(informes),
+        "informes": [
+            {
+                "informe_id": inf.id,
+                "estado": inf.estado,
+                "progreso": inf.progreso,
+                "anio": inf.anio,
+                "formato": inf.formato,
+                "filename": inf.filename,
+                "file_size": inf.file_size,
+                "created_at": inf.created_at.isoformat() if inf.created_at else None,
+                "completed_at": inf.completed_at.isoformat() if inf.completed_at else None,
+                "downloaded": inf.downloaded,
+                "s3_url": inf.s3_url if inf.estado == 'completed' else None
+            }
+            for inf in informes
+        ]
+    }

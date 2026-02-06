@@ -24,6 +24,7 @@ from app.models.funcionario import (
     EquipoRegistro,
     RegistroAsistencia
 )
+from app.models.informe import InformeEstado
 
 __all__ = [
     "User", 
@@ -45,5 +46,6 @@ __all__ = [
     "PdmActividadEvidencia",
     "Funcionario",
     "EquipoRegistro",
-    "RegistroAsistencia"
+    "RegistroAsistencia",
+    "InformeEstado"
 ]
