@@ -72,3 +72,59 @@ async def debug_producto(codigo_producto: str, db: Session = Depends(get_db)):
             "error": str(e),
             "traceback": traceback.format_exc()
         }
+
+
+@router.get("/evidencia-raw/{actividad_id}")
+async def debug_evidencia_raw(actividad_id: int, db: Session = Depends(get_db)):
+    """
+    Devuelve la evidencia RAW tal como la devuelve el endpoint principal
+    (simula lo que obtiene el frontend)
+    """
+    try:
+        from app.models.pdm import PdmActividadEvidencia
+        from app.schemas import pdm_v2 as schemas
+        
+        evidencia = db.query(PdmActividadEvidencia).filter(
+            PdmActividadEvidencia.actividad_id == actividad_id
+        ).first()
+        
+        if not evidencia:
+            return {"error": "No encontrada"}
+        
+        # Simular lo que hace el endpoint get_evidencia
+        if evidencia.migrated_to_s3 and evidencia.imagenes_s3_urls:
+            evidencia_dict = schemas.EvidenciaResponse.model_validate(evidencia).model_dump()
+            evidencia_dict['imagenes'] = []  # Limpiar Base64
+            response = schemas.EvidenciaResponse(**evidencia_dict)
+        else:
+            response = schemas.EvidenciaResponse.model_validate(evidencia)
+        
+        # Convertir a dict para ver
+        result = response.model_dump()
+        
+        # Agregar metadatos de debug
+        return {
+            "debug_info": {
+                "actividad_id": actividad_id,
+                "evidencia_id": evidencia.id,
+                "tiene_base64_en_db": evidencia.imagenes is not None and len(evidencia.imagenes) > 0 if isinstance(evidencia.imagenes, list) else False,
+                "tiene_s3_en_db": evidencia.imagenes_s3_urls is not None and len(evidencia.imagenes_s3_urls) > 0 if evidencia.imagenes_s3_urls else False,
+                "migrated_to_s3_en_db": evidencia.migrated_to_s3 if hasattr(evidencia, 'migrated_to_s3') else None,
+            },
+            "response_seria": result,
+            "test_frontend": {
+                "tiene_imagenes_base64": len(result.get('imagenes', [])) > 0,
+                "num_imagenes_base64": len(result.get('imagenes', [])),
+                "tiene_urls_s3": len(result.get('imagenes_s3_urls', [])) > 0,
+                "num_urls_s3": len(result.get('imagenes_s3_urls', [])),
+                "que_deberia_mostrar": "S3" if len(result.get('imagenes_s3_urls', [])) > 0 else "Base64" if len(result.get('imagenes', [])) > 0 else "NADA"
+            }
+        }
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
