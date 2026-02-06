@@ -145,8 +145,12 @@ class PdmActividadEvidencia(Base):
     descripcion = Column(Text, nullable=False)
     url_evidencia = Column(String(1024), nullable=True)
     
-    # Imágenes en Base64 (JSON array)
+    # Imágenes en Base64 (JSON array) - LEGACY
     imagenes = Column(JSON, nullable=True)  # Array de strings base64
+    
+    # ✅ NUEVO: Almacenamiento S3
+    imagenes_s3_urls = Column(JSON, nullable=True)  # Array de URLs S3
+    migrated_to_s3 = Column(Integer, nullable=True, default=False)  # Flag de migración (0/1 para SQLite)
     
     fecha_registro = Column(DateTime(timezone=True), server_default=func.now())
     
