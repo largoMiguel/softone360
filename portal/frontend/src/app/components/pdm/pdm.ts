@@ -2298,18 +2298,25 @@ export class PdmComponent implements OnInit, OnDestroy {
      */
     obtenerImagenesParaMostrar(evidencia?: EvidenciaActividad): string[] {
         if (!evidencia) {
+            console.log('🔍 obtenerImagenesParaMostrar: No hay evidencia');
             return [];
         }
 
+        console.log('🔍 obtenerImagenesParaMostrar llamado con:', {
+            tiene_imagenes_s3: evidencia.imagenes_s3_urls?.length || 0,
+            tiene_imagenes_base64: evidencia.imagenes?.length || 0,
+            migrated_to_s3: evidencia.migrated_to_s3
+        });
+
         // 1. Priorizar URLs S3 si existen (incluso si migrated_to_s3 es false/undefined por cache)
         if (evidencia.imagenes_s3_urls && evidencia.imagenes_s3_urls.length > 0) {
-            console.log('✅ Mostrando imágenes desde S3:', evidencia.imagenes_s3_urls);
+            console.log('✅ DECISIÓN: Mostrando imágenes desde S3:', evidencia.imagenes_s3_urls);
             return evidencia.imagenes_s3_urls;
         }
 
         // 2. Fallback a imagenes Base64 (legacy o evidencias no migradas)
         if (evidencia.imagenes && evidencia.imagenes.length > 0) {
-            console.log('⚠️ Mostrando imágenes Base64 (legacy)');
+            console.log('⚠️ DECISIÓN: Mostrando imágenes Base64 (legacy), cantidad:', evidencia.imagenes.length);
             // Convertir a data URLs si es Base64 puro
             return evidencia.imagenes.map(img => {
                 // Si ya tiene prefijo data:image, retornar tal cual
@@ -2321,6 +2328,7 @@ export class PdmComponent implements OnInit, OnDestroy {
             });
         }
 
+        console.log('❌ DECISIÓN: No hay imágenes para mostrar');
         return [];
     }
 
@@ -2335,15 +2343,23 @@ export class PdmComponent implements OnInit, OnDestroy {
         // Marcar como cargando
         actividad.cargandoEvidencia = true;
 
+        console.log(`🔄 Cargando evidencia para actividad ${actividad.id}...`);
+
         this.pdmService.obtenerEvidenciaActividad(actividad.id).subscribe({
             next: (evidencia) => {
+                console.log(`📥 Evidencia recibida del backend para actividad ${actividad.id}:`, {
+                    tiene_imagenes: evidencia?.imagenes?.length || 0,
+                    tiene_s3_urls: evidencia?.imagenes_s3_urls?.length || 0,
+                    migrated_to_s3: evidencia?.migrated_to_s3,
+                    evidencia: evidencia
+                });
                 if (evidencia) {
                     actividad.evidencia = evidencia;
                 }
                 actividad.cargandoEvidencia = false;
             },
             error: (error) => {
-                console.error('Error cargando evidencia:', error);
+                console.error('❌ Error cargando evidencia:', error);
                 actividad.cargandoEvidencia = false;
             }
         });
