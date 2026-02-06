@@ -1024,6 +1024,11 @@ async def get_evidencia_imagenes(
     """
     Endpoint para cargar las imágenes de la evidencia de una actividad específica.
     Se carga bajo demanda para evitar OOM en el listado principal.
+    
+    OPTIMIZACIÓN S3:
+    - Retorna URLs S3 si están disponibles (imagenes_s3_urls)
+    - Fallback a Base64 si no hay S3 (compatibilidad hacia atrás)
+    - Incluye metadata: tipo de imagen, estado de migración
     """
     
     # Verificar que la actividad existe y pertenece a la entidad del usuario
@@ -1044,8 +1049,23 @@ async def get_evidencia_imagenes(
     ).first()
     
     if not evidencia:
-        return {"imagenes": []}
+        return {
+            "imagenes": [],
+            "tipo": "none",
+            "migrated_to_s3": False
+        }
     
+    # ✅ OPTIMIZACIÓN: Usar URLs S3 si están disponibles (más rápido, menos CPU/Red)
+    if evidencia.migrated_to_s3 and evidencia.imagenes_s3_urls:
+        return {
+            "imagenes": evidencia.imagenes_s3_urls,
+            "tipo": "s3",
+            "migrated_to_s3": True
+        }
+    
+    # Fallback a Base64 (legacy, para evidencias no migradas)
     return {
-        "imagenes": evidencia.imagenes or []
+        "imagenes": evidencia.imagenes or [],
+        "tipo": "base64",
+        "migrated_to_s3": False
     }
