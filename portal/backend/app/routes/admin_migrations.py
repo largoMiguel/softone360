@@ -3,10 +3,18 @@ Endpoint temporal para ejecutar migraciones S3 desde el backend
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import text, func
 import traceback
+import boto3
+import base64
+import uuid
 
 from app.config.database import get_db
+from app.models.pdm import PdmActividadEvidencia
+
+# Configuración S3
+S3_BUCKET = 'softone-pdm-evidencias'
+S3_REGION = 'us-east-1'
 
 router = APIRouter(prefix="/api/admin/migrations", tags=["Admin Migrations"])
 
