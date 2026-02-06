@@ -172,6 +172,11 @@ export class PdmComponent implements OnInit, OnDestroy {
     };
     generandoInforme = false;
 
+    // ✅ NUEVO: Modal Mis Informes
+    mostrarModalMisInformes = false;
+    misInformes: any[] = [];
+    cargandoInformes = false;
+
     // ✅ NUEVO: Modal Plan de Acción
     mostrarModalPlanAccion = false;
     planAccionAnio: number = new Date().getFullYear();
@@ -1130,6 +1135,95 @@ export class PdmComponent implements OnInit, OnDestroy {
                 alert(mensaje);
             }
         });
+    }
+
+    /**
+     * ✨ NUEVO: Abre el modal de "Mis Informes"
+     */
+    abrirModalMisInformes(): void {
+        this.mostrarModalMisInformes = true;
+        this.recargarInformes();
+    }
+
+    /**
+     * ✨ NUEVO: Cierra el modal de "Mis Informes"
+     */
+    cerrarModalMisInformes(): void {
+        this.mostrarModalMisInformes = false;
+    }
+
+    /**
+     * ✨ NUEVO: Recarga la lista de informes del usuario
+     */
+    recargarInformes(): void {
+        this.cargandoInformes = true;
+        
+        this.pdmService.listarMisInformes(20).subscribe({
+            next: (response) => {
+                this.misInformes = response.informes || [];
+                this.cargandoInformes = false;
+                console.log('📋 Informes cargados:', this.misInformes);
+            },
+            error: (error) => {
+                console.error('❌ Error cargando informes:', error);
+                this.cargandoInformes = false;
+                alert('Error al cargar la lista de informes.');
+            }
+        });
+    }
+
+    /**
+     * ✨ NUEVO: Consulta el estado actual de un informe
+     */
+    consultarEstado(informeId: number): void {
+        this.pdmService.consultarEstadoInforme(informeId).subscribe({
+            next: (response) => {
+                // Actualizar el informe en la lista
+                const index = this.misInformes.findIndex(inf => inf.id === informeId);
+                if (index !== -1) {
+                    this.misInformes[index] = response;
+                }
+                console.log('📊 Estado actualizado:', response);
+            },
+            error: (error) => {
+                console.error('❌ Error consultando estado:', error);
+            }
+        });
+    }
+
+    /**
+     * ✨ NUEVO: Descarga un informe completado
+     */
+    descargarInforme(informeId: number): void {
+        this.pdmService.descargarInformeAsync(informeId);
+    }
+
+    /**
+     * ✨ NUEVO: Formatea la fecha para mostrar
+     */
+    formatearFecha(fechaStr: string): string {
+        if (!fechaStr) return '-';
+        const fecha = new Date(fechaStr);
+        return fecha.toLocaleString('es-CO', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    /**
+     * ✨ NUEVO: Obtiene el texto legible del estado
+     */
+    getEstadoTexto(estado: string): string {
+        const estados: { [key: string]: string } = {
+            'pending': 'Pendiente',
+            'processing': 'Generando...',
+            'completed': 'Completado',
+            'failed': 'Error'
+        };
+        return estados[estado] || estado;
     }
 
     /**

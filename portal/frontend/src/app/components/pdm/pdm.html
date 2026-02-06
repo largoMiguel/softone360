@@ -26,6 +26,9 @@
                 <button *ngIf="archivoExcelCargado && vistaActual === 'dashboard'" class="btn btn-danger me-2" (click)="generarInforme()">
                     <i class="fas fa-file-pdf"></i> Generar Informe
                 </button>
+                <button *ngIf="archivoExcelCargado && vistaActual === 'dashboard'" class="btn btn-info me-2" (click)="abrirModalMisInformes()" title="Ver estado de informes generados">
+                    <i class="fas fa-list-alt"></i> Mis Informes
+                </button>
                 <button *ngIf="archivoExcelCargado && vistaActual === 'detalle'" class="btn btn-primary me-2" (click)="abrirModalAnalisisProducto()">
                     <i class="fas fa-chart-line"></i> Ver Análisis Detallado
                 </button>
@@ -2271,6 +2274,119 @@
         </div>
     </div>
     <div class="modal-backdrop fade" [class.show]="mostrarModalPlanAccion" *ngIf="mostrarModalPlanAccion"></div>
+
+    <!-- Modal: Mis Informes -->
+    <div class="modal fade" [class.show]="mostrarModalMisInformes" [style.display]="mostrarModalMisInformes ? 'block' : 'none'" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-list-alt"></i> Mis Informes PDM
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" (click)="cerrarModalMisInformes()"></button>
+                </div>
+                <div class="modal-body">
+                    <div *ngIf="cargandoInformes" class="text-center py-4">
+                        <div class="spinner-border text-info" role="status"></div>
+                        <p class="mt-2">Cargando informes...</p>
+                    </div>
+
+                    <div *ngIf="!cargandoInformes && misInformes.length === 0" class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> No has generado ningún informe todavía.
+                    </div>
+
+                    <div *ngIf="!cargandoInformes && misInformes.length > 0" class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Año</th>
+                                    <th>Formato</th>
+                                    <th>Estado</th>
+                                    <th>Fecha Solicitud</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let informe of misInformes">
+                                    <td>
+                                        <strong>{{ informe.anio === 0 ? 'Todos' : informe.anio }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            <i class="fas" [ngClass]="{
+                                                'fa-file-pdf': informe.formato === 'pdf',
+                                                'fa-file-word': informe.formato === 'docx',
+                                                'fa-file-excel': informe.formato === 'excel' || informe.formato === 'xlsx'
+                                            }"></i>
+                                            {{ informe.formato.toUpperCase() }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge" [ngClass]="{
+                                            'bg-warning text-dark': informe.estado === 'pending',
+                                            'bg-primary': informe.estado === 'processing',
+                                            'bg-success': informe.estado === 'completed',
+                                            'bg-danger': informe.estado === 'failed'
+                                        }">
+                                            <i class="fas" [ngClass]="{
+                                                'fa-clock': informe.estado === 'pending',
+                                                'fa-spinner fa-spin': informe.estado === 'processing',
+                                                'fa-check-circle': informe.estado === 'completed',
+                                                'fa-times-circle': informe.estado === 'failed'
+                                            }"></i>
+                                            {{ getEstadoTexto(informe.estado) }}
+                                        </span>
+                                        <div *ngIf="informe.estado === 'processing' && informe.progreso" class="progress mt-1" style="height: 5px;">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                                 [style.width.%]="informe.progreso"></div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <small>{{ formatearFecha(informe.created_at) }}</small>
+                                        <div *ngIf="informe.completed_at" class="text-muted" style="font-size: 0.8em;">
+                                            Completado: {{ formatearFecha(informe.completed_at) }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <button *ngIf="informe.estado === 'completed'" 
+                                                class="btn btn-sm btn-success" 
+                                                (click)="descargarInforme(informe.id)"
+                                                title="Descargar informe">
+                                            <i class="fas fa-download"></i> Descargar
+                                        </button>
+                                        <button *ngIf="informe.estado === 'processing'" 
+                                                class="btn btn-sm btn-outline-primary" 
+                                                (click)="consultarEstado(informe.id)"
+                                                title="Actualizar estado">
+                                            <i class="fas fa-sync"></i>
+                                        </button>
+                                        <button *ngIf="informe.estado === 'failed'" 
+                                                class="btn btn-sm btn-outline-danger" 
+                                                disabled
+                                                title="Generación fallida">
+                                            <i class="fas fa-exclamation-triangle"></i> Error
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div *ngIf="!cargandoInformes && misInformes.length > 0" class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle"></i> 
+                        Los informes se eliminan automáticamente después de 7 días desde su creación.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" (click)="cerrarModalMisInformes()">Cerrar</button>
+                    <button type="button" class="btn btn-primary" (click)="recargarInformes()" [disabled]="cargandoInformes">
+                        <i class="fas fa-sync" [class.fa-spin]="cargandoInformes"></i> Actualizar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade" [class.show]="mostrarModalMisInformes" *ngIf="mostrarModalMisInformes"></div>
 
     <!-- Modal: Análisis Detallado del Producto -->
 </div>
