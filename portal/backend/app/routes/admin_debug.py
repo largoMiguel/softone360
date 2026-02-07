@@ -74,6 +74,94 @@ async def debug_producto(codigo_producto: str, db: Session = Depends(get_db)):
         }
 
 
+@router.get("/informes/status")
+async def debug_informes_status(db: Session = Depends(get_db)):
+    """
+    Muestra el estado de todos los informes en la base de datos
+    """
+    try:
+        from app.models.informe import InformeEstado
+        
+        informes = db.query(InformeEstado).order_by(InformeEstado.created_at.desc()).all()
+        
+        return {
+            "total": len(informes),
+            "por_estado": {
+                "pending": len([i for i in informes if i.estado == 'pending']),
+                "processing": len([i for i in informes if i.estado == 'processing']),
+                "completed": len([i for i in informes if i.estado == 'completed']),
+                "failed": len([i for i in informes if i.estado == 'failed'])
+            },
+            "informes": [
+                {
+                    "id": inf.id,
+                    "estado": inf.estado,
+                    "anio": inf.anio,
+                    "formato": inf.formato,
+                    "user_id": inf.user_id,
+                    "created_at": inf.created_at.isoformat() if inf.created_at else None,
+                    "completed_at": inf.completed_at.isoformat() if inf.completed_at else None,
+                    "s3_url": inf.s3_url[:80] + "..." if inf.s3_url and len(inf.s3_url) > 80 else inf.s3_url,
+                    "error_message": inf.error_message[:100] + "..." if inf.error_message and len(inf.error_message) > 100 else inf.error_message
+                }
+                for inf in informes
+            ]
+        }
+    except Exception as e:
+        import traceback
+        return {
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
+
+
+@router.delete("/informes/cleanup")
+async def cleanup_informes(
+    estado: str = None,  # pending, processing, failed, completed, o None para todos
+    db: Session = Depends(get_db)
+):
+    """
+    Limpia informes de la base de datos.
+    
+    Parámetros:
+    - estado: Si se especifica, solo elimina informes en ese estado
+    - Si no se especifica, elimina TODOS los informes
+    
+    Ejemplos:
+    - /api/admin/debug/informes/cleanup?estado=failed
+    - /api/admin/debug/informes/cleanup?estado=pending
+    - /api/admin/debug/informes/cleanup (elimina TODOS)
+    """
+    try:
+        from app.models.informe import InformeEstado
+        
+        # Contar antes de eliminar
+        if estado:
+            antes = db.query(InformeEstado).filter(InformeEstado.estado == estado).count()
+            db.query(InformeEstado).filter(InformeEstado.estado == estado).delete()
+        else:
+            antes = db.query(InformeEstado).count()
+            db.query(InformeEstado).delete()
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "eliminados": antes,
+            "filtro": estado if estado else "todos",
+            "mensaje": f"Se eliminaron {antes} informes" + (f" en estado '{estado}'" if estado else "")
+        }
+        
+    except Exception as e:
+        db.rollback()
+        import traceback
+        return {
+            "success": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
+
+
 @router.get("/evidencia-raw/{actividad_id}")
 async def debug_evidencia_raw(actividad_id: int, db: Session = Depends(get_db)):
     """
