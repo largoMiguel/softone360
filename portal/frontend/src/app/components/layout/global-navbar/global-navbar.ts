@@ -156,9 +156,23 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
             await this.router.navigate([`/${slug}/planes-institucionales`]);
             setTimeout(() => this.alertsEvents.requestOpen(alert), 100);
         } else if (alert.type === 'INFORME_PDM_READY') {
-            // Informe PDM generado - descargar automáticamente
+            // Informe PDM generado - obtener S3 URL y descargar
             if (data.informe_id) {
-                this.pdmService.descargarInformeAsync(data.informe_id);
+                // Consultar el estado del informe para obtener la URL de S3
+                this.pdmService.consultarEstadoInforme(data.informe_id).subscribe({
+                    next: (response) => {
+                        if (response.estado === 'completed' && response.s3_url) {
+                            // Descargar directamente desde S3
+                            window.location.href = response.s3_url;
+                            console.log(`📥 Descargando informe ${data.informe_id} desde notificación...`);
+                        } else {
+                            console.error('Informe no disponible para descarga:', response);
+                        }
+                    },
+                    error: (error) => {
+                        console.error('Error consultando informe:', error);
+                    }
+                });
             } else {
                 console.error('ID de informe no encontrado en la notificación');
             }
