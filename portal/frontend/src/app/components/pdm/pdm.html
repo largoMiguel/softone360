@@ -2350,13 +2350,13 @@
                                     <td>
                                         <button *ngIf="informe.estado === 'completed'" 
                                                 class="btn btn-sm btn-success" 
-                                                (click)="descargarInforme(informe.id)"
+                                                (click)="descargarInforme(informe.informe_id)"
                                                 title="Descargar informe">
                                             <i class="fas fa-download"></i> Descargar
                                         </button>
                                         <button *ngIf="informe.estado === 'processing'" 
                                                 class="btn btn-sm btn-outline-primary" 
-                                                (click)="consultarEstado(informe.id)"
+                                                (click)="consultarEstado(informe.informe_id)"
                                                 title="Actualizar estado">
                                             <i class="fas fa-sync"></i>
                                         </button>
