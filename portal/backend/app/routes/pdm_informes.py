@@ -818,9 +818,10 @@ async def consultar_estado_informe(
         "filename": informe.filename,
         "file_size": informe.file_size,
         "error_message": informe.error_message if informe.estado == 'failed' else None,
-        "created_at": informe.created_at.isoformat() if informe.created_at else None,
-        "started_at": informe.started_at.isoformat() if informe.started_at else None,
-        "completed_at": informe.completed_at.isoformat() if informe.completed_at else None,
+        # Añadir 'Z' para indicar UTC explícitamente
+        "created_at": informe.created_at.isoformat() + 'Z' if informe.created_at else None,
+        "started_at": informe.started_at.isoformat() + 'Z' if informe.started_at else None,
+        "completed_at": informe.completed_at.isoformat() + 'Z' if informe.completed_at else None,
         "downloaded": informe.downloaded
     }
 
@@ -899,8 +900,9 @@ async def listar_mis_informes(
                 "formato": inf.formato,
                 "filename": inf.filename,
                 "file_size": inf.file_size,
-                "created_at": inf.created_at.isoformat() if inf.created_at else None,
-                "completed_at": inf.completed_at.isoformat() if inf.completed_at else None,
+                # Añadir 'Z' para indicar UTC explícitamente
+                "created_at": inf.created_at.isoformat() + 'Z' if inf.created_at else None,
+                "completed_at": inf.completed_at.isoformat() + 'Z' if inf.completed_at else None,
                 "downloaded": inf.downloaded,
                 "s3_url": inf.s3_url if inf.estado == 'completed' else None
             }
