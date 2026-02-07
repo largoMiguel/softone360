@@ -1544,23 +1544,28 @@ Límite: 250 palabras. Usa lenguaje formal y técnico apropiado para gestión p�
                 total_actividades = len(actividades)
                 completadas = sum(1 for act in actividades if act.estado == 'COMPLETADA')
                 
-                # Mostrar hasta 10 actividades con nombres completos (sin cortar)
+                # Mostrar hasta 8 actividades (reducido de 10 para evitar tablas muy altas)
                 meta_text = f"La Meta No. <b>{total_actividades}</b> cuenta con la(s) siguiente(s) Actividades:<br/>"
-                actividades_mostrar = actividades[:10]
+                actividades_mostrar = actividades[:8]
                 for idx, act in enumerate(actividades_mostrar, 1):
-                    # Mostrar nombre completo sin recortar
+                    # Truncar nombre a máximo 120 caracteres para evitar celdas muy altas
                     nombre_actividad = act.nombre
+                    if len(nombre_actividad) > 120:
+                        nombre_actividad = nombre_actividad[:117] + "..."
                     meta_text += f"<b>{idx}.</b> {nombre_actividad}<br/>"
                 
-                if len(actividades) > 10:
-                    meta_text += f"<i>... y {len(actividades) - 10} actividades más</i><br/>"
+                if len(actividades) > 8:
+                    meta_text += f"<i>... y {len(actividades) - 8} actividades más</i><br/>"
                 
                 informe_text = f"Se da cumplimiento a la meta con la ejecución de la siguiente contratación:<br/>"
                 informe_text += f"<b>Total actividades:</b> {total_actividades}<br/>"
                 informe_text += f"<b>Completadas:</b> {completadas}<br/>"
                 if actividades[0].descripcion:
-                    # Mostrar descripción completa sin recortar
-                    informe_text += f"{actividades[0].descripcion}"
+                    # Truncar descripción también para evitar celdas muy altas
+                    descripcion = actividades[0].descripcion
+                    if len(descripcion) > 500:
+                        descripcion = descripcion[:497] + "..."
+                    informe_text += f"{descripcion}"
             else:
                 meta_text = "Sin actividades registradas"
                 informe_text = "No hay información de ejecución disponible"
