@@ -1195,7 +1195,17 @@ export class PdmComponent implements OnInit, OnDestroy {
      * ✨ NUEVO: Descarga un informe completado
      */
     descargarInforme(informeId: number): void {
-        this.pdmService.descargarInformeAsync(informeId);
+        // Buscar el informe en la lista local para obtener su s3_url directamente
+        const informe = this.misInformes.find(i => i.informe_id === informeId);
+        
+        if (informe && informe.s3_url) {
+            // Usar la URL de S3 directamente (es pública, no necesita autenticación)
+            window.location.href = informe.s3_url;
+            console.log(`📥 Descargando informe ${informeId} desde S3...`);
+        } else {
+            // Fallback: usar el endpoint de descarga (redirect)
+            this.pdmService.descargarInformeAsync(informeId);
+        }
     }
 
     /**
