@@ -6,18 +6,18 @@
         <div class="row align-items-center">
             <div class="col-lg-7 hero-content animate">
                 <div class="badge-pill mb-3">
-                    <i class="fas fa-star me-2"></i>Sistema Líder en Gestión Pública
+                    <i class="fas fa-star me-2"></i>Sistema Líder en Gestión Pública — Colombia
                 </div>
                 <h1 class="hero-title mb-4">
-                    Transforme la <span class="text-gradient">Gestión Pública</span> de su Entidad
+                    Gestión Pública <span class="text-gradient">360°</span> con Inteligencia Artificial
                 </h1>
                 <p class="hero-subtitle mb-4">
-                    Plataforma integral para PQRS, Planes Institucionales y Contratación Pública.
-                    IA generativa para reportes ejecutivos, control granular de permisos y dashboards en tiempo real.
+                    Plataforma integral que centraliza el <strong>PDM</strong>, PQRS, Contratación Pública y Planes Institucionales.
+                    IA generativa con OpenAI, informes automáticos en PDF, dashboards en tiempo real y despliegue en AWS.
                 </p>
                 <div class="hero-actions">
-                    <button class="btn btn-primary btn-lg me-3" (click)="scrollToSection('modules')">
-                        <i class="fas fa-rocket me-2"></i>Ver Módulos
+                    <button class="btn btn-primary btn-lg me-3" (click)="scrollToSection('pdm-destacado')">
+                        <i class="fas fa-map-marked-alt me-2"></i>Ver PDM 360°
                     </button>
                     <button class="btn btn-outline-light btn-lg"
                         (click)="contactarWhatsApp('Hola, me gustaría solicitar una demostración de SoftOne360 para mi entidad.')">
@@ -36,18 +36,22 @@
             </div>
             <div class="col-lg-5 d-none d-lg-block animate">
                 <div class="hero-illustration">
-                    <i class="fas fa-laptop-code illustration-icon"></i>
+                    <i class="fas fa-map-marked-alt illustration-icon"></i>
                     <div class="floating-card card-1">
-                        <i class="fas fa-check-circle text-success"></i>
-                        <span>PQRS Automatizado</span>
+                        <i class="fas fa-project-diagram text-primary"></i>
+                        <span>PDM Integrado</span>
                     </div>
                     <div class="floating-card card-2">
-                        <i class="fas fa-chart-line text-primary"></i>
-                        <span>Analytics en vivo</span>
+                        <i class="fas fa-brain text-purple"></i>
+                        <span>IA con OpenAI</span>
                     </div>
                     <div class="floating-card card-3">
-                        <i class="fas fa-shield-alt text-warning"></i>
-                        <span>100% Seguro</span>
+                        <i class="fas fa-file-pdf" style="color:#e74a3b"></i>
+                        <span>Informes PDF Auto</span>
+                    </div>
+                    <div class="floating-card card-4">
+                        <i class="fab fa-aws" style="color:#ff9900"></i>
+                        <span>100% en AWS</span>
                     </div>
                 </div>
             </div>
@@ -59,6 +63,202 @@
                 d="M0,64L80,69.3C160,75,320,85,480,80C640,75,800,53,960,48C1120,43,1280,53,1360,58.7L1440,64L1440,120L1360,120C1280,120,1120,120,960,120C800,120,640,120,480,120C320,120,160,120,80,120L0,120Z">
             </path>
         </svg>
+    </div>
+</section>
+
+<!-- ===== SECCIÓN PDM DESTACADA ===== -->
+<section class="pdm-hero-section" id="pdm-destacado">
+    <div class="pdm-hero-bg"></div>
+    <div class="container position-relative">
+        <!-- Header PDM -->
+        <div class="pdm-section-header text-center animate">
+            <div class="pdm-badge">
+                <i class="fas fa-star me-2"></i>MÓDULO ESTRELLA
+            </div>
+            <h2 class="pdm-main-title">
+                Plan de Desarrollo Municipal
+                <span class="pdm-title-accent">PDM 360°</span>
+            </h2>
+            <p class="pdm-main-subtitle">
+                La solución más completa para el seguimiento, ejecución y rendición de cuentas
+                del Plan de Desarrollo Municipal de su entidad territorial.
+            </p>
+        </div>
+
+        <!-- Cards de capacidades PDM -->
+        <div class="row g-4 mb-5 animate">
+            <div class="col-md-6 col-lg-4">
+                <div class="pdm-cap-card">
+                    <div class="pdm-cap-icon" style="background: linear-gradient(135deg, #216ba8, #36b9cc)">
+                        <i class="fas fa-sitemap"></i>
+                    </div>
+                    <h4>Estructura Jerárquica</h4>
+                    <p>Líneas estratégicas → Sectores → Programas → Productos → Actividades. Toda la cadena del valor del PDM en un solo lugar.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="pdm-cap-card">
+                    <div class="pdm-cap-icon" style="background: linear-gradient(135deg, #7c3aed, #a855f7)">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h4>IA Generativa OpenAI</h4>
+                    <p>Genera informes ejecutivos narrativos con análisis inteligente del avance, logros y brechas del PDM usando GPT avanzado.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="pdm-cap-card">
+                    <div class="pdm-cap-icon" style="background: linear-gradient(135deg, #1cc28e, #059669)">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h4>Dashboard Interactivo</h4>
+                    <p>Gráficas en tiempo real con Chart.js: barras, dona, radial y comparativas. Visualización profesional para juntas y concejos.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="pdm-cap-card">
+                    <div class="pdm-cap-icon" style="background: linear-gradient(135deg, #ff9900, #f59e0b)">
+                        <i class="fas fa-file-excel"></i>
+                    </div>
+                    <h4>Carga Excel Presupuestal</h4>
+                    <p>Importa la ejecución presupuestal y contratos RPS directamente desde archivos .xlsx. Procesamiento automático e inteligente.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="pdm-cap-card">
+                    <div class="pdm-cap-icon" style="background: linear-gradient(135deg, #e74a3b, #dc2626)">
+                        <i class="fas fa-file-pdf"></i>
+                    </div>
+                    <h4>Informes PDF Automáticos</h4>
+                    <p>Generación asíncrona de informes con ReportLab y Matplotlib. Puedes filtrar por secretaría, estado, año y ODS.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="pdm-cap-card">
+                    <div class="pdm-cap-icon" style="background: linear-gradient(135deg, #36b9cc, #0891b2)">
+                        <i class="fas fa-camera"></i>
+                    </div>
+                    <h4>Evidencias Fotográficas</h4>
+                    <p>Registro fotográfico de actividades ejecutadas almacenado en AWS S3. Múltiples fotos por evidencia con URL firmadas.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detalles técnicos PDM -->
+        <div class="pdm-detail-box animate">
+            <div class="row align-items-center">
+                <div class="col-lg-5">
+                    <div class="pdm-visual-block">
+                        <div class="pdm-flow-diagram">
+                            <div class="pdm-flow-item pdm-flow-root">
+                                <i class="fas fa-flag"></i>
+                                <span>Línea Estratégica</span>
+                            </div>
+                            <div class="pdm-flow-connector"></div>
+                            <div class="pdm-flow-item pdm-flow-sector">
+                                <i class="fas fa-industry"></i>
+                                <span>Sector / Programa</span>
+                            </div>
+                            <div class="pdm-flow-connector"></div>
+                            <div class="pdm-flow-item pdm-flow-product">
+                                <i class="fas fa-box"></i>
+                                <span>Producto + Indicador</span>
+                            </div>
+                            <div class="pdm-flow-connector"></div>
+                            <div class="pdm-flow-item pdm-flow-activity">
+                                <i class="fas fa-tasks"></i>
+                                <span>Actividad + Evidencia</span>
+                            </div>
+                            <div class="pdm-flow-connector"></div>
+                            <div class="pdm-flow-item pdm-flow-budget">
+                                <i class="fas fa-dollar-sign"></i>
+                                <span>Ejecución Presupuestal</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-7">
+                    <h3 class="pdm-detail-title">
+                        <i class="fas fa-map-marked-alt me-3"></i>
+                        Todo el PDM en una sola plataforma
+                    </h3>
+                    <p class="pdm-detail-text">
+                        Desde la carga del Plan de Desarrollo Municipal en Excel hasta la generación del informe de rendición de cuentas —
+                        <strong>SoftOne360</strong> cubre el ciclo completo con tecnología de punta.
+                    </p>
+                    <div class="pdm-features-grid">
+                        <div class="pdm-feat-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Carga Excel del PDM cuatrienal (2024–2027)</span>
+                        </div>
+                        <div class="pdm-feat-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Indicadores de resultado por producto y año</span>
+                        </div>
+                        <div class="pdm-feat-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Actividades con responsable por secretaría</span>
+                        </div>
+                        <div class="pdm-feat-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Ejecución presupuestal: PDM vs Ppto Definitivo vs Pagos</span>
+                        </div>
+                        <div class="pdm-feat-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Contratos RPS: carga desde archivo Excel</span>
+                        </div>
+                        <div class="pdm-feat-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Integración BPIN desde datos.gov.co en tiempo real</span>
+                        </div>
+                        <div class="pdm-feat-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Iniciativas SGR con estado de gestión</span>
+                        </div>
+                        <div class="pdm-feat-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Filtros: línea / sector / ODS / secretaría / año</span>
+                        </div>
+                        <div class="pdm-feat-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Análisis de producto con avance por año</span>
+                        </div>
+                        <div class="pdm-feat-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Informes PDF con filtros avanzados y IA narrativa</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats PDM -->
+        <div class="pdm-stats-row animate">
+            <div class="pdm-stat-box">
+                <div class="pdm-stat-icon"><i class="fas fa-map-marked-alt"></i></div>
+                <div class="pdm-stat-value">PDM</div>
+                <div class="pdm-stat-label">Módulo Estrella</div>
+            </div>
+            <div class="pdm-stat-box">
+                <div class="pdm-stat-icon"><i class="fas fa-layer-group"></i></div>
+                <div class="pdm-stat-value">5 Niveles</div>
+                <div class="pdm-stat-label">Estructura Jerárquica</div>
+            </div>
+            <div class="pdm-stat-box">
+                <div class="pdm-stat-icon"><i class="fas fa-calendar-alt"></i></div>
+                <div class="pdm-stat-value">4 Años</div>
+                <div class="pdm-stat-label">Seguimiento 2024–2027</div>
+            </div>
+            <div class="pdm-stat-box">
+                <div class="pdm-stat-icon"><i class="fas fa-robot"></i></div>
+                <div class="pdm-stat-value">GPT-4</div>
+                <div class="pdm-stat-label">Informes con IA</div>
+            </div>
+            <div class="pdm-stat-box">
+                <div class="pdm-stat-icon"><i class="fab fa-aws"></i></div>
+                <div class="pdm-stat-value">AWS S3</div>
+                <div class="pdm-stat-label">Evidencias en la nube</div>
+            </div>
+        </div>
     </div>
 </section>
 
@@ -161,8 +361,8 @@
 <section class="features-section py-5" id="features">
     <div class="container">
         <div class="section-header text-center mb-5 animate">
-            <h2 class="section-title">Características Destacadas</h2>
-            <p class="section-subtitle">Tecnología de vanguardia al servicio del sector público</p>
+            <h2 class="section-title">Capacidades del Sistema</h2>
+            <p class="section-subtitle">Tecnología de vanguardia al servicio real del sector público colombiano</p>
         </div>
         <div class="row g-4">
             <div class="col-md-6 col-lg-4 animate" *ngFor="let feature of features">
@@ -180,36 +380,67 @@
 </section>
 
 <!-- Modules Section -->
-<section class="modules-section py-5 bg-light" id="modules">
+<section class="modules-v2-section" id="modules">
     <div class="container">
-        <div class="section-header text-center mb-5 animate">
-            <h2 class="section-title">Módulos del Sistema</h2>
-            <p class="section-subtitle">Soluciones completas para cada necesidad de su entidad</p>
+        <!-- Header global -->
+        <div class="modules-v2-header text-center animate">
+            <div class="section-chip">
+                <i class="fas fa-cubes me-2"></i>6 MÓDULOS INTEGRADOS
+            </div>
+            <h2 class="section-title mt-3">Sistema Completo de Gestión Pública</h2>
+            <p class="section-subtitle">
+                Cada módulo diseñado con precisión para las necesidades reales
+                del sector público colombiano — todo en una sola plataforma
+            </p>
         </div>
 
-        <div class="module-showcase" *ngFor="let module of modules; let i = index">
-            <div class="row align-items-center" [class.flex-row-reverse]="i % 2 !== 0">
-                <div class="col-lg-6 animate">
-                    <div class="module-visual"
-                        [style.background]="'linear-gradient(135deg, ' + module.color + '22, ' + module.color + '44)'">
-                        <i [class]="module.image + ' module-icon'" [style.color]="module.color"></i>
-                    </div>
+        <!-- Bloque por módulo -->
+        <div class="module-v2-block animate" *ngFor="let module of modules; let i = index">
+
+            <!-- Cabecera coloreada del módulo -->
+            <div class="module-v2-header"
+                [style.background]="'linear-gradient(135deg,' + module.color + ' 0%,' + module.color + '99 100%)'">
+                <span class="module-v2-num">{{ '0' + (i + 1) }}</span>
+                <div class="module-v2-icon">
+                    <i [class]="module.icon"></i>
                 </div>
-                <div class="col-lg-6 animate">
-                    <div class="module-content">
-                        <div class="module-badge" [style.background]="module.color">
-                            <i [class]="module.icon + ' me-2'"></i>Módulo
+                <div class="module-v2-title-area">
+                    <span class="module-v2-chip">MÓDULO</span>
+                    <h3 class="module-v2-name">{{ module.name }}</h3>
+                    <p class="module-v2-desc">{{ module.description }}</p>
+                </div>
+            </div>
+
+            <!-- Cuerpo del módulo -->
+            <div class="module-v2-body">
+
+                <!-- 3 capability cards -->
+                <div class="module-v2-caps" *ngIf="module.capabilities">
+                    <div class="module-v2-cap" *ngFor="let cap of module.capabilities">
+                        <div class="cap-icon-wrap" [style.background]="cap.gradient">
+                            <i [class]="cap.icon"></i>
                         </div>
-                        <h3 class="module-title">{{ module.name }}</h3>
-                        <p class="module-description">{{ module.description }}</p>
-                        <ul class="module-features">
-                            <li *ngFor="let feat of module.features">
-                                <i class="fas fa-check-circle" [style.color]="module.color"></i>
-                                {{ feat }}
-                            </li>
-                        </ul>
+                        <div class="cap-text">
+                            <h6 class="cap-title">{{ cap.title }}</h6>
+                            <p class="cap-desc">{{ cap.desc }}</p>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Divider de funcionalidades -->
+                <div class="module-v2-features-header">
+                    <i class="fas fa-check-square me-2" [style.color]="module.color"></i>
+                    Funcionalidades incluidas
+                </div>
+
+                <!-- Grid de features -->
+                <div class="module-v2-feats">
+                    <div class="module-v2-feat" *ngFor="let feat of module.features">
+                        <i class="fas fa-check-circle" [style.color]="module.color"></i>
+                        <span>{{ feat }}</span>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -219,8 +450,8 @@
 <section class="benefits-section py-5">
     <div class="container">
         <div class="section-header text-center mb-5 animate">
-            <h2 class="section-title">Beneficios para su Entidad</h2>
-            <p class="section-subtitle">Por qué elegir nuestro sistema</p>
+            <h2 class="section-title">¿Por Qué Elegir SoftOne360?</h2>
+            <p class="section-subtitle">Infraestructura, seguridad y tecnología al nivel de las mejores soluciones empresariales</p>
         </div>
         <div class="row g-4">
             <div class="col-md-6 col-lg-4 animate" *ngFor="let benefit of benefits">
@@ -240,8 +471,8 @@
 <section class="use-cases-section py-5 bg-light">
     <div class="container">
         <div class="section-header text-center mb-5 animate">
-            <h2 class="section-title">Casos de Uso</h2>
-            <p class="section-subtitle">Adaptado a diferentes tipos de entidades</p>
+            <h2 class="section-title">Entidades que Usan SoftOne360</h2>
+            <p class="section-subtitle">Diseñado para toda la institucionalidad territorial colombiana</p>
         </div>
         <div class="row g-4">
             <div class="col-lg-4 animate" *ngFor="let useCase of useCases">
@@ -296,8 +527,8 @@
 <section class="tech-section py-5 bg-dark text-white">
     <div class="container">
         <div class="section-header text-center mb-5 animate">
-            <h2 class="section-title text-white">Tecnologías de Última Generación</h2>
-            <p class="section-subtitle text-white-50">Stack tecnológico moderno y confiable</p>
+            <h2 class="section-title text-white">Stack Tecnológico Real</h2>
+            <p class="section-subtitle text-white-50">Las tecnologías que realmente potencian SoftOne360</p>
         </div>
         <div class="tech-stack">
             <div class="tech-item animate" *ngFor="let tech of techStack">
@@ -316,48 +547,20 @@
         <div class="cta-box animate">
             <div class="row align-items-center">
                 <div class="col-lg-8">
-                    <h2 class="cta-title mb-3">¿Listo para Transformar su Entidad?</h2>
+                    <h2 class="cta-title mb-3">¿Listo para Digitalizar su Entidad con PDM 360°?</h2>
                     <p class="cta-text mb-0">
-                        Solicite una demostración personalizada y descubra cómo nuestro sistema puede
-                        optimizar la gestión de su entidad gubernamental.
+                        Solicite una demostración personalizada y vea en vivo cómo SoftOne360 puede transformar
+                        la gestión del Plan de Desarrollo Municipal, PQRS y contratación de su entidad territorial.
                     </p>
                 </div>
                 <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
                     <button class="btn btn-light btn-lg"
-                        (click)="contactarWhatsApp('Hola, quiero agendar una reunión para conocer más sobre SoftOne360.')">
-                        <i class="fab fa-whatsapp me-2"></i>Contactar por WhatsApp
+                        (click)="contactarWhatsApp('Hola, quiero agendar una demo para conocer el PDM 360° y SoftOne360.')">
+                        <i class="fab fa-whatsapp me-2"></i>Solicitar Demo PDM
                     </button>
                 </div>
             </div>
         </div>
-<!-- 
-        <div class="contact-info mt-5 text-center animate">
-            <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="contact-item">
-                        <i class="fas fa-envelope contact-icon"></i>
-                        <h4>Email</h4>
-                        <p>contactenos@softone360.com</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="contact-item">
-                        <i class="fas fa-phone contact-icon"></i>
-                        <h4>Teléfono</h4>
-                        <p>3162987496 - 310 2432469</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="contact-item">
-                        <i class="fas fa-map-marker-alt contact-icon"></i>
-                        <h4>Ubicación</h4>
-                        <p>Tunja - Boyacá, Colombia</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    -->
-
     </div>
 </section>
 
@@ -382,9 +585,15 @@
                 <h6 class="fw-bold mb-3">Enlaces Rápidos</h6>
                 <ul class="list-unstyled">
                     <li class="mb-2">
+                        <a class="text-white-50 text-decoration-none" (click)="scrollToSection('pdm-destacado')"
+                            style="cursor: pointer;">
+                            <i class="fas fa-chevron-right me-2"></i>PDM 360°
+                        </a>
+                    </li>
+                    <li class="mb-2">
                         <a class="text-white-50 text-decoration-none" (click)="scrollToSection('features')"
                             style="cursor: pointer;">
-                            <i class="fas fa-chevron-right me-2"></i>Características
+                            <i class="fas fa-chevron-right me-2"></i>Capacidades
                         </a>
                     </li>
                     <li class="mb-2">
@@ -423,12 +632,11 @@
             <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
                 <p class="mb-0 small">
                     <i class="fas fa-code me-2"></i>
-                    Desarrollado con <i class="fas fa-heart text-danger mx-1"></i> por SoftOne360
+                    Desarrollado con <i class="fas fa-heart text-danger mx-1"></i> por SoftOne360 — Tunja, Boyacá, Colombia
                 </p>
             </div>
             <div class="col-md-6 text-center text-md-end">
-                <p class="mb-0 small">© 2025 SoftOne360 - Gestión Estratégica, Visión Total. Todos los derechos reservados.
-                </p>
+                <p class="mb-0 small">© 2026 SoftOne360 · PDM 360° · Angular 20 + FastAPI + AWS · Todos los derechos reservados.</p>
             </div>
         </div>
     </div>
