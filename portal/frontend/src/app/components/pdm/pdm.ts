@@ -774,26 +774,24 @@ export class PdmComponent implements OnInit, OnDestroy {
             next: (response) => {
                 this.cargandoContratos = false;
                 this.archivoContratosCargado = true;
-                
-                // ✅ Mostrar datos procesados directamente
+
+                // Mostrar datos guardados en DB
                 this.contratosRPS = {
                     contratos: response.contratos,
                     total_contratado: response.contratos.reduce((sum, c) => sum + c.valor, 0),
                     cantidad_contratos: response.contratos_agrupados,
                     anio: this.anioContratosSeleccionado
                 };
-                
-                const msg = `✅ Procesados ${response.registros_procesados} registros → ${response.contratos_agrupados} contratos agrupados (Total: ${this.formatearMoneda(this.contratosRPS.total_contratado)})`;
+
+                const msg = `✅ ${response.registros_insertados} contratos RPS guardados (año ${this.anioContratosSeleccionado}) · ${response.registros_eliminados} anteriores reemplazados`;
                 this.showToast(msg, 'success');
-                
-                console.log('📊 Contratos procesados:', this.contratosRPS);
-                
-                // Si hay errores, mostrarlos en consola
+
+                console.log('📊 Contratos guardados en DB:', this.contratosRPS);
+
                 if (response.errores && response.errores.length > 0) {
                     console.warn('⚠️ Errores al procesar contratos:', response.errores);
                 }
-                
-                // Limpiar referencia del archivo después de procesar
+
                 this.archivoContratosTemporal = null;
             },
             error: (error) => {
@@ -1828,6 +1826,11 @@ export class PdmComponent implements OnInit, OnDestroy {
         // ✅ NUEVO: Recargar ejecución presupuestal para el nuevo año
         if (this.productoSeleccionado) {
             this.cargarEjecucionPresupuestal(this.productoSeleccionado.codigo, anio);
+        }
+
+        // ✅ Recargar contratos RPS para el año seleccionado
+        if (this.productoSeleccionado) {
+            this.cargarContratosRPS(this.productoSeleccionado.codigo, anio);
         }
         
         // Si estamos en analytics, regenerar con datos del nuevo año
