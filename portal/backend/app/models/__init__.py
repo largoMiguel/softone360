@@ -3,6 +3,7 @@ from app.models.user import User, UserRole
 from app.models.entity import Entity
 from app.models.secretaria import Secretaria
 from app.models.pqrs import PQRS
+from app.models.correspondencia import Correspondencia
 from app.models.plan import (
     PlanInstitucional, 
     ComponenteProceso, 
@@ -31,7 +32,8 @@ __all__ = [
     "UserRole", 
     "Entity",
     "Secretaria", 
-    "PQRS", 
+    "PQRS",
+    "Correspondencia",
     "PlanInstitucional", 
     "ComponenteProceso",
     "Actividad",
