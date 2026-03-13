@@ -56,7 +56,7 @@ class Entity(Base):
     pdm_actividades = relationship("PdmActividad", foreign_keys="PdmActividad.entity_id", cascade="all, delete-orphan")
     pdm_iniciativas_sgr = relationship("PdmIniciativaSGR", foreign_keys="PdmIniciativaSGR.entity_id", cascade="all, delete-orphan")
     pdm_ejecuciones = relationship("PDMEjecucionPresupuestal", back_populates="entity", cascade="all, delete-orphan")
-    # Temporalmente deshabilitado: pdm_contratos_rps = relationship("PDMContratoRPS", back_populates="entity", cascade="all, delete-orphan")
+    pdm_contratos_rps = relationship("PDMContratoRPS", back_populates="entity", cascade="all, delete-orphan")
     
     # Relaciones control de asistencia
     funcionarios = relationship("Funcionario", back_populates="entity", cascade="all, delete-orphan")

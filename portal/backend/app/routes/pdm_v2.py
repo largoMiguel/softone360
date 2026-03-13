@@ -333,27 +333,27 @@ async def upload_pdm_data(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Carga/actualiza productos del Excel PDM. Actualiza existentes y agrega nuevos."""
+    """Carga/actualiza productos del Excel PDM. Reemplaza todos los datos existentes."""
     entity = get_entity_or_404(db, slug)
     ensure_user_can_manage_entity(current_user, entity)
-    
-    # Upsert productos (clave: codigo_producto)
+
+    # DELETE + INSERT: eliminar todos los productos existentes para la entidad
+    # (el Excel es la fuente de verdad — evita datos corruptos/duplicados de cargas previas)
+    deleted_productos = db.query(PdmProducto).filter(
+        PdmProducto.entity_id == entity.id
+    ).delete()
+    print(f"🗑️ Eliminados {deleted_productos} productos previos para entity_id={entity.id}")
+
+    # Insertar todos los productos del Excel
     for item in data.productos_plan_indicativo:
-        existing = db.query(PdmProducto).filter(
-            PdmProducto.entity_id == entity.id,
-            PdmProducto.codigo_producto == item.codigo_producto
-        ).first()
-        
-        if existing:
-            # Actualizar campos del Excel, preservar responsable_user_id
-            for key, value in item.model_dump().items():
-                if key != 'responsable_user_id':
-                    setattr(existing, key, value)
-        else:
-            # Insertar nuevo producto
-            producto = PdmProducto(entity_id=entity.id, **item.model_dump())
-            db.add(producto)
-    
+        producto = PdmProducto(entity_id=entity.id, **item.model_dump())
+        db.add(producto)
+
+    # Commit de productos ANTES del bloque SGR para que un fallo en SGR
+    # no haga rollback silencioso de los productos
+    db.commit()
+    print(f"✅ {len(data.productos_plan_indicativo)} productos guardados para entity_id={entity.id}")
+
     # ✅ NUEVO: Upsert iniciativas SGR (clave: consecutivo)
     # Primero, eliminar todas las iniciativas SGR existentes para esta entidad
     # (ya que el Excel es la fuente de verdad)
@@ -362,7 +362,7 @@ async def upload_pdm_data(
             PdmIniciativaSGR.entity_id == entity.id
         ).delete()
         
-        # IMPORTANTE: Commit después del DELETE para evitar conflictos con el constraint único
+        # Commit después del DELETE para evitar conflictos con el constraint único
         db.commit()
         
         print(f"🗑️ Eliminadas {deleted_sgr} iniciativas SGR previas para entity_id={entity.id}")
@@ -377,9 +377,9 @@ async def upload_pdm_data(
     except Exception as e:
         db.rollback()
         print(f"⚠️ Error al procesar iniciativas SGR: {str(e)}")
-        # Continuar sin fallar, las iniciativas SGR son opcionales
-    
-    db.commit()
+        # Las iniciativas SGR son opcionales, los productos ya están guardados
+    else:
+        db.commit()
     
     # Retornar status
     return await get_pdm_status(slug, db, current_user)
