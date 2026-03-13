@@ -312,3 +312,222 @@ async def preview_next_radicado(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error generando radicado: {str(e)}"
         )
+
+
+# Configuración S3
+S3_BUCKET = "softone360-pqrs-archivos"
+S3_REGION = "us-east-1"
+s3_client = boto3.client('s3', region_name=S3_REGION)
+
+
+@router.post("/{correspondencia_id}/upload-solicitud", response_model=dict)
+async def upload_archivo_solicitud(
+    correspondencia_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Subir archivo de solicitud para una correspondencia.
+    El archivo se almacena en S3 y se guarda la URL en la base de datos.
+    """
+    # Validar que la correspondencia existe
+    correspondencia = db.query(Correspondencia).filter(Correspondencia.id == correspondencia_id).first()
+    if not correspondencia:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Correspondencia con ID {correspondencia_id} no encontrada"
+        )
+    
+    # Validar permisos
+    is_creator = (correspondencia.created_by_id == current_user.id)
+    is_same_entity = (current_user.entity_id == correspondencia.entity_id)
+    is_admin = (current_user.role == UserRole.ADMIN)
+    
+    if not (is_creator or is_same_entity or is_admin):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos para subir archivos a esta correspondencia"
+        )
+    
+    # Validar tipo de archivo
+    allowed_types = [
+        "application/pdf",
+        "application/x-pdf",
+        "application/octet-stream",
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ]
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Tipo de archivo no permitido: {file.content_type}. Permitidos: PDF, imágenes, Word"
+        )
+    
+    # Validar tamaño (10MB máximo)
+    file_content = await file.read()
+    if len(file_content) > 10 * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El archivo no debe superar 10 MB"
+        )
+    
+    try:
+        # Generar nombre único para el archivo
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'pdf'
+        file_key = f"correspondencia/{correspondencia.entity_id}/solicitud_{correspondencia.numero_radicado}_{timestamp}.{file_extension}"
+        
+        # Subir a S3
+        s3_client.put_object(
+            Bucket=S3_BUCKET,
+            Key=file_key,
+            Body=file_content,
+            ContentType=file.content_type,
+            Metadata={
+                "correspondencia_id": str(correspondencia_id),
+                "numero_radicado": correspondencia.numero_radicado,
+                "tipo": "solicitud",
+                "uploaded_by": current_user.username
+            }
+        )
+        
+        # Actualizar correspondencia con la URL del archivo
+        file_url = f"https://{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/{file_key}"
+        correspondencia.archivo_solicitud = file_url
+        db.commit()
+        
+        return {
+            "message": "Archivo de solicitud subido exitosamente",
+            "archivo_url": file_url,
+            "file_key": file_key
+        }
+        
+    except ClientError as e:
+        print(f"❌ Error subiendo archivo a S3: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al subir el archivo: {str(e)}"
+        )
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error procesando el archivo: {str(e)}"
+        )
+
+
+@router.post("/{correspondencia_id}/upload-respuesta", response_model=dict)
+async def upload_archivo_respuesta(
+    correspondencia_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Subir archivo adjunto para la respuesta de una correspondencia.
+    Solo admin y usuarios de la misma entidad pueden subir.
+    """
+    try:
+        print(f"📎 Iniciando upload de archivo de respuesta para Correspondencia ID: {correspondencia_id}")
+        print(f"   Usuario: {current_user.username}")
+        print(f"   Archivo: {file.filename}, Content-Type: {file.content_type}")
+        
+        # Validar que la correspondencia existe
+        correspondencia = db.query(Correspondencia).filter(Correspondencia.id == correspondencia_id).first()
+        if not correspondencia:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Correspondencia con ID {correspondencia_id} no encontrada"
+            )
+        
+        # Validar permisos: admin o usuario de la misma entidad
+        if current_user.role != UserRole.ADMIN and correspondencia.entity_id != current_user.entity_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes permisos para subir archivos de respuesta a esta correspondencia"
+            )
+        
+        # Validar tipo de archivo
+        allowed_types = [
+            "application/pdf",
+            "application/x-pdf",
+            "application/octet-stream",
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        ]
+        if file.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Tipo de archivo no permitido: {file.content_type}"
+            )
+        
+        # Validar tamaño (10MB máximo)
+        file_content = await file.read()
+        file_size_mb = len(file_content) / (1024 * 1024)
+        print(f"   Tamaño del archivo: {file_size_mb:.2f} MB")
+        
+        if len(file_content) > 10 * 1024 * 1024:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El archivo no debe superar 10 MB"
+            )
+        
+        # Generar nombre único para el archivo
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'pdf'
+        file_key = f"correspondencia/{correspondencia.entity_id}/respuesta_{correspondencia.numero_radicado}_{timestamp}.{file_extension}"
+        
+        print(f"   Subiendo a S3: {file_key}")
+        
+        # Subir a S3
+        s3_client.put_object(
+            Bucket=S3_BUCKET,
+            Key=file_key,
+            Body=file_content,
+            ContentType=file.content_type,
+            Metadata={
+                "correspondencia_id": str(correspondencia_id),
+                "numero_radicado": correspondencia.numero_radicado,
+                "tipo": "respuesta",
+                "uploaded_by": current_user.username
+            }
+        )
+        
+        # Actualizar correspondencia con la URL del archivo
+        file_url = f"https://{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/{file_key}"
+        correspondencia.archivo_respuesta = file_url
+        db.commit()
+        
+        print(f"✅ Archivo de respuesta subido exitosamente: {file_url}")
+        
+        return {
+            "message": "Archivo de respuesta subido exitosamente",
+            "archivo_url": file_url,
+            "file_key": file_key
+        }
+        
+    except HTTPException:
+        raise
+    except ClientError as e:
+        print(f"❌ Error de S3: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al subir el archivo a S3: {str(e)}"
+        )
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error procesando el archivo: {str(e)}"
+        )

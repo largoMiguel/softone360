@@ -1297,6 +1297,17 @@
                                         </select>
                                     </div>
 
+                                    <!-- Adjuntar solicitud -->
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-paperclip me-1"></i>Adjuntar Solicitud
+                                        </label>
+                                        <input type="file" class="form-control" 
+                                               (change)="onFileSelectedCorrespondencia($event, 'solicitud')"
+                                               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                                        <small class="text-muted">Formatos: PDF, Word, Imágenes</small>
+                                    </div>
+
                                     <!-- Observaciones -->
                                     <div class="col-12 mb-3">
                                         <label class="form-label">
@@ -1367,9 +1378,6 @@
                                     <p *ngIf="correspondenciaSeleccionada.tiempo_respuesta_dias">
                                         <strong>Tiempo de Respuesta:</strong> {{ correspondenciaSeleccionada.tiempo_respuesta_dias }} días
                                     </p>
-                                    <p *ngIf="correspondenciaSeleccionada.assigned_to_name">
-                                        <strong>Asignado a:</strong> {{ correspondenciaSeleccionada.assigned_to_name }}
-                                    </p>
                                 </div>
                             </div>
 
@@ -1378,9 +1386,23 @@
                                 <p>{{ correspondenciaSeleccionada.observaciones }}</p>
                             </div>
 
-                            <div *ngIf="correspondenciaSeleccionada.respuesta" class="mt-3">
+                            <div *ngIf="correspondenciaSeleccionada.archivo_solicitud" class="mt-3">
+                                <strong>Archivo Adjunto (Solicitud):</strong>
+                                <a [href]="correspondenciaSeleccionada.archivo_solicitud" target="_blank" class="btn btn-sm btn-outline-primary ms-2">
+                                    <i class="fas fa-download me-1"></i>Descargar
+                                </a>
+                            </div>
+
+                            <div *ngIf="correspondenciaSeleccionada.respuesta" class="mt-3 p-3 bg-light rounded">
                                 <strong>Respuesta:</strong>
-                                <p>{{ correspondenciaSeleccionada.respuesta }}</p>
+                                <p class="mb-0">{{ correspondenciaSeleccionada.respuesta }}</p>
+                            </div>
+
+                            <div *ngIf="correspondenciaSeleccionada.archivo_respuesta" class="mt-3">
+                                <strong>Archivo de Respuesta:</strong>
+                                <a [href]="correspondenciaSeleccionada.archivo_respuesta" target="_blank" class="btn btn-sm btn-outline-success ms-2">
+                                    <i class="fas fa-download me-1"></i>Descargar Respuesta
+                                </a>
                             </div>
 
                             <div class="mt-4">
@@ -1391,13 +1413,75 @@
                                 </button>
                                 <button class="btn btn-success me-2" 
                                         *ngIf="correspondenciaSeleccionada.estado !== 'resuelta' && correspondenciaSeleccionada.estado !== 'cerrada'"
-                                        (click)="actualizarEstadoCorrespondencia(correspondenciaSeleccionada, 'resuelta')">
-                                    <i class="fas fa-check me-1"></i>Marcar Resuelta
+                                        (click)="mostrarFormularioRespuestaCorrespondenciaFn(correspondenciaSeleccionada)">
+                                    <i class="fas fa-check me-1"></i>Marcar Resuelta y Responder
                                 </button>
                                 <button class="btn btn-danger" 
                                         *ngIf="isAdmin()"
                                         (click)="eliminarCorrespondencia(correspondenciaSeleccionada.id)">
                                     <i class="fas fa-trash me-1"></i>Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal para responder correspondencia -->
+            <div *ngIf="mostrarFormularioRespuestaCorrespondencia && correspondenciaSeleccionada" class="row">
+                <div class="col-12">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-success text-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-reply me-2"></i>Responder Correspondencia - {{ correspondenciaSeleccionada.numero_radicado }}
+                                </h5>
+                                <button class="btn btn-light btn-sm" (click)="cerrarFormularioRespuestaCorrespondencia()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <p><strong>De:</strong> {{ correspondenciaSeleccionada.procedencia }}</p>
+                                <p><strong>Asunto:</strong> {{ getTipoSolicitudLabel(correspondenciaSeleccionada.tipo_solicitud) }}</p>
+                                <p *ngIf="correspondenciaSeleccionada.observaciones"><strong>Solicitud:</strong> {{ correspondenciaSeleccionada.observaciones }}</p>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Respuesta <small class="text-muted">(opcional si adjunta archivo)</small></label>
+                                <textarea 
+                                    class="form-control" 
+                                    rows="5" 
+                                    [(ngModel)]="respuestaCorrespondenciaTexto"
+                                    placeholder="Escriba aquí la respuesta oficial a la correspondencia...">
+                                </textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Archivo adjunto de respuesta <small class="text-muted">(opcional)</small></label>
+                                <input 
+                                    type="file" 
+                                    class="form-control" 
+                                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                    (change)="onFileSelectedCorrespondencia($event, 'respuesta')">
+                                <small class="text-muted">
+                                    Formatos permitidos: PDF, imágenes, Word. Tamaño máximo: 10 MB
+                                </small>
+                                <div *ngIf="selectedFileCorrespondenciaRespuesta" class="mt-2">
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-file me-1"></i>{{ selectedFileCorrespondenciaRespuesta.name }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2">
+                                <button class="btn btn-secondary" (click)="cerrarFormularioRespuestaCorrespondencia()" [disabled]="isSubmitting">
+                                    Cancelar
+                                </button>
+                                <button class="btn btn-success" (click)="enviarRespuestaCorrespondencia()" [disabled]="isSubmitting">
+                                    <i class="fas fa-paper-plane me-1"></i>
+                                    {{ isSubmitting ? 'Enviando...' : 'Enviar Respuesta y Marcar Resuelta' }}
                                 </button>
                             </div>
                         </div>
@@ -1440,7 +1524,6 @@
                                             <th>Destinación</th>
                                             <th>Tipo</th>
                                             <th>Estado</th>
-                                            <th>Asignado a</th>
                                             <th>Acciones</th>
                                         </tr>
                                     </thead>
@@ -1455,7 +1538,6 @@
                                                     {{ getEstadoCorrespondenciaLabel(corr.estado) }}
                                                 </span>
                                             </td>
-                                            <td>{{ corr.assigned_to_name || 'Sin asignar' }}</td>
                                             <td>
                                                 <button class="btn btn-sm btn-outline-primary" 
                                                         (click)="verDetallesCorrespondencia(corr)">

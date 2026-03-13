@@ -82,4 +82,22 @@ export class CorrespondenciaService {
     getNextRadicado(): Observable<{ numero_radicado: string }> {
         return this.http.get<{ numero_radicado: string }>(`${this.baseUrl}next-radicado/preview`);
     }
+
+    /**
+     * Subir archivo de solicitud
+     */
+    uploadArchivoSolicitud(correspondenciaId: number, file: File): Observable<any> {
+        const formData = new FormData();
+        formData.append('file', file);
+        return this.http.post(`${this.baseUrl}${correspondenciaId}/upload-solicitud`, formData);
+    }
+
+    /**
+     * Subir archivo de respuesta
+     */
+    uploadArchivoRespuesta(correspondenciaId: number, file: File): Observable<any> {
+        const formData = new FormData();
+        formData.append('file', file);
+        return this.http.post(`${this.baseUrl}${correspondenciaId}/upload-respuesta`, formData);
+    }
 }

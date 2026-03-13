@@ -13,7 +13,7 @@ import { CorrespondenciaService } from '../../services/correspondencia.service';
 import { User } from '../../models/user.model';
 import { EntityContextService } from '../../services/entity-context.service';
 import { PQRSWithDetails, ESTADOS_PQRS, EstadoPQRS, UpdatePQRSRequest, PQRSResponse, TIPOS_IDENTIFICACION, MEDIOS_RESPUESTA, CANALES_LLEGADA, TIPOS_SOLICITUD, TIPOS_PERSONA, GENEROS } from '../../models/pqrs.model';
-import { CorrespondenciaWithDetails, ESTADOS_CORRESPONDENCIA, TIPOS_RADICACION, TIPOS_SOLICITUD_CORRESPONDENCIA, TIEMPOS_RESPUESTA, CreateCorrespondencia, EstadoCorrespondencia, TipoRadicacion } from '../../models/correspondencia.model';
+import { CorrespondenciaWithDetails, ESTADOS_CORRESPONDENCIA, TIPOS_RADICACION, TIPOS_SOLICITUD_CORRESPONDENCIA, TIEMPOS_RESPUESTA, CreateCorrespondencia, UpdateCorrespondencia, EstadoCorrespondencia, TipoRadicacion } from '../../models/correspondencia.model';
 import { BaseChartDirective } from 'ng2-charts';
 import { Chart, ChartConfiguration, ChartData, ChartType, registerables } from 'chart.js';
 import { Subscription, combineLatest, filter } from 'rxjs';
@@ -59,6 +59,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   correspondenciaList: CorrespondenciaWithDetails[] = [];
   correspondenciaSeleccionada: CorrespondenciaWithDetails | null = null;
   mostrarFormularioCorrespondencia: boolean = false;
+  mostrarFormularioRespuestaCorrespondencia: boolean = false;
+  respuestaCorrespondenciaTexto: string = '';
   nuevaCorrespondenciaForm: FormGroup;
   nextRadicadoCorrespondencia: string = '';
   loadingRadicadoCorrespondencia: boolean = false;
@@ -116,6 +118,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   editarPqrsForm: FormGroup;
   selectedFileEdit: File | null = null;
   selectedFileRespuesta: File | null = null;
+  selectedFileCorrespondenciaSolicitud: File | null = null;
+  selectedFileCorrespondenciaRespuesta: File | null = null;
   justificacionAsignacion: string = '';
 
   // Datos para gráficos
@@ -1113,6 +1117,25 @@ export class DashboardComponent implements OnInit, OnDestroy {
         return;
       }
       this.selectedFileRespuesta = file;
+    }
+  }
+
+  // Seleccionar archivo para correspondencia (solicitud o respuesta)
+  onFileSelectedCorrespondencia(event: any, tipo: 'solicitud' | 'respuesta'): void {
+    const file = event.target.files[0];
+    if (file) {
+      // Validar tamaño (máximo 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        this.alertService.error('El archivo no puede superar 10MB', 'Error');
+        event.target.value = '';
+        return;
+      }
+      
+      if (tipo === 'solicitud') {
+        this.selectedFileCorrespondenciaSolicitud = file;
+      } else {
+        this.selectedFileCorrespondenciaRespuesta = file;
+      }
     }
   }
 
@@ -2271,6 +2294,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ocultarFormularioCorrespondencia(): void {
     this.mostrarFormularioCorrespondencia = false;
     
+    // Limpiar archivo seleccionado
+    this.selectedFileCorrespondenciaSolicitud = null;
+    
     // Establecer procedencia con el nombre de la entidad actual al resetear
     const procedencia = this.entityContext.currentEntity?.name || 'PERSONERIA MUNICIPAL';
     this.nuevaCorrespondenciaForm.reset({
@@ -2334,16 +2360,40 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     this.correspondenciaService.createCorrespondencia(data).subscribe({
       next: (response) => {
-        this.alertService.success('Correspondencia creada exitosamente', 'Éxito');
-        this.ocultarFormularioCorrespondencia();
-        this.loadCorrespondencias();
-        this.isSubmitting = false;
+        // Si hay archivo seleccionado, subirlo
+        if (this.selectedFileCorrespondenciaSolicitud && response.id) {
+          this.correspondenciaService.uploadArchivoSolicitud(response.id, this.selectedFileCorrespondenciaSolicitud).subscribe({
+            next: (uploadResponse) => {
+              console.log('Archivo de solicitud subido:', uploadResponse);
+              this.alertService.success('Correspondencia y archivo creados exitosamente', 'Éxito');
+              this.ocultarFormularioCorrespondencia();
+              this.loadCorrespondencias();
+              this.isSubmitting = false;
+              this.selectedFileCorrespondenciaSolicitud = null;
+            },
+            error: (uploadError) => {
+              console.error('Error subiendo archivo:', uploadError);
+              this.alertService.warning('Correspondencia creada pero hubo un error al subir el archivo', 'Advertencia');
+              this.ocultarFormularioCorrespondencia();
+              this.loadCorrespondencias();
+              this.isSubmitting = false;
+              this.selectedFileCorrespondenciaSolicitud = null;
+            }
+          });
+        } else {
+          // No hay archivo, solo mostrar mensaje de éxito
+          this.alertService.success('Correspondencia creada exitosamente', 'Éxito');
+          this.ocultarFormularioCorrespondencia();
+          this.loadCorrespondencias();
+          this.isSubmitting = false;
+        }
       },
       error: (error) => {
         console.error('Error creando correspondencia:', error);
         const errorMsg = this.extractErrorMessage(error);
         this.alertService.error(errorMsg, 'Error');
         this.isSubmitting = false;
+        this.selectedFileCorrespondenciaSolicitud = null;
       }
     });
   }
@@ -2388,6 +2438,79 @@ export class DashboardComponent implements OnInit, OnDestroy {
       error: (error) => {
         console.error('Error eliminando correspondencia:', error);
         this.alertService.error('Error al eliminar la correspondencia', 'Error');
+      }
+    });
+  }
+
+  mostrarFormularioRespuestaCorrespondenciaFn(correspondencia: CorrespondenciaWithDetails): void {
+    this.correspondenciaSeleccionada = correspondencia;
+    this.mostrarFormularioRespuestaCorrespondencia = true;
+    this.respuestaCorrespondenciaTexto = '';
+    this.selectedFileCorrespondenciaRespuesta = null;
+  }
+
+  cerrarFormularioRespuestaCorrespondencia(): void {
+    this.mostrarFormularioRespuestaCorrespondencia = false;
+    this.respuestaCorrespondenciaTexto = '';
+    this.selectedFileCorrespondenciaRespuesta = null;
+  }
+
+  enviarRespuestaCorrespondencia(): void {
+    if (!this.correspondenciaSeleccionada) {
+      return;
+    }
+
+    if (!this.respuestaCorrespondenciaTexto.trim() && !this.selectedFileCorrespondenciaRespuesta) {
+      this.alertService.error('Debes proporcionar una respuesta en texto o adjuntar un archivo', 'Error');
+      return;
+    }
+
+    this.isSubmitting = true;
+
+    // Primero subir el archivo si existe
+    if (this.selectedFileCorrespondenciaRespuesta) {
+      this.correspondenciaService.uploadArchivoRespuesta(this.correspondenciaSeleccionada.id, this.selectedFileCorrespondenciaRespuesta).subscribe({
+        next: (uploadResponse) => {
+          console.log('Archivo de respuesta subido:', uploadResponse);
+          // Luego actualizar la correspondencia con la respuesta y estado
+          this.actualizarCorrespondenciaConRespuesta();
+        },
+        error: (uploadError) => {
+          console.error('Error subiendo archivo de respuesta:', uploadError);
+          this.alertService.error('Error al subir el archivo adjunto. Intente nuevamente.', 'Error');
+          this.isSubmitting = false;
+        }
+      });
+    } else {
+      // Si no hay archivo, solo actualizar con el texto
+      this.actualizarCorrespondenciaConRespuesta();
+    }
+  }
+
+  private actualizarCorrespondenciaConRespuesta(): void {
+    if (!this.correspondenciaSeleccionada) return;
+
+    const updateData: UpdateCorrespondencia = {
+      estado: 'resuelta',
+      respuesta: this.respuestaCorrespondenciaTexto.trim()
+    };
+
+    this.correspondenciaService.updateCorrespondencia(this.correspondenciaSeleccionada.id, updateData).subscribe({
+      next: (response) => {
+        this.alertService.success('Respuesta enviada y correspondencia marcada como resuelta', 'Éxito');
+        this.cerrarFormularioRespuestaCorrespondencia();
+        this.loadCorrespondencias();
+        this.isSubmitting = false;
+        if (this.correspondenciaSeleccionada) {
+          this.correspondenciaSeleccionada.estado = 'resuelta';
+          this.correspondenciaSeleccionada.respuesta = this.respuestaCorrespondenciaTexto.trim();
+        }
+      },
+      error: (error) => {
+        console.error('Error actualizando correspondencia:', error);
+        const errorMsg = this.extractErrorMessage(error);
+        this.alertService.error(errorMsg, 'Error');
+        this.isSubmitting = false;
       }
     });
   }
