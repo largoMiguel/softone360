@@ -807,6 +807,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   confirmarCambioEstado(): void {
     if (this.selectedPqrs && this.selectedEstado) {
+      // Validar que si el estado es 'cerrado', debe tener respuesta
+      if (this.selectedEstado === 'cerrado' && !this.selectedPqrs.respuesta) {
+        this.alertService.warning(
+          'No se puede cerrar la PQRS sin haber enviado una respuesta al ciudadano. Por favor, envíe primero la respuesta.',
+          'Respuesta Requerida'
+        );
+        return;
+      }
+
       const estadoLabel = this.getEstadoLabel(this.selectedEstado);
 
       const updateData: UpdatePQRSRequest = {
