@@ -15,7 +15,7 @@ import { environment } from '../../environments/environment';
     providedIn: 'root'
 })
 export class CorrespondenciaService {
-    private baseUrl = `${environment.apiUrl}/correspondencia`;
+    private baseUrl = `${environment.apiUrl}/correspondencia/`;
 
     constructor(private http: HttpClient) { }
 
