@@ -399,6 +399,12 @@ async def update_pqrs(
     
     # Manejar cambios de estado
     if "estado" in update_data:
+        # Validar que si se cambia a cerrado, debe tener respuesta
+        if update_data["estado"] == EstadoPQRS.CERRADO and not pqrs.respuesta:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se puede cerrar la PQRS sin haber enviado una respuesta al ciudadano"
+            )
         if update_data["estado"] == EstadoPQRS.CERRADO and not pqrs.fecha_cierre:
             pqrs.fecha_cierre = datetime.utcnow()
         if update_data["estado"] == EstadoPQRS.RESUELTO and not pqrs.fecha_respuesta:
