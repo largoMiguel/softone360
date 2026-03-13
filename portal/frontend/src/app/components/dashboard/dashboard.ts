@@ -9,9 +9,11 @@ import { AlertService } from '../../services/alert.service';
 import { AiService } from '../../services/ai.service';
 import { ReportService } from '../../services/report.service';
 import { SecretariasService } from '../../services/secretarias.service';
+import { CorrespondenciaService } from '../../services/correspondencia.service';
 import { User } from '../../models/user.model';
 import { EntityContextService } from '../../services/entity-context.service';
 import { PQRSWithDetails, ESTADOS_PQRS, EstadoPQRS, UpdatePQRSRequest, PQRSResponse, TIPOS_IDENTIFICACION, MEDIOS_RESPUESTA, CANALES_LLEGADA, TIPOS_SOLICITUD, TIPOS_PERSONA, GENEROS } from '../../models/pqrs.model';
+import { CorrespondenciaWithDetails, ESTADOS_CORRESPONDENCIA, TIPOS_RADICACION, TIPOS_SOLICITUD_CORRESPONDENCIA, TIEMPOS_RESPUESTA, CreateCorrespondencia, EstadoCorrespondencia, TipoRadicacion } from '../../models/correspondencia.model';
 import { BaseChartDirective } from 'ng2-charts';
 import { Chart, ChartConfiguration, ChartData, ChartType, registerables } from 'chart.js';
 import { Subscription, combineLatest, filter } from 'rxjs';
@@ -46,6 +48,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
   tiposSolicitud = TIPOS_SOLICITUD;
   tiposPersona = TIPOS_PERSONA;
   generos = GENEROS;
+  
+  // Constantes para Correspondencia
+  estadosCorrespondencia = ESTADOS_CORRESPONDENCIA;
+  tiposRadicacion = TIPOS_RADICACION;
+  tiposSolicitudCorrespondencia = TIPOS_SOLICITUD_CORRESPONDENCIA;
+  tiemposRespuesta = TIEMPOS_RESPUESTA;
+  
+  // Listas de correspondencia
+  correspondenciaList: CorrespondenciaWithDetails[] = [];
+  correspondenciaSeleccionada: CorrespondenciaWithDetails | null = null;
+  mostrarFormularioCorrespondencia: boolean = false;
+  nuevaCorrespondenciaForm: FormGroup;
+  nextRadicadoCorrespondencia: string = '';
+  loadingRadicadoCorrespondencia: boolean = false;
+
   activeView = 'dashboard';
   nuevaPqrsForm: FormGroup;
   nuevoSecretarioForm: FormGroup;
@@ -189,11 +206,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private secretariasSvc: SecretariasService,
     public entityContext: EntityContextService,
     private notificationsService: NotificationsService,
-    private alertsEvents: AlertsEventsService
+    private alertsEvents: AlertsEventsService,
+    private correspondenciaService: CorrespondenciaService
   ) {
     // Inicializar streams de alertas con el servicio inyectado
     this.alerts$ = this.notificationsService.alertsStream;
     this.unreadCount$ = this.notificationsService.unreadCountStream;
+    
+    // Formulario de PQRS
     this.nuevaPqrsForm = this.fb.group({
       canal_llegada: ['web', Validators.required],
       tipo_identificacion: ['personal', Validators.required],
@@ -292,6 +312,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
       descripcion: ['', Validators.required],
       fecha_solicitud: ['', Validators.required]
     });
+
+    // Formulario de correspondencia
+    this.nuevaCorrespondenciaForm = this.fb.group({
+      fecha_envio: [new Date().toISOString().split('T')[0], Validators.required],
+      procedencia: ['PERSONERIA MUNICIPAL', Validators.required],
+      destinacion: ['', Validators.required],
+      numero_folios: [1, [Validators.required, Validators.min(1)]],
+      tipo_radicacion: ['correo', Validators.required],
+      correo_electronico: [''],
+      direccion_radicacion: [''],
+      tipo_solicitud: ['sugerencia', Validators.required],
+      tiempo_respuesta_dias: [10],
+      observaciones: [''],
+      assigned_to_id: [null]
+    });
   }
 
   // Validador personalizado para confirmar contraseñas
@@ -340,6 +375,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.limpiarDatos();
       this.loadPqrs();
       this.loadSecretarios();
+      this.loadCorrespondencias();
       // Cargar lista de secretarías sugeridas (distintas) para la entidad
       const eid = this.entityContext.currentEntity?.id;
       this.secretariasSvc.listar(eid).subscribe({
@@ -2205,6 +2241,161 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.alertService.error('Error al obtener el archivo. Por favor intenta nuevamente.', 'Error');
       }
     });
+  }
+
+  // ==================== MÉTODOS DE CORRESPONDENCIA ====================
+
+  loadCorrespondencias(): void {
+    this.correspondenciaService.getCorrespondencias().subscribe({
+      next: (data) => {
+        this.correspondenciaList = data;
+      },
+      error: (error) => {
+        console.error('Error cargando correspondencias:', error);
+        this.alertService.error('Error al cargar correspondencias', 'Error');
+      }
+    });
+  }
+
+  mostrarFormularioNuevaCorrespondencia(): void {
+    this.mostrarFormularioCorrespondencia = true;
+    this.loadNextRadicadoCorrespondencia();
+  }
+
+  ocultarFormularioCorrespondencia(): void {
+    this.mostrarFormularioCorrespondencia = false;
+    this.nuevaCorrespondenciaForm.reset({
+      fecha_envio: new Date().toISOString().split('T')[0],
+      procedencia: 'PERSONERIA MUNICIPAL',
+      numero_folios: 1,
+      tipo_radicacion: 'correo',
+      tipo_solicitud: 'sugerencia',
+      tiempo_respuesta_dias: 10
+    });
+  }
+
+  loadNextRadicadoCorrespondencia(): void {
+    this.loadingRadicadoCorrespondencia = true;
+    this.correspondenciaService.getNextRadicado().subscribe({
+      next: (response) => {
+        this.nextRadicadoCorrespondencia = response.numero_radicado;
+        this.loadingRadicadoCorrespondencia = false;
+      },
+      error: (error) => {
+        console.error('Error obteniendo siguiente radicado:', error);
+        this.loadingRadicadoCorrespondencia = false;
+      }
+    });
+  }
+
+  onTipoRadicacionChange(): void {
+    const tipoRadicacion = this.nuevaCorrespondenciaForm.get('tipo_radicacion')?.value;
+    
+    if (tipoRadicacion === 'correo') {
+      this.nuevaCorrespondenciaForm.get('correo_electronico')?.setValidators([Validators.required, Validators.email]);
+      this.nuevaCorrespondenciaForm.get('direccion_radicacion')?.clearValidators();
+    } else if (tipoRadicacion === 'fisico') {
+      this.nuevaCorrespondenciaForm.get('direccion_radicacion')?.setValidators([Validators.required]);
+      this.nuevaCorrespondenciaForm.get('correo_electronico')?.clearValidators();
+    }
+    
+    this.nuevaCorrespondenciaForm.get('correo_electronico')?.updateValueAndValidity();
+    this.nuevaCorrespondenciaForm.get('direccion_radicacion')?.updateValueAndValidity();
+  }
+
+  submitNuevaCorrespondencia(): void {
+    if (this.nuevaCorrespondenciaForm.invalid) {
+      this.alertService.error('Por favor completa todos los campos requeridos', 'Error');
+      return;
+    }
+
+    if (!this.currentUser || !this.currentUser.entity_id) {
+      this.alertService.error('No se pudo obtener la información del usuario', 'Error');
+      return;
+    }
+
+    this.isSubmitting = true;
+    
+    const formData = this.nuevaCorrespondenciaForm.value;
+    const data: CreateCorrespondencia = {
+      ...formData,
+      entity_id: this.currentUser.entity_id
+    };
+
+    this.correspondenciaService.createCorrespondencia(data).subscribe({
+      next: (response) => {
+        this.alertService.success('Correspondencia creada exitosamente', 'Éxito');
+        this.ocultarFormularioCorrespondencia();
+        this.loadCorrespondencias();
+        this.isSubmitting = false;
+      },
+      error: (error) => {
+        console.error('Error creando correspondencia:', error);
+        const errorMsg = this.extractErrorMessage(error);
+        this.alertService.error(errorMsg, 'Error');
+        this.isSubmitting = false;
+      }
+    });
+  }
+
+  verDetallesCorrespondencia(correspondencia: CorrespondenciaWithDetails): void {
+    this.correspondenciaSeleccionada = correspondencia;
+  }
+
+  cerrarDetallesCorrespondencia(): void {
+    this.correspondenciaSeleccionada = null;
+  }
+
+  actualizarEstadoCorrespondencia(correspondencia: CorrespondenciaWithDetails, nuevoEstado: EstadoCorrespondencia): void {
+    this.correspondenciaService.updateCorrespondencia(correspondencia.id, { estado: nuevoEstado }).subscribe({
+      next: () => {
+        this.alertService.success('Estado actualizado correctamente', 'Éxito');
+        this.loadCorrespondencias();
+        if (this.correspondenciaSeleccionada?.id === correspondencia.id) {
+          this.correspondenciaSeleccionada.estado = nuevoEstado;
+        }
+      },
+      error: (error) => {
+        console.error('Error actualizando estado:', error);
+        this.alertService.error('Error al actualizar el estado', 'Error');
+      }
+    });
+  }
+
+  eliminarCorrespondencia(id: number): void {
+    if (!confirm('¿Estás seguro de que deseas eliminar esta correspondencia?')) {
+      return;
+    }
+
+    this.correspondenciaService.deleteCorrespondencia(id).subscribe({
+      next: () => {
+        this.alertService.success('Correspondencia eliminada correctamente', 'Éxito');
+        this.loadCorrespondencias();
+        if (this.correspondenciaSeleccionada?.id === id) {
+          this.correspondenciaSeleccionada = null;
+        }
+      },
+      error: (error) => {
+        console.error('Error eliminando correspondencia:', error);
+        this.alertService.error('Error al eliminar la correspondencia', 'Error');
+      }
+    });
+  }
+
+  getEstadoCorrespondenciaLabel(estado: EstadoCorrespondencia): string {
+    return this.estadosCorrespondencia[estado]?.label || estado;
+  }
+
+  getEstadoCorrespondenciaColor(estado: EstadoCorrespondencia): string {
+    return this.estadosCorrespondencia[estado]?.color || 'text-secondary';
+  }
+
+  getTipoRadicacionLabel(tipo: TipoRadicacion): string {
+    return this.tiposRadicacion[tipo] || tipo;
+  }
+
+  getTipoSolicitudCorrespondenciaLabel(tipo: string): string {
+    return this.tiposSolicitudCorrespondencia[tipo as keyof typeof this.tiposSolicitudCorrespondencia] || tipo;
   }
 }
 

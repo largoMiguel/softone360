@@ -1183,43 +1183,301 @@
 
         <!-- Vista de Correspondencia -->
         <div *ngIf="activeView === 'correspondencia'">
-            <div class="row justify-content-center">
-                <div class="col-lg-10">
+            <!-- Formulario de nueva correspondencia -->
+            <div *ngIf="mostrarFormularioCorrespondencia" class="row">
+                <div class="col-12">
                     <div class="card shadow-sm border-0">
                         <div class="card-header bg-primary text-white">
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-envelope fa-2x me-3"></i>
+                            <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h4 class="mb-0">Correspondencia</h4>
-                                    <small>Gestión de comunicaciones oficiales</small>
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-plus-circle me-2"></i>Nueva Correspondencia
+                                    </h5>
+                                    <small>Radicado: {{ nextRadicadoCorrespondencia || 'Cargando...' }}</small>
                                 </div>
+                                <button class="btn btn-light btn-sm" (click)="ocultarFormularioCorrespondencia()">
+                                    <i class="fas fa-times me-1"></i>Cancelar
+                                </button>
                             </div>
                         </div>
-                        <div class="card-body p-5">
-                            <div class="text-center mb-4">
-                                <i class="fas fa-tools fa-4x text-muted mb-3"></i>
-                                <h5 class="text-muted">Módulo en Desarrollo</h5>
-                                <p class="text-muted">
-                                    El módulo de correspondencia estará disponible próximamente.<br>
-                                    Aquí podrás gestionar la correspondencia entrante y saliente de la entidad.
-                                </p>
+                        <div class="card-body">
+                            <form [formGroup]="nuevaCorrespondenciaForm" (ngSubmit)="submitNuevaCorrespondencia()">
+                                <div class="row">
+                                    <!-- Fecha de envío -->
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-calendar me-1"></i>Fecha de Envío *
+                                        </label>
+                                        <input type="date" class="form-control" formControlName="fecha_envio">
+                                    </div>
+
+                                    <!-- Procedencia -->
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-building me-1"></i>Procedencia *
+                                        </label>
+                                        <input type="text" class="form-control" formControlName="procedencia">
+                                    </div>
+
+                                    <!-- Número de folios -->
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-file me-1"></i>Número de Folios *
+                                        </label>
+                                        <input type="number" class="form-control" formControlName="numero_folios" min="1">
+                                    </div>
+
+                                    <!-- Destinación -->
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-map-marker-alt me-1"></i>Destinación *
+                                        </label>
+                                        <input type="text" class="form-control" formControlName="destinacion" 
+                                               placeholder="Ej: Alcaldía Municipal, Secretaría de Educación">
+                                    </div>
+
+                                    <!-- Tipo de radicación -->
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-paper-plane me-1"></i>Radicado por *
+                                        </label>
+                                        <select class="form-select" formControlName="tipo_radicacion" 
+                                                (change)="onTipoRadicacionChange()">
+                                            <option value="correo">Correo Electrónico</option>
+                                            <option value="fisico">Físico</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Correo electrónico (si es por correo) -->
+                                    <div class="col-md-6 mb-3" 
+                                         *ngIf="nuevaCorrespondenciaForm.get('tipo_radicacion')?.value === 'correo'">
+                                        <label class="form-label">
+                                            <i class="fas fa-envelope me-1"></i>Correo Electrónico *
+                                        </label>
+                                        <input type="email" class="form-control" formControlName="correo_electronico"
+                                               placeholder="ejemplo@correo.com">
+                                    </div>
+
+                                    <!-- Dirección (si es físico) -->
+                                    <div class="col-md-6 mb-3" 
+                                         *ngIf="nuevaCorrespondenciaForm.get('tipo_radicacion')?.value === 'fisico'">
+                                        <label class="form-label">
+                                            <i class="fas fa-map-marked-alt me-1"></i>Dirección de Radicación *
+                                        </label>
+                                        <input type="text" class="form-control" formControlName="direccion_radicacion"
+                                               placeholder="Dirección completa">
+                                    </div>
+
+                                    <!-- Tipo de solicitud -->
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-tag me-1"></i>Tipo de Solicitud *
+                                        </label>
+                                        <select class="form-select" formControlName="tipo_solicitud">
+                                            <option value="sugerencia">Sugerencia</option>
+                                            <option value="peticion">Petición</option>
+                                            <option value="queja">Queja</option>
+                                            <option value="reclamo">Reclamo</option>
+                                            <option value="felicitacion">Felicitación</option>
+                                            <option value="solicitud_informacion">Solicitud de Información</option>
+                                            <option value="otro">Otro</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Tiempo de respuesta -->
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-clock me-1"></i>Tiempo de Respuesta
+                                        </label>
+                                        <select class="form-select" formControlName="tiempo_respuesta_dias">
+                                            <option [value]="null">Sin definir</option>
+                                            <option [value]="5">5 días</option>
+                                            <option [value]="10">10 días</option>
+                                            <option [value]="15">15 días</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Asignar a -->
+                                    <div class="col-md-6 mb-3" *ngIf="isAdmin()">
+                                        <label class="form-label">
+                                            <i class="fas fa-user me-1"></i>Asignar a
+                                        </label>
+                                        <select class="form-select" formControlName="assigned_to_id">
+                                            <option [value]="null">Sin asignar</option>
+                                            <option *ngFor="let secretario of secretariosList" [value]="secretario.id">
+                                                {{ secretario.full_name }}
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Observaciones -->
+                                    <div class="col-12 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-comment me-1"></i>Observaciones
+                                        </label>
+                                        <textarea class="form-control" formControlName="observaciones" 
+                                                  rows="3" placeholder="Información adicional sobre la correspondencia"></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="text-end">
+                                    <button type="button" class="btn btn-secondary me-2" 
+                                            (click)="ocultarFormularioCorrespondencia()">
+                                        <i class="fas fa-times me-1"></i>Cancelar
+                                    </button>
+                                    <button type="submit" class="btn btn-primary" [disabled]="isSubmitting || nuevaCorrespondenciaForm.invalid">
+                                        <i class="fas fa-save me-1"></i>
+                                        {{ isSubmitting ? 'Guardando...' : 'Guardar Correspondencia' }}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detalles de correspondencia -->
+            <div *ngIf="correspondenciaSeleccionada && !mostrarFormularioCorrespondencia" class="row">
+                <div class="col-12">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-info text-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-envelope-open me-2"></i>Correspondencia: {{ correspondenciaSeleccionada.numero_radicado }}
+                                    </h5>
+                                    <small>{{ correspondenciaSeleccionada.destinacion }}</small>
+                                </div>
+                                <button class="btn btn-light btn-sm" (click)="cerrarDetallesCorrespondencia()">
+                                    <i class="fas fa-times me-1"></i>Cerrar
+                                </button>
                             </div>
-                            
-                            <div class="alert alert-info">
-                                <h6 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Funcionalidades Planeadas</h6>
-                                <ul class="mb-0">
-                                    <li>Registro de correspondencia recibida</li>
-                                    <li>Gestión de correspondencia enviada</li>
-                                    <li>Radicación de documentos</li>
-                                    <li>Trazabilidad de comunicaciones oficiales</li>
-                                    <li>Generación de reportes</li>
-                                </ul>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Radicado:</strong> {{ correspondenciaSeleccionada.numero_radicado }}</p>
+                                    <p><strong>Fecha de Envío:</strong> {{ correspondenciaSeleccionada.fecha_envio }}</p>
+                                    <p><strong>Procedencia:</strong> {{ correspondenciaSeleccionada.procedencia }}</p>
+                                    <p><strong>Destinación:</strong> {{ correspondenciaSeleccionada.destinacion }}</p>
+                                    <p><strong>Número de Folios:</strong> {{ correspondenciaSeleccionada.numero_folios }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Radicado por:</strong> {{ getTipoRadicacionLabel(correspondenciaSeleccionada.tipo_radicacion) }}</p>
+                                    <p *ngIf="correspondenciaSeleccionada.correo_electronico">
+                                        <strong>Correo:</strong> {{ correspondenciaSeleccionada.correo_electronico }}
+                                    </p>
+                                    <p *ngIf="correspondenciaSeleccionada.direccion_radicacion">
+                                        <strong>Dirección:</strong> {{ correspondenciaSeleccionada.direccion_radicacion }}
+                                    </p>
+                                    <p><strong>Tipo:</strong> {{ getTipoSolicitudCorrespondenciaLabel(correspondenciaSeleccionada.tipo_solicitud) }}</p>
+                                    <p>
+                                        <strong>Estado:</strong> 
+                                        <span class="badge" [ngClass]="estadosCorrespondencia[correspondenciaSeleccionada.estado].bgColor">
+                                            {{ getEstadoCorrespondenciaLabel(correspondenciaSeleccionada.estado) }}
+                                        </span>
+                                    </p>
+                                    <p *ngIf="correspondenciaSeleccionada.tiempo_respuesta_dias">
+                                        <strong>Tiempo de Respuesta:</strong> {{ correspondenciaSeleccionada.tiempo_respuesta_dias }} días
+                                    </p>
+                                    <p *ngIf="correspondenciaSeleccionada.assigned_to_name">
+                                        <strong>Asignado a:</strong> {{ correspondenciaSeleccionada.assigned_to_name }}
+                                    </p>
+                                </div>
                             </div>
 
-                            <div class="text-center mt-4">
-                                <button class="btn btn-primary" (click)="setActiveView('welcome')">
-                                    <i class="fas fa-arrow-left me-2"></i>Volver al Inicio
+                            <div *ngIf="correspondenciaSeleccionada.observaciones" class="mt-3">
+                                <strong>Observaciones:</strong>
+                                <p>{{ correspondenciaSeleccionada.observaciones }}</p>
+                            </div>
+
+                            <div *ngIf="correspondenciaSeleccionada.respuesta" class="mt-3">
+                                <strong>Respuesta:</strong>
+                                <p>{{ correspondenciaSeleccionada.respuesta }}</p>
+                            </div>
+
+                            <div class="mt-4">
+                                <button class="btn btn-warning me-2" 
+                                        *ngIf="correspondenciaSeleccionada.estado === 'enviada'"
+                                        (click)="actualizarEstadoCorrespondencia(correspondenciaSeleccionada, 'en_proceso')">
+                                    <i class="fas fa-spinner me-1"></i>Marcar En Proceso
                                 </button>
+                                <button class="btn btn-success me-2" 
+                                        *ngIf="correspondenciaSeleccionada.estado !== 'resuelta' && correspondenciaSeleccionada.estado !== 'cerrada'"
+                                        (click)="actualizarEstadoCorrespondencia(correspondenciaSeleccionada, 'resuelta')">
+                                    <i class="fas fa-check me-1"></i>Marcar Resuelta
+                                </button>
+                                <button class="btn btn-danger" 
+                                        *ngIf="isAdmin()"
+                                        (click)="eliminarCorrespondencia(correspondenciaSeleccionada.id)">
+                                    <i class="fas fa-trash me-1"></i>Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Listado de correspondencias -->
+            <div *ngIf="!mostrarFormularioCorrespondencia && !correspondenciaSeleccionada" class="row">
+                <div class="col-12">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-primary text-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h4 class="mb-0">
+                                        <i class="fas fa-envelope me-2"></i>Correspondencia
+                                    </h4>
+                                    <small>Gestión de comunicaciones oficiales</small>
+                                </div>
+                                <button class="btn btn-light" (click)="mostrarFormularioNuevaCorrespondencia()">
+                                    <i class="fas fa-plus me-1"></i>Nueva Correspondencia
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div *ngIf="correspondenciaList.length === 0" class="text-center py-5">
+                                <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                                <p class="text-muted">No hay correspondencias registradas</p>
+                                <button class="btn btn-primary" (click)="mostrarFormularioNuevaCorrespondencia()">
+                                    <i class="fas fa-plus me-1"></i>Crear Primera Correspondencia
+                                </button>
+                            </div>
+
+                            <div *ngIf="correspondenciaList.length > 0" class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Radicado</th>
+                                            <th>Fecha</th>
+                                            <th>Destinación</th>
+                                            <th>Tipo</th>
+                                            <th>Estado</th>
+                                            <th>Asignado a</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr *ngFor="let corr of correspondenciaList">
+                                            <td><strong>{{ corr.numero_radicado }}</strong></td>
+                                            <td>{{ corr.fecha_envio }}</td>
+                                            <td>{{ corr.destinacion }}</td>
+                                            <td>{{ getTipoSolicitudCorrespondenciaLabel(corr.tipo_solicitud) }}</td>
+                                            <td>
+                                                <span class="badge" [ngClass]="estadosCorrespondencia[corr.estado].bgColor">
+                                                    {{ getEstadoCorrespondenciaLabel(corr.estado) }}
+                                                </span>
+                                            </td>
+                                            <td>{{ corr.assigned_to_name || 'Sin asignar' }}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" 
+                                                        (click)="verDetallesCorrespondencia(corr)">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>

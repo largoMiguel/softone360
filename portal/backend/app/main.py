@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import inspect, text
 from app.config.database import engine, get_db, Base
 from app.config.settings import settings
-from app.routes import auth, pqrs, users, planes, entities, contratacion, alerts, secretarias, bpin, showcase, setup, predio_analysis, asistencia, servicios_ingenieria, admin_migrations, admin_migrations_stats, admin_debug
-from app.models import user, pqrs as pqrs_model, plan, entity, pdm as pdm_model, secretaria as secretaria_model, pdm_ejecucion, funcionario
+from app.routes import auth, pqrs, users, planes, entities, contratacion, alerts, secretarias, bpin, showcase, setup, predio_analysis, asistencia, servicios_ingenieria, admin_migrations, admin_migrations_stats, admin_debug, correspondencia
+from app.models import user, pqrs as pqrs_model, plan, entity, pdm as pdm_model, secretaria as secretaria_model, pdm_ejecucion, funcionario, correspondencia as correspondencia_model
 from app.models.user import User, UserRole
 from app.utils.auth import get_password_hash
 
@@ -191,6 +191,7 @@ app.include_router(servicios_ingenieria.router, prefix="/api", tags=["Servicios 
 app.include_router(admin_migrations.router, tags=["Admin Migrations"])
 app.include_router(admin_migrations_stats.router, tags=["Admin Migrations Stats"])
 app.include_router(admin_debug.router, tags=["Admin Debug"])
+app.include_router(correspondencia.router, prefix="/api", tags=["Correspondencia"])
 
 @app.get("/")
 async def root():
