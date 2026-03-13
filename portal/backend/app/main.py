@@ -12,13 +12,13 @@ from app.utils.auth import get_password_hash
 
 # Asegurar que el ENUM userrole existe en Postgres con todos los valores antes de crear tablas
 def ensure_postgres_enums():
-    """Crea o actualiza el ENUM userrole en Postgres si es necesario."""
+    """Crea o actualiza los ENUMs en Postgres si es necesario."""
     try:
         if 'postgresql' not in str(engine.url):
             return  # Solo para PostgreSQL
         
         with engine.connect() as conn:
-            # Verificar si el tipo userrole existe
+            # 1. ENUM userrole
             check_type = text("""
                 SELECT EXISTS (
                     SELECT 1 FROM pg_type WHERE typname = 'userrole'
@@ -50,6 +50,45 @@ def ensure_postgres_enums():
                             conn.execute(text(f"ALTER TYPE userrole ADD VALUE '{value}'"))
                         except Exception:
                             pass  # El valor ya existe o hay error
+            
+            # 2. ENUMs de Correspondencia
+            # TipoRadicacion
+            conn.execute(text("""
+                DO $$ BEGIN
+                    CREATE TYPE tiporadicacion AS ENUM ('fisico', 'correo');
+                EXCEPTION
+                    WHEN duplicate_object THEN null;
+                END $$;
+            """))
+            conn.commit()
+            
+            # TipoSolicitudCorrespondencia
+            conn.execute(text("""
+                DO $$ BEGIN
+                    CREATE TYPE tiposolicitudcorrespondencia AS ENUM (
+                        'sugerencia', 'peticion', 'queja', 'reclamo', 
+                        'felicitacion', 'solicitud_informacion', 'otro'
+                    );
+                EXCEPTION
+                    WHEN duplicate_object THEN null;
+                END $$;
+            """))
+            conn.commit()
+            
+            # EstadoCorrespondencia
+            conn.execute(text("""
+                DO $$ BEGIN
+                    CREATE TYPE estadocorrespondencia AS ENUM (
+                        'enviada', 'en_proceso', 'resuelta', 'cerrada'
+                    );
+                EXCEPTION
+                    WHEN duplicate_object THEN null;
+                END $$;
+            """))
+            conn.commit()
+            
+            print("✅ ENUMs de correspondencia verificados/creados")
+            
     except Exception as e:
         print(f"⚠️  Error asegurando ENUMs: {e}")
 
