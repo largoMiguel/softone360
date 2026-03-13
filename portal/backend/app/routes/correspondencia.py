@@ -91,7 +91,6 @@ async def create_correspondencia(
             observaciones=correspondencia_data.observaciones,
             respuesta=correspondencia_data.respuesta,
             created_by_id=current_user.id,
-            assigned_to_id=correspondencia_data.assigned_to_id,
             entity_id=current_user.entity_id
         )
         

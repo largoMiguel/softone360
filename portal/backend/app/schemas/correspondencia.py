@@ -25,7 +25,6 @@ class CorrespondenciaBase(BaseModel):
     tiempo_respuesta_dias: Optional[int] = None
     observaciones: Optional[str] = None
     respuesta: Optional[str] = None
-    assigned_to_id: Optional[int] = None
     
     @field_validator('correo_electronico')
     @classmethod
@@ -75,7 +74,6 @@ class CorrespondenciaUpdate(BaseModel):
     tiempo_respuesta_dias: Optional[int] = None
     observaciones: Optional[str] = None
     respuesta: Optional[str] = None
-    assigned_to_id: Optional[int] = None
     
     @field_validator('correo_electronico')
     @classmethod

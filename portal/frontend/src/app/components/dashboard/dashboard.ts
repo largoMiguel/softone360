@@ -324,8 +324,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       direccion_radicacion: [''],
       tipo_solicitud: ['sugerencia', Validators.required],
       tiempo_respuesta_dias: [10],
-      observaciones: [''],
-      assigned_to_id: [null]
+      observaciones: ['']
     });
   }
 
