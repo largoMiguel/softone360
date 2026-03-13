@@ -1774,6 +1774,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       const cerradas = pqrsFiltered.filter(p => p.estado === 'cerrado').length;
       const tasaResolucion = totalPqrs > 0 ? (resueltas + cerradas) / totalPqrs : 0;
 
+      const entityName = this.entityContext.currentEntity?.name || 'Alcaldía Municipal';
+
       const aiRequest = {
         totalPqrs,
         pendientes,
@@ -1785,7 +1787,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
         tasaResolucion,
         tendenciaMensual: [] as any[],
         fechaInicio: this.fechaInicio,
-        fechaFin: this.fechaFin
+        fechaFin: this.fechaFin,
+        entityName: entityName
       };
 
       // Obtener análisis (respetando flag de IA)
@@ -1826,7 +1829,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
         aiAnalysis,
         analytics,
         fechaInicioFormat,
-        fechaFinFormat
+        fechaFinFormat,
+        entityName
       );
 
       this.alertService.success('El informe PDF ha sido generado y descargado exitosamente.', 'Informe Generado');

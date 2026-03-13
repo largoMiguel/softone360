@@ -16,6 +16,7 @@ export interface AIAnalysisRequest {
     tendenciaMensual: any[];
     fechaInicio?: string;
     fechaFin?: string;
+    entityName?: string;
 }
 
 export interface AIAnalysisResponse {
@@ -67,13 +68,14 @@ export class AiService {
         const totalCerradas = data.resueltas + data.cerradas;
         const porcentajePendientes = ((data.pendientes / data.totalPqrs) * 100).toFixed(1);
         const porcentajeEnProceso = ((data.enProceso / data.totalPqrs) * 100).toFixed(1);
+        const entityName = data.entityName || 'la Entidad';
 
         // Introducción predeterminada + análisis IA
         const introduccionLegal = `En cumplimiento al Artículo 76 de la Ley 1474 de 2011, "En toda entidad pública, deberá existir por lo menos una dependencia encargada de recibir, tramitar y resolver las quejas, sugerencias y reclamos que los ciudadanos formulen, y que se relacionen con el cumplimiento de la misión de la entidad. La Oficina de Control Interno deberá vigilar que la atención se preste de acuerdo con las normas legales vigentes y rendirá a la administración de la entidad un informe semestral sobre el particular", así mismo la Ley 1755 de 2015 "por medio de la cual se regula el Derecho Fundamental de Petición". Decreto 1166 de Julio 19 de 2016 "Por el cual se adiciona el capítulo 12 al Título 3 de la Parte 2 del Libro 2 del Decreto 1069 de 2015, Decreto Único Reglamentario del Sector Justicia y del Derecho, relacionado con la presentación, tratamiento y radicación de las peticiones presentadas verbalmente". Resolución N° 001519 de 24 de agosto de 2020 "Por la cual se definen los estándares y directrices para publicar la información señalada en la Ley 1712 del 2014 y se definen los requisitos materia de acceso a la información pública, accesibilidad web, seguridad digital, y datos abiertos". Circular 100010-2021 Directrices para fortalecer la implementación de lenguaje claro.
 
-El Municipio de Chiquiza realiza el seguimiento a las Peticiones, Quejas, Reclamos, Solicitudes y Denuncias (PQRSD) presentadas por los ciudadanos o grupo de ciudadanos con el fin de verificar su oportunidad, materialidad, congruencia y veracidad para lo cual se apoya en los registros del sistema de información del sitio web institucional, el cual lleva el registro desde su radicación hasta la salida de su respuesta, adicionalmente permite generar reportes permanentes sobre el estado de las PQRSD, buscando determinar las posibles debilidades y fortalezas para ser llevadas a la alta dirección en busca del mejoramiento continuo de la Entidad y con ella, afianzar la confianza del ciudadano en las instituciones públicas.
+${entityName} realiza el seguimiento a las Peticiones, Quejas, Reclamos, Solicitudes y Denuncias (PQRSD) presentadas por los ciudadanos o grupo de ciudadanos con el fin de verificar su oportunidad, materialidad, congruencia y veracidad para lo cual se apoya en los registros del sistema de información del sitio web institucional, el cual lleva el registro desde su radicación hasta la salida de su respuesta, adicionalmente permite generar reportes permanentes sobre el estado de las PQRSD, buscando determinar las posibles debilidades y fortalezas para ser llevadas a la alta dirección en busca del mejoramiento continuo de la Entidad y con ella, afianzar la confianza del ciudadano en las instituciones públicas.
 
-Así mismo Secretaría de Gobierno con funciones de control interno en desarrollo del Plan Anual de Auditoría 2024 y dando cumplimiento a lo estipulado en el Artículo 17 del Decreto 648 de 2017, respecto al desarrollo de sus roles de evaluación y seguimiento, liderazgo estratégico y enfoque hacia la prevención; efectuó seguimiento a la gestión del tercer trimestre de 2024 relacionada con la atención de las PQRS tramitadas por cada una de las dependencias que conforman la alcaldía municipal de Chiquiza.`;
+Así mismo Secretaría de Gobierno con funciones de control interno en desarrollo del Plan Anual de Auditoría 2024 y dando cumplimiento a lo estipulado en el Artículo 17 del Decreto 648 de 2017, respecto al desarrollo de sus roles de evaluación y seguimiento, liderazgo estratégico y enfoque hacia la prevención; efectuó seguimiento a la gestión del tercer trimestre de 2024 relacionada con la atención de las PQRS tramitadas por cada una de las dependencias que conforman ${entityName}.`;
 
         const introduccionAnalisis = `\n\nEl presente informe analiza el desempeño del sistema de PQRS durante el período evaluado. Se han registrado un total de ${data.totalPqrs} solicitudes, las cuales han sido categorizadas y procesadas según su naturaleza y prioridad. Este análisis busca identificar tendencias, evaluar la eficiencia en la gestión de respuestas y proporcionar recomendaciones estratégicas para mejorar la calidad del servicio ciudadano.`;
 
@@ -120,7 +122,7 @@ Así mismo Secretaría de Gobierno con funciones de control interno en desarroll
         }
 
         // Conclusiones
-        let conclusiones = `El sistema de PQRS de la Alcaldía ${data.tasaResolucion >= 0.7 ? 'demuestra un funcionamiento efectivo' : 'presenta oportunidades significativas de mejora'} en la gestión de solicitudes ciudadanas. `;
+        let conclusiones = `El sistema de PQRS de ${entityName} ${data.tasaResolucion >= 0.7 ? 'demuestra un funcionamiento efectivo' : 'presenta oportunidades significativas de mejora'} en la gestión de solicitudes ciudadanas. `;
 
         if (data.tiempoPromedioRespuesta <= 15 && data.tasaResolucion >= 0.8) {
             conclusiones += 'Los indicadores de tiempo de respuesta y tasa de resolución reflejan un compromiso sólido con la atención ciudadana. ';

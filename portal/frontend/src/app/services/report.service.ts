@@ -36,7 +36,8 @@ export class ReportService {
         aiAnalysis: any,
         analytics: any,
         fechaInicio: string,
-        fechaFin: string
+        fechaFin: string,
+        entityName: string = 'Alcaldía Municipal'
     ): Promise<void> {
         const { jsPDF } = await this.loadPdfLibs();
         const doc = new jsPDF('p', 'mm', 'letter');
@@ -77,7 +78,7 @@ export class ReportService {
 
         doc.setFontSize(14);
         doc.setFont('helvetica', 'normal');
-        doc.text('Alcaldía Municipal de Chiquiza', pageWidth / 2, 30, { align: 'center' });
+        doc.text(entityName, pageWidth / 2, 30, { align: 'center' });
 
         yPosition = 60;
 
@@ -104,7 +105,7 @@ export class ReportService {
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        const alcanceText = `El seguimiento se realiza a las PQRSD radicadas durante el período comprendido entre ${fechaInicio} y ${fechaFin}, con base en la información suministrada por el sistema de PQRS del sitio web institucional del municipio de Chiquiza.`;
+        const alcanceText = `El seguimiento se realiza a las PQRSD radicadas durante el período comprendido entre ${fechaInicio} y ${fechaFin}, con base en la información suministrada por el sistema de PQRS del sitio web institucional de la entidad.`;
         addWrappedText(alcanceText, 20, pageWidth - 40, 10, 'justify');
         yPosition += 5;
 
@@ -432,7 +433,7 @@ export class ReportService {
             doc.setFontSize(8);
             doc.setTextColor(128, 128, 128);
             doc.text(
-                `Página ${i} de ${totalPages} - Informe PQRS Alcaldía Municipal de Chiquiza`,
+                `Página ${i} de ${totalPages} - Informe PQRS ${entityName}`,
                 pageWidth / 2,
                 pageHeight - 10,
                 { align: 'center' }
