@@ -297,11 +297,11 @@ async def upload_contratos_rps(
 
         print(f"📦 Después de agrupar: {len(df_agrupado)} contratos únicos para año {anio_carga}")
 
-        # ── DELETE: eliminar contratos del mismo año para esta entidad ──
+        # ── DELETE: eliminar contratos SOLO del año indicado para esta entidad ──
         eliminados = db.query(PDMContratoRPS).filter(
             PDMContratoRPS.entity_id == entity.id,
             PDMContratoRPS.anio == anio_carga
-        ).delete()
+        ).delete(synchronize_session=False)
         db.flush()
         print(f"🗑️ Eliminados {eliminados} contratos previos (entity_id={entity.id}, año={anio_carga})")
 
