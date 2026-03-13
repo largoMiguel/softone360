@@ -59,27 +59,27 @@ export class CorrespondenciaService {
      * Obtener correspondencia por ID
      */
     getCorrespondenciaById(id: number): Observable<CorrespondenciaWithDetails> {
-        return this.http.get<CorrespondenciaWithDetails>(`${this.baseUrl}/${id}`);
+        return this.http.get<CorrespondenciaWithDetails>(`${this.baseUrl}${id}`);
     }
 
     /**
      * Actualizar correspondencia
      */
     updateCorrespondencia(id: number, data: UpdateCorrespondencia): Observable<Correspondencia> {
-        return this.http.put<Correspondencia>(`${this.baseUrl}/${id}`, data);
+        return this.http.put<Correspondencia>(`${this.baseUrl}${id}`, data);
     }
 
     /**
      * Eliminar correspondencia
      */
     deleteCorrespondencia(id: number): Observable<any> {
-        return this.http.delete(`${this.baseUrl}/${id}`);
+        return this.http.delete(`${this.baseUrl}${id}`);
     }
 
     /**
      * Obtener vista previa del siguiente número de radicado
      */
     getNextRadicado(): Observable<{ numero_radicado: string }> {
-        return this.http.get<{ numero_radicado: string }>(`${this.baseUrl}/next-radicado/preview`);
+        return this.http.get<{ numero_radicado: string }>(`${this.baseUrl}next-radicado/preview`);
     }
 }
