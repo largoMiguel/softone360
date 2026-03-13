@@ -316,7 +316,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // Formulario de correspondencia
     this.nuevaCorrespondenciaForm = this.fb.group({
       fecha_envio: [new Date().toISOString().split('T')[0], Validators.required],
-      procedencia: ['PERSONERIA MUNICIPAL', Validators.required],
+      procedencia: [{ value: 'PERSONERIA MUNICIPAL', disabled: true }, Validators.required],
       destinacion: ['', Validators.required],
       numero_folios: [1, [Validators.required, Validators.min(1)]],
       tipo_radicacion: ['correo', Validators.required],
@@ -2259,14 +2259,24 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   mostrarFormularioNuevaCorrespondencia(): void {
     this.mostrarFormularioCorrespondencia = true;
+    
+    // Establecer procedencia con el nombre de la entidad actual
+    const procedencia = this.entityContext.currentEntity?.name || 'PERSONERIA MUNICIPAL';
+    this.nuevaCorrespondenciaForm.patchValue({
+      procedencia: procedencia
+    });
+    
     this.loadNextRadicadoCorrespondencia();
   }
 
   ocultarFormularioCorrespondencia(): void {
     this.mostrarFormularioCorrespondencia = false;
+    
+    // Establecer procedencia con el nombre de la entidad actual al resetear
+    const procedencia = this.entityContext.currentEntity?.name || 'PERSONERIA MUNICIPAL';
     this.nuevaCorrespondenciaForm.reset({
       fecha_envio: new Date().toISOString().split('T')[0],
-      procedencia: 'PERSONERIA MUNICIPAL',
+      procedencia: procedencia,
       numero_folios: 1,
       tipo_radicacion: 'correo',
       tipo_solicitud: 'sugerencia',
@@ -2316,7 +2326,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     this.isSubmitting = true;
     
-    const formData = this.nuevaCorrespondenciaForm.value;
+    // Usar getRawValue() para incluir campos deshabilitados como "procedencia"
+    const formData = this.nuevaCorrespondenciaForm.getRawValue();
     const data: CreateCorrespondencia = {
       ...formData,
       entity_id: this.currentUser.entity_id
