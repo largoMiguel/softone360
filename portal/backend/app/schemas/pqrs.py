@@ -27,14 +27,22 @@ class PQRSBase(BaseModel):
     @field_validator('email_ciudadano')
     @classmethod
     def validate_email(cls, v):
-        """Validar email solo si tiene valor"""
+        """Validar email(s) solo si tiene valor. Acepta múltiples correos separados por coma o punto y coma."""
         if v is None or v == '' or v.strip() == '':
             return None
-        # Validación básica de formato de email
         email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        if not re.match(email_pattern, v.strip()):
-            raise ValueError('El email no tiene un formato válido')
-        return v.strip().lower()
+        emails = re.split(r'[,;]\s*', v.strip())
+        validated = []
+        for email in emails:
+            email = email.strip()
+            if not email:
+                continue
+            if not re.match(email_pattern, email):
+                raise ValueError(f'El email "{email}" no tiene un formato válido')
+            validated.append(email.lower())
+        if not validated:
+            return None
+        return ', '.join(validated)
     
     @model_validator(mode='after')
     def validate_medio_respuesta(self):
@@ -80,14 +88,22 @@ class PQRSUpdate(BaseModel):
     @field_validator('email_ciudadano')
     @classmethod
     def validate_email(cls, v):
-        """Validar email solo si tiene valor"""
+        """Validar email(s) solo si tiene valor. Acepta múltiples correos separados por coma o punto y coma."""
         if v is None or v == '' or (isinstance(v, str) and v.strip() == ''):
             return None
-        # Validación básica de formato de email
         email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        if not re.match(email_pattern, v.strip()):
-            raise ValueError('El email no tiene un formato válido')
-        return v.strip().lower()
+        emails = re.split(r'[,;]\s*', v.strip())
+        validated = []
+        for email in emails:
+            email = email.strip()
+            if not email:
+                continue
+            if not re.match(email_pattern, email):
+                raise ValueError(f'El email "{email}" no tiene un formato válido')
+            validated.append(email.lower())
+        if not validated:
+            return None
+        return ', '.join(validated)
 
 class PQRSResponse(BaseModel):
     respuesta: str
