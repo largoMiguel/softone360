@@ -68,13 +68,18 @@ export class SidebarComponent {
     pqrsEnabled(): boolean { return this.entityContext.currentEntity?.enable_pqrs ?? false; }
     usersAdminEnabled(): boolean { return this.entityContext.currentEntity?.enable_users_admin ?? false; }
     planesEnabled(): boolean { return this.entityContext.currentEntity?.enable_planes_institucionales ?? false; }
-    contratacionEnabled(): boolean { return (this.entityContext.currentEntity as any)?.enable_contratacion ?? false; }
-    pdmEnabled(): boolean { return (this.entityContext.currentEntity as any)?.enable_pdm ?? true; }
+    contratacionEnabled(): boolean { return this.entityContext.currentEntity?.enable_contratacion ?? false; }
+    pdmEnabled(): boolean { return this.entityContext.currentEntity?.enable_pdm ?? true; }
+    correspondenciaEnabled(): boolean { return this.entityContext.currentEntity?.enable_correspondencia ?? false; }
 
     canAccessPqrs(): boolean { return this.pqrsEnabled() && this.userHasModule('pqrs'); }
     canAccessPlanes(): boolean { return this.planesEnabled() && this.userHasModule('planes_institucionales'); }
     canAccessContratacion(): boolean { return this.contratacionEnabled() && this.userHasModule('contratacion'); }
     canAccessPdm(): boolean { return this.pdmEnabled() && this.userHasModule('pdm'); }
+    canAccessCorrespondencia(): boolean { return this.correspondenciaEnabled() && this.userHasModule('correspondencia'); }
+
+    presupuestoEnabled(): boolean { return this.entityContext.currentEntity?.enable_presupuesto ?? false; }
+    canAccessPresupuesto(): boolean { return this.presupuestoEnabled() && this.isAdmin(); }
 
     // ===== Navegación =====
     goDashboard(view: 'welcome' | 'dashboard' | 'mis-pqrs' | 'nueva-pqrs' | 'usuarios' | 'correspondencia' = 'dashboard') {

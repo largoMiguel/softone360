@@ -1,28 +1,37 @@
 # 📚 Guía Completa: Cómo Ejecutar Migraciones en PostgreSQL RDS
 
-**Fecha:** 11 de noviembre de 2025  
+**Última actualización:** 15 de marzo de 2026  
 **Contexto:** Sistema Softone360 con base de datos PostgreSQL en AWS RDS (us-east-1)  
-**Método:** Ejecución segura desde instancia EC2 de Elastic Beanstalk
+**Método REAL (validado en producción):** EC2 Instance Connect + SSH con clave `~/.ssh/id_rsa`
+
+---
+
+> ⚠️ **IMPORTANTE — Leer primero:** El método original con `eb ssh` y `.pem` **NO FUNCIONA** en este proyecto.  
+> El archivo `.pem` (`~/.ssh/softone-eb-mlargo-2026.pem`) está **vacío (0 bytes)** y el EB CLI busca una clave  
+> llamada `softone-eb-20251122` que no existe. Tampoco está disponible SSM Session Manager.  
+> El **único método que funciona** es **EC2 Instance Connect** descrito en esta guía.
 
 ---
 
 ## 🎯 Propósito
 
-Esta guía documenta el proceso probado para ejecutar migraciones de base de datos en RDS PostgreSQL sin exponer acceso público directo. El método fue validado exitosamente con las migraciones del 11 de noviembre de 2025.
+Esta guía documenta el proceso probado para ejecutar migraciones de base de datos en RDS PostgreSQL sin exponer acceso público directo. El método fue validado exitosamente en múltiples migraciones de producción.
 
 ---
 
 ## 📋 Tabla de Contenidos
 
 1. [Arquitectura y Seguridad](#arquitectura-y-seguridad)
-2. [Requisitos Previos](#requisitos-previos)
-3. [Paso 1: Preparar el Script de Migración](#paso-1-preparar-el-script-de-migración)
-4. [Paso 2: Transferir Script al Servidor](#paso-2-transferir-script-al-servidor)
-5. [Paso 3: Ejecutar la Migración](#paso-3-ejecutar-la-migración)
-6. [Paso 4: Verificar los Cambios](#paso-4-verificar-los-cambios)
-7. [Paso 5: Limpiar y Documentar](#paso-5-limpiar-y-documentar)
-8. [Solución de Problemas](#solución-de-problemas)
-9. [Casos de Uso Comunes](#casos-de-uso-comunes)
+2. [Datos de Infraestructura](#datos-de-infraestructura)
+3. [Cómo Funciona EC2 Instance Connect](#cómo-funciona-ec2-instance-connect)
+4. [Paso 0: Obtener IP de la Instancia](#paso-0-obtener-ip-de-la-instancia)
+5. [Paso 1: Preparar el Script de Migración](#paso-1-preparar-el-script-de-migración)
+6. [Paso 2: Transferir Script al Servidor](#paso-2-transferir-script-al-servidor)
+7. [Paso 3: Ejecutar la Migración](#paso-3-ejecutar-la-migración)
+8. [Paso 4: Verificar los Cambios](#paso-4-verificar-los-cambios)
+9. [Paso 5: Limpiar y Documentar](#paso-5-limpiar-y-documentar)
+10. [Solución de Problemas](#solución-de-problemas)
+11. [Casos de Uso Comunes](#casos-de-uso-comunes)
 
 ---
 
@@ -34,17 +43,23 @@ Esta guía documenta el proceso probado para ejecutar migraciones de base de dat
 ┌─────────────────────────────────────────┐
 │         Tu Máquina Local (Mac)          │
 │  • Scripts de migración preparados      │
-│  • SSH con clave AWS                    │
+│  • AWS CLI configurado (deploy-admin)   │
+│  • Clave SSH: ~/.ssh/id_rsa             │
 └────────────────────┬────────────────────┘
-                     │ SSH + SCP
+                     │ EC2 Instance Connect
+                     │ (inyecta clave pública
+                     │  por 60 segundos)
+                     │ + SSH/SCP con id_rsa
                      ↓
 ┌─────────────────────────────────────────┐
 │   EC2 Instance (Elastic Beanstalk)      │
+│   • ID: i-040873693a63f0023             │
+│   • AZ: us-east-1c                      │
+│   • IP: 13.220.55.112 (puede cambiar)   │
 │   • sg-02c3c9aba42cda46e (EB SG)        │
 │   • Tiene acceso a RDS internamente     │
-│   • Ejecuta migraciones aquí            │
 └────────────────────┬────────────────────┘
-                     │ TCP/5432 (Internal)
+                     │ TCP/5432 (Internal VPC)
                      ↓
 ┌─────────────────────────────────────────┐
 │   RDS PostgreSQL (softone-db)           │
@@ -55,12 +70,74 @@ Esta guía documenta el proceso probado para ejecutar migraciones de base de dat
 └─────────────────────────────────────────┘
 ```
 
-### Por qué este Método
+### Por qué EC2 Instance Connect
 
-✅ **Seguridad:** RDS no está expuesto públicamente  
-✅ **Fiabilidad:** Usa red interna de AWS  
-✅ **Facilidad:** EC2 ya tiene psycopg2 instalado  
-✅ **Velocidad:** No necesitas cambiar security groups  
+✅ **Sin llaves .pem:** No necesitas gestionar archivos de clave permanentes  
+✅ **Seguridad:** La clave pública solo exite en EC2 por 60 segundos  
+✅ **Fiabilidad:** Usa red interna de AWS para acceder a RDS  
+✅ **Sin SSM:** No requiere SSM Agent (que no está disponible)  
+✅ **Sin EB CLI SSH:** Bypasea el problema del nombre de clave en EB CLI  
+
+---
+
+## 🗂️ Datos de Infraestructura
+
+| Recurso | Valor |
+|---------|-------|
+| **Instancia EC2** | `i-040873693a63f0023` |
+| **Zona disponibilidad** | `us-east-1c` |
+| **IP pública actual** | `13.220.55.112` *(puede cambiar al reiniciar)* |
+| **Usuario SSH** | `ec2-user` |
+| **Clave SSH local** | `~/.ssh/id_rsa` + `~/.ssh/id_rsa.pub` |
+| **Host RDS** | `softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com` |
+| **Puerto RDS** | `5432` |
+| **Base de datos** | `postgres` |
+| **Usuario DB** | `dbadmin` |
+| **Contraseña DB** | `TuPassSeguro123!` |
+| **EB Environment** | `softone-backend-useast1` |
+| **AWS Account** | `119538925169` |
+| **AWS Region** | `us-east-1` |
+
+---
+
+## 🔑 Cómo Funciona EC2 Instance Connect
+
+EC2 Instance Connect es un servicio de AWS que inyecta temporalmente una clave pública SSH en la instancia EC2 por **60 segundos**. En esa ventana de tiempo, puedes usar tu clave `id_rsa` para conectarte por SSH o copiar archivos con SCP.
+
+```
+1. aws ec2-instance-connect send-ssh-public-key   ← Inyecta id_rsa.pub (60 seg)
+2. scp -i ~/.ssh/id_rsa [...] ec2-user@IP:~/      ← Copia el script (en los 60 seg)
+3. aws ec2-instance-connect send-ssh-public-key   ← Reinyecta para SSH
+4. ssh -i ~/.ssh/id_rsa ec2-user@IP "comando"     ← Ejecuta el script
+```
+
+> 💡 **Truco:** Inyecta la clave y LUEGO ejecuta SCP/SSH en menos de 60 segundos.  
+> Si se te acaba el tiempo, simplemente vuelve a ejecutar el comando `send-ssh-public-key`.
+
+---
+
+## 0️⃣ Paso 0: Obtener IP de la Instancia
+
+La IP pública de la instancia puede cambiar. Antes de cada migración, verifica la IP actual:
+
+```bash
+# Obtener IP pública actual de la instancia EB
+aws ec2 describe-instances \
+  --instance-ids i-040873693a63f0023 \
+  --query 'Reservations[0].Instances[0].PublicIpAddress' \
+  --output text
+# Ejemplo de salida: 13.220.55.112
+```
+
+Guarda esa IP en una variable para usarla en los siguientes pasos:
+
+```bash
+INSTANCE_IP=$(aws ec2 describe-instances \
+  --instance-ids i-040873693a63f0023 \
+  --query 'Reservations[0].Instances[0].PublicIpAddress' \
+  --output text)
+echo "IP de la instancia: $INSTANCE_IP"
+```
 
 ---
 
@@ -69,36 +146,23 @@ Esta guía documenta el proceso probado para ejecutar migraciones de base de dat
 ### En tu máquina local
 
 ```bash
-# 1. Verificar que tienes acceso SSH a EB
-ls ~/.ssh/aws-eb
+# 1. Verificar que tienes tus claves SSH
+ls -la ~/.ssh/id_rsa ~/.ssh/id_rsa.pub
+# Deben existir y tener contenido (no 0 bytes)
 
-# 2. Instalar EB CLI
-brew install awsebcli
+# 2. Verificar AWS CLI configurado
+aws sts get-caller-identity
+# Debe devolver: "UserId": "...", "Account": "119538925169", "Arn": "...deploy-admin..."
 
-# 3. Verifica que estás en el ambiente correcto
-cd /ruta/a/SOLUCTIONS/backend
-eb list
+# 3. Verificar acceso a EC2 Instance Connect
+aws ec2-instance-connect send-ssh-public-key \
+  --instance-id i-040873693a63f0023 \
+  --availability-zone us-east-1c \
+  --instance-os-user ec2-user \
+  --ssh-public-key file://~/.ssh/id_rsa.pub \
+  --region us-east-1
+# Debe responder: "Success": true
 ```
-
-### En AWS
-
-```bash
-# Security group de EB debe tener acceso a RDS
-aws ec2 describe-security-groups \
-  --group-ids sg-02c3c9aba42cda46e \
-  --query 'SecurityGroups[0].IpPermissions' | grep 5432
-```
-
-**Credenciales necesarias:**
-
-| Variable | Valor |
-|----------|-------|
-| Host RDS | softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com |
-| Puerto | 5432 |
-| Usuario | dbadmin |
-| Contraseña | TuPassSeguro123! |
-| Base de datos | postgres |
-| Environment EB | softone-backend-useast1 |
 
 ---
 
@@ -241,40 +305,58 @@ conn.close()
 
 ## 📤 Paso 2: Transferir Script al Servidor
 
-### 2.1 Copiar Script a EC2
+### 2.1 Inyectar clave SSH y Copiar Script a EC2
+
+> **Recuerda:** La clave pública solo está activa **60 segundos**. Ejecuta el SCP inmediatamente después.
 
 ```bash
-# Desde tu máquina local, en la carpeta del proyecto
-cd /Users/largo/Documents/SOLUCTIONS/backend
+# Paso 1: Inyectar clave pública temporalmente
+aws ec2-instance-connect send-ssh-public-key \
+  --instance-id i-040873693a63f0023 \
+  --availability-zone us-east-1c \
+  --instance-os-user ec2-user \
+  --ssh-public-key file://~/.ssh/id_rsa.pub \
+  --region us-east-1
 
-# Copiar un script
-scp -i ~/.ssh/aws-eb \
+# Paso 2: Copiar el script INMEDIATAMENTE (en menos de 60 segundos)
+scp -i ~/.ssh/id_rsa \
+    -o StrictHostKeyChecking=no \
     -o IdentitiesOnly=yes \
     tu_script_migracion.py \
-    ec2-user@184.72.234.103:~/
+    ec2-user@$INSTANCE_IP:~/
+```
 
-# Copiar múltiples scripts
-scp -i ~/.ssh/aws-eb \
+```bash
+# Copiar múltiples scripts (inyectar clave una vez, copiar todos)
+aws ec2-instance-connect send-ssh-public-key \
+  --instance-id i-040873693a63f0023 \
+  --availability-zone us-east-1c \
+  --instance-os-user ec2-user \
+  --ssh-public-key file://~/.ssh/id_rsa.pub \
+  --region us-east-1
+
+scp -i ~/.ssh/id_rsa \
+    -o StrictHostKeyChecking=no \
     -o IdentitiesOnly=yes \
     script1.py script2.py script3.py \
-    ec2-user@184.72.234.103:~/
-
-# Copiar carpeta completa
-scp -r -i ~/.ssh/aws-eb \
-    -o IdentitiesOnly=yes \
-    migrations/ \
-    ec2-user@184.72.234.103:~/
+    ec2-user@$INSTANCE_IP:~/
 ```
 
 ### 2.2 Verificar que se Copió
 
 ```bash
-# Conectar por SSH y verificar
-cd /Users/largo/Documents/SOLUCTIONS/backend
-eb ssh softone-backend-useast1 --command "ls -lh ~/tu_script_migracion.py"
+# Inyectar clave y verificar
+aws ec2-instance-connect send-ssh-public-key \
+  --instance-id i-040873693a63f0023 \
+  --availability-zone us-east-1c \
+  --instance-os-user ec2-user \
+  --ssh-public-key file://~/.ssh/id_rsa.pub \
+  --region us-east-1
 
-# Verificar contenido
-eb ssh softone-backend-useast1 --command "head -10 ~/tu_script_migracion.py"
+ssh -i ~/.ssh/id_rsa \
+    -o StrictHostKeyChecking=no \
+    -o IdentitiesOnly=yes \
+    ec2-user@$INSTANCE_IP "ls -lh ~/tu_script_migracion.py"
 ```
 
 ---
@@ -284,11 +366,19 @@ eb ssh softone-backend-useast1 --command "head -10 ~/tu_script_migracion.py"
 ### 3.1 Instalar Dependencias (primera vez)
 
 ```bash
-# Desde tu máquina, ejecutar comando en EC2
-cd /Users/largo/Documents/SOLUCTIONS/backend
+# Inyectar clave y ejecutar instalación
+aws ec2-instance-connect send-ssh-public-key \
+  --instance-id i-040873693a63f0023 \
+  --availability-zone us-east-1c \
+  --instance-os-user ec2-user \
+  --ssh-public-key file://~/.ssh/id_rsa.pub \
+  --region us-east-1
 
-eb ssh softone-backend-useast1 --command \
-  "source /var/app/venv/*/bin/activate && pip install psycopg2-binary"
+ssh -i ~/.ssh/id_rsa \
+    -o StrictHostKeyChecking=no \
+    -o IdentitiesOnly=yes \
+    ec2-user@$INSTANCE_IP \
+    "source /var/app/venv/*/bin/activate && pip install psycopg2-binary"
 ```
 
 **Nota:** psycopg2-binary ya debería estar instalado en el venv de la aplicación.
@@ -296,35 +386,48 @@ eb ssh softone-backend-useast1 --command \
 ### 3.2 Ejecutar Script de Migración
 
 ```bash
-# Opción 1: Usando el venv de la aplicación (RECOMENDADO)
-cd /Users/largo/Documents/SOLUCTIONS/backend
+# Inyectar clave
+aws ec2-instance-connect send-ssh-public-key \
+  --instance-id i-040873693a63f0023 \
+  --availability-zone us-east-1c \
+  --instance-os-user ec2-user \
+  --ssh-public-key file://~/.ssh/id_rsa.pub \
+  --region us-east-1
 
-eb ssh softone-backend-useast1 --command \
-  "source /var/app/venv/*/bin/activate && python tu_script_migracion.py"
-
-# Opción 2: Usando Python del sistema
-cd /Users/largo/Documents/SOLUCTIONS/backend
-
-eb ssh softone-backend-useast1 --command "python3 tu_script_migracion.py"
+# Ejecutar script usando el venv de la aplicación (RECOMENDADO)
+ssh -i ~/.ssh/id_rsa \
+    -o StrictHostKeyChecking=no \
+    -o IdentitiesOnly=yes \
+    ec2-user@$INSTANCE_IP \
+    "source /var/app/venv/*/bin/activate && python tu_script_migracion.py"
 ```
 
 ### 3.3 Ejemplo: Ejecutar Múltiples Migraciones
 
 ```bash
-# En orden secuencial (recomendado)
-cd /Users/largo/Documents/SOLUCTIONS/backend
+# Para cada migración: inyectar clave y ejecutar
 
 # Migración 1
-eb ssh softone-backend-useast1 --command \
-  "source /var/app/venv/*/bin/activate && python migrate_1_base.py"
+aws ec2-instance-connect send-ssh-public-key \
+  --instance-id i-040873693a63f0023 \
+  --availability-zone us-east-1c \
+  --instance-os-user ec2-user \
+  --ssh-public-key file://~/.ssh/id_rsa.pub \
+  --region us-east-1
+ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o IdentitiesOnly=yes \
+    ec2-user@$INSTANCE_IP \
+    "source /var/app/venv/*/bin/activate && python migrate_1_base.py"
 
 # Migración 2 (solo si 1 fue exitosa)
-eb ssh softone-backend-useast1 --command \
-  "source /var/app/venv/*/bin/activate && python migrate_2_fk.py"
-
-# Migración 3
-eb ssh softone-backend-useast1 --command \
-  "source /var/app/venv/*/bin/activate && python migrate_3_indices.py"
+aws ec2-instance-connect send-ssh-public-key \
+  --instance-id i-040873693a63f0023 \
+  --availability-zone us-east-1c \
+  --instance-os-user ec2-user \
+  --ssh-public-key file://~/.ssh/id_rsa.pub \
+  --region us-east-1
+ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o IdentitiesOnly=yes \
+    ec2-user@$INSTANCE_IP \
+    "source /var/app/venv/*/bin/activate && python migrate_2_fk.py"
 ```
 
 ### 3.4 Interpretar Output
@@ -349,55 +452,93 @@ Traceback (most recent call last):         ← Stack trace para depuración
 ### 4.1 Conectarse Directamente a RDS desde EC2
 
 ```bash
-cd /Users/largo/Documents/SOLUCTIONS/backend
+# Inyectar clave y consultar RDS
+
+aws ec2-instance-connect send-ssh-public-key \
+  --instance-id i-040873693a63f0023 \
+  --availability-zone us-east-1c \
+  --instance-os-user ec2-user \
+  --ssh-public-key file://~/.ssh/id_rsa.pub \
+  --region us-east-1
 
 # Ver todas las tablas
-eb ssh softone-backend-useast1 --command \
-  "PGPASSWORD='TuPassSeguro123!' psql \
-   -h softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com \
-   -U dbadmin \
-   -d postgres \
-   -c '\dt'"
+ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o IdentitiesOnly=yes \
+    ec2-user@$INSTANCE_IP \
+    "PGPASSWORD='TuPassSeguro123!' psql \
+     -h softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com \
+     -U dbadmin -d postgres -c '\dt'"
 
-# Ver columnas de una tabla
-eb ssh softone-backend-useast1 --command \
-  "PGPASSWORD='TuPassSeguro123!' psql \
-   -h softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com \
-   -U dbadmin \
-   -d postgres \
-   -c 'SELECT column_name, data_type FROM information_schema.columns WHERE table_name = \"tu_tabla\" ORDER BY ordinal_position;'"
+# Ver columnas de una tabla específica
+aws ec2-instance-connect send-ssh-public-key \
+  --instance-id i-040873693a63f0023 \
+  --availability-zone us-east-1c \
+  --instance-os-user ec2-user \
+  --ssh-public-key file://~/.ssh/id_rsa.pub \
+  --region us-east-1
+
+ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o IdentitiesOnly=yes \
+    ec2-user@$INSTANCE_IP \
+    "PGPASSWORD='TuPassSeguro123!' psql \
+     -h softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com \
+     -U dbadmin -d postgres \
+     -c 'SELECT column_name, data_type, column_default FROM information_schema.columns WHERE table_name = '\''tu_tabla'\'' ORDER BY ordinal_position;'"
 ```
 
 ### 4.2 Queries de Verificación Comunes
 
 ```bash
-# Verificar que una columna fue agregada
-eb ssh softone-backend-useast1 --command \
-  "PGPASSWORD='TuPassSeguro123!' psql \
-   -h softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com \
-   -U dbadmin \
-   -d postgres \
-   -c \"SELECT column_name, data_type FROM information_schema.columns \
-       WHERE table_name='tu_tabla' AND column_name='tu_columna';\""
+# Patrón general: inyectar clave + ejecutar psql
+
+aws ec2-instance-connect send-ssh-public-key \
+  --instance-id i-040873693a63f0023 \
+  --availability-zone us-east-1c \
+  --instance-os-user ec2-user \
+  --ssh-public-key file://~/.ssh/id_rsa.pub \
+  --region us-east-1
+
+# Verificar columna específica
+ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o IdentitiesOnly=yes \
+    ec2-user@$INSTANCE_IP \
+    "PGPASSWORD='TuPassSeguro123!' psql \
+     -h softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com \
+     -U dbadmin -d postgres \
+     -c \"SELECT column_name, data_type FROM information_schema.columns \
+         WHERE table_name='tu_tabla' AND column_name='tu_columna';\""
 
 # Verificar constraints (Foreign Keys)
-eb ssh softone-backend-useast1 --command \
-  "PGPASSWORD='TuPassSeguro123!' psql \
-   -h softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com \
-   -U dbadmin \
-   -d postgres \
-   -c \"SELECT conname, conrelid::regclass, confrelid::regclass \
-       FROM pg_constraint \
-       WHERE conname = 'tu_constraint';\""
+aws ec2-instance-connect send-ssh-public-key \
+  --instance-id i-040873693a63f0023 \
+  --availability-zone us-east-1c \
+  --instance-os-user ec2-user \
+  --ssh-public-key file://~/.ssh/id_rsa.pub \
+  --region us-east-1
 
-# Verificar índices
-eb ssh softone-backend-useast1 --command \
-  "PGPASSWORD='TuPassSeguro123!' psql \
-   -h softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com \
-   -U dbadmin \
-   -d postgres \
-   -c \"SELECT indexname, tablename FROM pg_indexes \
-       WHERE indexname = 'tu_indice';\""
+ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o IdentitiesOnly=yes \
+    ec2-user@$INSTANCE_IP \
+    "PGPASSWORD='TuPassSeguro123!' psql \
+     -h softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com \
+     -U dbadmin -d postgres \
+     -c \"SELECT conname, conrelid::regclass, confrelid::regclass \
+         FROM pg_constraint WHERE conname = 'tu_constraint';\""
+```
+
+### 4.3 Verificar Datos no fueron Afectados
+
+```bash
+aws ec2-instance-connect send-ssh-public-key \
+  --instance-id i-040873693a63f0023 \
+  --availability-zone us-east-1c \
+  --instance-os-user ec2-user \
+  --ssh-public-key file://~/.ssh/id_rsa.pub \
+  --region us-east-1
+
+ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o IdentitiesOnly=yes \
+    ec2-user@$INSTANCE_IP \
+    "PGPASSWORD='TuPassSeguro123!' psql \
+     -h softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com \
+     -U dbadmin -d postgres \
+     -c \"SELECT COUNT(*) as total_registros FROM tu_tabla;\""
+```
 ```
 
 ### 4.3 Verificar Datos no fueron Afectados
@@ -419,19 +560,22 @@ eb ssh softone-backend-useast1 --command \
 ### 5.1 Eliminar Scripts del Servidor
 
 ```bash
-cd /Users/largo/Documents/SOLUCTIONS/backend
+aws ec2-instance-connect send-ssh-public-key \
+  --instance-id i-040873693a63f0023 \
+  --availability-zone us-east-1c \
+  --instance-os-user ec2-user \
+  --ssh-public-key file://~/.ssh/id_rsa.pub \
+  --region us-east-1
 
 # Eliminar un archivo
-eb ssh softone-backend-useast1 --command \
-  "rm -f ~/tu_script_migracion.py"
+ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o IdentitiesOnly=yes \
+    ec2-user@$INSTANCE_IP \
+    "rm -f ~/tu_script_migracion.py && ls ~/\*.py 2>/dev/null || echo 'Limpio'"
 
 # Eliminar múltiples archivos
-eb ssh softone-backend-useast1 --command \
-  "rm -f ~/script1.py ~/script2.py ~/script3.py"
-
-# Verificar que se eliminó
-eb ssh softone-backend-useast1 --command \
-  "ls -la ~/*.py"
+ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o IdentitiesOnly=yes \
+    ec2-user@$INSTANCE_IP \
+    "rm -f ~/script1.py ~/script2.py ~/script3.py"
 ```
 
 ### 5.2 Documentar la Migración
@@ -477,32 +621,29 @@ Crear archivo `MIGRACION_FECHA.md` con:
 **Solución:**
 ```bash
 # Usar el venv de la aplicación
-eb ssh softone-backend-useast1 --command \
-  "source /var/app/venv/*/bin/activate && python script.py"
+aws ec2-instance-connect send-ssh-public-key \
+  --instance-id i-040873693a63f0023 \
+  --availability-zone us-east-1c \
+  --instance-os-user ec2-user \
+  --ssh-public-key file://~/.ssh/id_rsa.pub \
+  --region us-east-1
 
-# O instalar en el sistema
-eb ssh softone-backend-useast1 --command \
-  "pip3 install psycopg2-binary && python3 script.py"
+ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o IdentitiesOnly=yes \
+    ec2-user@$INSTANCE_IP \
+    "source /var/app/venv/*/bin/activate && python script.py"
 ```
 
 ### Problema 2: "Operation timed out" en conexión RDS
 
 **Causa:** Intentas conectar desde tu máquina local directamente
 
-**Solución:** Usa SIEMPRE la instancia EC2 como intermediaria
-```bash
-# ❌ INCORRECTO: Conectar directamente
-python3 script.py  # Fail - timeout
-
-# ✅ CORRECTO: Ejecutar desde EC2
-eb ssh softone-backend-useast1 --command "python script.py"
-```
+**Solución:** Usa SIEMPRE la instancia EC2 como intermediaria — RDS solo acepta conexiones desde dentro de la VPC.
 
 ### Problema 3: "column "xxx" of relation "yyy" already exists"
 
 **Causa:** La columna ya fue agregada en una migración anterior
 
-**Solución:** Agregar verificación en el script
+**Solución:** Agregar verificación en el script:
 ```python
 cursor.execute("""
     SELECT column_name FROM information_schema.columns 
@@ -516,29 +657,50 @@ else:
     print("✅ Columna agregada")
 ```
 
-### Problema 4: "psql: command not found"
+### Problema 4: "Permission denied (publickey)" al hacer SSH/SCP
+
+**Causa:** La ventana de 60 segundos de EC2 Instance Connect expiró
+
+**Solución:** Volver a ejecutar `send-ssh-public-key` e intentar de nuevo inmediatamente:
+```bash
+aws ec2-instance-connect send-ssh-public-key \
+  --instance-id i-040873693a63f0023 \
+  --availability-zone us-east-1c \
+  --instance-os-user ec2-user \
+  --ssh-public-key file://~/.ssh/id_rsa.pub \
+  --region us-east-1
+# Ahora tienes 60 segundos — ejecuta SCP/SSH de inmediato
+```
+
+### Problema 5: "eb ssh" no funciona / pide clave desconocida
+
+**Causa:** EB CLI busca la clave `softone-eb-20251122` que no existe. El archivo `.pem` local está vacío.
+
+**Solución:** **NO uses `eb ssh`**. Usa siempre el método EC2 Instance Connect de esta guía.
+
+### Problema 6: SSM Session Manager no está disponible
+
+**Síntoma:** `aws ssm start-session` devuelve `TargetNotConnected` o lista `InstanceInformationList: []`
+
+**Causa:** El SSM Agent no está instalado/corriendo en esta instancia (AL2 de EB).
+
+**Solución:** Usar exclusivamente el método EC2 Instance Connect.
+
+### Problema 7: "psql: command not found"
 
 **Causa:** psql no está instalado en la instancia EC2
 
-**Solución:** Instalar PostgreSQL client
+**Solución:**
 ```bash
-eb ssh softone-backend-useast1 --command \
-  "sudo yum install -y postgresql"
-```
+aws ec2-instance-connect send-ssh-public-key \
+  --instance-id i-040873693a63f0023 \
+  --availability-zone us-east-1c \
+  --instance-os-user ec2-user \
+  --ssh-public-key file://~/.ssh/id_rsa.pub \
+  --region us-east-1
 
-### Problema 5: "FATAL: password authentication failed"
-
-**Causa:** Contraseña incorrecta en DB_CONFIG
-
-**Solución:** Verificar credenciales en el script
-```python
-DB_CONFIG = {
-    'host': 'softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com',
-    'port': 5432,
-    'database': 'postgres',
-    'user': 'dbadmin',
-    'password': 'TuPassSeguro123!'  # ← Verificar que sea correcto
-}
+ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o IdentitiesOnly=yes \
+    ec2-user@$INSTANCE_IP "sudo yum install -y postgresql"
 ```
 
 ---
@@ -760,8 +922,19 @@ def migrate():
 ## 🚀 Flujo Completo de Ejemplo
 
 ```bash
-# 1. Crear el script
-cat > migrate_add_email_column.py << 'EOF'
+# ============================================================
+# FLUJO COMPLETO: Agregar columna enable_nueva_feature a entities
+# ============================================================
+
+# 0. Obtener IP actual
+INSTANCE_IP=$(aws ec2 describe-instances \
+  --instance-ids i-040873693a63f0023 \
+  --query 'Reservations[0].Instances[0].PublicIpAddress' \
+  --output text)
+echo "IP: $INSTANCE_IP"
+
+# 1. Crear el script de migración localmente
+cat > migration_add_nueva_feature.py << 'EOF'
 import psycopg2
 
 DB_CONFIG = {
@@ -776,52 +949,94 @@ def migrate():
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         cursor = conn.cursor()
-        
         print("🔌 Conectando a RDS...")
-        print("🔄 Agregando columna email_backup...\n")
-        
+
+        # Verificar si ya existe
         cursor.execute("""
-            ALTER TABLE usuarios 
-            ADD COLUMN email_backup VARCHAR(256)
+            SELECT column_name FROM information_schema.columns 
+            WHERE table_name = 'entities' AND column_name = 'enable_nueva_feature'
+        """)
+        if cursor.fetchone():
+            print("✅ Columna ya existe - nada que hacer")
+            cursor.close()
+            conn.close()
+            return True
+
+        # Agregar columna
+        print("🔄 Agregando columna enable_nueva_feature...")
+        cursor.execute("""
+            ALTER TABLE entities 
+            ADD COLUMN enable_nueva_feature BOOLEAN NOT NULL DEFAULT TRUE
         """)
         conn.commit()
         print("✅ Columna agregada")
-        
+
+        # Verificar
+        cursor.execute("""
+            SELECT column_name, data_type, column_default 
+            FROM information_schema.columns 
+            WHERE table_name='entities' AND column_name='enable_nueva_feature'
+        """)
+        row = cursor.fetchone()
+        print(f"OK: {row}")
+
         cursor.close()
         conn.close()
         return True
     except Exception as e:
         print(f"❌ ERROR: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 if __name__ == "__main__":
     import sys
-    success = migrate()
-    sys.exit(0 if success else 1)
+    sys.exit(0 if migrate() else 1)
 EOF
 
-# 2. Copiar script a EC2
-scp -i ~/.ssh/aws-eb -o IdentitiesOnly=yes \
-    migrate_add_email_column.py \
-    ec2-user@184.72.234.103:~/
+# 2. Inyectar clave y copiar script
+aws ec2-instance-connect send-ssh-public-key \
+  --instance-id i-040873693a63f0023 \
+  --availability-zone us-east-1c \
+  --instance-os-user ec2-user \
+  --ssh-public-key file://~/.ssh/id_rsa.pub \
+  --region us-east-1
 
-# 3. Ejecutar migración
-cd /Users/largo/Documents/SOLUCTIONS/backend
-eb ssh softone-backend-useast1 --command \
-    "source /var/app/venv/*/bin/activate && python migrate_add_email_column.py"
+scp -i ~/.ssh/id_rsa \
+    -o StrictHostKeyChecking=no \
+    -o IdentitiesOnly=yes \
+    migration_add_nueva_feature.py \
+    ec2-user@$INSTANCE_IP:~/
 
-# 4. Verificar resultado
-eb ssh softone-backend-useast1 --command \
-    "PGPASSWORD='TuPassSeguro123!' psql \
-     -h softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com \
-     -U dbadmin -d postgres \
-     -c \"SELECT column_name FROM information_schema.columns WHERE table_name='usuarios' AND column_name='email_backup';\""
+# 3. Inyectar clave y ejecutar migración
+aws ec2-instance-connect send-ssh-public-key \
+  --instance-id i-040873693a63f0023 \
+  --availability-zone us-east-1c \
+  --instance-os-user ec2-user \
+  --ssh-public-key file://~/.ssh/id_rsa.pub \
+  --region us-east-1
 
-# 5. Limpiar
-eb ssh softone-backend-useast1 --command "rm -f ~/migrate_add_email_column.py"
+ssh -i ~/.ssh/id_rsa \
+    -o StrictHostKeyChecking=no \
+    -o IdentitiesOnly=yes \
+    ec2-user@$INSTANCE_IP \
+    "source /var/app/venv/*/bin/activate && python migration_add_nueva_feature.py"
 
-# 6. Documentar
-echo "✅ Migración completada - email_backup agregado a usuarios"
+# 4. Inyectar clave y limpiar
+aws ec2-instance-connect send-ssh-public-key \
+  --instance-id i-040873693a63f0023 \
+  --availability-zone us-east-1c \
+  --instance-os-user ec2-user \
+  --ssh-public-key file://~/.ssh/id_rsa.pub \
+  --region us-east-1
+
+ssh -i ~/.ssh/id_rsa \
+    -o StrictHostKeyChecking=no \
+    -o IdentitiesOnly=yes \
+    ec2-user@$INSTANCE_IP \
+    "rm -f ~/migration_add_nueva_feature.py && echo 'Limpio'"
+
+echo "✅ Migración completada"
 ```
 
 ---
@@ -829,30 +1044,52 @@ echo "✅ Migración completada - email_backup agregado a usuarios"
 ## 📞 Referencia Rápida
 
 ```bash
-# Copiar script
-scp -i ~/.ssh/aws-eb -o IdentitiesOnly=yes script.py ec2-user@IP:~/
+# ── OBTENER IP DE LA INSTANCIA ─────────────────────────────
+INSTANCE_IP=$(aws ec2 describe-instances \
+  --instance-ids i-040873693a63f0023 \
+  --query 'Reservations[0].Instances[0].PublicIpAddress' \
+  --output text)
 
-# Ejecutar con venv
-eb ssh softone-backend-useast1 --command \
+# ── INYECTAR CLAVE (válida 60 segundos) ───────────────────
+aws ec2-instance-connect send-ssh-public-key \
+  --instance-id i-040873693a63f0023 \
+  --availability-zone us-east-1c \
+  --instance-os-user ec2-user \
+  --ssh-public-key file://~/.ssh/id_rsa.pub \
+  --region us-east-1
+
+# ── COPIAR SCRIPT ──────────────────────────────────────────
+scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o IdentitiesOnly=yes \
+    script.py ec2-user@$INSTANCE_IP:~/
+
+# ── EJECUTAR SCRIPT ────────────────────────────────────────
+ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o IdentitiesOnly=yes \
+    ec2-user@$INSTANCE_IP \
     "source /var/app/venv/*/bin/activate && python script.py"
 
-# Conectar psql
-eb ssh softone-backend-useast1 --command \
+# ── CONECTAR PSQL (verificar) ─────────────────────────────
+ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o IdentitiesOnly=yes \
+    ec2-user@$INSTANCE_IP \
     "PGPASSWORD='TuPassSeguro123!' psql \
      -h softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com \
      -U dbadmin -d postgres -c 'QUERY_AQUI'"
 
-# Ver columnas tabla
--c "SELECT column_name, data_type FROM information_schema.columns WHERE table_name='tabla'"
+# ── QUERIES PSQL ÚTILES ────────────────────────────────────
+# Ver columnas de una tabla:
+"SELECT column_name, data_type FROM information_schema.columns WHERE table_name='tabla'"
 
-# Ver constraints
--c "SELECT conname FROM pg_constraint WHERE conrelid::regclass::text = 'tabla'"
+# Ver constraints:
+"SELECT conname FROM pg_constraint WHERE conrelid::regclass::text = 'tabla'"
 
-# Ver índices
--c "SELECT indexname FROM pg_indexes WHERE tablename = 'tabla'"
+# Ver índices:
+"SELECT indexname FROM pg_indexes WHERE tablename = 'tabla'"
 
-# Limpiar archivos
-eb ssh softone-backend-useast1 --command "rm -f ~/script.py"
+# Contar registros:
+"SELECT COUNT(*) FROM tabla"
+
+# ── LIMPIAR ARCHIVOS ───────────────────────────────────────
+ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o IdentitiesOnly=yes \
+    ec2-user@$INSTANCE_IP "rm -f ~/script.py"
 ```
 
 ---
@@ -889,7 +1126,8 @@ eb ssh softone-backend-useast1 --command "rm -f ~/script.py"
 
 ---
 
-**Última actualización:** 11 de noviembre de 2025  
+**Última actualización:** 15 de marzo de 2026  
 **Probado en:** Softone360 - Producción (us-east-1)  
-**Versiones:** PostgreSQL 14, Python 3.11, psycopg2 2.9.9
+**Versiones:** PostgreSQL 14, Python 3.11, psycopg2 2.9.9  
+**Método validado:** EC2 Instance Connect + `~/.ssh/id_rsa` (NO usar eb-ssh ni el archivo .pem vacío)
 

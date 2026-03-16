@@ -6,7 +6,7 @@
 
     <div class="menu px-3 py-2">
         <!-- Ventanilla (reemplaza Inicio) -->
-        <div class="menu-group">
+        <div class="menu-group" *ngIf="canAccessPqrs() || canAccessCorrespondencia()">
             <div class="menu-title clickable" (click)="toggleMenu('ventanilla')">
                 <i class="fas fa-home me-2"></i>VENTANILLA
                 <i class="fas fa-chevron-down ms-auto chevron" [class.rotated]="menuStates.ventanilla"></i>
@@ -22,7 +22,7 @@
                         <i class="fas fa-list me-2"></i>Mis PQRS
                     </a>
                 </li>
-                <li>
+                <li *ngIf="canAccessCorrespondencia()">
                     <a class="menu-link" [class.active]="isActiveView('correspondencia')" (click)="goDashboard('correspondencia')">
                         <i class="fas fa-envelope me-2"></i>Correspondencia
                     </a>
@@ -92,7 +92,7 @@
         </div>
 
         <!-- Presupuesto (antes Solicitudes) -->
-        <div class="menu-group" *ngIf="isAdmin()">
+        <div class="menu-group" *ngIf="canAccessPresupuesto()">
             <div class="menu-title clickable" (click)="toggleMenu('presupuesto')">
                 <i class="fas fa-coins me-2"></i>PRESUPUESTO
                 <i class="fas fa-chevron-down ms-auto chevron" [class.rotated]="menuStates.presupuesto"></i>

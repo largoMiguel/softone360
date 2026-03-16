@@ -171,25 +171,131 @@
             </div>
 
             <div class="form-group">
-                <label>Módulos Activos</label>
-                <div class="checkbox-grid">
-                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_pqrs" name="enable_pqrs"> PQRS</label>
-                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_users_admin" name="enable_users_admin">
-                        Administración de Usuarios</label>
-                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_planes_institucionales"
-                            name="enable_planes_institucionales"> Planes Institucionales</label>
-                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_pdm" name="enable_pdm">
-                        Plan de Desarrollo Municipal</label>
-                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_contratacion"
-                            name="enable_contratacion">
-                        Contratación</label>
-                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_asistencia"
-                            name="enable_asistencia">
-                        Control de Asistencia</label>
-                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_reports_pdf" name="enable_reports_pdf">
-                        Reportes PDF</label>
-                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_ai_reports" name="enable_ai_reports">
-                        Análisis con IA</label>
+                <div class="modules-section-header">
+                    <label>Módulos Activos</label>
+                    <div class="modules-counter">
+                        <span class="counter-badge">{{ getActiveModulesCount() }}/10 activos</span>
+                        <button type="button" class="btn-modules-action btn-select-all" (click)="selectAllEntityModules()">
+                            ✅ Todos
+                        </button>
+                        <button type="button" class="btn-modules-action btn-deselect-all" (click)="deselectAllEntityModules()">
+                            ☐ Ninguno
+                        </button>
+                    </div>
+                </div>
+
+                <div class="modules-category">
+                    <span class="category-label">📋 Gestión Ciudadana</span>
+                    <div class="modules-grid">
+                        <label class="module-card" [class.active]="newEntity.enable_pqrs">
+                            <input type="checkbox" [(ngModel)]="newEntity.enable_pqrs" name="enable_pqrs">
+                            <div class="module-icon">📬</div>
+                            <div class="module-info">
+                                <span class="module-name">PQRS</span>
+                                <span class="module-desc">Peticiones, quejas, reclamos y sugerencias</span>
+                            </div>
+                            <span class="module-toggle">{{ newEntity.enable_pqrs ? '✓' : '○' }}</span>
+                        </label>
+                        <label class="module-card" [class.active]="newEntity.enable_correspondencia">
+                            <input type="checkbox" [(ngModel)]="newEntity.enable_correspondencia" name="enable_correspondencia">
+                            <div class="module-icon">📧</div>
+                            <div class="module-info">
+                                <span class="module-name">Correspondencia</span>
+                                <span class="module-desc">Radicación y seguimiento de correspondencia</span>
+                            </div>
+                            <span class="module-toggle">{{ newEntity.enable_correspondencia ? '✓' : '○' }}</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="modules-category">
+                    <span class="category-label">🗂️ Planificación Institucional</span>
+                    <div class="modules-grid">
+                        <label class="module-card" [class.active]="newEntity.enable_planes_institucionales">
+                            <input type="checkbox" [(ngModel)]="newEntity.enable_planes_institucionales" name="enable_planes_institucionales">
+                            <div class="module-icon">📋</div>
+                            <div class="module-info">
+                                <span class="module-name">Planes Institucionales</span>
+                                <span class="module-desc">Planes y objetivos institucionales</span>
+                            </div>
+                            <span class="module-toggle">{{ newEntity.enable_planes_institucionales ? '✓' : '○' }}</span>
+                        </label>
+                        <label class="module-card" [class.active]="newEntity.enable_pdm">
+                            <input type="checkbox" [(ngModel)]="newEntity.enable_pdm" name="enable_pdm">
+                            <div class="module-icon">🗺️</div>
+                            <div class="module-info">
+                                <span class="module-name">Plan de Desarrollo Municipal</span>
+                                <span class="module-desc">Seguimiento al PDM territorial</span>
+                            </div>
+                            <span class="module-toggle">{{ newEntity.enable_pdm ? '✓' : '○' }}</span>
+                        </label>
+                        <label class="module-card" [class.active]="newEntity.enable_contratacion">
+                            <input type="checkbox" [(ngModel)]="newEntity.enable_contratacion" name="enable_contratacion">
+                            <div class="module-icon">📄</div>
+                            <div class="module-info">
+                                <span class="module-name">Contratación</span>
+                                <span class="module-desc">Contratos SECOP/SODA</span>
+                            </div>
+                            <span class="module-toggle">{{ newEntity.enable_contratacion ? '✓' : '○' }}</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="modules-category">
+                    <span class="category-label">👥 Talento Humano</span>
+                    <div class="modules-grid">
+                        <label class="module-card" [class.active]="newEntity.enable_users_admin">
+                            <input type="checkbox" [(ngModel)]="newEntity.enable_users_admin" name="enable_users_admin">
+                            <div class="module-icon">🔑</div>
+                            <div class="module-info">
+                                <span class="module-name">Administración de Usuarios</span>
+                                <span class="module-desc">Gestión de usuarios y permisos</span>
+                            </div>
+                            <span class="module-toggle">{{ newEntity.enable_users_admin ? '✓' : '○' }}</span>
+                        </label>
+                        <label class="module-card" [class.active]="newEntity.enable_asistencia">
+                            <input type="checkbox" [(ngModel)]="newEntity.enable_asistencia" name="enable_asistencia">
+                            <div class="module-icon">⏰</div>
+                            <div class="module-info">
+                                <span class="module-name">Control de Asistencia</span>
+                                <span class="module-desc">Registro de asistencia del talento humano</span>
+                            </div>
+                            <span class="module-toggle">{{ newEntity.enable_asistencia ? '✓' : '○' }}</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="modules-category">
+                    <span class="category-label">📊 Reportes e Inteligencia</span>
+                    <div class="modules-grid">
+                        <label class="module-card" [class.active]="newEntity.enable_reports_pdf">
+                            <input type="checkbox" [(ngModel)]="newEntity.enable_reports_pdf" name="enable_reports_pdf">
+                            <div class="module-icon">📊</div>
+                            <div class="module-info">
+                                <span class="module-name">Reportes PDF</span>
+                                <span class="module-desc">Generación de informes en PDF</span>
+                            </div>
+                            <span class="module-toggle">{{ newEntity.enable_reports_pdf ? '✓' : '○' }}</span>
+                        </label>
+                        <label class="module-card" [class.active]="newEntity.enable_ai_reports">
+                            <input type="checkbox" [(ngModel)]="newEntity.enable_ai_reports" name="enable_ai_reports">
+                            <div class="module-icon">🤖</div>
+                            <div class="module-info">
+                                <span class="module-name">Análisis con IA</span>
+                                <span class="module-desc">Análisis automatizado con inteligencia artificial</span>
+                            </div>
+                            <span class="module-toggle">{{ newEntity.enable_ai_reports ? '✓' : '○' }}</span>
+                        </label>
+                        <label class="module-card" [class.active]="newEntity.enable_presupuesto">
+                            <input type="checkbox" [(ngModel)]="newEntity.enable_presupuesto" name="enable_presupuesto">
+                            <div class="module-icon">💰</div>
+                            <div class="module-info">
+                                <span class="module-name">Presupuesto</span>
+                                <span class="module-desc">CDP y certificación de BPP</span>
+                            </div>
+                            <span class="module-toggle">{{ newEntity.enable_presupuesto ? '✓' : '○' }}</span>
+                        </label>
+                    </div>
                 </div>
             </div>
 
@@ -289,26 +395,131 @@
             </div>
 
             <div class="form-group">
-                <label>Módulos Activos</label>
-                <div class="checkbox-grid">
-                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_pqrs" name="edit_enable_pqrs">
-                        PQRS</label>
-                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_users_admin"
-                            name="edit_enable_users_admin"> Administración de Usuarios</label>
-                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_planes_institucionales"
-                            name="edit_enable_planes_institucionales"> Planes Institucionales</label>
-                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_pdm" name="edit_enable_pdm"> Plan de
-                        Desarrollo Municipal</label>
-                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_contratacion"
-                            name="edit_enable_contratacion">
-                        Contratación</label>
-                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_asistencia"
-                            name="edit_enable_asistencia">
-                        Control de Asistencia</label>
-                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_reports_pdf"
-                            name="edit_enable_reports_pdf"> Reportes PDF</label>
-                    <label><input type="checkbox" [(ngModel)]="newEntity.enable_ai_reports"
-                            name="edit_enable_ai_reports"> Análisis con IA</label>
+                <div class="modules-section-header">
+                    <label>Módulos Activos</label>
+                    <div class="modules-counter">
+                        <span class="counter-badge">{{ getActiveModulesCount() }}/10 activos</span>
+                        <button type="button" class="btn-modules-action btn-select-all" (click)="selectAllEntityModules()">
+                            ✅ Todos
+                        </button>
+                        <button type="button" class="btn-modules-action btn-deselect-all" (click)="deselectAllEntityModules()">
+                            ☐ Ninguno
+                        </button>
+                    </div>
+                </div>
+
+                <div class="modules-category">
+                    <span class="category-label">📋 Gestión Ciudadana</span>
+                    <div class="modules-grid">
+                        <label class="module-card" [class.active]="newEntity.enable_pqrs">
+                            <input type="checkbox" [(ngModel)]="newEntity.enable_pqrs" name="edit_enable_pqrs">
+                            <div class="module-icon">📬</div>
+                            <div class="module-info">
+                                <span class="module-name">PQRS</span>
+                                <span class="module-desc">Peticiones, quejas, reclamos y sugerencias</span>
+                            </div>
+                            <span class="module-toggle">{{ newEntity.enable_pqrs ? '✓' : '○' }}</span>
+                        </label>
+                        <label class="module-card" [class.active]="newEntity.enable_correspondencia">
+                            <input type="checkbox" [(ngModel)]="newEntity.enable_correspondencia" name="edit_enable_correspondencia">
+                            <div class="module-icon">📧</div>
+                            <div class="module-info">
+                                <span class="module-name">Correspondencia</span>
+                                <span class="module-desc">Radicación y seguimiento de correspondencia</span>
+                            </div>
+                            <span class="module-toggle">{{ newEntity.enable_correspondencia ? '✓' : '○' }}</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="modules-category">
+                    <span class="category-label">🗂️ Planificación Institucional</span>
+                    <div class="modules-grid">
+                        <label class="module-card" [class.active]="newEntity.enable_planes_institucionales">
+                            <input type="checkbox" [(ngModel)]="newEntity.enable_planes_institucionales" name="edit_enable_planes_institucionales">
+                            <div class="module-icon">📋</div>
+                            <div class="module-info">
+                                <span class="module-name">Planes Institucionales</span>
+                                <span class="module-desc">Planes y objetivos institucionales</span>
+                            </div>
+                            <span class="module-toggle">{{ newEntity.enable_planes_institucionales ? '✓' : '○' }}</span>
+                        </label>
+                        <label class="module-card" [class.active]="newEntity.enable_pdm">
+                            <input type="checkbox" [(ngModel)]="newEntity.enable_pdm" name="edit_enable_pdm">
+                            <div class="module-icon">🗺️</div>
+                            <div class="module-info">
+                                <span class="module-name">Plan de Desarrollo Municipal</span>
+                                <span class="module-desc">Seguimiento al PDM territorial</span>
+                            </div>
+                            <span class="module-toggle">{{ newEntity.enable_pdm ? '✓' : '○' }}</span>
+                        </label>
+                        <label class="module-card" [class.active]="newEntity.enable_contratacion">
+                            <input type="checkbox" [(ngModel)]="newEntity.enable_contratacion" name="edit_enable_contratacion">
+                            <div class="module-icon">📄</div>
+                            <div class="module-info">
+                                <span class="module-name">Contratación</span>
+                                <span class="module-desc">Contratos SECOP/SODA</span>
+                            </div>
+                            <span class="module-toggle">{{ newEntity.enable_contratacion ? '✓' : '○' }}</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="modules-category">
+                    <span class="category-label">👥 Talento Humano</span>
+                    <div class="modules-grid">
+                        <label class="module-card" [class.active]="newEntity.enable_users_admin">
+                            <input type="checkbox" [(ngModel)]="newEntity.enable_users_admin" name="edit_enable_users_admin">
+                            <div class="module-icon">🔑</div>
+                            <div class="module-info">
+                                <span class="module-name">Administración de Usuarios</span>
+                                <span class="module-desc">Gestión de usuarios y permisos</span>
+                            </div>
+                            <span class="module-toggle">{{ newEntity.enable_users_admin ? '✓' : '○' }}</span>
+                        </label>
+                        <label class="module-card" [class.active]="newEntity.enable_asistencia">
+                            <input type="checkbox" [(ngModel)]="newEntity.enable_asistencia" name="edit_enable_asistencia">
+                            <div class="module-icon">⏰</div>
+                            <div class="module-info">
+                                <span class="module-name">Control de Asistencia</span>
+                                <span class="module-desc">Registro de asistencia del talento humano</span>
+                            </div>
+                            <span class="module-toggle">{{ newEntity.enable_asistencia ? '✓' : '○' }}</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="modules-category">
+                    <span class="category-label">📊 Reportes e Inteligencia</span>
+                    <div class="modules-grid">
+                        <label class="module-card" [class.active]="newEntity.enable_reports_pdf">
+                            <input type="checkbox" [(ngModel)]="newEntity.enable_reports_pdf" name="edit_enable_reports_pdf">
+                            <div class="module-icon">📊</div>
+                            <div class="module-info">
+                                <span class="module-name">Reportes PDF</span>
+                                <span class="module-desc">Generación de informes en PDF</span>
+                            </div>
+                            <span class="module-toggle">{{ newEntity.enable_reports_pdf ? '✓' : '○' }}</span>
+                        </label>
+                        <label class="module-card" [class.active]="newEntity.enable_ai_reports">
+                            <input type="checkbox" [(ngModel)]="newEntity.enable_ai_reports" name="edit_enable_ai_reports">
+                            <div class="module-icon">🤖</div>
+                            <div class="module-info">
+                                <span class="module-name">Análisis con IA</span>
+                                <span class="module-desc">Análisis automatizado con inteligencia artificial</span>
+                            </div>
+                            <span class="module-toggle">{{ newEntity.enable_ai_reports ? '✓' : '○' }}</span>
+                        </label>
+                        <label class="module-card" [class.active]="newEntity.enable_presupuesto">
+                            <input type="checkbox" [(ngModel)]="newEntity.enable_presupuesto" name="edit_enable_presupuesto">
+                            <div class="module-icon">💰</div>
+                            <div class="module-info">
+                                <span class="module-name">Presupuesto</span>
+                                <span class="module-desc">CDP y certificación de BPP</span>
+                            </div>
+                            <span class="module-toggle">{{ newEntity.enable_presupuesto ? '✓' : '○' }}</span>
+                        </label>
+                    </div>
                 </div>
             </div>
 
@@ -463,17 +674,99 @@
                 <div *ngIf="editingUserEntity" class="form-group">
                     <label>Módulos Permitidos</label>
                     <small class="text-muted d-block mb-2">Selecciona los módulos activos en la entidad: <strong>{{ editingUserEntity.name }}</strong></small>
-                    <div class="checkbox-grid">
-                        <label *ngIf="editingUserEntity.enable_pqrs"><input type="checkbox" [(ngModel)]="editUserModules.enable_pqrs" name="edit_enable_pqrs"> PQRS</label>
-                        <label *ngIf="editingUserEntity.enable_users_admin"><input type="checkbox" [(ngModel)]="editUserModules.enable_users_admin" name="edit_enable_users_admin"> Administración de Usuarios</label>
-                        <label *ngIf="editingUserEntity.enable_planes_institucionales"><input type="checkbox" [(ngModel)]="editUserModules.enable_planes_institucionales" name="edit_enable_planes_institucionales"> Planes Institucionales</label>
-                        <label *ngIf="editingUserEntity.enable_pdm"><input type="checkbox" [(ngModel)]="editUserModules.enable_pdm" name="edit_enable_pdm"> Plan de Desarrollo Municipal</label>
-                        <label *ngIf="editingUserEntity.enable_contratacion"><input type="checkbox" [(ngModel)]="editUserModules.enable_contratacion" name="edit_enable_contratacion"> Contratación</label>
-                        <label *ngIf="editingUserEntity.enable_reports_pdf"><input type="checkbox" [(ngModel)]="editUserModules.enable_reports_pdf" name="edit_enable_reports_pdf"> Reportes PDF</label>
-                        <label *ngIf="editingUserEntity.enable_ai_reports"><input type="checkbox" [(ngModel)]="editUserModules.enable_ai_reports" name="edit_enable_ai_reports"> Análisis con IA</label>
+                    <div class="modules-grid">
+                        <label *ngIf="editingUserEntity.enable_pqrs" class="module-card" [class.active]="editUserModules.enable_pqrs">
+                            <input type="checkbox" [(ngModel)]="editUserModules.enable_pqrs" name="edit_enable_pqrs">
+                            <div class="module-icon">📬</div>
+                            <div class="module-info">
+                                <span class="module-name">PQRS</span>
+                                <span class="module-desc">Peticiones, quejas, reclamos</span>
+                            </div>
+                            <span class="module-toggle">{{ editUserModules.enable_pqrs ? '✓' : '○' }}</span>
+                        </label>
+                        <label *ngIf="editingUserEntity.enable_users_admin" class="module-card" [class.active]="editUserModules.enable_users_admin">
+                            <input type="checkbox" [(ngModel)]="editUserModules.enable_users_admin" name="edit_enable_users_admin">
+                            <div class="module-icon">🔑</div>
+                            <div class="module-info">
+                                <span class="module-name">Admin Usuarios</span>
+                                <span class="module-desc">Gestión de usuarios</span>
+                            </div>
+                            <span class="module-toggle">{{ editUserModules.enable_users_admin ? '✓' : '○' }}</span>
+                        </label>
+                        <label *ngIf="editingUserEntity.enable_planes_institucionales" class="module-card" [class.active]="editUserModules.enable_planes_institucionales">
+                            <input type="checkbox" [(ngModel)]="editUserModules.enable_planes_institucionales" name="edit_enable_planes_institucionales">
+                            <div class="module-icon">📋</div>
+                            <div class="module-info">
+                                <span class="module-name">Planes</span>
+                                <span class="module-desc">Planes institucionales</span>
+                            </div>
+                            <span class="module-toggle">{{ editUserModules.enable_planes_institucionales ? '✓' : '○' }}</span>
+                        </label>
+                        <label *ngIf="editingUserEntity.enable_pdm" class="module-card" [class.active]="editUserModules.enable_pdm">
+                            <input type="checkbox" [(ngModel)]="editUserModules.enable_pdm" name="edit_enable_pdm">
+                            <div class="module-icon">🗺️</div>
+                            <div class="module-info">
+                                <span class="module-name">PDM</span>
+                                <span class="module-desc">Plan de Desarrollo Municipal</span>
+                            </div>
+                            <span class="module-toggle">{{ editUserModules.enable_pdm ? '✓' : '○' }}</span>
+                        </label>
+                        <label *ngIf="editingUserEntity.enable_contratacion" class="module-card" [class.active]="editUserModules.enable_contratacion">
+                            <input type="checkbox" [(ngModel)]="editUserModules.enable_contratacion" name="edit_enable_contratacion">
+                            <div class="module-icon">📄</div>
+                            <div class="module-info">
+                                <span class="module-name">Contratación</span>
+                                <span class="module-desc">SECOP/SODA</span>
+                            </div>
+                            <span class="module-toggle">{{ editUserModules.enable_contratacion ? '✓' : '○' }}</span>
+                        </label>
+                        <label *ngIf="editingUserEntity.enable_asistencia" class="module-card" [class.active]="editUserModules.enable_asistencia">
+                            <input type="checkbox" [(ngModel)]="editUserModules.enable_asistencia" name="edit_enable_asistencia">
+                            <div class="module-icon">⏰</div>
+                            <div class="module-info">
+                                <span class="module-name">Control Asistencia</span>
+                                <span class="module-desc">Talento humano</span>
+                            </div>
+                            <span class="module-toggle">{{ editUserModules.enable_asistencia ? '✓' : '○' }}</span>
+                        </label>
+                        <label *ngIf="editingUserEntity.enable_correspondencia" class="module-card" [class.active]="editUserModules.enable_correspondencia">
+                            <input type="checkbox" [(ngModel)]="editUserModules.enable_correspondencia" name="edit_enable_correspondencia">
+                            <div class="module-icon">📧</div>
+                            <div class="module-info">
+                                <span class="module-name">Correspondencia</span>
+                                <span class="module-desc">Radicación de correspondencia</span>
+                            </div>
+                            <span class="module-toggle">{{ editUserModules.enable_correspondencia ? '✓' : '○' }}</span>
+                        </label>
+                        <label *ngIf="editingUserEntity.enable_presupuesto" class="module-card" [class.active]="editUserModules.enable_presupuesto">
+                            <input type="checkbox" [(ngModel)]="editUserModules.enable_presupuesto" name="edit_enable_presupuesto">
+                            <div class="module-icon">💰</div>
+                            <div class="module-info">
+                                <span class="module-name">Presupuesto</span>
+                                <span class="module-desc">CDP y BPP</span>
+                            </div>
+                            <span class="module-toggle">{{ editUserModules.enable_presupuesto ? '✓' : '○' }}</span>
+                        </label>
+                        <label *ngIf="editingUserEntity.enable_reports_pdf" class="module-card" [class.active]="editUserModules.enable_reports_pdf">
+                            <input type="checkbox" [(ngModel)]="editUserModules.enable_reports_pdf" name="edit_enable_reports_pdf">
+                            <div class="module-icon">📊</div>
+                            <div class="module-info">
+                                <span class="module-name">Reportes PDF</span>
+                                <span class="module-desc">Informes en PDF</span>
+                            </div>
+                            <span class="module-toggle">{{ editUserModules.enable_reports_pdf ? '✓' : '○' }}</span>
+                        </label>
+                        <label *ngIf="editingUserEntity.enable_ai_reports" class="module-card" [class.active]="editUserModules.enable_ai_reports">
+                            <input type="checkbox" [(ngModel)]="editUserModules.enable_ai_reports" name="edit_enable_ai_reports">
+                            <div class="module-icon">🤖</div>
+                            <div class="module-info">
+                                <span class="module-name">Análisis IA</span>
+                                <span class="module-desc">Inteligencia artificial</span>
+                            </div>
+                            <span class="module-toggle">{{ editUserModules.enable_ai_reports ? '✓' : '○' }}</span>
+                        </label>
                     </div>
                 </div>
-
                 <!-- Mostrar mensaje si está cargando la entidad -->
                 <div *ngIf="editingUserEntity === null && editingUser?.entity_id" class="form-group">
                     <label>Módulos Permitidos</label>
@@ -558,14 +851,97 @@
             <div *ngIf="selectedEntity && currentUserRole === 'superadmin'" class="form-group">
                 <label>Módulos Permitidos</label>
                 <small class="text-muted d-block mb-2">Se mostrarán solo los módulos activos en la entidad: {{ selectedEntity.name }}</small>
-                <div class="checkbox-grid">
-                    <label *ngIf="selectedEntity.enable_pqrs"><input type="checkbox" [(ngModel)]="newAdminModules.enable_pqrs" name="admin_enable_pqrs"> PQRS</label>
-                    <label *ngIf="selectedEntity.enable_users_admin"><input type="checkbox" [(ngModel)]="newAdminModules.enable_users_admin" name="admin_enable_users_admin"> Administración de Usuarios</label>
-                    <label *ngIf="selectedEntity.enable_planes_institucionales"><input type="checkbox" [(ngModel)]="newAdminModules.enable_planes_institucionales" name="admin_enable_planes_institucionales"> Planes Institucionales</label>
-                    <label *ngIf="selectedEntity.enable_pdm"><input type="checkbox" [(ngModel)]="newAdminModules.enable_pdm" name="admin_enable_pdm"> Plan de Desarrollo Municipal</label>
-                    <label *ngIf="selectedEntity.enable_contratacion"><input type="checkbox" [(ngModel)]="newAdminModules.enable_contratacion" name="admin_enable_contratacion"> Contratación</label>
-                    <label *ngIf="selectedEntity.enable_reports_pdf"><input type="checkbox" [(ngModel)]="newAdminModules.enable_reports_pdf" name="admin_enable_reports_pdf"> Reportes PDF</label>
-                    <label *ngIf="selectedEntity.enable_ai_reports"><input type="checkbox" [(ngModel)]="newAdminModules.enable_ai_reports" name="admin_enable_ai_reports"> Análisis con IA</label>
+                <div class="modules-grid">
+                    <label *ngIf="selectedEntity.enable_pqrs" class="module-card" [class.active]="newAdminModules.enable_pqrs">
+                        <input type="checkbox" [(ngModel)]="newAdminModules.enable_pqrs" name="admin_enable_pqrs">
+                        <div class="module-icon">📬</div>
+                        <div class="module-info">
+                            <span class="module-name">PQRS</span>
+                            <span class="module-desc">Peticiones, quejas, reclamos</span>
+                        </div>
+                        <span class="module-toggle">{{ newAdminModules.enable_pqrs ? '✓' : '○' }}</span>
+                    </label>
+                    <label *ngIf="selectedEntity.enable_users_admin" class="module-card" [class.active]="newAdminModules.enable_users_admin">
+                        <input type="checkbox" [(ngModel)]="newAdminModules.enable_users_admin" name="admin_enable_users_admin">
+                        <div class="module-icon">🔑</div>
+                        <div class="module-info">
+                            <span class="module-name">Admin Usuarios</span>
+                            <span class="module-desc">Gestión de usuarios</span>
+                        </div>
+                        <span class="module-toggle">{{ newAdminModules.enable_users_admin ? '✓' : '○' }}</span>
+                    </label>
+                    <label *ngIf="selectedEntity.enable_planes_institucionales" class="module-card" [class.active]="newAdminModules.enable_planes_institucionales">
+                        <input type="checkbox" [(ngModel)]="newAdminModules.enable_planes_institucionales" name="admin_enable_planes_institucionales">
+                        <div class="module-icon">📋</div>
+                        <div class="module-info">
+                            <span class="module-name">Planes</span>
+                            <span class="module-desc">Planes institucionales</span>
+                        </div>
+                        <span class="module-toggle">{{ newAdminModules.enable_planes_institucionales ? '✓' : '○' }}</span>
+                    </label>
+                    <label *ngIf="selectedEntity.enable_pdm" class="module-card" [class.active]="newAdminModules.enable_pdm">
+                        <input type="checkbox" [(ngModel)]="newAdminModules.enable_pdm" name="admin_enable_pdm">
+                        <div class="module-icon">🗺️</div>
+                        <div class="module-info">
+                            <span class="module-name">PDM</span>
+                            <span class="module-desc">Plan de Desarrollo Municipal</span>
+                        </div>
+                        <span class="module-toggle">{{ newAdminModules.enable_pdm ? '✓' : '○' }}</span>
+                    </label>
+                    <label *ngIf="selectedEntity.enable_contratacion" class="module-card" [class.active]="newAdminModules.enable_contratacion">
+                        <input type="checkbox" [(ngModel)]="newAdminModules.enable_contratacion" name="admin_enable_contratacion">
+                        <div class="module-icon">📄</div>
+                        <div class="module-info">
+                            <span class="module-name">Contratación</span>
+                            <span class="module-desc">SECOP/SODA</span>
+                        </div>
+                        <span class="module-toggle">{{ newAdminModules.enable_contratacion ? '✓' : '○' }}</span>
+                    </label>
+                    <label *ngIf="selectedEntity.enable_asistencia" class="module-card" [class.active]="newAdminModules.enable_asistencia">
+                        <input type="checkbox" [(ngModel)]="newAdminModules.enable_asistencia" name="admin_enable_asistencia">
+                        <div class="module-icon">⏰</div>
+                        <div class="module-info">
+                            <span class="module-name">Control Asistencia</span>
+                            <span class="module-desc">Talento humano</span>
+                        </div>
+                        <span class="module-toggle">{{ newAdminModules.enable_asistencia ? '✓' : '○' }}</span>
+                    </label>
+                    <label *ngIf="selectedEntity.enable_correspondencia" class="module-card" [class.active]="newAdminModules.enable_correspondencia">
+                        <input type="checkbox" [(ngModel)]="newAdminModules.enable_correspondencia" name="admin_enable_correspondencia">
+                        <div class="module-icon">📧</div>
+                        <div class="module-info">
+                            <span class="module-name">Correspondencia</span>
+                            <span class="module-desc">Radicación de correspondencia</span>
+                        </div>
+                        <span class="module-toggle">{{ newAdminModules.enable_correspondencia ? '✓' : '○' }}</span>
+                    </label>
+                    <label *ngIf="selectedEntity.enable_presupuesto" class="module-card" [class.active]="newAdminModules.enable_presupuesto">
+                        <input type="checkbox" [(ngModel)]="newAdminModules.enable_presupuesto" name="admin_enable_presupuesto">
+                        <div class="module-icon">💰</div>
+                        <div class="module-info">
+                            <span class="module-name">Presupuesto</span>
+                            <span class="module-desc">CDP y BPP</span>
+                        </div>
+                        <span class="module-toggle">{{ newAdminModules.enable_presupuesto ? '✓' : '○' }}</span>
+                    </label>
+                    <label *ngIf="selectedEntity.enable_reports_pdf" class="module-card" [class.active]="newAdminModules.enable_reports_pdf">
+                        <input type="checkbox" [(ngModel)]="newAdminModules.enable_reports_pdf" name="admin_enable_reports_pdf">
+                        <div class="module-icon">📊</div>
+                        <div class="module-info">
+                            <span class="module-name">Reportes PDF</span>
+                            <span class="module-desc">Informes en PDF</span>
+                        </div>
+                        <span class="module-toggle">{{ newAdminModules.enable_reports_pdf ? '✓' : '○' }}</span>
+                    </label>
+                    <label *ngIf="selectedEntity.enable_ai_reports" class="module-card" [class.active]="newAdminModules.enable_ai_reports">
+                        <input type="checkbox" [(ngModel)]="newAdminModules.enable_ai_reports" name="admin_enable_ai_reports">
+                        <div class="module-icon">🤖</div>
+                        <div class="module-info">
+                            <span class="module-name">Análisis IA</span>
+                            <span class="module-desc">Inteligencia artificial</span>
+                        </div>
+                        <span class="module-toggle">{{ newAdminModules.enable_ai_reports ? '✓' : '○' }}</span>
+                    </label>
                 </div>
             </div>
 

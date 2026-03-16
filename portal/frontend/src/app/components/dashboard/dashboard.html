@@ -84,6 +84,28 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- Correspondencia -->
+                                <div class="col-md-6 col-lg-3" *ngIf="canAccessCorrespondencia()">
+                                    <div class="card h-100 quick-access-card" (click)="setActiveView('correspondencia')">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-envelope fa-3x text-secondary mb-3"></i>
+                                            <h6>Correspondencia</h6>
+                                            <small class="text-muted">Gestión de radicados</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Presupuesto -->
+                                <div class="col-md-6 col-lg-3" *ngIf="isAdmin() && presupuestoEnabled()">
+                                    <div class="card h-100 quick-access-card" (click)="navigateTo('solicitudes/cdp')">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-coins fa-3x text-warning mb-3"></i>
+                                            <h6>Presupuesto</h6>
+                                            <small class="text-muted">CDP y BPP</small>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1182,7 +1204,7 @@
         </div>
 
         <!-- Vista de Correspondencia -->
-        <div *ngIf="activeView === 'correspondencia'">
+        <div *ngIf="activeView === 'correspondencia' && canAccessCorrespondencia()">
             <!-- Formulario de nueva correspondencia -->
             <div *ngIf="mostrarFormularioCorrespondencia" class="row">
                 <div class="col-12">

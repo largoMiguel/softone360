@@ -54,7 +54,9 @@ export class SoftAdminComponent implements OnInit {
         enable_planes_institucionales: true,
         enable_pdm: true,
         enable_contratacion: true,
-        enable_asistencia: true
+        enable_asistencia: true,
+        enable_correspondencia: true,
+        enable_presupuesto: true
     };
 
     editingEntity: Entity | null = null;
@@ -76,6 +78,9 @@ export class SoftAdminComponent implements OnInit {
         enable_planes_institucionales: false,
         enable_pdm: false,
         enable_contratacion: false,
+        enable_asistencia: false,
+        enable_correspondencia: false,
+        enable_presupuesto: false,
         enable_reports_pdf: false,
         enable_ai_reports: false
     };
@@ -87,6 +92,9 @@ export class SoftAdminComponent implements OnInit {
         enable_planes_institucionales: false,
         enable_pdm: false,
         enable_contratacion: false,
+        enable_asistencia: false,
+        enable_correspondencia: false,
+        enable_presupuesto: false,
         enable_reports_pdf: false,
         enable_ai_reports: false
     };
@@ -175,7 +183,9 @@ export class SoftAdminComponent implements OnInit {
             enable_planes_institucionales: (entity as any).enable_planes_institucionales ?? true,
             enable_pdm: (entity as any).enable_pdm ?? true,
             enable_contratacion: (entity as any).enable_contratacion ?? true,
-            enable_asistencia: (entity as any).enable_asistencia ?? true
+            enable_asistencia: (entity as any).enable_asistencia ?? true,
+            enable_correspondencia: (entity as any).enable_correspondencia ?? true,
+            enable_presupuesto: (entity as any).enable_presupuesto ?? true
         };
         this.currentView = 'edit-entity';
     }
@@ -246,6 +256,9 @@ export class SoftAdminComponent implements OnInit {
                 enable_planes_institucionales: user.allowed_modules.includes('planes_institucionales'),
                 enable_pdm: user.allowed_modules.includes('pdm'),
                 enable_contratacion: user.allowed_modules.includes('contratacion'),
+                enable_asistencia: user.allowed_modules.includes('asistencia'),
+                enable_correspondencia: user.allowed_modules.includes('correspondencia'),
+                enable_presupuesto: user.allowed_modules.includes('presupuesto'),
                 enable_reports_pdf: user.allowed_modules.includes('reports_pdf'),
                 enable_ai_reports: user.allowed_modules.includes('ai_reports')
             };
@@ -257,6 +270,9 @@ export class SoftAdminComponent implements OnInit {
                 enable_planes_institucionales: false,
                 enable_pdm: false,
                 enable_contratacion: false,
+                enable_asistencia: false,
+                enable_correspondencia: false,
+                enable_presupuesto: false,
                 enable_reports_pdf: false,
                 enable_ai_reports: false
             };
@@ -306,6 +322,9 @@ export class SoftAdminComponent implements OnInit {
             if (this.editUserModules.enable_planes_institucionales) allowedModules.push('planes_institucionales');
             if (this.editUserModules.enable_pdm) allowedModules.push('pdm');
             if (this.editUserModules.enable_contratacion) allowedModules.push('contratacion');
+            if (this.editUserModules.enable_asistencia) allowedModules.push('asistencia');
+            if (this.editUserModules.enable_correspondencia) allowedModules.push('correspondencia');
+            if (this.editUserModules.enable_presupuesto) allowedModules.push('presupuesto');
             if (this.editUserModules.enable_reports_pdf) allowedModules.push('reports_pdf');
             if (this.editUserModules.enable_ai_reports) allowedModules.push('ai_reports');
         }
@@ -429,6 +448,9 @@ export class SoftAdminComponent implements OnInit {
             enable_planes_institucionales: entity.enable_planes_institucionales ?? false,
             enable_pdm: entity.enable_pdm ?? false,
             enable_contratacion: entity.enable_contratacion ?? false,
+            enable_asistencia: (entity as any).enable_asistencia ?? false,
+            enable_correspondencia: (entity as any).enable_correspondencia ?? false,
+            enable_presupuesto: (entity as any).enable_presupuesto ?? false,
             enable_reports_pdf: entity.enable_reports_pdf ?? false,
             enable_ai_reports: entity.enable_ai_reports ?? false
         };
@@ -447,6 +469,9 @@ export class SoftAdminComponent implements OnInit {
             if (this.newAdminModules.enable_planes_institucionales) allowedModules.push('planes_institucionales');
             if (this.newAdminModules.enable_pdm) allowedModules.push('pdm');
             if (this.newAdminModules.enable_contratacion) allowedModules.push('contratacion');
+            if (this.newAdminModules.enable_asistencia) allowedModules.push('asistencia');
+            if (this.newAdminModules.enable_correspondencia) allowedModules.push('correspondencia');
+            if (this.newAdminModules.enable_presupuesto) allowedModules.push('presupuesto');
             if (this.newAdminModules.enable_reports_pdf) allowedModules.push('reports_pdf');
             if (this.newAdminModules.enable_ai_reports) allowedModules.push('ai_reports');
         }
@@ -576,7 +601,10 @@ export class SoftAdminComponent implements OnInit {
             enable_ai_reports: true,
             enable_planes_institucionales: true,
             enable_pdm: true,
-            enable_contratacion: true
+            enable_contratacion: true,
+            enable_asistencia: true,
+            enable_correspondencia: true,
+            enable_presupuesto: true
         };
         this.editingEntity = null;
     }
@@ -611,6 +639,9 @@ export class SoftAdminComponent implements OnInit {
             enable_planes_institucionales: false,
             enable_pdm: false,
             enable_contratacion: false,
+            enable_asistencia: false,
+            enable_correspondencia: false,
+            enable_presupuesto: false,
             enable_reports_pdf: false,
             enable_ai_reports: false
         };
@@ -634,6 +665,48 @@ export class SoftAdminComponent implements OnInit {
         }).catch(() => {
             this.alertService.error('No se pudo copiar la URL');
         });
+    }
+
+    selectAllEntityModules(): void {
+        this.newEntity.enable_pqrs = true;
+        this.newEntity.enable_users_admin = true;
+        this.newEntity.enable_planes_institucionales = true;
+        this.newEntity.enable_pdm = true;
+        this.newEntity.enable_contratacion = true;
+        this.newEntity.enable_asistencia = true;
+        this.newEntity.enable_correspondencia = true;
+        this.newEntity.enable_presupuesto = true;
+        this.newEntity.enable_reports_pdf = true;
+        this.newEntity.enable_ai_reports = true;
+    }
+
+    deselectAllEntityModules(): void {
+        this.newEntity.enable_pqrs = false;
+        this.newEntity.enable_users_admin = false;
+        this.newEntity.enable_planes_institucionales = false;
+        this.newEntity.enable_pdm = false;
+        this.newEntity.enable_contratacion = false;
+        this.newEntity.enable_asistencia = false;
+        this.newEntity.enable_correspondencia = false;
+        this.newEntity.enable_presupuesto = false;
+        this.newEntity.enable_reports_pdf = false;
+        this.newEntity.enable_ai_reports = false;
+    }
+
+    getActiveModulesCount(): number {
+        const flags = [
+            this.newEntity.enable_pqrs,
+            this.newEntity.enable_users_admin,
+            this.newEntity.enable_planes_institucionales,
+            this.newEntity.enable_pdm,
+            this.newEntity.enable_contratacion,
+            this.newEntity.enable_asistencia,
+            this.newEntity.enable_correspondencia,
+            this.newEntity.enable_presupuesto,
+            this.newEntity.enable_reports_pdf,
+            this.newEntity.enable_ai_reports
+        ];
+        return flags.filter(Boolean).length;
     }
 
     logout(): void {

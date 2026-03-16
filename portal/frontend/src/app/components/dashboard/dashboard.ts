@@ -379,6 +379,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.loadPqrs();
       this.loadSecretarios();
       this.loadCorrespondencias();
+      // Redirigir a welcome si la vista activa ya no está habilitada para esta entidad
+      if (this.activeView === 'correspondencia' && !this.correspondenciaEnabled()) {
+        this.activeView = 'welcome';
+      }
+      if ((this.activeView === 'dashboard' || this.activeView === 'mis-pqrs' || this.activeView === 'nueva-pqrs') && !this.pqrsEnabled()) {
+        this.activeView = 'welcome';
+      }
       // Cargar lista de secretarías sugeridas (distintas) para la entidad
       const eid = this.entityContext.currentEntity?.id;
       this.secretariasSvc.listar(eid).subscribe({
@@ -1908,11 +1915,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   contratacionEnabled(): boolean {
-    return (this.entityContext.currentEntity as any)?.enable_contratacion ?? false;
+    return this.entityContext.currentEntity?.enable_contratacion ?? false;
   }
 
   pdmEnabled(): boolean {
-    return (this.entityContext.currentEntity as any)?.enable_pdm ?? true;
+    return this.entityContext.currentEntity?.enable_pdm ?? true;
+  }
+
+  correspondenciaEnabled(): boolean {
+    return this.entityContext.currentEntity?.enable_correspondencia ?? false;
+  }
+
+  canAccessCorrespondencia(): boolean {
+    return this.correspondenciaEnabled() && this.userHasModule('correspondencia');
+  }
+
+  presupuestoEnabled(): boolean {
+    return this.entityContext.currentEntity?.enable_presupuesto ?? false;
   }
 
   // Métodos auxiliares para gestión de usuarios

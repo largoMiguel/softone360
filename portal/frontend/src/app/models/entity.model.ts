@@ -21,6 +21,8 @@ export interface Entity {
     enable_contratacion: boolean;
     enable_pdm?: boolean;
     enable_asistencia?: boolean;
+    enable_correspondencia?: boolean;
+    enable_presupuesto?: boolean;
     // Personalización de informes PDM
     plan_name?: string;        // Nombre del plan de desarrollo
     report_code?: string;      // Código del formulario (ej: FM-0172)
@@ -56,6 +58,8 @@ export interface CreateEntityRequest {
     enable_contratacion?: boolean;
     enable_pdm?: boolean;
     enable_asistencia?: boolean;
+    enable_correspondencia?: boolean;
+    enable_presupuesto?: boolean;
     plan_name?: string;
     report_code?: string;
     report_version?: string;
@@ -84,6 +88,8 @@ export interface UpdateEntityRequest {
     enable_contratacion?: boolean;
     enable_pdm?: boolean;
     enable_asistencia?: boolean;
+    enable_correspondencia?: boolean;
+    enable_presupuesto?: boolean;
     plan_name?: string;
     report_code?: string;
     report_version?: string;

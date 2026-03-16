@@ -36,6 +36,10 @@ class Entity(Base):
     enable_pdm = Column(Boolean, nullable=False, default=True)
     # Nuevo módulo de Control de Asistencia
     enable_asistencia = Column(Boolean, nullable=False, default=True)
+    # Módulo de Correspondencia
+    enable_correspondencia = Column(Boolean, nullable=False, default=True)
+    # Módulo de Presupuesto (CDP, BPP)
+    enable_presupuesto = Column(Boolean, nullable=False, default=True)
     
     # Personalización de informes PDM
     plan_name = Column(String(500), nullable=True)  # Nombre del plan de desarrollo
