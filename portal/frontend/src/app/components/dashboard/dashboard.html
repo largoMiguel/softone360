@@ -870,14 +870,14 @@
                                     <select id="tipo_persona" formControlName="tipo_persona" class="form-select">
                                         <option value="">Seleccione...</option>
                                         <option *ngFor="let tp of tiposPersona" [value]="tp.value">{{ tp.label }}</option>
-                                    </select> mb-3">
-                                    <label for="archivo_adjunto" class="form-label">
-                                        <i class="fas fa-file-pdf me-1" aria-hidden="true"></i> Documento escaneado (PDF)
-                                    </label>
-                                    <input id="archivo_adjunto" type="file" class="form-control"
-                                        accept="application/pdf" (change)="onFileSelected($event)"
-                                        aria-describedby="archivo-help">
-                                    <small id="archivo-help" class="form-text text-muted">Para PQRS físicas escaneadas (máx. {{ MAX_FILE_SIZE_MB }}MB)</small>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="genero" class="form-label">Género</label>
+                                    <select id="genero" formControlName="genero" class="form-select">
+                                        <option value="">Seleccione...</option>
+                                        <option *ngFor="let g of generos" [value]="g.value">{{ g.label }}</option>
+                                    </select>
                                 </div>
                             </div>
 
