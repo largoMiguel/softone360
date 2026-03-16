@@ -64,7 +64,7 @@ echo ""
 
 echo -e "${YELLOW}🆕 Aplicando constraint única planes institucionales (entity_id, anio, nombre)...${NC}"
 eb ssh softone-backend-useast1 --command \
-"PGPASSWORD='TuPassSeguro123!' psql -h softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com -U dbadmin -d postgres -c \"DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='uq_planes_institucionales_entity_anio_nombre') THEN ALTER TABLE planes_institucionales ADD CONSTRAINT uq_planes_institucionales_entity_anio_nombre UNIQUE (entity_id, anio, nombre); END IF; END $$;\"" || CONSTRAINT_ERROR=1
+"PGPASSWORD='$(aws secretsmanager get-secret-value --secret-id softone/db/credentials --query SecretString --output text | python3 -c "import sys,json;print(json.load(sys.stdin)[\"password\"])")' psql -h softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com -U dbadmin -d postgres -c \"DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='uq_planes_institucionales_entity_anio_nombre') THEN ALTER TABLE planes_institucionales ADD CONSTRAINT uq_planes_institucionales_entity_anio_nombre UNIQUE (entity_id, anio, nombre); END IF; END $$;\"" || CONSTRAINT_ERROR=1
 
 if [ "$CONSTRAINT_ERROR" = "1" ]; then
     echo -e "${RED}⚠️  No se pudo aplicar la constraint (puede existir ya). Continuando...${NC}"
@@ -75,7 +75,7 @@ echo ""
 
 echo -e "${YELLOW}🔍 Verificando constraint en RDS...${NC}"
 eb ssh softone-backend-useast1 --command \
-    "PGPASSWORD='TuPassSeguro123!' psql \
+    "PGPASSWORD='$(aws secretsmanager get-secret-value --secret-id softone/db/credentials --query SecretString --output text | python3 -c "import sys,json;print(json.load(sys.stdin)[\"password\"])")' psql \
      -h softone-db.ccvomgoayzyt.us-east-1.rds.amazonaws.com \
      -U dbadmin -d postgres \
      -c \"SELECT conname, conrelid::regclass FROM pg_constraint WHERE conname='uq_planes_institucionales_entity_anio_nombre';\""

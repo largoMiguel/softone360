@@ -1,9 +1,13 @@
 {
   "CORSRules": [
     {
-      "AllowedOrigins": ["*"],
+      "AllowedOrigins": [
+        "https://softone360.com",
+        "https://www.softone360.com",
+        "http://localhost:4200"
+      ],
       "AllowedMethods": ["GET", "HEAD"],
-      "AllowedHeaders": ["*"],
+      "AllowedHeaders": ["Authorization", "Content-Type"],
       "MaxAgeSeconds": 3600
     }
   ]
