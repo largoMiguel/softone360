@@ -109,7 +109,7 @@ class EmailService:
         Enviar notificación de PQRS radicada al ciudadano.
         
         Args:
-            to_email: Correo del ciudadano
+            to_email: Correo(s) del ciudadano (puede ser múltiples separados por comas o punto y coma)
             numero_radicado: Número de radicado de la PQRS
             tipo_solicitud: Tipo de solicitud (petición, queja, etc.)
             asunto: Asunto de la PQRS
@@ -119,6 +119,9 @@ class EmailService:
             fecha_radicacion: Fecha de radicación
             entity_email: Email de la entidad (opcional, se usa como remitente)
         """
+        # Dividir múltiples correos si existen (separados por comas o punto y coma)
+        import re
+        email_list = [email.strip() for email in re.split(r'[,;]\s*', to_email) if email.strip()]
         subject = f"PQRS Radicada - {numero_radicado}"
         
         html_body = f"""
@@ -201,7 +204,7 @@ class EmailService:
         """
         
         return self.send_email(
-            to_emails=[to_email],
+            to_emails=email_list,
             subject=subject,
             html_body=html_body,
             text_body=text_body,
@@ -226,7 +229,7 @@ class EmailService:
         Enviar notificación de respuesta de PQRS al ciudadano.
         
         Args:
-            to_email: Correo del ciudadano
+            to_email: Correo(s) del ciudadano (puede ser múltiples separados por comas o punto y coma)
             numero_radicado: Número de radicado de la PQRS
             asunto: Asunto de la PQRS
             nombre_ciudadano: Nombre del ciudadano
@@ -237,6 +240,9 @@ class EmailService:
             archivo_adjunto_url: URL del archivo adjunto (opcional)
             entity_email: Email de la entidad (opcional, se usa como remitente)
         """
+        # Dividir múltiples correos si existen (separados por comas o punto y coma)
+        import re
+        email_list = [email.strip() for email in re.split(r'[,;]\s*', to_email) if email.strip()]
         subject = f"Respuesta a su PQRS - {numero_radicado}"
         
         # Sección de archivo adjunto si existe
@@ -337,7 +343,7 @@ class EmailService:
         """
         
         return self.send_email(
-            to_emails=[to_email],
+            to_emails=email_list,
             subject=subject,
             html_body=html_body,
             text_body=text_body,
