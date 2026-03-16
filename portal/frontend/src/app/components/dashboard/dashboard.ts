@@ -273,7 +273,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
       // Agregar validación según el medio seleccionado
       if (medio === 'email') {
-        emailControl?.setValidators([Validators.required, Validators.email]);
+        emailControl?.setValidators([Validators.required, this.multipleEmailsValidator.bind(this)]);
       } else if (medio === 'fisica') {
         direccionControl?.setValidators([Validators.required]);
       } else if (medio === 'telefono') {
@@ -339,6 +339,25 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return password && confirmPassword && password.value === confirmPassword.value
       ? null
       : { passwordMismatch: true };
+  }
+
+  // Validador personalizado para múltiples correos electrónicos
+  multipleEmailsValidator(control: any) {
+    if (!control.value) {
+      return null; // Si está vacío, no validar aquí (usar Validators.required si es necesario)
+    }
+
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const emails = control.value.split(/[,;]\s*/); // Separar por coma o punto y coma
+    
+    for (const email of emails) {
+      const trimmedEmail = email.trim();
+      if (trimmedEmail && !emailPattern.test(trimmedEmail)) {
+        return { invalidEmails: true };
+      }
+    }
+    
+    return null;
   }
 
   ngOnInit() {

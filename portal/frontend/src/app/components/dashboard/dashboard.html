@@ -948,10 +948,24 @@
                             <!-- Campos condicionales según medio de respuesta -->
                             <div class="mb-3" *ngIf="medio === 'email'">
                                 <label for="email_respuesta" class="form-label">
-                                    <i class="fas fa-envelope text-primary me-1"></i> Correo para Respuesta *
+                                    <i class="fas fa-envelope text-primary me-1"></i> Correo(s) para Respuesta *
                                 </label>
-                                <input id="email_respuesta" type="email" class="form-control"
-                                    formControlName="email_ciudadano" placeholder="correo@ejemplo.com">
+                                <input id="email_respuesta" type="text" class="form-control"
+                                    formControlName="email_ciudadano" 
+                                    placeholder="correo1@ejemplo.com, correo2@ejemplo.com">
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Puede ingresar varios correos separados por comas (,) o punto y coma (;)
+                                </small>
+                                <div *ngIf="nuevaPqrsForm.get('email_ciudadano')?.invalid && nuevaPqrsForm.get('email_ciudadano')?.touched" 
+                                     class="text-danger small mt-1">
+                                    <span *ngIf="nuevaPqrsForm.get('email_ciudadano')?.errors?.['required']">
+                                        <i class="fas fa-exclamation-circle me-1"></i>El correo es obligatorio
+                                    </span>
+                                    <span *ngIf="nuevaPqrsForm.get('email_ciudadano')?.errors?.['invalidEmails']">
+                                        <i class="fas fa-exclamation-circle me-1"></i>Uno o más correos no tienen un formato válido
+                                    </span>
+                                </div>
                             </div>
 
                             <div class="mb-3" *ngIf="medio === 'fisica'">
@@ -2448,9 +2462,12 @@
                                 </div>
 
                                 <div class="col-md-4 mb-3">
-                                    <label for="edit_email_ciudadano" class="form-label">Email</label>
-                                    <input type="email" id="edit_email_ciudadano" formControlName="email_ciudadano"
-                                        class="form-control">
+                                    <label for="edit_email_ciudadano" class="form-label">
+                                        Email(s)
+                                    </label>
+                                    <input type="text" id="edit_email_ciudadano" formControlName="email_ciudadano"
+                                        class="form-control" placeholder="correo1@ejemplo.com, correo2@ejemplo.com">
+                                    <small class="form-text text-muted">Puede ingresar varios correos separados por comas</small>
                                 </div>
 
                                 <div class="col-md-4 mb-3">
