@@ -13,13 +13,8 @@
             </div>
             <ul class="list-unstyled ms-1 submenu" [class.expanded]="menuStates.ventanilla">
                 <li *ngIf="canAccessPqrs()">
-                    <a class="menu-link" [class.active]="isActiveView('dashboard')" (click)="goDashboard('dashboard')">
-                        <i class="fas fa-chart-pie me-2"></i>Resumen PQRS
-                    </a>
-                </li>
-                <li *ngIf="canAccessPqrs()">
-                    <a class="menu-link" [class.active]="isActiveView('mis-pqrs')" (click)="goDashboard('mis-pqrs')">
-                        <i class="fas fa-list me-2"></i>Mis PQRS
+                    <a class="menu-link" [class.active]="isActiveView('dashboard') || isActiveView('mis-pqrs')" (click)="goDashboard('dashboard')">
+                        <i class="fas fa-inbox me-2"></i>PQRS
                     </a>
                 </li>
                 <li *ngIf="canAccessCorrespondencia()">
