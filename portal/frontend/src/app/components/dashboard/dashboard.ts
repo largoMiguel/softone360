@@ -127,9 +127,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
   tiposChartData: ChartData<'bar'> = { labels: [], datasets: [] };
   tendenciasChartData: ChartData<'line'> = { labels: [], datasets: [] };
 
+  // Datos para gráficos de correspondencia
+  correspondenciaEstadosChartData: ChartData<'doughnut'> = { labels: [], datasets: [] };
+  correspondenciaTiposChartData: ChartData<'bar'> = { labels: [], datasets: [] };
+  correspondenciaTendenciasChartData: ChartData<'line'> = { labels: [], datasets: [] };
+  correspondenciaTiemposRespuestaChartData: ChartData<'pie'> = { labels: [], datasets: [] };
+
   doughnutChartType: ChartType = 'doughnut';
   barChartType: ChartType = 'bar';
   lineChartType: ChartType = 'line';
+  pieChartType: ChartType = 'pie';
 
   chartOptions: ChartConfiguration['options'] = {
     responsive: true,
@@ -1689,6 +1696,140 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  updateCorrespondenciaCharts(): void {
+    // Gráfico de estados de correspondencia (Doughnut)
+    const estadosLabels = ['Enviada', 'En Proceso', 'Resuelta', 'Cerrada'];
+    const estadosData = [
+      this.correspondenciaList.filter(c => c.estado === 'enviada').length,
+      this.correspondenciaList.filter(c => c.estado === 'en_proceso').length,
+      this.correspondenciaList.filter(c => c.estado === 'resuelta').length,
+      this.correspondenciaList.filter(c => c.estado === 'cerrada').length,
+    ];
+
+    this.correspondenciaEstadosChartData = {
+      labels: estadosLabels,
+      datasets: [{
+        data: estadosData,
+        backgroundColor: [
+          '#ffc107',
+          '#17a2b8',
+          '#28a745',
+          '#6c757d'
+        ],
+        hoverBackgroundColor: [
+          '#ffca2c',
+          '#1fc8e3',
+          '#48c774',
+          '#868e96'
+        ]
+      }]
+    };
+
+    // Gráfico de tipos de solicitud (Barras)
+    const tiposLabels = ['Sugerencia', 'Petición', 'Queja', 'Reclamo', 'Felicitación', 'Info', 'Otro'];
+    const tiposData = [
+      this.correspondenciaList.filter(c => c.tipo_solicitud === 'sugerencia').length,
+      this.correspondenciaList.filter(c => c.tipo_solicitud === 'peticion').length,
+      this.correspondenciaList.filter(c => c.tipo_solicitud === 'queja').length,
+      this.correspondenciaList.filter(c => c.tipo_solicitud === 'reclamo').length,
+      this.correspondenciaList.filter(c => c.tipo_solicitud === 'felicitacion').length,
+      this.correspondenciaList.filter(c => c.tipo_solicitud === 'solicitud_informacion').length,
+      this.correspondenciaList.filter(c => c.tipo_solicitud === 'otro').length
+    ];
+
+    this.correspondenciaTiposChartData = {
+      labels: tiposLabels,
+      datasets: [{
+        label: 'Correspondencia por Tipo',
+        data: tiposData,
+        backgroundColor: [
+          'rgba(40, 167, 69, 0.7)',
+          'rgba(33, 107, 168, 0.7)',
+          'rgba(255, 193, 7, 0.7)',
+          'rgba(220, 53, 69, 0.7)',
+          'rgba(111, 66, 193, 0.7)',
+          'rgba(23, 162, 184, 0.7)',
+          'rgba(108, 117, 125, 0.7)'
+        ],
+        borderColor: [
+          'rgba(40, 167, 69, 1)',
+          'rgba(33, 107, 168, 1)',
+          'rgba(255, 193, 7, 1)',
+          'rgba(220, 53, 69, 1)',
+          'rgba(111, 66, 193, 1)',
+          'rgba(23, 162, 184, 1)',
+          'rgba(108, 117, 125, 1)'
+        ],
+        borderWidth: 2
+      }]
+    };
+
+    // Gráfico de tendencias (últimos 7 días)
+    const ultimos7Dias = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return d;
+    });
+
+    const tendenciasLabels = ultimos7Dias.map(d =>
+      d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })
+    );
+
+    const tendenciasData = ultimos7Dias.map(dia => {
+      return this.correspondenciaList.filter(c => {
+        const fecha = new Date(c.fecha_envio);
+        return fecha.toDateString() === dia.toDateString();
+      }).length;
+    });
+
+    this.correspondenciaTendenciasChartData = {
+      labels: tendenciasLabels,
+      datasets: [{
+        label: 'Correspondencia Recibida',
+        data: tendenciasData,
+        borderColor: '#28a745',
+        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#28a745',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 5,
+        pointHoverRadius: 7
+      }]
+    };
+
+    // Gráfico de tiempos de respuesta (Pie)
+    const tiemposLabels = ['5 días', '10 días', '15 días'];
+    const tiemposData = [
+      this.correspondenciaList.filter(c => c.tiempo_respuesta_dias === 5).length,
+      this.correspondenciaList.filter(c => c.tiempo_respuesta_dias === 10).length,
+      this.correspondenciaList.filter(c => c.tiempo_respuesta_dias === 15).length
+    ];
+
+    this.correspondenciaTiemposRespuestaChartData = {
+      labels: tiemposLabels,
+      datasets: [{
+        data: tiemposData,
+        backgroundColor: [
+          '#28a745',
+          '#ffc107',
+          '#dc3545'
+        ],
+        hoverBackgroundColor: [
+          '#48c774',
+          '#ffca2c',
+          '#e4606d'
+        ]
+      }]
+    };
+
+    // Actualizar el gráfico si existe
+    if (this.chart) {
+      this.chart.update();
+    }
+  }
+
   openReportForm(): void {
     this.mostrarFormularioInforme();
   }
@@ -2278,6 +2419,27 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return canales[canal] || canal;
   }
 
+  // Métodos de estadísticas para correspondencia
+  getTotalCorrespondencias(): number {
+    return this.correspondenciaList.length;
+  }
+
+  getCorrespondenciasEnviadas(): number {
+    return this.correspondenciaList.filter(c => c.estado === 'enviada').length;
+  }
+
+  getCorrespondenciasEnProceso(): number {
+    return this.correspondenciaList.filter(c => c.estado === 'en_proceso').length;
+  }
+
+  getCorrespondenciasResueltas(): number {
+    return this.correspondenciaList.filter(c => c.estado === 'resuelta').length;
+  }
+
+  getCorrespondenciasCerradas(): number {
+    return this.correspondenciaList.filter(c => c.estado === 'cerrada').length;
+  }
+
   getMedioRespuestaLabel(medio: string): string {
     const medios: { [key: string]: string } = {
       'email': 'Correo Electrónico',
@@ -2322,6 +2484,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.correspondenciaService.getCorrespondencias().subscribe({
       next: (data) => {
         this.correspondenciaList = data;
+        this.updateCorrespondenciaCharts();
       },
       error: (error) => {
         console.error('Error cargando correspondencias:', error);
