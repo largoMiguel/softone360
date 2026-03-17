@@ -220,7 +220,7 @@
                     <button class="btn btn-primary btn-sm me-2" (click)="setActiveView('nueva-pqrs')">
                         <i class="fas fa-plus me-1"></i>Nueva PQRS
                     </button>
-                    <button class="btn btn-secondary btn-sm me-2" (click)="setActiveView('mis-pqrs')">
+                    <button class="btn btn-primary btn-sm me-2" (click)="setActiveView('mis-pqrs')">
                         <i class="fas fa-list me-1"></i>Mis PQRS
                     </button>
                     <button class="btn btn-primary btn-sm" (click)="openReportForm()" *ngIf="reportsPdfEnabled()">
@@ -452,10 +452,13 @@
         <div *ngIf="activeView === 'mis-pqrs' && canAccessPqrs()">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
-                    <h3 class="mb-1"><i class="fas fa-list me-2 text-primary"></i>Mis PQRS</h3>
-                    <p class="text-muted mb-0 small">Listado y gestión de peticiones, quejas, reclamos y sugerencias</p>
+                    <h3 class="mb-1"><i class="fas fa-inbox me-2 text-primary"></i>PQRS</h3>
+                    <p class="text-muted mb-0 small">Gestionar PQRS</p>
                 </div>
                 <div>
+                    <button class="btn btn-outline-secondary btn-sm me-2" (click)="setActiveView('dashboard')">
+                        <i class="fas fa-arrow-left me-1"></i>Volver al Dashboard
+                    </button>
                     <button class="btn btn-primary btn-sm me-2" (click)="setActiveView('nueva-pqrs')">
                         <i class="fas fa-plus me-1"></i>Nueva PQRS
                     </button>
