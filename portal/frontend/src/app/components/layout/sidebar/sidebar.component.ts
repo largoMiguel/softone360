@@ -61,6 +61,7 @@ export class SidebarComponent {
     userHasModule(moduleName: string): boolean {
         const u = this.auth.getCurrentUserValue();
         if (!u) return false;
+        if (u.role === 'admin') return true; // admin tiene acceso a todos los módulos habilitados
         if (!u.allowed_modules || u.allowed_modules.length === 0) return true; // legacy: acceso total
         return u.allowed_modules.includes(moduleName);
     }

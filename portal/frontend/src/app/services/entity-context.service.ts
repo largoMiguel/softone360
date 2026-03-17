@@ -30,6 +30,7 @@ export class EntityContextService {
 
     /**
      * Inicializa el contexto leyendo el slug de la URL y cargando la entidad.
+     * Siempre fuerza recarga para reflejar cambios recientes (ej: módulos desactivados).
      */
     initFromRoute(params: Params): Observable<Entity | null> {
         const slug = params['slug'];
@@ -37,6 +38,8 @@ export class EntityContextService {
             this.clear();
             return of(null);
         }
+        // Limpiar caché para garantizar datos frescos en cada navegación
+        this.entity$.next(null);
         return this.setEntityBySlug(slug);
     }
 

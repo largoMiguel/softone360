@@ -60,6 +60,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   correspondenciaSeleccionada: CorrespondenciaWithDetails | null = null;
   mostrarFormularioCorrespondencia: boolean = false;
   mostrarFormularioRespuestaCorrespondencia: boolean = false;
+  mostrarDashboardCorrespondencia: boolean = true;
+  filtroEstadoListadoCorrespondencia: string = '';
   respuestaCorrespondenciaTexto: string = '';
   nuevaCorrespondenciaForm: FormGroup;
   nextRadicadoCorrespondencia: string = '';
@@ -2447,6 +2449,19 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.correspondenciaList.filter(c => c.estado === 'cerrada').length;
   }
 
+  getCorrespondenciasFiltradas(): CorrespondenciaWithDetails[] {
+    if (!this.filtroEstadoListadoCorrespondencia) return this.correspondenciaList;
+    return this.correspondenciaList.filter(c => c.estado === this.filtroEstadoListadoCorrespondencia);
+  }
+
+  filtrarCorrespondenciaPorEstado(estado: string): void {
+    this.filtroEstadoListadoCorrespondencia = estado;
+    this.mostrarDashboardCorrespondencia = false;
+    this.mostrarFormularioCorrespondencia = false;
+    this.correspondenciaSeleccionada = null;
+    this.mostrarFormularioRespuestaCorrespondencia = false;
+  }
+
   // Métodos para informe de correspondencia
   mostrarFormularioInformeCorrespondencia(): void {
     // Establecer fechas por defecto (último mes)
@@ -2845,6 +2860,8 @@ DETALLE DE CORRESPONDENCIAS:
 
   cerrarFormularioRespuestaCorrespondencia(): void {
     this.mostrarFormularioRespuestaCorrespondencia = false;
+    this.correspondenciaSeleccionada = null;
+    this.mostrarDashboardCorrespondencia = true;
     this.respuestaCorrespondenciaTexto = '';
     this.selectedFileCorrespondenciaRespuesta = null;
   }

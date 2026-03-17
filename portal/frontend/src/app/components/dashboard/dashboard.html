@@ -1220,7 +1220,7 @@
         <!-- Vista de Correspondencia -->
         <div *ngIf="activeView === 'correspondencia' && canAccessCorrespondencia()">
             <!-- Dashboard de Análisis de Correspondencia -->
-            <div *ngIf="!mostrarFormularioCorrespondencia && !correspondenciaSeleccionada && !mostrarFormularioRespuestaCorrespondencia">
+            <div *ngIf="mostrarDashboardCorrespondencia && !mostrarFormularioCorrespondencia && !correspondenciaSeleccionada && !mostrarFormularioRespuestaCorrespondencia">
                 <!-- Header -->
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
@@ -1237,7 +1237,7 @@
                         <button class="btn btn-success btn-sm me-2" (click)="mostrarFormularioInformeCorrespondencia()">
                             <i class="fas fa-file-pdf me-1"></i>Generar Informe
                         </button>
-                        <button class="btn btn-outline-success btn-sm" (click)="setActiveView('correspondencia')">
+                        <button class="btn btn-outline-success btn-sm" (click)="filtrarCorrespondenciaPorEstado('')">
                             <i class="fas fa-list me-1"></i>Ver Listado
                         </button>
                     </div>
@@ -1246,7 +1246,7 @@
                 <!-- Stats Cards -->
                 <div class="row g-3 mb-4">
                     <div class="col-md-3">
-                        <div class="stats-card stats-primary">
+                        <div class="stats-card stats-primary" style="cursor:pointer;" (click)="filtrarCorrespondenciaPorEstado('')" title="Ver todas las correspondencias">
                             <div class="stats-icon">
                                 <i class="fas fa-envelope"></i>
                             </div>
@@ -1260,7 +1260,7 @@
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="stats-card stats-warning">
+                        <div class="stats-card stats-warning" style="cursor:pointer;" (click)="filtrarCorrespondenciaPorEstado('enviada')" title="Ver correspondencias enviadas">
                             <div class="stats-icon">
                                 <i class="fas fa-paper-plane"></i>
                             </div>
@@ -1274,7 +1274,7 @@
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="stats-card stats-info">
+                        <div class="stats-card stats-info" style="cursor:pointer;" (click)="filtrarCorrespondenciaPorEstado('en_proceso')" title="Ver correspondencias en proceso">
                             <div class="stats-icon">
                                 <i class="fas fa-tasks"></i>
                             </div>
@@ -1288,7 +1288,7 @@
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="stats-card stats-success">
+                        <div class="stats-card stats-success" style="cursor:pointer;" (click)="filtrarCorrespondenciaPorEstado('resuelta')" title="Ver correspondencias resueltas">
                             <div class="stats-icon">
                                 <i class="fas fa-check-circle"></i>
                             </div>
@@ -1771,7 +1771,7 @@
             </div>
 
             <!-- Listado de correspondencias -->
-            <div *ngIf="!mostrarFormularioCorrespondencia && !correspondenciaSeleccionada" class="row">
+            <div *ngIf="!mostrarDashboardCorrespondencia && !mostrarFormularioCorrespondencia && !correspondenciaSeleccionada" class="row">
                 <div class="col-12">
                     <div class="card shadow-sm border-0">
                         <div class="card-header bg-primary text-white">
@@ -1779,12 +1779,23 @@
                                 <div>
                                     <h4 class="mb-0">
                                         <i class="fas fa-envelope me-2"></i>Correspondencia
+                                        <span *ngIf="filtroEstadoListadoCorrespondencia" class="badge bg-warning text-dark ms-2">
+                                            {{ getEstadoCorrespondenciaLabel($any(filtroEstadoListadoCorrespondencia)) }}
+                                        </span>
                                     </h4>
                                     <small>Gestión de comunicaciones oficiales</small>
                                 </div>
-                                <button class="btn btn-light" (click)="mostrarFormularioNuevaCorrespondencia()">
-                                    <i class="fas fa-plus me-1"></i>Nueva Correspondencia
-                                </button>
+                                <div class="d-flex gap-2 align-items-center">
+                                    <button *ngIf="filtroEstadoListadoCorrespondencia" class="btn btn-warning btn-sm" (click)="filtroEstadoListadoCorrespondencia = ''">
+                                        <i class="fas fa-times me-1"></i>Limpiar filtro
+                                    </button>
+                                    <button class="btn btn-outline-light btn-sm" (click)="mostrarDashboardCorrespondencia = true">
+                                        <i class="fas fa-chart-bar me-1"></i>Ver Dashboard
+                                    </button>
+                                    <button class="btn btn-light" (click)="mostrarFormularioNuevaCorrespondencia()">
+                                        <i class="fas fa-plus me-1"></i>Nueva Correspondencia
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div class="card-body">
@@ -1801,7 +1812,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr *ngFor="let corr of correspondenciaList">
+                                        <tr *ngFor="let corr of getCorrespondenciasFiltradas()">
                                             <td><strong>{{ corr.numero_radicado }}</strong></td>
                                             <td>{{ corr.fecha_envio }}</td>
                                             <td>{{ corr.destinacion }}</td>
