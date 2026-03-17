@@ -196,6 +196,12 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
     }
 
     // ===== Navegación =====
+    goHome() {
+        const slug = this.entityContext.currentEntity?.slug;
+        if (!slug) return;
+        this.router.navigate([`/${slug}/dashboard`], { queryParams: {} });
+    }
+
     goUsuarios() {
         const slug = this.entityContext.currentEntity?.slug;
         if (!slug) return;

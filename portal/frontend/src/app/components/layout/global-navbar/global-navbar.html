@@ -49,6 +49,15 @@
 
         <!-- Usuario y Campana -->
         <div class="navbar-nav ms-auto d-flex align-items-center gap-3">
+            <!-- Botón Inicio -->
+            <div class="nav-item me-2">
+                <button type="button" class="btn btn-outline-light btn-sm"
+                    (click)="goHome()"
+                    title="Ir al inicio">
+                    <i class="fas fa-home me-1"></i>Inicio
+                </button>
+            </div>
+
             <!-- Botón de Usuarios (solo para admins) -->
             <div class="nav-item" *ngIf="isAdmin() && usersAdminEnabled()">
                 <button type="button" class="btn btn-link nav-link text-white p-0 position-relative btn-icon-navbar"
