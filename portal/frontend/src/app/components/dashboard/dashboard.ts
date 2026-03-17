@@ -62,6 +62,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   mostrarFormularioRespuestaCorrespondencia: boolean = false;
   mostrarDashboardCorrespondencia: boolean = true;
   filtroEstadoListadoCorrespondencia: string = '';
+  correspondenciaEditando: CorrespondenciaWithDetails | null = null;
   respuestaCorrespondenciaTexto: string = '';
   nuevaCorrespondenciaForm: FormGroup;
   nextRadicadoCorrespondencia: string = '';
@@ -620,7 +621,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   private updateQueryParamV(view?: string) {
     const qp: any = { ...this.route.snapshot.queryParams };
-    if (!view || view === 'dashboard' || view === 'welcome') {
+    if (!view || view === 'welcome') {
       delete qp['v'];
     } else {
       qp['v'] = view;
@@ -2689,6 +2690,7 @@ DETALLE DE CORRESPONDENCIAS:
   }
 
   mostrarFormularioNuevaCorrespondencia(): void {
+    this.correspondenciaEditando = null;
     this.mostrarFormularioCorrespondencia = true;
     
     // Establecer procedencia con el nombre de la entidad actual
@@ -2700,8 +2702,28 @@ DETALLE DE CORRESPONDENCIAS:
     this.loadNextRadicadoCorrespondencia();
   }
 
+  editarCorrespondencia(correspondencia: CorrespondenciaWithDetails): void {
+    this.correspondenciaEditando = correspondencia;
+    this.mostrarDashboardCorrespondencia = false;
+    this.correspondenciaSeleccionada = null;
+    this.mostrarFormularioCorrespondencia = true;
+    this.nuevaCorrespondenciaForm.patchValue({
+      fecha_envio: correspondencia.fecha_envio,
+      procedencia: correspondencia.procedencia,
+      destinacion: correspondencia.destinacion,
+      numero_folios: correspondencia.numero_folios,
+      tipo_radicacion: correspondencia.tipo_radicacion,
+      tipo_solicitud: correspondencia.tipo_solicitud,
+      tiempo_respuesta_dias: correspondencia.tiempo_respuesta_dias,
+      correo_electronico: correspondencia.correo_electronico || '',
+      direccion_radicacion: correspondencia.direccion_radicacion || '',
+      observaciones: correspondencia.observaciones || ''
+    });
+  }
+
   ocultarFormularioCorrespondencia(): void {
     this.mostrarFormularioCorrespondencia = false;
+    this.correspondenciaEditando = null;
     
     // Limpiar archivo seleccionado
     this.selectedFileCorrespondenciaSolicitud = null;
@@ -2759,6 +2781,26 @@ DETALLE DE CORRESPONDENCIAS:
     }
 
     this.isSubmitting = true;
+
+    // Modo edición
+    if (this.correspondenciaEditando) {
+      const formData = this.nuevaCorrespondenciaForm.getRawValue();
+      this.correspondenciaService.updateCorrespondencia(this.correspondenciaEditando.id, formData).subscribe({
+        next: () => {
+          this.alertService.success('Correspondencia actualizada exitosamente', 'Éxito');
+          this.ocultarFormularioCorrespondencia();
+          this.loadCorrespondencias();
+          this.isSubmitting = false;
+        },
+        error: (error) => {
+          console.error('Error actualizando correspondencia:', error);
+          const errorMsg = this.extractErrorMessage(error);
+          this.alertService.error(errorMsg, 'Error');
+          this.isSubmitting = false;
+        }
+      });
+      return;
+    }
     
     // Usar getRawValue() para incluir campos deshabilitados como "procedencia"
     const formData = this.nuevaCorrespondenciaForm.getRawValue();
