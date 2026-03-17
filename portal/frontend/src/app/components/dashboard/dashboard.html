@@ -1234,6 +1234,9 @@
                         <button class="btn btn-success btn-sm me-2" (click)="mostrarFormularioNuevaCorrespondencia()">
                             <i class="fas fa-plus me-1"></i>Nueva Correspondencia
                         </button>
+                        <button class="btn btn-success btn-sm me-2" (click)="mostrarFormularioInformeCorrespondencia()">
+                            <i class="fas fa-file-pdf me-1"></i>Generar Informe
+                        </button>
                         <button class="btn btn-outline-success btn-sm" (click)="setActiveView('correspondencia')">
                             <i class="fas fa-list me-1"></i>Ver Listado
                         </button>
@@ -1681,6 +1684,92 @@
                 </div>
             </div>
 
+            <!-- Modal Selector de Fechas para Informe de Correspondencia -->
+            <div class="modal fade show d-block" *ngIf="mostrarSelectorFechasCorrespondencia" style="background-color: rgba(0,0,0,0.5);">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-success text-white">
+                            <h5 class="modal-title">
+                                <i class="fas fa-filter me-2"></i>Configurar Informe de Correspondencia
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" (click)="cancelarInformeCorrespondencia()"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="text-muted mb-3">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Selecciona el período y los filtros para generar el informe de correspondencia
+                            </p>
+
+                            <!-- Fechas -->
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label for="fechaInicioCorrespondencia" class="form-label fw-bold">
+                                        <i class="fas fa-calendar-check me-1"></i>Fecha Inicial
+                                    </label>
+                                    <input type="date" class="form-control" id="fechaInicioCorrespondencia" 
+                                        [(ngModel)]="fechaInicioCorrespondencia" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="fechaFinCorrespondencia" class="form-label fw-bold">
+                                        <i class="fas fa-calendar-times me-1"></i>Fecha Final
+                                    </label>
+                                    <input type="date" class="form-control" id="fechaFinCorrespondencia" 
+                                        [(ngModel)]="fechaFinCorrespondencia" required>
+                                </div>
+                            </div>
+
+                            <hr>
+
+                            <!-- Filtros Opcionales -->
+                            <h6 class="text-muted mb-3">
+                                <i class="fas fa-sliders-h me-2"></i>Filtros Opcionales (dejar en blanco para incluir todos)
+                            </h6>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="filtroEstadoCorrespondencia" class="form-label fw-bold">
+                                        <i class="fas fa-tasks me-1"></i>Estado
+                                    </label>
+                                    <select class="form-select" id="filtroEstadoCorrespondencia" 
+                                        [(ngModel)]="filtroEstadoCorrespondencia">
+                                        <option value="">Todos los estados</option>
+                                        <option value="enviada">Enviada</option>
+                                        <option value="en_proceso">En Proceso</option>
+                                        <option value="resuelta">Resuelta</option>
+                                        <option value="cerrada">Cerrada</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="filtroTipoCorrespondencia" class="form-label fw-bold">
+                                        <i class="fas fa-tag me-1"></i>Tipo de Solicitud
+                                    </label>
+                                    <select class="form-select" id="filtroTipoCorrespondencia" 
+                                        [(ngModel)]="filtroTipoCorrespondencia">
+                                        <option value="">Todos los tipos</option>
+                                        <option value="sugerencia">Sugerencia</option>
+                                        <option value="peticion">Petición</option>
+                                        <option value="queja">Queja</option>
+                                        <option value="reclamo">Reclamo</option>
+                                        <option value="felicitacion">Felicitación</option>
+                                        <option value="solicitud_informacion">Solicitud de Información</option>
+                                        <option value="otro">Otro</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" (click)="cancelarInformeCorrespondencia()">
+                                <i class="fas fa-times me-2"></i>Cancelar
+                            </button>
+                            <button type="button" class="btn btn-success" (click)="generarInformeCorrespondencia()">
+                                <i class="fas fa-file-pdf me-2"></i>Generar Informe
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Listado de correspondencias -->
             <div *ngIf="!mostrarFormularioCorrespondencia && !correspondenciaSeleccionada" class="row">
                 <div class="col-12">
@@ -1699,15 +1788,7 @@
                             </div>
                         </div>
                         <div class="card-body">
-                            <div *ngIf="correspondenciaList.length === 0" class="text-center py-5">
-                                <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
-                                <p class="text-muted">No hay correspondencias registradas</p>
-                                <button class="btn btn-primary" (click)="mostrarFormularioNuevaCorrespondencia()">
-                                    <i class="fas fa-plus me-1"></i>Crear Primera Correspondencia
-                                </button>
-                            </div>
-
-                            <div *ngIf="correspondenciaList.length > 0" class="table-responsive">
+                            <div class="table-responsive">
                                 <table class="table table-hover">
                                     <thead class="table-light">
                                         <tr>

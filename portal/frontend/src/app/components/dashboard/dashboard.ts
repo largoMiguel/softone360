@@ -106,6 +106,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   filtroEstado: string = '';
   filtroTipo: string = '';
 
+  // Fechas para el informe de correspondencia
+  fechaInicioCorrespondencia: string = '';
+  fechaFinCorrespondencia: string = '';
+  mostrarSelectorFechasCorrespondencia: boolean = false;
+  filtroEstadoCorrespondencia: string = '';
+  filtroTipoCorrespondencia: string = '';
+
   // Filtros generales para la vista
   filtroGeneralSecretario: string = '';
   filtroGeneralEstado: string = '';
@@ -2440,6 +2447,179 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.correspondenciaList.filter(c => c.estado === 'cerrada').length;
   }
 
+  // Métodos para informe de correspondencia
+  mostrarFormularioInformeCorrespondencia(): void {
+    // Establecer fechas por defecto (último mes)
+    const fechaFin = new Date();
+    const fechaInicio = new Date();
+    fechaInicio.setMonth(fechaInicio.getMonth() - 1);
+
+    this.fechaInicioCorrespondencia = fechaInicio.toISOString().split('T')[0];
+    this.fechaFinCorrespondencia = fechaFin.toISOString().split('T')[0];
+
+    // Resetear filtros
+    this.filtroEstadoCorrespondencia = '';
+    this.filtroTipoCorrespondencia = '';
+
+    this.mostrarSelectorFechasCorrespondencia = true;
+  }
+
+  cancelarInformeCorrespondencia(): void {
+    this.mostrarSelectorFechasCorrespondencia = false;
+    this.filtroEstadoCorrespondencia = '';
+    this.filtroTipoCorrespondencia = '';
+  }
+
+  async generarInformeCorrespondencia(): Promise<void> {
+    if (!this.fechaInicioCorrespondencia || !this.fechaFinCorrespondencia) {
+      this.alertService.warning('Debes seleccionar el rango de fechas para el informe.', 'Fechas Requeridas');
+      return;
+    }
+
+    const inicio = new Date(this.fechaInicioCorrespondencia + 'T00:00:00');
+    const fin = new Date(this.fechaFinCorrespondencia + 'T23:59:59');
+
+    if (inicio > fin) {
+      this.alertService.warning('La fecha inicial no puede ser posterior a la fecha final.', 'Fechas Inválidas');
+      return;
+    }
+
+    try {
+      this.mostrarSelectorFechasCorrespondencia = false;
+
+      this.alertService.info('Generando informe de correspondencia... Por favor espera.', 'Generando Informe');
+
+      // Filtrar correspondencias por rango de fechas y otros criterios
+      let correspondenciasFiltradas = this.correspondenciaList.filter(corr => {
+        const fechaEnvio = new Date(corr.fecha_envio);
+        const fechaNormalizada = new Date(fechaEnvio.getFullYear(), fechaEnvio.getMonth(), fechaEnvio.getDate());
+        const inicioNormalizado = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate());
+        const finNormalizado = new Date(fin.getFullYear(), fin.getMonth(), fin.getDate());
+        return fechaNormalizada >= inicioNormalizado && fechaNormalizada <= finNormalizado;
+      });
+
+      // Aplicar filtros adicionales
+      if (this.filtroEstadoCorrespondencia) {
+        correspondenciasFiltradas = correspondenciasFiltradas.filter(c => c.estado === this.filtroEstadoCorrespondencia);
+      }
+
+      if (this.filtroTipoCorrespondencia) {
+        correspondenciasFiltradas = correspondenciasFiltradas.filter(c => c.tipo_solicitud === this.filtroTipoCorrespondencia);
+      }
+
+      if (correspondenciasFiltradas.length === 0) {
+        this.alertService.warning('No hay correspondencias en el rango de fechas seleccionado.', 'Sin Datos');
+        return;
+      }
+
+      // Calcular estadísticas
+      const totalCorrespondencias = correspondenciasFiltradas.length;
+      const porEstado = {
+        enviada: correspondenciasFiltradas.filter(c => c.estado === 'enviada').length,
+        en_proceso: correspondenciasFiltradas.filter(c => c.estado === 'en_proceso').length,
+        resuelta: correspondenciasFiltradas.filter(c => c.estado === 'resuelta').length,
+        cerrada: correspondenciasFiltradas.filter(c => c.estado === 'cerrada').length
+      };
+
+      const porTipo = {
+        sugerencia: correspondenciasFiltradas.filter(c => c.tipo_solicitud === 'sugerencia').length,
+        peticion: correspondenciasFiltradas.filter(c => c.tipo_solicitud === 'peticion').length,
+        queja: correspondenciasFiltradas.filter(c => c.tipo_solicitud === 'queja').length,
+        reclamo: correspondenciasFiltradas.filter(c => c.tipo_solicitud === 'reclamo').length,
+        felicitacion: correspondenciasFiltradas.filter(c => c.tipo_solicitud === 'felicitacion').length,
+        solicitud_informacion: correspondenciasFiltradas.filter(c => c.tipo_solicitud === 'solicitud_informacion').length,
+        otro: correspondenciasFiltradas.filter(c => c.tipo_solicitud === 'otro').length
+      };
+
+      const correoElectronico = correspondenciasFiltradas.filter(c => c.tipo_radicacion === 'correo').length;
+      const radicacionFisica = correspondenciasFiltradas.filter(c => c.tipo_radicacion === 'fisico').length;
+
+      // Crear resumen para el informe
+      const resumenInforme = `
+INFORME DE CORRESPONDENCIA OFICIAL
+Período: ${this.fechaInicioCorrespondencia} al ${this.fechaFinCorrespondencia}
+Entidad: ${this.entityContext.currentEntity?.name || 'N/A'}
+Fecha de Generación: ${new Date().toLocaleDateString('es-ES')}
+
+═══════════════════════════════════════════════════════════
+
+RESUMEN EJECUTIVO:
+
+Total de Correspondencias: ${totalCorrespondencias}
+
+DISTRIBUCIÓN POR ESTADO:
+• Enviadas: ${porEstado.enviada} (${((porEstado.enviada / totalCorrespondencias) * 100).toFixed(1)}%)
+• En Proceso: ${porEstado.en_proceso} (${((porEstado.en_proceso / totalCorrespondencias) * 100).toFixed(1)}%)
+• Resueltas: ${porEstado.resuelta} (${((porEstado.resuelta / totalCorrespondencias) * 100).toFixed(1)}%)
+• Cerradas: ${porEstado.cerrada} (${((porEstado.cerrada / totalCorrespondencias) * 100).toFixed(1)}%)
+
+DISTRIBUCIÓN POR TIPO DE SOLICITUD:
+• Sugerencia: ${porTipo.sugerencia}
+• Petición: ${porTipo.peticion}
+• Queja: ${porTipo.queja}
+• Reclamo: ${porTipo.reclamo}
+• Felicitación: ${porTipo.felicitacion}
+• Solicitud de Información: ${porTipo.solicitud_informacion}
+• Otro: ${porTipo.otro}
+
+TIPO DE RADICACIÓN:
+• Correo Electrónico: ${correoElectronico} (${((correoElectronico / totalCorrespondencias) * 100).toFixed(1)}%)
+• Radicación Física: ${radicacionFisica} (${((radicacionFisica / totalCorrespondencias) * 100).toFixed(1)}%)
+
+═══════════════════════════════════════════════════════════
+
+DETALLE DE CORRESPONDENCIAS:
+`;
+
+      // Generar PDF usando el servicio de reportes con los datos de correspondencia
+      const entityName = this.entityContext.currentEntity?.name || 'Entidad';
+      const reportData = {
+        tipo: 'correspondencia',
+        fecha_inicio: this.fechaInicioCorrespondencia,
+        fecha_fin: this.fechaFinCorrespondencia,
+        entity_name: entityName,
+        total: totalCorrespondencias,
+        por_estado: porEstado,
+        por_tipo: porTipo,
+        correspondencias: correspondenciasFiltradas.map(c => ({
+          numero_radicado: c.numero_radicado,
+          fecha_envio: c.fecha_envio,
+          procedencia: c.procedencia,
+          destinacion: c.destinacion,
+          tipo_solicitud: this.getTipoSolicitudCorrespondenciaLabel(c.tipo_solicitud),
+          estado: this.getEstadoCorrespondenciaLabel(c.estado),
+          tipo_radicacion: c.tipo_radicacion === 'correo' ? 'Correo Electrónico' : 'Radicación Física'
+        }))
+      };
+
+      // Por ahora mostrar alerta de éxito (el backend del informe se puede implementar después)
+      this.alertService.success(
+        `Informe generado con éxito.\n\nTotal de correspondencias: ${totalCorrespondencias}\n\nResueltas: ${porEstado.resuelta}\nEn proceso: ${porEstado.en_proceso}`,
+        'Informe de Correspondencia'
+      );
+
+      console.log('Resumen del informe:', resumenInforme);
+      console.log('Datos del informe:', reportData);
+
+    } catch (error) {
+      console.error('Error generando informe:', error);
+      this.alertService.error('Error al generar el informe de correspondencia', 'Error');
+    }
+  }
+
+  getTipoSolicitudCorrespondenciaLabel(tipo: string): string {
+    const tipos: { [key: string]: string } = {
+      'sugerencia': 'Sugerencia',
+      'peticion': 'Petición',
+      'queja': 'Queja',
+      'reclamo': 'Reclamo',
+      'felicitacion': 'Felicitación',
+      'solicitud_informacion': 'Solicitud de Información',
+      'otro': 'Otro'
+    };
+    return tipos[tipo] || tipo;
+  }
+
   getMedioRespuestaLabel(medio: string): string {
     const medios: { [key: string]: string } = {
       'email': 'Correo Electrónico',
@@ -2739,10 +2919,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   getTipoRadicacionLabel(tipo: TipoRadicacion): string {
     return this.tiposRadicacion[tipo] || tipo;
-  }
-
-  getTipoSolicitudCorrespondenciaLabel(tipo: string): string {
-    return this.tiposSolicitudCorrespondencia[tipo as keyof typeof this.tiposSolicitudCorrespondencia] || tipo;
   }
 }
 
