@@ -2865,8 +2865,30 @@
                             </label>
                         </div>
 
+                        <div class="form-check mb-2" *ngIf="correspondenciaEnabled()">
+                            <input class="form-check-input" type="checkbox" id="module_correspondencia"
+                                [(ngModel)]="modulosSeleccionados.correspondencia">
+                            <label class="form-check-label" for="module_correspondencia">
+                                <i class="fas fa-envelope me-2 text-secondary"></i>
+                                <strong>Correspondencia</strong>
+                                <br>
+                                <small class="text-muted">Radicación y seguimiento de correspondencia</small>
+                            </label>
+                        </div>
+
+                        <div class="form-check mb-2" *ngIf="presupuestoEnabled()">
+                            <input class="form-check-input" type="checkbox" id="module_presupuesto"
+                                [(ngModel)]="modulosSeleccionados.presupuesto">
+                            <label class="form-check-label" for="module_presupuesto">
+                                <i class="fas fa-coins me-2 text-warning"></i>
+                                <strong>Presupuesto</strong>
+                                <br>
+                                <small class="text-muted">CDP y certificación de BPP</small>
+                            </label>
+                        </div>
+
                         <div class="alert alert-info mt-3"
-                            *ngIf="!entity?.enable_pqrs && !entity?.enable_planes_institucionales && !entity?.enable_contratacion && !pdmEnabled()">
+                            *ngIf="!entity?.enable_pqrs && !entity?.enable_planes_institucionales && !entity?.enable_contratacion && !pdmEnabled() && !correspondenciaEnabled() && !presupuestoEnabled()">
                             <i class="fas fa-exclamation-circle me-2"></i>
                             No hay módulos disponibles para esta entidad. Contacta al super administrador para habilitar
                             módulos.

@@ -217,6 +217,10 @@ async def create_user(
                 valid_modules.append("reports_pdf")
             if entity.enable_ai_reports:
                 valid_modules.append("ai_reports")
+            if entity.enable_correspondencia:
+                valid_modules.append("correspondencia")
+            if entity.enable_presupuesto:
+                valid_modules.append("presupuesto")
             
             # Verificar que todos los módulos solicitados están activos
             for module in user_data.allowed_modules:
@@ -381,6 +385,10 @@ async def update_user(
                 valid_modules.append("reports_pdf")
             if entity.enable_ai_reports:
                 valid_modules.append("ai_reports")
+            if entity.enable_correspondencia:
+                valid_modules.append("correspondencia")
+            if entity.enable_presupuesto:
+                valid_modules.append("presupuesto")
             
             for module in update_data.get("allowed_modules", []):
                 if module not in valid_modules:
@@ -675,6 +683,10 @@ async def update_user_modules(
                 valid_modules.append("reports_pdf")
             if entity.enable_ai_reports:
                 valid_modules.append("ai_reports")
+            if entity.enable_correspondencia:
+                valid_modules.append("correspondencia")
+            if entity.enable_presupuesto:
+                valid_modules.append("presupuesto")
             
             for module in modules:
                 if module not in valid_modules:

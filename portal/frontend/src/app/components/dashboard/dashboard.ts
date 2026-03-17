@@ -166,7 +166,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     pqrs: false,
     planes_institucionales: false,
     contratacion: false,
-    pdm: false
+    pdm: false,
+    correspondencia: false,
+    presupuesto: false
   };
   guardandoModulos = false;
 
@@ -2182,7 +2184,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
       pqrs: usuario.allowed_modules?.includes('pqrs') || false,
       planes_institucionales: usuario.allowed_modules?.includes('planes_institucionales') || false,
       contratacion: usuario.allowed_modules?.includes('contratacion') || false,
-      pdm: usuario.allowed_modules?.includes('pdm') || false
+      pdm: usuario.allowed_modules?.includes('pdm') || false,
+      correspondencia: usuario.allowed_modules?.includes('correspondencia') || false,
+      presupuesto: usuario.allowed_modules?.includes('presupuesto') || false
     };
     this.mostrarModalModulos = true;
   }
@@ -2204,6 +2208,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (this.modulosSeleccionados.planes_institucionales) modules.push('planes_institucionales');
     if (this.modulosSeleccionados.contratacion) modules.push('contratacion');
     if (this.modulosSeleccionados.pdm) modules.push('pdm');
+    if (this.modulosSeleccionados.correspondencia) modules.push('correspondencia');
+    if (this.modulosSeleccionados.presupuesto) modules.push('presupuesto');
 
     try {
       const updated = await this.userService.updateUserModules(this.usuarioEditandoModulos.id!, modules).toPromise();
