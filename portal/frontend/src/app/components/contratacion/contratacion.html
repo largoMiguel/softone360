@@ -142,7 +142,7 @@
         <!-- KPIs -->
         <div class="row g-3 mb-4">
             <div class="col-md-3 mb-3">
-                <div class="kpi-card kpi-primary clickeable" (click)="selectedKpi = 'totalProcesos'; kpiDetailVisible = !kpiDetailVisible" [class.active]="selectedKpi === 'totalProcesos'">
+                <div class="kpi-card kpi-primary clickeable" (click)="onKpiClick('totalProcesos')" [class.active]="selectedKpi === 'totalProcesos'">
                     <div class="kpi-icon"><i class="fas fa-file-contract"></i></div>
                     <div class="kpi-info">
                         <div class="kpi-value">{{ kpis.totalProcesos }}</div>
@@ -152,7 +152,7 @@
                 </div>
             </div>
             <div class="col-md-3 mb-3">
-                <div class="kpi-card kpi-success clickeable" (click)="selectedKpi = 'adjudicados'; kpiDetailVisible = !kpiDetailVisible" [class.active]="selectedKpi === 'adjudicados'">
+                <div class="kpi-card kpi-success clickeable" (click)="onKpiClick('adjudicados')" [class.active]="selectedKpi === 'adjudicados'">
                     <div class="kpi-icon"><i class="fas fa-check-circle"></i></div>
                     <div class="kpi-info">
                         <div class="kpi-value">{{ kpis.totalAdjudicados }}</div>
@@ -162,7 +162,7 @@
                 </div>
             </div>
             <div class="col-md-3 mb-3">
-                <div class="kpi-card kpi-info clickeable" (click)="selectedKpi = 'tasa'; kpiDetailVisible = !kpiDetailVisible" [class.active]="selectedKpi === 'tasa'">
+                <div class="kpi-card kpi-info clickeable" (click)="onKpiClick('tasa')" [class.active]="selectedKpi === 'tasa'">
                     <div class="kpi-icon"><i class="fas fa-percentage"></i></div>
                     <div class="kpi-info">
                         <div class="kpi-value">{{ (kpis.tasaAdjudicacion | number:'1.1-1') }}%</div>
@@ -172,7 +172,7 @@
                 </div>
             </div>
             <div class="col-md-3 mb-3">
-                <div class="kpi-card kpi-warning clickeable" (click)="selectedKpi = 'monto'; kpiDetailVisible = !kpiDetailVisible" [class.active]="selectedKpi === 'monto'">
+                <div class="kpi-card kpi-warning clickeable" (click)="onKpiClick('monto')" [class.active]="selectedKpi === 'monto'">
                     <div class="kpi-icon"><i class="fas fa-money-bill-wave"></i></div>
                     <div class="kpi-info">
                         <div class="kpi-value">$ {{ (kpis.sumaAdjudicado | number:'1.0-0') }}</div>
@@ -186,7 +186,7 @@
         <!-- KPIs adicionales -->
         <div class="row g-3 mb-4">
             <div class="col-md-3 mb-3">
-                <div class="kpi-card clickeable" (click)="selectedKpi = 'tiempoPromedio'; kpiDetailVisible = !kpiDetailVisible" [class.active]="selectedKpi === 'tiempoPromedio'">
+                <div class="kpi-card clickeable" (click)="onKpiClick('tiempoPromedio')" [class.active]="selectedKpi === 'tiempoPromedio'">
                     <div class="kpi-icon" style="background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);"><i class="fas fa-hourglass-half"></i></div>
                     <div class="kpi-info">
                         <div class="kpi-value">{{ tiempoPromedioEjecucion }} días</div>
@@ -196,7 +196,7 @@
                 </div>
             </div>
             <div class="col-md-3 mb-3">
-                <div class="kpi-card kpi-danger clickeable" (click)="selectedKpi = 'vencidos'; kpiDetailVisible = !kpiDetailVisible" [class.active]="selectedKpi === 'vencidos'">
+                <div class="kpi-card kpi-danger clickeable" (click)="onKpiClick('vencidos')" [class.active]="selectedKpi === 'vencidos'">
                     <div class="kpi-icon" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);"><i class="fas fa-times-circle"></i></div>
                     <div class="kpi-info">
                         <div class="kpi-value">{{ contratosVencidosCount }}</div>
@@ -206,7 +206,7 @@
                 </div>
             </div>
             <div class="col-md-3 mb-3">
-                <div class="kpi-card clickeable" (click)="selectedKpi = 'proximos'; kpiDetailVisible = !kpiDetailVisible" [class.active]="selectedKpi === 'proximos'">
+                <div class="kpi-card clickeable" (click)="onKpiClick('proximos')" [class.active]="selectedKpi === 'proximos'">
                     <div class="kpi-icon" style="background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); color: #212529;"><i class="fas fa-bell"></i></div>
                     <div class="kpi-info">
                         <div class="kpi-value">{{ contratosProximosAVencer }}</div>
@@ -216,7 +216,7 @@
                 </div>
             </div>
             <div class="col-md-3 mb-3">
-                <div class="kpi-card clickeable" (click)="selectedKpi = 'estados'; kpiDetailVisible = !kpiDetailVisible" [class.active]="selectedKpi === 'estados'">
+                <div class="kpi-card clickeable" (click)="onKpiClick('estados')" [class.active]="selectedKpi === 'estados'">
                     <div class="kpi-icon" style="background: linear-gradient(135deg, #17a2b8 0%, #128293 100%);"><i class="fas fa-list"></i></div>
                     <div class="kpi-info">
                         <div class="kpi-value">{{ Object.keys(distribucionEstados).length }}</div>

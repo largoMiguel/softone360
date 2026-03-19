@@ -271,6 +271,49 @@ export class ContratacionComponent implements OnInit, OnDestroy {
         if (this.showModal) this.closeModal();
     }
 
+    /**
+     * Maneja click en KPI cards: navega a lista con filtro aplicado
+     */
+    onKpiClick(kpiType: string): void {
+        // Aplicar filtro según el KPI clickeado
+        switch (kpiType) {
+            case 'adjudicados':
+                // Filtrar solo estados activos (adjudicados)
+                const estadosActivos = ['en ejecucion', 'aprobado', 'modificado', 'celebrado', 'activo'];
+                this.columnFilters.estado = estadosActivos[0]; // Mostrar en ejecución como ejemplo
+                break;
+            case 'vencidos':
+                // Los vencidos ya están en this.contratosVencidos
+                // Se filtrará en la vista de lista
+                this.columnFilters['ultimaDesde'] = new Date(new Date().getTime() - 365*24*60*60*1000).toISOString().split('T')[0];
+                break;
+            case 'proximos':
+                // Los próximos a vencer
+                const hoy = new Date().toISOString().split('T')[0];
+                this.columnFilters['ultimaDesde'] = hoy;
+                break;
+            default:
+                // Para otros KPIs, limpiar filtros
+                this.columnFilters = {
+                    referencia: '',
+                    estado: '',
+                    modalidad: '',
+                    tipo: '',
+                    precioMin: null,
+                    precioMax: null,
+                    proveedor: '',
+                    publicacionDesde: '',
+                    publicacionHasta: '',
+                    ultimaDesde: '',
+                    ultimaHasta: ''
+                };
+        }
+        // Navegar a la vista de lista
+        this.vistaActual = 'lista';
+        this.pageIndex = 1; // Ir a primera página
+        this.applyLocalFilters();
+    }
+
     fetch(): void {
         this.loading = true;
         this.errorMsg = '';
