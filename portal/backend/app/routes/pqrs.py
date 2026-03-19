@@ -199,7 +199,7 @@ async def create_pqrs(
 @router.get("/", response_model=List[PQRSWithDetails])
 async def get_pqrs(
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
+    limit: int = Query(100, ge=1, le=10000),
     estado: Optional[EstadoPQRS] = None,
     assigned_to_me: bool = False,
     db: Session = Depends(get_db),
