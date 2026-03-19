@@ -53,7 +53,11 @@ export class ContratacionService {
         return this.http.get<ProcesoContratacion[]>(endpoint, {
             params: { '$query': query }
         }).pipe(
-            map(rows => rows || []),
+            map(rows => {
+                const data = rows || [];
+                // Filtrar por nombre de entidad si se proporciona
+                return nombreEntidad ? this.filterByEntityName(data, nombreEntidad, 'secop1') : data;
+            }),
             catchError(err => {
                 console.error('[ContratacionService] Error fetching SECOP I:', err);
                 return of([]);
@@ -97,9 +101,40 @@ export class ContratacionService {
                     const ref = (p.referencia_del_proceso || p.referencia_del_contrato || '').toString();
                     return !refsConContrato.has(ref);
                 });
-                return [...(contratos || []), ...procesosSinDuplicados];
+                const merged = [...(contratos || []), ...procesosSinDuplicados];
+                // Filtrar por nombre de entidad si se proporciona
+                return nombreEntidad ? this.filterByEntityName(merged, nombreEntidad, 'secop2') : merged;
             })
         );
+    }
+
+    /**
+     * Filtra procesos por nombre de entidad usando fuzzy matching
+     * Útil cuando un NIT corresponde a múltiples entidades
+     */
+    private filterByEntityName(rows: ProcesoContratacion[], nombreEntidad: string, tipo: 'secop1' | 'secop2'): ProcesoContratacion[] {
+        if (!rows.length || !nombreEntidad) return rows;
+
+        // Normalizar nombre: mayúsculas, sin acentos
+        const normalize = (str: string) => str.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const targetName = normalize(nombreEntidad);
+
+        // Campo de nombre según tipo de SECOP
+        const nameField = tipo === 'secop1' ? 'nombre_entidad' : 'nombre_entidad';
+
+        // Buscar coincidencias exactas o parciales (primeras palabras)
+        const matched = rows.filter(row => {
+            const entityName = row[nameField as keyof ProcesoContratacion];
+            if (!entityName) return false;
+            const normalized = normalize(entityName.toString());
+            // Exacto o contiene las palabras principales
+            return normalized === targetName || normalized.includes(targetName) || targetName.includes(normalized);
+        });
+
+        // Si encuentra coincidencias, retornarlas
+        if (matched.length > 0) return matched;
+        // Si no, retornar todos (el NIT es exacto, solo varía el nombre)
+        return rows;
     }
 
     /**
