@@ -55,10 +55,10 @@ export class ContratacionComponent implements OnInit, OnDestroy {
     mostrarContratosVencidos = false;
     mostrarContratosRetrasados = false;
 
-    // Filtros UI - Por defecto desde 1 de enero 2025
+    // Filtros UI - Por defecto desde 1 de enero del año actual
     filtro: FiltroContratacion = {
         entidad: '',
-        fechaDesde: '2025-01-01',
+        fechaDesde: new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
         fechaHasta: new Date().toISOString().split('T')[0],
         modalidad: '',
         tipoContrato: '',

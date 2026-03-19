@@ -86,7 +86,19 @@ export class ContratacionService {
         );
 
         return forkJoin([contratos$, procesos$]).pipe(
-            map(([contratos, procesos]) => [...(contratos || []), ...(procesos || [])])
+            map(([contratos, procesos]) => {
+                // Deduplicar: los 'procesos' pueden existir ya en 'contratos'
+                // Crear set de referencias de procesos con contrato
+                const refsConContrato = new Set(
+                    (contratos || []).map(c => (c.referencia_del_contrato || c.referencia_del_proceso || '').toString())
+                );
+                // Filtrar procesos sin contrato que no estén ya en contratos
+                const procesosSinDuplicados = (procesos || []).filter(p => {
+                    const ref = (p.referencia_del_proceso || p.referencia_del_contrato || '').toString();
+                    return !refsConContrato.has(ref);
+                });
+                return [...(contratos || []), ...procesosSinDuplicados];
+            })
         );
     }
 
