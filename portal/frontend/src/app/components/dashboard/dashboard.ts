@@ -1938,12 +1938,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
     };
 
     // Gráfico de tipos (Barras)
-    const tiposLabels = ['Petición', 'Queja', 'Reclamo', 'Sugerencia'];
+    const tiposLabels = ['Petición', 'Queja', 'Reclamo', 'Sugerencia', 'Felicitación', 'Denuncia', 'Solicitud Info', 'Datos Personales', 'Agendar Cita'];
     const tiposData = [
       this.getPqrsPorTipo('peticion'),
       this.getPqrsPorTipo('queja'),
       this.getPqrsPorTipo('reclamo'),
-      this.getPqrsPorTipo('sugerencia')
+      this.getPqrsPorTipo('sugerencia'),
+      this.getPqrsPorTipo('felicitacion'),
+      this.getPqrsPorTipo('denuncia'),
+      this.getPqrsPorTipo('solicitud_informacion'),
+      this.getPqrsPorTipo('solicitud_datos_personales'),
+      this.getPqrsPorTipo('agenda_cita')
     ];
 
     this.tiposChartData = {
@@ -1952,16 +1957,26 @@ export class DashboardComponent implements OnInit, OnDestroy {
         label: 'PQRS por Tipo',
         data: tiposData,
         backgroundColor: [
-          'rgba(33, 107, 168, 0.7)',
-          'rgba(255, 193, 7, 0.7)',
-          'rgba(220, 53, 69, 0.7)',
-          'rgba(40, 167, 69, 0.7)'
+          'rgba(33, 107, 168, 0.7)',      // Petición
+          'rgba(255, 193, 7, 0.7)',       // Queja
+          'rgba(220, 53, 69, 0.7)',       // Reclamo
+          'rgba(40, 167, 69, 0.7)',       // Sugerencia
+          'rgba(111, 66, 193, 0.7)',      // Felicitación
+          'rgba(23, 162, 184, 0.7)',      // Denuncia
+          'rgba(241, 108, 33, 0.7)',      // Solicitud Info
+          'rgba(108, 117, 125, 0.7)',     // Datos Personales
+          'rgba(37, 110, 137, 0.7)'       // Agendar Cita
         ],
         borderColor: [
           'rgba(33, 107, 168, 1)',
           'rgba(255, 193, 7, 1)',
           'rgba(220, 53, 69, 1)',
-          'rgba(40, 167, 69, 1)'
+          'rgba(40, 167, 69, 1)',
+          'rgba(111, 66, 193, 1)',
+          'rgba(23, 162, 184, 1)',
+          'rgba(241, 108, 33, 1)',
+          'rgba(108, 117, 125, 1)',
+          'rgba(37, 110, 137, 1)'
         ],
         borderWidth: 2
       }]
@@ -2240,7 +2255,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
         'peticion': 0,
         'queja': 0,
         'reclamo': 0,
-        'sugerencia': 0
+        'sugerencia': 0,
+        'felicitacion': 0,
+        'denuncia': 0,
+        'solicitud_informacion': 0,
+        'solicitud_datos_personales': 0,
+        'agenda_cita': 0
       };
       pqrsFiltered.forEach(pqrs => {
         if (pqrs.tipo_solicitud in tiposPqrs) {
