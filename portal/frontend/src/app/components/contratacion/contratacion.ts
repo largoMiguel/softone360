@@ -44,7 +44,6 @@ export class ContratacionComponent implements OnInit, OnDestroy {
     errorMsg = '';
     subs = new Subscription();
     currentUser: any = null;
-    private refreshInterval: any;
 
     // Vista detallada de KPI
     kpiDetailVisible = false;
@@ -207,28 +206,10 @@ export class ContratacionComponent implements OnInit, OnDestroy {
             this.fetch();
         });
         this.subs.add(sub);
-
-        // Auto-refresh cada 60 segundos para actualizar datos de contratación
-        this.refreshInterval = setInterval(() => {
-            if (!this.authService.isAuthenticated()) {
-                if (this.refreshInterval) {
-                    clearInterval(this.refreshInterval);
-                }
-                return;
-            }
-
-            if (this.entityContext.currentEntity) {
-                this.fetch();
-            }
-        }, 60000);
     }
 
     ngOnDestroy(): void {
         this.subs.unsubscribe();
-        // Limpiar el intervalo de auto-refresh
-        if (this.refreshInterval) {
-            clearInterval(this.refreshInterval);
-        }
     }
 
     // Abrir modal de detalle
@@ -534,7 +515,7 @@ export class ContratacionComponent implements OnInit, OnDestroy {
             totalProcesos: total,
             totalAdjudicados: ejecutados.length,
             tasaAdjudicacion: total ? ejecutados.length / total : 0,
-            sumaAdjudicado: sumaPagada,
+            sumaAdjudicado: sumaContratada,
             promedioPrecioBase: promedioPrecio
         };
 

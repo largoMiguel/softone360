@@ -43,6 +43,13 @@ async def proxy_datos_gov(
     - Caching: 1 hora
     """
     try:
+        # Validar que la query contenga filtro por NIT para evitar consultas masivas sin acotar
+        if not query or 'nit_entidad' not in query:
+            raise HTTPException(
+                status_code=400,
+                detail="La consulta debe incluir un filtro por nit_entidad."
+            )
+
         # Generar clave de caché
         cache_key = f"datos_gov:{query}"
         
@@ -110,6 +117,13 @@ async def proxy_datos_gov_secop1(
     - Caching: 1 hora
     """
     try:
+        # Validar que la query contenga filtro por NIT para evitar consultas masivas sin acotar
+        if not query or 'nit_de_la_entidad' not in query:
+            raise HTTPException(
+                status_code=400,
+                detail="La consulta debe incluir un filtro por nit_de_la_entidad."
+            )
+
         # Generar clave de caché
         cache_key = f"datos_gov_secop1:{query}"
         
@@ -177,6 +191,13 @@ async def proxy_datos_gov_secop2_procesos(
     - Caching: 1 hora
     """
     try:
+        # Validar que la query contenga filtro por NIT para evitar consultas masivas sin acotar
+        if not query or 'nit_entidad' not in query:
+            raise HTTPException(
+                status_code=400,
+                detail="La consulta debe incluir un filtro por nit_entidad."
+            )
+
         # Generar clave de caché
         cache_key = f"datos_gov_secop2_procesos:{query}"
         

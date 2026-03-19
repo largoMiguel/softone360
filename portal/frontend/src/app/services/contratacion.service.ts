@@ -62,26 +62,51 @@ export class ContratacionService {
     }
 
     /**
-     * Fetch SECOP II - SOLO dataset de CONTRATOS (jbjy-vk9h)
+     * Fetch SECOP II - Fusiona dataset de CONTRATOS (jbjy-vk9h) y PROCESOS sin contrato (p6dx-8zbt)
      */
     private fetchSecop2Merged(filtro: FiltroContratacion, nombreEntidad?: string): Observable<ProcesoContratacion[]> {
-        const query = this.buildSoqlQuery(filtro, 'secop2', nombreEntidad);
-        const endpoint = `${this.baseUrl}/proxy`;
+        const queryContratos = this.buildSoqlQuery(filtro, 'secop2', nombreEntidad);
+        const queryProcesos = this.buildSoqlQueryProcesos(filtro);
 
-        return this.http.get<ProcesoContratacion[]>(endpoint, {
-            params: { '$query': query }
+        const contratos$ = this.http.get<ProcesoContratacion[]>(`${this.baseUrl}/proxy`, {
+            params: { '$query': queryContratos }
+        }).pipe(catchError(err => {
+            console.error('[ContratacionService] Error SECOP II contratos:', err);
+            return of([]);
+        }));
+
+        const procesos$ = this.http.get<ProcesoContratacion[]>(`${this.baseUrl}/proxy-secop2-procesos`, {
+            params: { '$query': queryProcesos }
         }).pipe(
-            map(rows => rows || []),
+            map(rows => (rows || []).map(r => ({ ...r, sin_contrato: true } as ProcesoContratacion))),
             catchError(err => {
-                console.error('[ContratacionService] Error:', err);
+                console.error('[ContratacionService] Error SECOP II procesos:', err);
                 return of([]);
             })
         );
+
+        return forkJoin([contratos$, procesos$]).pipe(
+            map(([contratos, procesos]) => [...(contratos || []), ...(procesos || [])])
+        );
     }
 
-
-
     /**
+     * Construye query SOQL para el dataset de procesos SECOP II (p6dx-8zbt)
+     */
+    private buildSoqlQueryProcesos(filtro: FiltroContratacion): string {
+        const where: string[] = [];
+        if (filtro.entidad) {
+            where.push(`nit_entidad='${filtro.entidad}'`);
+        }
+        if (filtro.fechaDesde) {
+            where.push(`fecha_de_publicacion_del>='${filtro.fechaDesde}T00:00:00.000'`);
+        }
+        if (filtro.fechaHasta) {
+            where.push(`fecha_de_publicacion_del<='${filtro.fechaHasta}T23:59:59.999'`);
+        }
+        const whereClause = where.length > 0 ? ` WHERE ${where.join(' AND ')}` : '';
+        return `SELECT *${whereClause} LIMIT 10000`;
+    }
      * Construye query SOQL para datasets de SECOP
      */
     private buildSoqlQuery(filtro: FiltroContratacion, tipo: 'secop1' | 'secop2', nombreEntidad?: string): string {
