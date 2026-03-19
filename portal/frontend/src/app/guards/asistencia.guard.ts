@@ -44,8 +44,9 @@ export const asistenciaGuard: CanActivateFn = (route, state) => {
     
     // Para secretarios, verificar permisos específicos
     if (user.role === 'secretario') {
-        // Debe tener la marca de Talento Humano
-        if (!user.is_talento_humano) {
+        // Debe tener la marca de Talento Humano O el módulo asistencia en allowed_modules
+        const hasAsistenciaAccess = user.is_talento_humano || user.allowed_modules?.includes('asistencia');
+        if (!hasAsistenciaAccess) {
             router.navigate(['/']);
             return false;
         }

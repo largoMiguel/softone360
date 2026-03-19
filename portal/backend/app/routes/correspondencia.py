@@ -132,9 +132,15 @@ async def get_correspondencias(
     if tipo_solicitud:
         query = query.filter(Correspondencia.tipo_solicitud == tipo_solicitud)
     
-    # Si es secretario, solo ver las asignadas a él
+    # Si es secretario, ver las que creó O las que tiene asignadas
     if current_user.role == UserRole.SECRETARIO:
-        query = query.filter(Correspondencia.assigned_to_id == current_user.id)
+        from sqlalchemy import or_
+        query = query.filter(
+            or_(
+                Correspondencia.created_by_id == current_user.id,
+                Correspondencia.assigned_to_id == current_user.id
+            )
+        )
     
     # Ordenar por fecha de creación descendente
     correspondencias = query.order_by(
@@ -196,7 +202,7 @@ async def get_correspondencia(
     
     # Verificar permisos
     if current_user.role == UserRole.SECRETARIO:
-        if correspondencia.assigned_to_id != current_user.id:
+        if correspondencia.assigned_to_id != current_user.id and correspondencia.created_by_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="No tienes permiso para ver esta correspondencia"
@@ -231,7 +237,7 @@ async def update_correspondencia(
     
     # Verificar permisos
     if current_user.role == UserRole.SECRETARIO:
-        if correspondencia.assigned_to_id != current_user.id:
+        if correspondencia.assigned_to_id != current_user.id and correspondencia.created_by_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="No tienes permiso para editar esta correspondencia"

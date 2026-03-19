@@ -697,6 +697,8 @@ async def update_user_modules(
     
     # Actualizar los módulos
     user.allowed_modules = modules
+    # Sincronizar is_talento_humano con el módulo de asistencia
+    user.is_talento_humano = 'asistencia' in modules
     db.commit()
     db.refresh(user)
     

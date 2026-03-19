@@ -538,7 +538,7 @@
                     <div class="mt-3 text-muted">
                         <small>
                             <i class="fas fa-info-circle me-1"></i>
-                            Mostrando {{ getMisPqrs().length }} PQRS
+                            Mostrando {{ getRangoItemosActualesDelMisView().inicio }}-{{ getRangoItemosActualesDelMisView().fin }} de {{ getRangoItemosActualesDelMisView().total }} PQRS
                         </small>
                     </div>
                 </div>
@@ -572,7 +572,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr *ngFor="let pqrs of getMisPqrs()" (click)="verDetallesPqrs(pqrs)" style="cursor: pointer;">
+                        <tr *ngFor="let pqrs of getMisPqrsDelMisView()" (click)="verDetallesPqrs(pqrs)" style="cursor: pointer;">
                             <td><strong>{{ pqrs.numero_radicado }}</strong></td>
                             <td>{{ pqrs.nombre_ciudadano }}</td>
                             <td>{{ pqrs.asunto }}</td>
@@ -629,6 +629,46 @@
                         </tr>
                     </tbody>
                 </table>
+
+                <!-- Controles de paginación -->
+                <div *ngIf="getTotalPaginasDelMisView() > 1" class="d-flex justify-content-between align-items-center mt-4">
+                    <div class="text-muted small">
+                        <small>
+                            Página {{ paginaActual }} de {{ getTotalPaginasDelMisView() }}
+                        </small>
+                    </div>
+
+                    <nav aria-label="Paginación de PQRS">
+                        <ul class="pagination mb-0">
+                            <li class="page-item" [class.disabled]="paginaActual === 1">
+                                <button class="page-link" (click)="irAPaginaAnterior()" 
+                                    [disabled]="paginaActual === 1"
+                                    title="Página anterior">
+                                    <i class="fas fa-chevron-left"></i> Anterior
+                                </button>
+                            </li>
+
+                            <li class="page-item" *ngFor="let num of getNumerosPaginasDelMisView()" 
+                                [class.active]="num === paginaActual"
+                                [class.disabled]="num === -1">
+                                <button *ngIf="num !== -1" class="page-link" 
+                                    (click)="irAPagina(num)"
+                                    [attr.aria-label]="'Página ' + num">
+                                    {{ num }}
+                                </button>
+                                <span *ngIf="num === -1" class="page-link">...</span>
+                            </li>
+
+                            <li class="page-item" [class.disabled]="paginaActual === getTotalPaginasDelMisView()">
+                                <button class="page-link" (click)="irAPaginaSiguiente()" 
+                                    [disabled]="paginaActual === getTotalPaginasDelMisView()"
+                                    title="Página siguiente">
+                                    Siguiente <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
             </div>
         </div>
 

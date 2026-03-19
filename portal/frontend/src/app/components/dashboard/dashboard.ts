@@ -148,6 +148,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   lineChartType: ChartType = 'line';
   pieChartType: ChartType = 'pie';
 
+  // Control de paginación para "Mis PQRS"
+  itemsPorPagina: number = 20;
+  paginaActual: number = 1;
+
+  // Control de alerta de PQRS próximas a vencer (mostrar solo una vez)
+  alertaVencerMostrada: boolean = false;
+
   chartOptions: ChartConfiguration['options'] = {
     responsive: true,
     maintainAspectRatio: false,
@@ -648,12 +655,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   loadPqrs() {
     this.isLoading = true;
-    this.pqrsService.getPqrs().subscribe({
+    // Cargar todas las PQRS (hasta 10000) para análisis y estadísticas correctas
+    this.pqrsService.getPqrs({ skip: 0, limit: 10000 }).subscribe({
       next: (data) => {
         this.pqrsList = data;
         this.isLoading = false;
+        this.paginaActual = 1; // Resetear a primera página
         this.updateCharts();
-        // Verificar PQRS próximas a vencer
+        // Verificar PQRS próximas a vencer (solo mostrar once)
         this.verificarPqrsProximasVencer();
       },
       error: (error) => {
@@ -719,6 +728,78 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.aplicarFiltrosGenerales(pqrsBase);
   }
 
+  /**
+   * Retorna los PQRS filtrados para la vista actual (con paginación)
+   * Se usa en la tabla de "Mis PQRS"
+   */
+  getMisPqrsDelMisView(): PQRSWithDetails[] {
+    const misPqrs = this.getMisPqrs(); // Obtener lista filtrada
+    const inicio = (this.paginaActual - 1) * this.itemsPorPagina;
+    const fin = inicio + this.itemsPorPagina;
+    return misPqrs.slice(inicio, fin);
+  }
+
+  /**
+   * Calcula el total de páginas para la vista "Mis PQRS"
+   */
+  getTotalPaginasDelMisView(): number {
+    return Math.ceil(this.getMisPqrs().length / this.itemsPorPagina);
+  }
+
+  /**
+   * Obtiene el rango de items mostrados en la página actual
+   */
+  getRangoItemosActualesDelMisView(): { inicio: number; fin: number; total: number } {
+    const misPqrs = this.getMisPqrs();
+    const inicio = (this.paginaActual - 1) * this.itemsPorPagina + 1;
+    const fin = Math.min(this.paginaActual * this.itemsPorPagina, misPqrs.length);
+    return { inicio, fin, total: misPqrs.length };
+  }
+
+  /**
+   * Obtiene un array de números de página para mostrar en el paginador
+   */
+  getNumerosPaginasDelMisView(): number[] {
+    const totalPaginas = this.getTotalPaginasDelMisView();
+    const paginas: number[] = [];
+    const maxPaginasMostradas = 5;
+
+    if (totalPaginas <= maxPaginasMostradas) {
+      // Si hay pocas páginas, mostrar todas
+      for (let i = 1; i <= totalPaginas; i++) {
+        paginas.push(i);
+      }
+    } else {
+      // Mostrar páginas alrededor de la actual
+      let inicio = Math.max(1, this.paginaActual - 2);
+      let fin = Math.min(totalPaginas, this.paginaActual + 2);
+
+      if (fin - inicio + 1 < maxPaginasMostradas) {
+        if (inicio === 1) {
+          fin = Math.min(totalPaginas, inicio + maxPaginasMostradas - 1);
+        } else {
+          inicio = Math.max(1, fin - maxPaginasMostradas + 1);
+        }
+      }
+
+      if (inicio > 1) {
+        paginas.push(1);
+        if (inicio > 2) paginas.push(-1); // Representa "..."
+      }
+
+      for (let i = inicio; i <= fin; i++) {
+        paginas.push(i);
+      }
+
+      if (fin < totalPaginas) {
+        if (fin < totalPaginas - 1) paginas.push(-1); // Representa "..."
+        paginas.push(totalPaginas);
+      }
+    }
+
+    return paginas;
+  }
+
   // Aplica los filtros generales a una lista de PQRS
   aplicarFiltrosGenerales(pqrsList: PQRSWithDetails[]): PQRSWithDetails[] {
     let resultado = [...pqrsList];
@@ -761,6 +842,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.filtroGeneralEstado = '';
     this.filtroGeneralTipo = '';
     this.textoBusqueda = '';
+    this.paginaActual = 1; // Resetear a primera página
   }
 
   // Filtrar por estado desde las tarjetas de estadísticas y navegar a Mis PQRS
@@ -772,6 +854,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (estado) {
       this.filtroGeneralEstado = estado;
     }
+
+    // Resetear a primera página
+    this.paginaActual = 1;
 
     // Cambiar a la vista de Mis PQRS
     this.setActiveView('mis-pqrs');
@@ -1524,6 +1609,109 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.pqrsList.filter(p => p.tipo_solicitud === tipo).length;
   }
 
+  // ========== MÉTODOS DE PAGINACIÓN PARA "MIS PQRS" ==========
+  
+  /**
+   * Obtiene los PQRS para la página actual (20 items por página)
+   */
+  getPqrsDelMisView(): PQRSWithDetails[] {
+    const inicio = (this.paginaActual - 1) * this.itemsPorPagina;
+    const fin = inicio + this.itemsPorPagina;
+    return this.pqrsList.slice(inicio, fin);
+  }
+
+  /**
+   * Calcula el total de páginas disponibles
+   */
+  getTotalPaginas(): number {
+    return Math.ceil(this.pqrsList.length / this.itemsPorPagina);
+  }
+
+  /**
+   * Obtiene el rango de items mostrados en la página actual
+   */
+  getRangoItemosActuales(): { inicio: number; fin: number; total: number } {
+    const inicio = (this.paginaActual - 1) * this.itemsPorPagina + 1;
+    const fin = Math.min(this.paginaActual * this.itemsPorPagina, this.pqrsList.length);
+    return { inicio, fin, total: this.pqrsList.length };
+  }
+
+  /**
+   * Navega a una página específica
+   */
+  irAPagina(numero: number): void {
+    const totalPaginas = this.getTotalPaginas();
+    if (numero >= 1 && numero <= totalPaginas) {
+      this.paginaActual = numero;
+    }
+  }
+
+  /**
+   * Va a la página anterior
+   */
+  irAPaginaAnterior(): void {
+    if (this.paginaActual > 1) {
+      this.paginaActual--;
+    }
+  }
+
+  /**
+   * Va a la página siguiente
+   */
+  irAPaginaSiguiente(): void {
+    const totalPaginas = this.getTotalPaginas();
+    if (this.paginaActual < totalPaginas) {
+      this.paginaActual++;
+    }
+  }
+
+  /**
+   * Obtiene un array de números de página para mostrar en el paginador
+   */
+  getNumerosPaginas(): number[] {
+    const totalPaginas = this.getTotalPaginas();
+    const paginas: number[] = [];
+    const maxPaginasMostradas = 5;
+
+    if (totalPaginas <= maxPaginasMostradas) {
+      // Si hay pocas páginas, mostrar todas
+      for (let i = 1; i <= totalPaginas; i++) {
+        paginas.push(i);
+      }
+    } else {
+      // Mostrar páginas alrededor de la actual
+      let inicio = Math.max(1, this.paginaActual - 2);
+      let fin = Math.min(totalPaginas, this.paginaActual + 2);
+
+      if (fin - inicio + 1 < maxPaginasMostradas) {
+        if (inicio === 1) {
+          fin = Math.min(totalPaginas, inicio + maxPaginasMostradas - 1);
+        } else {
+          inicio = Math.max(1, fin - maxPaginasMostradas + 1);
+        }
+      }
+
+      if (inicio > 1) {
+        paginas.push(1);
+        if (inicio > 2) paginas.push(-1); // Representa "..."
+      }
+
+      for (let i = inicio; i <= fin; i++) {
+        paginas.push(i);
+      }
+
+      if (fin < totalPaginas) {
+        if (fin < totalPaginas - 1) paginas.push(-1); // Representa "..."
+        paginas.push(totalPaginas);
+      }
+    }
+
+    return paginas;
+  }
+
+  // ========== FIN MÉTODOS DE PAGINACIÓN ==========
+
+
   // Calcula los días restantes para responder una PQRS usando el campo dias_respuesta
   getDiasRestantes(pqrs: PQRSWithDetails): number {
     // Si ya está resuelta o cerrada, no hay días restantes
@@ -1590,7 +1778,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   // Verifica PQRS próximas a vencer (5 días o menos)
+  // Solo muestra la alerta una vez al iniciar sesión
   async verificarPqrsProximasVencer(): Promise<void> {
+    // Solo mostrar la alerta una vez
+    if (this.alertaVencerMostrada) {
+      return;
+    }
+
     const pqrsProximasVencer = this.pqrsList.filter(pqrs => {
       if (pqrs.estado === 'resuelto' || pqrs.estado === 'cerrado') return false;
       const diasRestantes = this.getDiasRestantes(pqrs);
@@ -1605,6 +1799,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
         (pqrsProximasVencer.length > 5 ? `\n\n...y ${pqrsProximasVencer.length - 5} más.` : '');
 
       await this.alertService.warning(mensaje, 'PQRS Próximas a Vencer');
+      this.alertaVencerMostrada = true; // Marcar como mostrada
+    } else {
+      // Aunque no haya PQRS próximas a vencer, marcamos como mostrada para no revisar constantemente
+      this.alertaVencerMostrada = true;
     }
   }
 

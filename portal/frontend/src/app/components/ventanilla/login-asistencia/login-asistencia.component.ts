@@ -78,8 +78,9 @@ export class LoginAsistenciaComponent {
 
                 // Verificar permisos para secretarios
                 if (user.role === 'secretario') {
-                    // Verificar marca de Talento Humano
-                    if (!user.is_talento_humano) {
+                    // Verificar marca de Talento Humano O módulo de asistencia en allowed_modules
+                    const hasAsistenciaAccess = user.is_talento_humano || user.allowed_modules?.includes('asistencia');
+                    if (!hasAsistenciaAccess) {
                         this.alertService.error('Su usuario no tiene acceso al módulo de Talento Humano. Contacte al administrador.');
                         this.authService.logout();
                         this.isLoading = false;
