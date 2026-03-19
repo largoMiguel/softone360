@@ -107,6 +107,8 @@ export class ContratacionService {
         const whereClause = where.length > 0 ? ` WHERE ${where.join(' AND ')}` : '';
         return `SELECT *${whereClause} LIMIT 10000`;
     }
+
+    /**
      * Construye query SOQL para datasets de SECOP
      */
     private buildSoqlQuery(filtro: FiltroContratacion, tipo: 'secop1' | 'secop2', nombreEntidad?: string): string {
