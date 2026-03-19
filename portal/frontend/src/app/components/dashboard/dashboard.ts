@@ -152,6 +152,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
   itemsPorPagina: number = 20;
   paginaActual: number = 1;
 
+  // Control de paginación para "PQRS Recientes" en dashboard
+  paginaActualDashboard: number = 1;
+
   // Control de alerta de PQRS próximas a vencer (mostrar solo una vez)
   alertaVencerMostrada: boolean = false;
 
@@ -660,7 +663,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       next: (data) => {
         this.pqrsList = data;
         this.isLoading = false;
-        this.paginaActual = 1; // Resetear a primera página
+        this.paginaActual = 1; // Resetear a primera página de "Mis PQRS"
+        this.paginaActualDashboard = 1; // Resetear a primera página de PQRS Recientes
         this.updateCharts();
         // Verificar PQRS próximas a vencer (solo mostrar once)
         this.verificarPqrsProximasVencer();
@@ -1702,6 +1706,104 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
       if (fin < totalPaginas) {
         if (fin < totalPaginas - 1) paginas.push(-1); // Representa "..."
+        paginas.push(totalPaginas);
+      }
+    }
+
+    return paginas;
+  }
+
+  // ========== MÉTODOS DE PAGINACIÓN PARA "PQRS RECIENTES" EN DASHBOARD ==========
+
+  /**
+   * Obtiene los PQRS recientes para la página actual del dashboard (20 items por página)
+   */
+  getPqrsRecientesPaginadas(): PQRSWithDetails[] {
+    const inicio = (this.paginaActualDashboard - 1) * this.itemsPorPagina;
+    const fin = inicio + this.itemsPorPagina;
+    return this.pqrsList.slice(inicio, fin);
+  }
+
+  /**
+   * Calcula el total de páginas para PQRS recientes
+   */
+  getTotalPaginasRecientes(): number {
+    return Math.ceil(this.pqrsList.length / this.itemsPorPagina);
+  }
+
+  /**
+   * Obtiene el rango de items mostrados para PQRS recientes
+   */
+  getRangoItemosRecientes(): { inicio: number; fin: number; total: number } {
+    const inicio = (this.paginaActualDashboard - 1) * this.itemsPorPagina + 1;
+    const fin = Math.min(this.paginaActualDashboard * this.itemsPorPagina, this.pqrsList.length);
+    return { inicio, fin, total: this.pqrsList.length };
+  }
+
+  /**
+   * Va a una página específica en PQRS recientes
+   */
+  irAPaginaRecientes(numero: number): void {
+    const totalPaginas = this.getTotalPaginasRecientes();
+    if (numero >= 1 && numero <= totalPaginas) {
+      this.paginaActualDashboard = numero;
+    }
+  }
+
+  /**
+   * Va a la página anterior en PQRS recientes
+   */
+  irAPaginaAnteriorRecientes(): void {
+    if (this.paginaActualDashboard > 1) {
+      this.paginaActualDashboard--;
+    }
+  }
+
+  /**
+   * Va a la página siguiente en PQRS recientes
+   */
+  irAPaginaSiguienteRecientes(): void {
+    const totalPaginas = this.getTotalPaginasRecientes();
+    if (this.paginaActualDashboard < totalPaginas) {
+      this.paginaActualDashboard++;
+    }
+  }
+
+  /**
+   * Obtiene un array de números de página para PQRS recientes
+   */
+  getNumerosPagenasRecientes(): number[] {
+    const totalPaginas = this.getTotalPaginasRecientes();
+    const paginas: number[] = [];
+    const maxPaginasMostradas = 5;
+
+    if (totalPaginas <= maxPaginasMostradas) {
+      for (let i = 1; i <= totalPaginas; i++) {
+        paginas.push(i);
+      }
+    } else {
+      let inicio = Math.max(1, this.paginaActualDashboard - 2);
+      let fin = Math.min(totalPaginas, this.paginaActualDashboard + 2);
+
+      if (fin - inicio + 1 < maxPaginasMostradas) {
+        if (inicio === 1) {
+          fin = Math.min(totalPaginas, inicio + maxPaginasMostradas - 1);
+        } else {
+          inicio = Math.max(1, fin - maxPaginasMostradas + 1);
+        }
+      }
+
+      if (inicio > 1) {
+        paginas.push(1);
+        if (inicio > 2) paginas.push(-1);
+      }
+
+      for (let i = inicio; i <= fin; i++) {
+        paginas.push(i);
+      }
+
+      if (fin < totalPaginas) {
+        if (fin < totalPaginas - 1) paginas.push(-1);
         paginas.push(totalPaginas);
       }
     }

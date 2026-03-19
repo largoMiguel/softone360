@@ -376,7 +376,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr *ngFor="let pqrs of pqrsList" (click)="verDetallesPqrs(pqrs)"
+                                <tr *ngFor="let pqrs of getPqrsRecientesPaginadas()" (click)="verDetallesPqrs(pqrs)"
                                     style="cursor: pointer;">
                                     <td><strong class="text-primary">{{ pqrs.numero_radicado }}</strong></td>
                                     <td>
@@ -435,6 +435,46 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+
+                    <!-- Controles de paginación para PQRS Recientes -->
+                    <div *ngIf="getTotalPaginasRecientes() > 1" class="d-flex justify-content-between align-items-center p-3 border-top">
+                        <div class="text-muted small">
+                            <small>
+                                Mostrando {{ getRangoItemosRecientes().inicio }}-{{ getRangoItemosRecientes().fin }} de {{ getRangoItemosRecientes().total }} PQRS
+                            </small>
+                        </div>
+
+                        <nav aria-label="Paginación de PQRS Recientes">
+                            <ul class="pagination mb-0">
+                                <li class="page-item" [class.disabled]="paginaActualDashboard === 1">
+                                    <button class="page-link" (click)="irAPaginaAnteriorRecientes()" 
+                                        [disabled]="paginaActualDashboard === 1"
+                                        title="Página anterior">
+                                        <i class="fas fa-chevron-left"></i> Anterior
+                                    </button>
+                                </li>
+
+                                <li class="page-item" *ngFor="let num of getNumerosPagenasRecientes()" 
+                                    [class.active]="num === paginaActualDashboard"
+                                    [class.disabled]="num === -1">
+                                    <button *ngIf="num !== -1" class="page-link" 
+                                        (click)="irAPaginaRecientes(num)"
+                                        [attr.aria-label]="'Página ' + num">
+                                        {{ num }}
+                                    </button>
+                                    <span *ngIf="num === -1" class="page-link">...</span>
+                                </li>
+
+                                <li class="page-item" [class.disabled]="paginaActualDashboard === getTotalPaginasRecientes()">
+                                    <button class="page-link" (click)="irAPaginaSiguienteRecientes()" 
+                                        [disabled]="paginaActualDashboard === getTotalPaginasRecientes()"
+                                        title="Página siguiente">
+                                        Siguiente <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </li>
+                            </ul>
+                        </nav>
                     </div>
                 </div>
             </div>
