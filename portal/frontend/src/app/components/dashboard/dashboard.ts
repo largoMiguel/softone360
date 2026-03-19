@@ -2235,10 +2235,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
         return;
       }
 
-      // Preparar datos para el análisis de IA
-      const tiposPqrs: { [key: string]: number } = {};
+      // Preparar datos para el análisis de IA - Inicializar todos los tipos con 0
+      const tiposPqrs: { [key: string]: number } = {
+        'peticion': 0,
+        'queja': 0,
+        'reclamo': 0,
+        'sugerencia': 0
+      };
       pqrsFiltered.forEach(pqrs => {
-        tiposPqrs[pqrs.tipo_solicitud] = (tiposPqrs[pqrs.tipo_solicitud] || 0) + 1;
+        if (pqrs.tipo_solicitud in tiposPqrs) {
+          tiposPqrs[pqrs.tipo_solicitud]++;
+        }
       });
 
       // Calcular tiempo promedio de respuesta
