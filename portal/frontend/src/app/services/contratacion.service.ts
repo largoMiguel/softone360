@@ -186,37 +186,39 @@ export class ContratacionService {
         const uniqueNames = [...new Set(rows.map(getEntityName).filter(Boolean))] as string[];
         if (uniqueNames.length <= 1) return rows;
 
-        // Tipos de entidades municipales colombianas con palabras clave de conflicto
-        // Conflicto: MUNICIPIO (alcaldía) vs CONCEJO (legislativo) vs PERSONERIA vs CONTRALORIA
-        const CONFLICTS = {
-            MUNICIPIO: ['CONCEJO', 'PERSONERIA', 'CONTRALORIA', 'JUZGADO', 'TRIBUNAL', 'FISCALIA'],
-            ALCALDIA: ['CONCEJO', 'PERSONERIA', 'CONTRALORIA', 'JUZGADO', 'TRIBUNAL', 'FISCALIA'],
-            CONCEJO: ['MUNICIPIO', 'ALCALDIA', 'PERSONERIA', 'CONTRALORIA', 'JUZGADO', 'TRIBUNAL'],
-            PERSONERIA: ['JUZGADO', 'TRIBUNAL', 'FISCALIA', 'DEFENSORIA'],
-            CONTRALORIA: ['JUZGADO', 'TRIBUNAL', 'FISCALIA', 'DEFENSORIA']
-        };
-
-        // Detectar el tipo principal del nombre buscado
-        let primaryType: string | null = null;
-        for (const [type, conflicts] of Object.entries(CONFLICTS)) {
-            if (targetName.includes(type)) {
-                primaryType = type;
-                break;
+        // Tipos de entidades municipales colombianas con sus palabras clave y exclusiones mutuas
+        const ENTITY_TYPES: { keywords: string[]; excludes: string[] }[] = [
+            {
+                // Alcaldía / Municipio (ejecutivo)
+                keywords: ['ALCALDIA', 'MUNICIPIO'],
+                excludes: ['CONCEJO', 'PERSONERIA', 'CONTRALORIA', 'JUZGADO', 'TRIBUNAL', 'FISCALIA', 'DEFENSORIA']
+            },
+            {
+                // Concejo (legislativo)
+                keywords: ['CONCEJO'],
+                excludes: ['MUNICIPIO', 'ALCALDIA', 'PERSONERIA', 'CONTRALORIA', 'JUZGADO', 'TRIBUNAL', 'FISCALIA']
+            },
+            {
+                // Personería (control disciplinario)
+                keywords: ['PERSONERIA'],
+                excludes: ['MUNICIPIO', 'ALCALDIA', 'CONCEJO', 'CONTRALORIA', 'JUZGADO', 'TRIBUNAL', 'FISCALIA']
+            },
+            {
+                // Contraloría (control fiscal)
+                keywords: ['CONTRALORIA'],
+                excludes: ['MUNICIPIO', 'ALCALDIA', 'CONCEJO', 'PERSONERIA', 'JUZGADO', 'TRIBUNAL', 'FISCALIA']
             }
-        }
+        ];
 
-        if (primaryType && CONFLICTS[primaryType as keyof typeof CONFLICTS]) {
-            const conflictingWords = CONFLICTS[primaryType as keyof typeof CONFLICTS];
-            // Solo excluir si la entidad NO tiene palabras que coincidan con el tipo buscado
+        // Detectar el tipo de la entidad destino
+        const matchedType = ENTITY_TYPES.find(t => t.keywords.some(k => targetName.includes(k)));
+
+        if (matchedType) {
             const filtered = rows.filter(row => {
                 const entityName = getEntityName(row);
                 if (!entityName) return true;
-                
-                // Si la entidad contiene el tipo buscado, la incluimos (ej: PERSONERIA)
-                if (entityName.includes(primaryType)) return true;
-                
-                // Si contiene palabras conflictivas, excluir solo si NO coincide con el tipo
-                return conflictingWords.every(conflict => !entityName.includes(conflict));
+                // Excluir filas cuyos nombres de entidad corresponden a otro tipo de organismo
+                return matchedType.excludes.every(excl => !entityName.includes(excl));
             });
             if (filtered.length > 0) return filtered;
         }
