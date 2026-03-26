@@ -33,9 +33,9 @@ class Settings(BaseSettings):
     # Migration secret key (para endpoint de migraciones)
     migration_secret_key: str = "change-me-in-production-migration-key-2024"
     
-    # AWS SES Email Configuration
-    aws_ses_region: str = "us-east-1"  # Región donde está configurado SES
-    email_from: str = "noreply@tudominio.com"  # Correo verificado en AWS SES
+    # Zeptomail Email Configuration
+    zeptomail_api_token: str = ""  # Token de Zeptomail (Zoho-enczapikey)
+    email_from: str = "noreply@tudominio.com"  # Correo remitente verificado en Zeptomail
     email_from_name: str = "Sistema PQRS"  # Nombre del remitente
     
     # Frontend URL (para links en emails)

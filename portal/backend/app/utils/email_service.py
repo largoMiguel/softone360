@@ -1,23 +1,23 @@
 """
-Servicio de envío de correos electrónicos usando AWS SES.
+Servicio de envío de correos electrónicos usando Zeptomail (Zoho).
 Incluye templates HTML para notificaciones de PQRS.
 """
-import boto3
-from botocore.exceptions import ClientError
+import requests
 from typing import Optional, List
 from app.config.settings import settings
 import urllib.parse
 
 
 class EmailService:
-    """Servicio para enviar correos electrónicos con AWS SES"""
-    
+    """Servicio para enviar correos electrónicos con Zeptomail"""
+
+    ZEPTOMAIL_API_URL = "https://api.zeptomail.com/v1.1/email"
+
     def __init__(self):
-        """Inicializar cliente de SES"""
-        self.client = boto3.client('ses', region_name=settings.aws_ses_region)
+        self.api_token = settings.zeptomail_api_token
         self.default_from_email = settings.email_from
         self.default_from_name = settings.email_from_name
-    
+
     def send_email(
         self,
         to_emails: List[str],
@@ -25,69 +25,72 @@ class EmailService:
         html_body: str,
         text_body: Optional[str] = None,
         from_email: Optional[str] = None,
-        from_name: Optional[str] = None
+        from_name: Optional[str] = None,
+        reply_to: Optional[str] = None
     ) -> bool:
         """
-        Enviar correo electrónico usando AWS SES.
-        
+        Enviar correo electrónico usando Zeptomail.
+
         Args:
             to_emails: Lista de correos destino
             subject: Asunto del correo
             html_body: Cuerpo del correo en HTML
             text_body: Cuerpo del correo en texto plano (opcional)
-            from_email: Email del remitente (usa el de la entidad o default)
-            from_name: Nombre del remitente (usa el de la entidad o default)
-        
+            from_email: Email del remitente (debe ser de dominio verificado en Zeptomail)
+            from_name: Nombre del remitente (nombre de la entidad)
+            reply_to: Correo institucional de la entidad para respuestas (opcional)
+
         Returns:
             True si se envió exitosamente, False en caso contrario
         """
-        # Usar email de la entidad si se proporciona, sino usar el default
-        sender_email = from_email or self.default_from_email
         sender_name = from_name or self.default_from_name
-        
+        # Siempre enviar desde el dominio verificado (softone360.com)
+        sender_email = self.default_from_email
+
         print(f"📧 Intentando enviar correo:")
         print(f"   Desde: {sender_name} <{sender_email}>")
         print(f"   Para: {to_emails}")
+        print(f"   Reply-To: {reply_to}")
         print(f"   Asunto: {subject}")
-        
+
+        payload = {
+            "from": {
+                "address": sender_email,
+                "name": sender_name
+            },
+            "to": [
+                {"email_address": {"address": addr}} for addr in to_emails
+            ],
+            "subject": subject,
+            "htmlbody": html_body,
+        }
+
+        if reply_to:
+            payload["reply_to"] = [{"address": reply_to}]
+
+        if text_body:
+            payload["textbody"] = text_body
+
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Authorization": f"Zoho-enczapikey {self.api_token}",
+        }
+
         try:
-            # Preparar el cuerpo del mensaje
-            body = {
-                'Html': {
-                    'Charset': 'UTF-8',
-                    'Data': html_body,
-                }
-            }
-            
-            # Agregar versión de texto plano si se proporciona
-            if text_body:
-                body['Text'] = {
-                    'Charset': 'UTF-8',
-                    'Data': text_body,
-                }
-            
-            # Enviar correo
-            response = self.client.send_email(
-                Source=f"{sender_name} <{sender_email}>",
-                Destination={
-                    'ToAddresses': to_emails,
-                },
-                Message={
-                    'Subject': {
-                        'Charset': 'UTF-8',
-                        'Data': subject,
-                    },
-                    'Body': body,
-                },
+            response = requests.post(
+                self.ZEPTOMAIL_API_URL,
+                json=payload,
+                headers=headers,
+                timeout=15
             )
-            
-            print(f"✅ Correo enviado exitosamente desde {sender_email} a {to_emails}. MessageId: {response['MessageId']}")
+            response.raise_for_status()
+            data = response.json()
+            message_id = data.get("data", [{}])[0].get("message_id", "N/A") if data.get("data") else "N/A"
+            print(f"✅ Correo enviado exitosamente desde {sender_email} a {to_emails}. MessageId: {message_id}")
             return True
-            
-        except ClientError as e:
-            error_code = e.response['Error']['Code']
-            error_message = e.response['Error']['Message']
-            print(f"❌ Error enviando correo: {error_code} - {error_message}")
+        except requests.exceptions.HTTPError as e:
+            print(f"❌ Error HTTP enviando correo: {e.response.status_code} - {e.response.text}")
             return False
         except Exception as e:
             print(f"❌ Error inesperado enviando correo: {str(e)}")
@@ -208,10 +211,10 @@ class EmailService:
             subject=subject,
             html_body=html_body,
             text_body=text_body,
-            from_email=entity_email,
-            from_name=entity_name
+            from_name=entity_name,
+            reply_to=entity_email
         )
-    
+
     def send_pqrs_respuesta_notification(
         self,
         to_email: str,
@@ -347,8 +350,8 @@ class EmailService:
             subject=subject,
             html_body=html_body,
             text_body=text_body,
-            from_email=entity_email,
-            from_name=entity_name
+            from_name=entity_name,
+            reply_to=entity_email
         )
 
 
