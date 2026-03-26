@@ -581,7 +581,8 @@ async def respond_pqrs(
         )
     
     # Verificar permisos
-    if current_user.role != UserRole.ADMIN and pqrs.assigned_to_id != current_user.id:
+    is_admin = current_user.role in (UserRole.ADMIN, UserRole.SUPERADMIN)
+    if not is_admin and pqrs.assigned_to_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tienes permisos para responder esta PQRS"
@@ -826,8 +827,9 @@ async def upload_archivo_respuesta(
                 detail=f"PQRS con ID {pqrs_id} no encontrada"
             )
         
-        # Validar permisos: admin o secretario asignado
-        if current_user.role != UserRole.ADMIN and pqrs.assigned_to_id != current_user.id:
+        # Validar permisos: admin, superadmin o secretario asignado
+        is_admin = current_user.role in (UserRole.ADMIN, UserRole.SUPERADMIN)
+        if not is_admin and pqrs.assigned_to_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="No tienes permisos para subir archivos de respuesta a esta PQRS"
