@@ -337,6 +337,7 @@ export class ShowcaseComponent implements OnInit {
     // Para el selector de entidades
     entities: any[] = [];
     showEntityModal = false;
+    showPortalesModal = false;
 
     // Para el modal de alertas
     showAlert = false;
@@ -475,6 +476,14 @@ export class ShowcaseComponent implements OnInit {
         } else {
             this.router.navigate(['/login']);
         }
+    }
+
+    abrirPortalesModal(): void {
+        this.showPortalesModal = true;
+    }
+
+    cerrarPortalesModal(): void {
+        this.showPortalesModal = false;
     }
 
     mostrarAlerta(tipo: 'error' | 'warning' | 'success' | 'info', title: string, mensaje: string): void {
