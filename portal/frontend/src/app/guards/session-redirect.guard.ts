@@ -16,14 +16,14 @@ export const sessionRedirectGuard: CanActivateFn = (route, state) => {
     const authService = inject(AuthService);
     const router = inject(Router);
 
+    // Si viene con ?radicado= (link de email), no redirigir — dejar pasar a ventanilla
+    if (state.url.includes('?radicado=') || state.url.includes('&radicado=')) {
+        return true;
+    }
+
     // Solo aplicar si es acceso a /:slug (sin subruta adicional)
     const currentPath = state.url.split('?')[0]; // Eliminar query params
     const pathParts = currentPath.split('/').filter(p => p);
-
-    // Si viene con ?radicado= (link de email), no redirigir — dejar pasar a ventanilla
-    if (route.queryParams?.['radicado']) {
-        return true;
-    }
     
     // Si la ruta es solo /:slug (ej: /chiquiza-boyaca) sin subrutas
     if (pathParts.length === 1 && authService.isAuthenticated()) {
