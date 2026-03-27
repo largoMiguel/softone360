@@ -106,6 +106,7 @@ class EmailService:
         entity_name: str,
         entity_slug: str,
         fecha_radicacion: str,
+        archivo_adjunto_url: Optional[str] = None,
         entity_email: Optional[str] = None
     ) -> bool:
         """
@@ -155,7 +156,7 @@ class EmailService:
                     <div class="info-box">
                         <p><strong>Número de Radicado:</strong></p>
                         <p class="radicado">
-                            <a href="{settings.frontend_url}/#/{entity_slug}/ventanilla?radicado={urllib.parse.quote(numero_radicado)}" 
+                            <a href="{settings.frontend_url}/#/{entity_slug}/portal-ciudadano?radicado={urllib.parse.quote(numero_radicado)}" 
                                style="color: #2563eb; text-decoration: none;">
                                 {numero_radicado}
                             </a>
@@ -168,6 +169,8 @@ class EmailService:
                         <p><strong>Fecha de Radicación:</strong> {fecha_radicacion}</p>
                     </div>
                     
+                    {f'<div class="info-box" style="background-color: #ecfdf5; border-left-color: #10b981;"><p><strong>📎 Documento adjunto:</strong></p><p><a href="{archivo_adjunto_url}" style="color: #2563eb;">Descargar documento adjunto</a></p></div>' if archivo_adjunto_url else ''}
+
                     <p>Puede consultar el estado de su solicitud en cualquier momento utilizando su número de radicado.</p>
                     
                     <p>Recibirá un correo de notificación cuando su solicitud sea respondida.</p>
@@ -196,7 +199,7 @@ class EmailService:
         Fecha de Radicación: {fecha_radicacion}
         
         Puede consultar el estado de su solicitud en cualquier momento utilizando su número de radicado.
-        
+        {f"Documento adjunto: {archivo_adjunto_url}" if archivo_adjunto_url else ""}
         Recibirá un correo de notificación cuando su solicitud sea respondida.
         
         Gracias por utilizar nuestro sistema.
