@@ -1064,7 +1064,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
       // NO enviar archivo_adjunto al crear PQRS (se actualiza después del upload)
       formData.archivo_adjunto = null;
 
-      this.pqrsService.createPqrs(formData).subscribe({
+      // Si hay archivo, saltar email en create (se enviará desde upload con el link del archivo)
+      const hasFile = !!(this.selectedFile);
+      this.pqrsService.createPqrs(formData, hasFile).subscribe({
         next: (response) => {
           // Si hay archivo seleccionado, subirlo ahora
           if (this.selectedFile && response.id) {

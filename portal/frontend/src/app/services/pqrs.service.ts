@@ -20,8 +20,9 @@ export class PqrsService {
 
     constructor(private http: HttpClient) { }
 
-    createPqrs(pqrsData: CreatePQRSRequest): Observable<PQRS> {
-        return this.http.post<PQRS>(this.baseUrl, pqrsData);
+    createPqrs(pqrsData: CreatePQRSRequest, skipEmail: boolean = false): Observable<PQRS> {
+        const params = skipEmail ? new HttpParams().set('skip_email', 'true') : new HttpParams();
+        return this.http.post<PQRS>(this.baseUrl, pqrsData, { params });
     }
 
     getPqrs(params?: {

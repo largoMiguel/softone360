@@ -41,7 +41,8 @@ def format_colombia_datetime(dt: datetime) -> str:
 
 @router.post("/", response_model=PQRSSchema)
 async def create_pqrs(
-    pqrs_data: PQRSCreate, 
+    pqrs_data: PQRSCreate,
+    skip_email: bool = Query(False, description="Si True, no envía el email de radicación (el email se enviará desde el endpoint de upload cuando incluya archivo adjunto)"),
     db: Session = Depends(get_db), 
     current_user: User = Depends(get_current_active_user)
 ):
@@ -127,29 +128,16 @@ async def create_pqrs(
         db.commit()
         db.refresh(db_pqrs)
 
-        # Enviar correo de confirmación al ciudadano si tiene email
-        if pqrs_data.email_ciudadano:
+        # Enviar correo de confirmación al ciudadano si tiene email y no se indicó skip_email
+        if pqrs_data.email_ciudadano and not skip_email:
             try:
                 # Obtener información de la entidad para el correo
                 entity = db.query(Entity).filter(Entity.id == pqrs_data.entity_id).first()
                 entity_name = entity.name if entity else "Sistema PQRS"
                 entity_email = entity.email if entity and entity.email else None
                 entity_slug = entity.slug if entity else "portal"
-                
-                # Generar presigned URL para archivo adjunto si existe
-                archivo_adjunto_url = None
-                if db_pqrs.archivo_adjunto:
-                    try:
-                        file_key = db_pqrs.archivo_adjunto.split(f"{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/")[1]
-                        archivo_adjunto_url = s3_client.generate_presigned_url(
-                            'get_object',
-                            Params={'Bucket': S3_BUCKET, 'Key': file_key},
-                            ExpiresIn=604800  # 7 días
-                        )
-                    except Exception:
-                        pass
 
-                # Enviar correo de radicación
+                # Enviar correo de radicación (sin archivo adjunto, se sube después)
                 email_service.send_pqrs_radicada_notification(
                     to_email=pqrs_data.email_ciudadano,
                     numero_radicado=numero_radicado,
@@ -159,7 +147,7 @@ async def create_pqrs(
                     entity_name=entity_name,
                     entity_slug=entity_slug,
                     fecha_radicacion=format_colombia_datetime(db_pqrs.fecha_solicitud),
-                    archivo_adjunto_url=archivo_adjunto_url,
+                    archivo_adjunto_url=None,
                     entity_email=entity_email
                 )
                 print(f"✅ Correo de radicación enviado a {pqrs_data.email_ciudadano}")
@@ -792,9 +780,40 @@ async def upload_archivo_pqrs(
         
         # Actualizar PQRS con la URL del archivo
         file_url = f"https://{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/{file_key}"
+        archivo_adjunto_previo = pqrs.archivo_adjunto  # guardar antes de actualizar
         pqrs.archivo_adjunto = file_url
         db.commit()
-        
+
+        # Si es el primer archivo adjunto en una PQRS PENDIENTE con email, enviar el correo con el link
+        if archivo_adjunto_previo is None and pqrs.estado == EstadoPQRS.PENDIENTE and pqrs.email_ciudadano:
+            try:
+                entity = db.query(Entity).filter(Entity.id == pqrs.entity_id).first()
+                entity_name = entity.name if entity else "Sistema PQRS"
+                entity_email = entity.email if entity and entity.email else None
+                entity_slug = entity.slug if entity else "portal"
+                archivo_adjunto_url = s3_client.generate_presigned_url(
+                    'get_object',
+                    Params={'Bucket': S3_BUCKET, 'Key': file_key},
+                    ExpiresIn=604800  # 7 días
+                )
+                email_service.send_pqrs_radicada_notification(
+                    to_email=pqrs.email_ciudadano,
+                    numero_radicado=pqrs.numero_radicado,
+                    tipo_solicitud=pqrs.tipo_solicitud.value,
+                    asunto=pqrs.asunto or "Sin asunto",
+                    nombre_ciudadano=pqrs.nombre_ciudadano or "Ciudadano",
+                    entity_name=entity_name,
+                    entity_slug=entity_slug,
+                    fecha_radicacion=format_colombia_datetime(pqrs.fecha_solicitud),
+                    archivo_adjunto_url=archivo_adjunto_url,
+                    entity_email=entity_email
+                )
+                print(f"✅ Correo de radicación (con adjunto) enviado a {pqrs.email_ciudadano}")
+            except Exception as email_error:
+                import traceback
+                print(f"⚠️ Error enviando correo con adjunto: {email_error}")
+                print(f"Traceback completo: {traceback.format_exc()}")
+
         return {
             "message": "Archivo subido exitosamente",
             "archivo_url": file_url,

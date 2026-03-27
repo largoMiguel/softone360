@@ -36,6 +36,11 @@ export class PortalCiudadanoComponent implements OnInit {
     loadingPqrs = false;
     pqrsDetalle: any = null;
 
+    // PQRS consultada desde link de email
+    radicadoFromUrl: string | null = null;
+    pqrsFromUrl: any = null;
+    loadingFromUrl = false;
+
     constructor(
         private authService: AuthService,
         private router: Router,
@@ -66,6 +71,20 @@ export class PortalCiudadanoComponent implements OnInit {
 
     ngOnInit() {
         this.currentEntity$.subscribe(entity => { this.currentEntity = entity; });
+
+        // Leer radicado desde URL (link de email)
+        this.route.queryParams.subscribe(params => {
+            const radicado = params['radicado'];
+            if (radicado) {
+                this.radicadoFromUrl = radicado;
+                this.loadingFromUrl = true;
+                this.pqrsService.consultarPqrsByRadicado(radicado).subscribe({
+                    next: (pqrs) => { this.pqrsFromUrl = pqrs; this.loadingFromUrl = false; },
+                    error: () => { this.loadingFromUrl = false; }
+                });
+            }
+        });
+
         this.authService.getCurrentUser().subscribe({
             next: user => {
                 if (user && user.role === 'ciudadano') {

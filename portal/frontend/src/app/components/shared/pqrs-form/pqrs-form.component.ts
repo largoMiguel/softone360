@@ -220,7 +220,7 @@ export class PqrsFormComponent implements OnInit {
             entity_id: this.currentEntity.id
         };
 
-        this.pqrsService.createPqrs(pqrsData).subscribe({
+        this.pqrsService.createPqrs(pqrsData, !!(this.archivoAdjunto)).subscribe({
             next: (pqrs) => {
                 // Si hay archivo, subirlo
                 if (this.archivoAdjunto) {
