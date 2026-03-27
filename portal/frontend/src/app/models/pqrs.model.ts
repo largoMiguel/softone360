@@ -110,7 +110,6 @@ export type CanalLlegada = 'correo' | 'carta' | 'buzon' | 'fisica' | 'presencial
 export type TipoPersona = 'natural' | 'juridica' | 'nna' | 'apoderado';
 export type Genero = 'femenino' | 'masculino' | 'otro';
 export type TipoDocumento = 'CC' | 'TI' | 'CE' | 'NIT' | 'PASAPORTE' | 'RC' | 'NUIP' | 'PEP' | 'DIE';
-export type TipoDocumento = 'CC' | 'TI' | 'CE' | 'NIT' | 'PASAPORTE' | 'RC' | 'NUIP' | 'PEP' | 'DIE';
 
 export const CANALES_LLEGADA: { value: CanalLlegada; label: string; icon?: string }[] = [
     { value: 'correo', label: 'Correo electrónico', icon: 'fas fa-envelope' },
@@ -206,18 +205,6 @@ export const TIPOS_DOCUMENTO: { value: TipoDocumento; label: string }[] = [
     { value: 'NUIP',      label: 'NUIP' },
     { value: 'PEP',       label: 'Permiso Especial de Permanencia (PEP)' },
     { value: 'DIE',       label: 'Documento de Identificación Extranjero (DIE)' }
-];
-
-export const TIPOS_DOCUMENTO: { value: TipoDocumento; label: string }[] = [
-    { value: 'CC',       label: 'Cédula de Ciudadanía (CC)' },
-    { value: 'TI',       label: 'Tarjeta de Identidad (TI)' },
-    { value: 'CE',       label: 'Cédula de Extranjería (CE)' },
-    { value: 'NIT',      label: 'NIT' },
-    { value: 'PASAPORTE',label: 'Pasaporte' },
-    { value: 'RC',       label: 'Registro Civil (RC)' },
-    { value: 'NUIP',     label: 'NUIP' },
-    { value: 'PEP',      label: 'Permiso Especial de Permanencia (PEP)' },
-    { value: 'DIE',      label: 'Documento de Identificación Extranjero (DIE)' }
 ];
 
 export const GENEROS: { value: Genero; label: string }[] = [
