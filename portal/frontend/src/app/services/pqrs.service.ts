@@ -90,6 +90,10 @@ export class PqrsService {
         return this.http.post<PQRS>(`${this.baseUrl}${id}/respond`, response);
     }
 
+    retryEmail(id: number): Observable<{ success: boolean; message: string }> {
+        return this.http.post<{ success: boolean; message: string }>(`${this.baseUrl}${id}/retry-email`, {});
+    }
+
     deletePqrs(id: number): Observable<any> {
         return this.http.delete(`${this.baseUrl}${id}`);
     }

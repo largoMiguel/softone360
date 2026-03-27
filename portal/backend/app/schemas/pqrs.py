@@ -24,6 +24,8 @@ class PQRSBase(BaseModel):
     archivo_adjunto: Optional[str] = None
     justificacion_asignacion: Optional[str] = None
     archivo_respuesta: Optional[str] = None
+    email_enviado: Optional[bool] = None
+    email_error: Optional[str] = None
     
     @field_validator('email_ciudadano')
     @classmethod
@@ -86,6 +88,8 @@ class PQRSUpdate(BaseModel):
     archivo_adjunto: Optional[str] = None
     justificacion_asignacion: Optional[str] = None
     archivo_respuesta: Optional[str] = None
+    email_enviado: Optional[bool] = None
+    email_error: Optional[str] = None
     
     @field_validator('email_ciudadano')
     @classmethod
@@ -146,6 +150,8 @@ class PQRS(PQRSBase):
     archivo_adjunto: Optional[str] = None
     justificacion_asignacion: Optional[str] = None
     archivo_respuesta: Optional[str] = None
+    email_enviado: Optional[bool] = None
+    email_error: Optional[str] = None
     
     class Config:
         from_attributes = True

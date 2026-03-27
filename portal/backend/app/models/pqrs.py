@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, Text
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, Text, Boolean
 from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -194,6 +194,8 @@ class PQRS(Base):
     archivo_adjunto = Column(String, nullable=True)  # Ruta del archivo PDF adjunto
     justificacion_asignacion = Column(Text, nullable=True)  # Justificación de reasignación
     archivo_respuesta = Column(String, nullable=True)  # Ruta del archivo de respuesta adjunto
+    email_enviado = Column(Boolean, nullable=True)  # None=no aplica/no intentado, True=enviado, False=fallido
+    email_error = Column(String(500), nullable=True)  # Mensaje de error si email_enviado=False
     
     # Respuesta
     respuesta = Column(Text, nullable=True)

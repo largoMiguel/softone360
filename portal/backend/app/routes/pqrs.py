@@ -407,6 +407,14 @@ async def update_pqrs(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="No se puede cerrar la PQRS sin haber enviado una respuesta al ciudadano"
             )
+        # Validar que si el medio de respuesta es email y el correo falló, no se puede cerrar
+        if (update_data["estado"] == EstadoPQRS.CERRADO
+                and pqrs.medio_respuesta == MedioRespuesta.EMAIL
+                and pqrs.email_enviado == False):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se puede cerrar: el correo de respuesta no fue entregado al ciudadano. Reintente el envío primero."
+            )
         if update_data["estado"] == EstadoPQRS.CERRADO and not pqrs.fecha_cierre:
             pqrs.fecha_cierre = datetime.utcnow()
         if update_data["estado"] == EstadoPQRS.RESUELTO and not pqrs.fecha_respuesta:
@@ -610,9 +618,7 @@ async def respond_pqrs(
             archivo_url = None
             if pqrs.archivo_respuesta:
                 try:
-                    # Extraer la key del archivo de la URL
                     file_key = pqrs.archivo_respuesta.split(f"{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/")[1]
-                    # Generar URL pre-firmada válida por 7 días (para que el ciudadano tenga tiempo de descargar)
                     archivo_url = s3_client.generate_presigned_url(
                         'get_object',
                         Params={'Bucket': S3_BUCKET, 'Key': file_key},
@@ -621,10 +627,10 @@ async def respond_pqrs(
                     print(f"📎 URL pre-firmada generada para archivo de respuesta (válida por 7 días)")
                 except Exception as e:
                     print(f"⚠️ Error generando URL pre-firmada: {e}")
-                    archivo_url = pqrs.archivo_respuesta  # Usar URL directa como fallback
+                    archivo_url = pqrs.archivo_respuesta
             
-            # Enviar correo de respuesta
-            email_service.send_pqrs_respuesta_notification(
+            # Enviar correo y registrar resultado
+            sent = email_service.send_pqrs_respuesta_notification(
                 to_email=pqrs.email_ciudadano,
                 numero_radicado=pqrs.numero_radicado,
                 asunto=pqrs.asunto,
@@ -633,17 +639,93 @@ async def respond_pqrs(
                 entity_name=entity_name,
                 entity_slug=entity_slug,
                 fecha_respuesta=format_colombia_datetime(pqrs.fecha_respuesta),
-                archivo_adjunto_url=archivo_url,  # URL pre-firmada o None
-                entity_email=entity_email  # Email de la entidad como remitente
+                archivo_adjunto_url=archivo_url,
+                entity_email=entity_email
             )
-            print(f"✅ Correo de respuesta enviado a {pqrs.email_ciudadano}")
-        except Exception as email_error:
-            # No interrumpir el flujo si falla el envío del correo
+            if sent:
+                pqrs.email_enviado = True
+                pqrs.email_error = None
+                print(f"✅ Correo de respuesta enviado a {pqrs.email_ciudadano}")
+            else:
+                pqrs.email_enviado = False
+                pqrs.email_error = "El proveedor de correo rechazó el envío. Verifique el correo del ciudadano."
+                print(f"⚠️ El proveedor rechazó el correo a {pqrs.email_ciudadano}")
+        except Exception as email_exc:
             import traceback
-            print(f"⚠️ Error enviando correo de respuesta: {email_error}")
+            pqrs.email_enviado = False
+            pqrs.email_error = str(email_exc)[:500]
+            print(f"⚠️ Error enviando correo de respuesta: {email_exc}")
             print(f"Traceback completo: {traceback.format_exc()}")
+        db.commit()
+        db.refresh(pqrs)
+    else:
+        # Sin email de ciudadano: no aplica seguimiento de correo
+        pqrs.email_enviado = None
+        pqrs.email_error = None
+        db.commit()
+        db.refresh(pqrs)
     
     return pqrs
+
+
+@router.post("/{pqrs_id}/retry-email", response_model=dict)
+async def retry_email_pqrs(
+    pqrs_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Reintentar el envío del correo de respuesta a un ciudadano cuando falló previamente."""
+    pqrs = db.query(PQRS).filter(PQRS.id == pqrs_id, PQRS.entity_id == current_user.entity_id).first()
+    if not pqrs:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PQRS no encontrada")
+    if not pqrs.respuesta:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La PQRS no tiene respuesta registrada")
+    if not pqrs.email_ciudadano:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La PQRS no tiene correo del ciudadano")
+
+    is_admin = current_user.role in (UserRole.ADMIN, UserRole.SUPERADMIN)
+    if not is_admin and pqrs.assigned_to_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tienes permisos para reintentar el envío")
+
+    try:
+        entity = db.query(Entity).filter(Entity.id == pqrs.entity_id).first()
+        entity_name = entity.name if entity else "Sistema PQRS"
+        entity_email = entity.email if entity and entity.email else None
+        entity_slug = entity.slug if entity else "portal"
+
+        archivo_url = None
+        if pqrs.archivo_respuesta:
+            try:
+                file_key = pqrs.archivo_respuesta.split(f"{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/")[1]
+                archivo_url = s3_client.generate_presigned_url(
+                    'get_object',
+                    Params={'Bucket': S3_BUCKET, 'Key': file_key},
+                    ExpiresIn=604800
+                )
+            except Exception:
+                archivo_url = pqrs.archivo_respuesta
+
+        sent = email_service.send_pqrs_respuesta_notification(
+            to_email=pqrs.email_ciudadano,
+            numero_radicado=pqrs.numero_radicado,
+            asunto=pqrs.asunto,
+            nombre_ciudadano=pqrs.nombre_ciudadano or "Ciudadano",
+            respuesta=pqrs.respuesta,
+            entity_name=entity_name,
+            entity_slug=entity_slug,
+            fecha_respuesta=format_colombia_datetime(pqrs.fecha_respuesta),
+            archivo_adjunto_url=archivo_url,
+            entity_email=entity_email
+        )
+        pqrs.email_enviado = sent
+        pqrs.email_error = None if sent else "Reintento fallido. Verifique el correo del ciudadano."
+        db.commit()
+        return {"success": sent, "message": "Correo enviado exitosamente" if sent else "Error al reenviar el correo"}
+    except Exception as e:
+        pqrs.email_enviado = False
+        pqrs.email_error = str(e)[:500]
+        db.commit()
+        return {"success": False, "message": f"Error al reenviar: {str(e)[:200]}"}
 
 @router.delete("/{pqrs_id}")
 async def delete_pqrs(

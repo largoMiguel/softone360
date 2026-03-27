@@ -961,6 +961,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
         return;
       }
 
+      // Validar que si el medio de respuesta es email y el correo falló, no se puede cerrar
+      if (this.selectedEstado === 'cerrado'
+          && this.selectedPqrs.medio_respuesta === 'email'
+          && this.selectedPqrs.email_enviado === false) {
+        this.alertService.error(
+          'No se puede cerrar esta PQRS: el correo de respuesta no fue entregado al ciudadano. '
+          + 'Reintente el envío desde la sección de respuesta oficial.',
+          'Email No Entregado'
+        );
+        return;
+      }
+
       const estadoLabel = this.getEstadoLabel(this.selectedEstado);
 
       const updateData: UpdatePQRSRequest = {
@@ -1404,10 +1416,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     this.pqrsService.respondPqrs(this.selectedPqrs.id, responseData).subscribe({
       next: (response) => {
-        this.alertService.success(
-          `La respuesta ha sido enviada exitosamente y el estado de la PQRS N° ${this.selectedPqrs?.numero_radicado} ha cambiado a "Resuelto".`,
-          'Respuesta Enviada'
-        );
+        // Determinar mensaje según resultado del email
+        let mensaje = `La respuesta ha sido enviada exitosamente y el estado de la PQRS N° ${this.selectedPqrs?.numero_radicado} ha cambiado a "Resuelto".`;
+        if (response.medio_respuesta === 'email') {
+          if (response.email_enviado === true) {
+            mensaje += ' El correo fue entregado exitosamente al ciudadano.';
+          } else if (response.email_enviado === false) {
+            mensaje = `Respuesta guardada para la PQRS N° ${this.selectedPqrs?.numero_radicado}, pero el correo NO pudo ser entregado. Use el botón "Reintentar envío" para volver a enviarlo.`;
+          }
+        }
+        const isEmailError = response.medio_respuesta === 'email' && response.email_enviado === false;
+        if (isEmailError) {
+          this.alertService.warning(mensaje, 'Revise el Correo del Ciudadano');
+        } else {
+          this.alertService.success(mensaje, 'Respuesta Enviada');
+        }
         this.respuestaTexto = '';
         
         // Recargar la PQRS actualizada desde el servidor para obtener todos los campos
@@ -1436,6 +1459,36 @@ export class DashboardComponent implements OnInit, OnDestroy {
         console.error('Error enviando respuesta:', error);
         const msg = this.extractErrorMessage(error);
         this.alertService.error(msg, 'Error al Enviar Respuesta');
+      }
+    });
+  }
+
+  retryEmail(): void {
+    if (!this.selectedPqrs) return;
+    this.pqrsService.retryEmail(this.selectedPqrs.id).subscribe({
+      next: (res) => {
+        if (res.success) {
+          this.alertService.success('El correo fue reenviado y entregado exitosamente al ciudadano.', 'Email Entregado');
+        } else {
+          this.alertService.error(
+            `No se pudo reenviar el correo: ${res.message}. Verifique que el correo del ciudadano sea correcto.`,
+            'Error de Entrega'
+          );
+        }
+        // Recargar para reflejar el nuevo estado de email_enviado
+        if (this.selectedPqrs) {
+          this.pqrsService.getPqrsById(this.selectedPqrs.id).subscribe({
+            next: (pqrsActualizada) => {
+              const index = this.pqrsList.findIndex(p => p.id === pqrsActualizada.id);
+              if (index !== -1) this.pqrsList[index] = pqrsActualizada;
+              this.selectedPqrs = pqrsActualizada;
+            }
+          });
+        }
+      },
+      error: (error) => {
+        const msg = this.extractErrorMessage(error);
+        this.alertService.error(msg, 'Error al Reenviar Email');
       }
     });
   }
