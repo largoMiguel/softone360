@@ -629,6 +629,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
     // Cargar próximo radicado al abrir formulario de nueva PQRS
     if (view === 'nueva-pqrs') {
+      this.pasoActual = 1;  // Siempre iniciar en el primer paso
       this.loadNextRadicado();
       // Verificar si hay borrador guardado
       setTimeout(() => this.verificarBorrador(), 300);

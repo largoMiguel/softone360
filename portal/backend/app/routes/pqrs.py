@@ -320,7 +320,7 @@ async def get_next_radicado(
     Este es solo un preview - el radicado real se genera al crear la PQRS.
     """
     try:
-        next_radicado = generate_radicado(db)
+        next_radicado = generate_radicado(db, entity_id=current_user.entity_id)
         return {
             "next_radicado": next_radicado,
             "format": "YYYYMMDDNNN",
