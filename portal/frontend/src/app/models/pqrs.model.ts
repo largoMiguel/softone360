@@ -30,6 +30,8 @@ export interface PQRS {
     archivo_adjunto?: string;
     justificacion_asignacion?: string;
     archivo_respuesta?: string;
+    email_enviado?: boolean | null;  // null=no aplica, true=enviado ok, false=fallido
+    email_error?: string;
 }
 
 export interface PQRSWithDetails extends PQRS {
