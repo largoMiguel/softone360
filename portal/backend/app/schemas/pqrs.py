@@ -11,6 +11,7 @@ class PQRSBase(BaseModel):
     medio_respuesta: MedioRespuesta = MedioRespuesta.EMAIL
     nombre_ciudadano: Optional[str] = None
     cedula_ciudadano: Optional[str] = None
+    tipo_documento: Optional[str] = None  # Tipo de documento (CC, TI, CE, NIT, etc.)
     telefono_ciudadano: Optional[str] = None
     email_ciudadano: Optional[str] = None  # Cambiado de EmailStr a str para validación condicional
     direccion_ciudadano: Optional[str] = None
@@ -68,6 +69,7 @@ class PQRSUpdate(BaseModel):
     medio_respuesta: Optional[MedioRespuesta] = None
     nombre_ciudadano: Optional[str] = None
     cedula_ciudadano: Optional[str] = None
+    tipo_documento: Optional[str] = None
     telefono_ciudadano: Optional[str] = None
     email_ciudadano: Optional[str] = None  # Cambiado de EmailStr a str
     direccion_ciudadano: Optional[str] = None

@@ -783,9 +783,9 @@
                                 <div class="col-md-6 col-lg-4" *ngFor="let canal of canalesLlegada">
                                     <div class="canal-card" 
                                          [class.selected]="nuevaPqrsForm.get('canal_llegada')?.value === canal.value"
-                                         (click)="nuevaPqrsForm.patchValue({canal_llegada: canal.value})"
-                                         (keydown.enter)="nuevaPqrsForm.patchValue({canal_llegada: canal.value})"
-                                         (keydown.space)="nuevaPqrsForm.patchValue({canal_llegada: canal.value})"
+                                         (click)="seleccionarCanal(canal.value)"
+                                         (keydown.enter)="seleccionarCanal(canal.value)"
+                                         (keydown.space)="seleccionarCanal(canal.value)"
                                          role="button"
                                          tabindex="0"
                                          [attr.aria-pressed]="nuevaPqrsForm.get('canal_llegada')?.value === canal.value"
@@ -865,9 +865,9 @@
                                 <div class="col-md-6 col-lg-4" *ngFor="let tipoSol of tiposSolicitud">
                                     <div class="tipo-solicitud-card" 
                                          [class.selected]="nuevaPqrsForm.get('tipo_solicitud')?.value === tipoSol.value"
-                                         (click)="nuevaPqrsForm.patchValue({tipo_solicitud: tipoSol.value})"
-                                         (keydown.enter)="nuevaPqrsForm.patchValue({tipo_solicitud: tipoSol.value})"
-                                         (keydown.space)="nuevaPqrsForm.patchValue({tipo_solicitud: tipoSol.value})"
+                                         (click)="seleccionarTipoSolicitud(tipoSol.value)"
+                                         (keydown.enter)="seleccionarTipoSolicitud(tipoSol.value)"
+                                         (keydown.space)="seleccionarTipoSolicitud(tipoSol.value)"
                                          role="button"
                                          tabindex="0"
                                          [attr.aria-pressed]="nuevaPqrsForm.get('tipo_solicitud')?.value === tipoSol.value"
@@ -899,11 +899,21 @@
                             <div *ngIf="tipo === 'personal'">
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
-                                        <label for="cedula_ciudadano" class="form-label">Cédula del Ciudadano *</label>
+                                        <label for="tipo_documento" class="form-label">Tipo de Documento *</label>
+                                        <select id="tipo_documento" class="form-select" formControlName="tipo_documento">
+                                            <option value="">Seleccione...</option>
+                                            <option *ngFor="let td of tiposDocumento" [value]="td.value">{{ td.label }}</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="cedula_ciudadano" class="form-label">Número de Documento *</label>
                                         <input id="cedula_ciudadano" type="text" class="form-control"
                                             formControlName="cedula_ciudadano">
                                     </div>
-                                    <div class="col-md-6 mb-3">
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
                                         <label for="nombre_ciudadano" class="form-label">Nombre Completo *</label>
                                         <input id="nombre_ciudadano" type="text" class="form-control"
                                             formControlName="nombre_ciudadano">
@@ -917,7 +927,7 @@
                                             formControlName="telefono_ciudadano">
                                     </div>
                                     <div class="col-md-6 mb-3">
-                                        <label for="direccion_ciudadano" class="form-label">Dirección</label>
+                                        <label for="direccion_ciudadano" class="form-label">Dirección Remitente</label>
                                         <input id="direccion_ciudadano" type="text" class="form-control"
                                             formControlName="direccion_ciudadano">
                                     </div>
@@ -935,6 +945,13 @@
                                 <label for="descripcion" class="form-label">Descripción *</label>
                                 <textarea id="descripcion" class="form-control" rows="4" formControlName="descripcion"
                                     required placeholder="Describa detalladamente la solicitud..."></textarea>
+                            </div>
+
+                            <!-- Asunto para PQRS Anónima -->
+                            <div class="mb-3" *ngIf="tipo === 'anonima'">
+                                <label for="asunto_anonima" class="form-label">Asunto</label>
+                                <input id="asunto_anonima" type="text" class="form-control" formControlName="asunto"
+                                    placeholder="Resumen breve del motivo de la PQRS...">
                             </div>
 
                             <!-- Nuevos campos: Tipo de Persona y Género -->
@@ -1114,7 +1131,11 @@
                                 <div class="card-body">
                                     <div class="row">
                                         <div class="col-md-6 mb-2">
-                                            <strong>Cédula:</strong><br>
+                                            <strong>Tipo de Documento:</strong><br>
+                                            <span class="text-muted">{{ nuevaPqrsForm.get('tipo_documento')?.value || 'N/A' }}</span>
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <strong>Número de Documento:</strong><br>
                                             <span class="text-muted">{{ nuevaPqrsForm.get('cedula_ciudadano')?.value || 'N/A' }}</span>
                                         </div>
                                         <div class="col-md-6 mb-2">
@@ -2250,7 +2271,8 @@
                                         <div class="mb-4 pb-3 border-bottom">
                                             <span class="d-block small text-uppercase fw-bold text-muted mb-2">Identificación</span>
                                             <span class="fs-6 text-dark fw-semibold">
-                                                <i class="fas fa-id-badge me-1 text-muted"></i>{{ selectedPqrs.cedula_ciudadano }}
+                                                <i class="fas fa-id-badge me-1 text-muted"></i>
+                                                <span *ngIf="selectedPqrs.tipo_documento" class="badge bg-secondary me-1">{{ selectedPqrs.tipo_documento }}</span>{{ selectedPqrs.cedula_ciudadano }}
                                             </span>
                                         </div>
                                         

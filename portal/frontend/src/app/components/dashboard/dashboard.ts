@@ -12,7 +12,7 @@ import { SecretariasService } from '../../services/secretarias.service';
 import { CorrespondenciaService } from '../../services/correspondencia.service';
 import { User } from '../../models/user.model';
 import { EntityContextService } from '../../services/entity-context.service';
-import { PQRSWithDetails, ESTADOS_PQRS, EstadoPQRS, UpdatePQRSRequest, PQRSResponse, TIPOS_IDENTIFICACION, MEDIOS_RESPUESTA, CANALES_LLEGADA, TIPOS_SOLICITUD, TIPOS_PERSONA, GENEROS } from '../../models/pqrs.model';
+import { PQRSWithDetails, ESTADOS_PQRS, EstadoPQRS, UpdatePQRSRequest, PQRSResponse, TIPOS_IDENTIFICACION, MEDIOS_RESPUESTA, CANALES_LLEGADA, TIPOS_SOLICITUD, TIPOS_PERSONA, GENEROS, TIPOS_DOCUMENTO } from '../../models/pqrs.model';
 import { CorrespondenciaWithDetails, ESTADOS_CORRESPONDENCIA, TIPOS_RADICACION, TIPOS_SOLICITUD_CORRESPONDENCIA, TIEMPOS_RESPUESTA, CreateCorrespondencia, UpdateCorrespondencia, EstadoCorrespondencia, TipoRadicacion } from '../../models/correspondencia.model';
 import { BaseChartDirective } from 'ng2-charts';
 import { Chart, ChartConfiguration, ChartData, ChartType, registerables } from 'chart.js';
@@ -48,6 +48,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   tiposSolicitud = TIPOS_SOLICITUD;
   tiposPersona = TIPOS_PERSONA;
   generos = GENEROS;
+  tiposDocumento = TIPOS_DOCUMENTO;
   
   // Constantes para Correspondencia
   estadosCorrespondencia = ESTADOS_CORRESPONDENCIA;
@@ -253,6 +254,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       medio_respuesta: ['email', Validators.required],
       tipo_solicitud: ['', Validators.required],
       cedula_ciudadano: [''],
+      tipo_documento: ['CC'],
       nombre_ciudadano: [''],
       telefono_ciudadano: [''],
       email_ciudadano: [''],
@@ -263,6 +265,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
       genero: [''],
       dias_respuesta: ['', [Validators.min(1), Validators.max(365)]],
       archivo_adjunto: ['']
+    });
+
+    // Escuchar cambios en tipo_documento para auto-completar tipo_persona y genero
+    this.nuevaPqrsForm.get('tipo_documento')?.valueChanges.subscribe(doc => {
+      if (doc === 'NIT') {
+        this.nuevaPqrsForm.patchValue({ tipo_persona: 'juridica', genero: 'otro' });
+      }
     });
 
     // Escuchar cambios en tipo_identificacion para ajustar validaciones
@@ -2711,9 +2720,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
   
+  seleccionarCanal(valor: string): void {
+    this.nuevaPqrsForm.patchValue({ canal_llegada: valor });
+    setTimeout(() => this.siguientePaso(), 250);
+  }
+
+  seleccionarTipoSolicitud(valor: string): void {
+    this.nuevaPqrsForm.patchValue({ tipo_solicitud: valor });
+    setTimeout(() => this.siguientePaso(), 250);
+  }
+
   seleccionarTipoIdentificacion(tipoValue: string): void {
     this.nuevaPqrsForm.patchValue({tipo_identificacion: tipoValue});
     this.tipo = tipoValue;
+    setTimeout(() => this.siguientePaso(), 250);
   }
 
   // Métodos helper para labels de nuevos campos

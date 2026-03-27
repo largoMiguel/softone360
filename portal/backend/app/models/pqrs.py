@@ -148,6 +148,7 @@ class PQRS(Base):
     # Información del ciudadano (opcionales si es anónima)
     nombre_ciudadano = Column(String, nullable=True)
     cedula_ciudadano = Column(String, nullable=True)
+    tipo_documento = Column(String(50), nullable=True)  # Tipo de documento de identidad (CC, TI, CE, NIT, etc.)
     telefono_ciudadano = Column(String, nullable=True)
     email_ciudadano = Column(String, nullable=True)
     direccion_ciudadano = Column(String, nullable=True)
