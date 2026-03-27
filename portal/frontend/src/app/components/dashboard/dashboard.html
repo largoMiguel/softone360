@@ -2303,7 +2303,7 @@
                                         </div>
                                         
                                         <div class="mb-0" *ngIf="selectedPqrs.direccion_ciudadano">
-                                            <span class="d-block small text-uppercase fw-bold text-muted mb-2">Dirección</span>
+                                            <span class="d-block small text-uppercase fw-bold text-muted mb-2">Dirección Remitente</span>
                                             <span class="fs-6 text-dark fw-semibold">
                                                 <i class="fas fa-map-marker-alt me-1 text-muted"></i>{{ selectedPqrs.direccion_ciudadano }}
                                             </span>
@@ -2793,8 +2793,16 @@
                                         class="form-control" required>
                                 </div>
 
-                                <div class="col-md-6 mb-3">
-                                    <label for="edit_cedula_ciudadano" class="form-label">Cédula/Identificación *</label>
+                                <div class="col-md-4 mb-3">
+                                    <label for="edit_tipo_documento" class="form-label">Tipo de Documento</label>
+                                    <select id="edit_tipo_documento" formControlName="tipo_documento" class="form-select">
+                                        <option value="">Seleccione...</option>
+                                        <option *ngFor="let td of tiposDocumento" [value]="td.value">{{ td.label }}</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-8 mb-3">
+                                    <label for="edit_cedula_ciudadano" class="form-label">Número de Documento *</label>
                                     <input type="text" id="edit_cedula_ciudadano" formControlName="cedula_ciudadano"
                                         class="form-control" required>
                                 </div>
@@ -2815,7 +2823,7 @@
                                 </div>
 
                                 <div class="col-md-4 mb-3">
-                                    <label for="edit_direccion_ciudadano" class="form-label">Dirección</label>
+                                    <label for="edit_direccion_ciudadano" class="form-label">Dirección Remitente</label>
                                     <input type="text" id="edit_direccion_ciudadano"
                                         formControlName="direccion_ciudadano" class="form-control">
                                 </div>
