@@ -468,6 +468,15 @@ export class ShowcaseComponent implements OnInit {
         this.router.navigate(['/asistencia-login']);
     }
 
+    irAGestionDocumental(): void {
+        // Gestión Documental es parte del portal administrativo
+        if (this.authService.isAuthenticated()) {
+            this.irALogin();
+        } else {
+            this.router.navigate(['/login']);
+        }
+    }
+
     mostrarAlerta(tipo: 'error' | 'warning' | 'success' | 'info', title: string, mensaje: string): void {
         this.alertType = tipo;
         this.alertTitle = title;
