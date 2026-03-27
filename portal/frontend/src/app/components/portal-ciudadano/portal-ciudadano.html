@@ -68,52 +68,6 @@
         </div>
     </nav>
 
-    <!-- Sección PQRS desde link de email (visible para cualquier usuario) -->
-    <div *ngIf="pqrsFromUrl || loadingFromUrl" class="container py-3">
-        <div class="card border-primary shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="fas fa-search me-2"></i>Estado de tu PQRS — Radicado: <strong>{{ radicadoFromUrl }}</strong></h5>
-            </div>
-            <div *ngIf="loadingFromUrl" class="card-body text-center py-4">
-                <div class="spinner-border text-primary" role="status"></div>
-                <p class="mt-2 text-muted">Consultando radicado...</p>
-            </div>
-            <div *ngIf="pqrsFromUrl && !loadingFromUrl" class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <strong>Radicado:</strong>
-                        <p class="text-primary mb-0 fs-5"><strong>{{ pqrsFromUrl.numero_radicado }}</strong></p>
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Estado:</strong>
-                        <p class="mb-0"><span [class]="getEstadoClass(pqrsFromUrl.estado)">{{ getEstadoLabel(pqrsFromUrl.estado) }}</span></p>
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Tipo:</strong>
-                        <p class="mb-0">{{ getTipoPqrsLabel(pqrsFromUrl.tipo_solicitud) }}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Fecha de Radicación:</strong>
-                        <p class="mb-0">{{ pqrsFromUrl.fecha_solicitud | date: 'dd/MM/yyyy HH:mm' }}</p>
-                    </div>
-                    <div class="col-12">
-                        <strong>Asunto:</strong>
-                        <p class="mb-0">{{ pqrsFromUrl.asunto }}</p>
-                    </div>
-                    <div class="col-12" *ngIf="pqrsFromUrl.respuesta">
-                        <strong>Respuesta:</strong>
-                        <div class="alert alert-success mb-0">
-                            <i class="fas fa-check-circle me-2"></i>{{ pqrsFromUrl.respuesta }}
-                        </div>
-                        <small class="text-muted" *ngIf="pqrsFromUrl.fecha_respuesta">
-                            Respondida el {{ pqrsFromUrl.fecha_respuesta | date: 'dd/MM/yyyy HH:mm' }}
-                        </small>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Vista de Login/Registro -->
     <div *ngIf="!isLoggedIn" class="auth-section">
         <div class="container">

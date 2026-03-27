@@ -101,11 +101,6 @@ export const ciudadanoGuard: CanActivateFn = (route, state) => {
         return true;
     }
 
-    // Permitir acceso si viene desde un link de email (tiene query param radicado)
-    if (route.queryParams?.['radicado']) {
-        return true;
-    }
-
     const slug = getSlugFromRoute(route, state.url, entityContext);
     router.navigate(slug ? ['/', slug, 'dashboard'] : ['/']);
     return false;

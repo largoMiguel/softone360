@@ -156,7 +156,7 @@ class EmailService:
                     <div class="info-box">
                         <p><strong>Número de Radicado:</strong></p>
                         <p class="radicado">
-                            <a href="{settings.frontend_url}/#/{entity_slug}/portal-ciudadano?radicado={urllib.parse.quote(numero_radicado)}" 
+                            <a href="{settings.frontend_url}/#/{entity_slug}?radicado={urllib.parse.quote(numero_radicado)}" 
                                style="color: #2563eb; text-decoration: none;">
                                 {numero_radicado}
                             </a>
@@ -290,7 +290,7 @@ class EmailService:
                     <div class="info-box">
                         <p><strong>Número de Radicado:</strong></p>
                         <p class="radicado">
-                            <a href="{settings.frontend_url}/#/{entity_slug}/portal-ciudadano?radicado={urllib.parse.quote(numero_radicado)}" 
+                            <a href="{settings.frontend_url}/#/{entity_slug}?radicado={urllib.parse.quote(numero_radicado)}" 
                                style="color: #10b981; text-decoration: none;">
                                 {numero_radicado}
                             </a>
