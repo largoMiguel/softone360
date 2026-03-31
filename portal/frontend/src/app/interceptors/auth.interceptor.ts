@@ -1,13 +1,14 @@
 import { Injectable } from '@angular/core';
 import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpErrorResponse } from '@angular/common/http';
-import { Observable, catchError, throwError, EMPTY } from 'rxjs';
+import { Observable, catchError, throwError, EMPTY, BehaviorSubject, switchMap, filter, take } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { Router } from '@angular/router';
 import { EntityContextService } from '../services/entity-context.service';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
-    private isRedirecting = false;
+    private isRefreshing = false;
+    private refreshTokenSubject = new BehaviorSubject<string | null>(null);
 
     constructor(
         private authService: AuthService,
@@ -18,55 +19,73 @@ export class AuthInterceptor implements HttpInterceptor {
     intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
         const token = this.authService.getToken();
 
-        // Validar que el token no esté vencido antes de hacer la petición
+        // Si el token existe pero expiró, intentar renovarlo antes de la petición
         if (token && this.authService.isTokenExpired()) {
-            this.handleUnauthorized();
-            return EMPTY; // No hacer la petición
+            return this.handleTokenRefresh(req, next);
         }
 
-        if (token) {
-            // No establecer Content-Type para FormData (el navegador lo hace automáticamente con boundary)
-            const headers: any = {
-                Authorization: `Bearer ${token}`
-            };
-            
-            // Solo agregar Content-Type si no es FormData
-            if (!(req.body instanceof FormData)) {
-                headers['Content-Type'] = 'application/json';
-            }
-            
-            const authReq = req.clone({
-                setHeaders: headers
-            });
+        const authReq = token ? this.addToken(req, token) : req;
 
-            return next.handle(authReq).pipe(
-                catchError((error: HttpErrorResponse) => {
-                    if (error.status === 401 || error.status === 403) {
-                        this.handleUnauthorized();
-                        return EMPTY; // No propagar el error
-                    }
-                    return throwError(() => error);
-                })
+        return next.handle(authReq).pipe(
+            catchError((error: HttpErrorResponse) => {
+                if (error.status === 401 && !req.url.includes('/auth/refresh') && !req.url.includes('/auth/login')) {
+                    return this.handleTokenRefresh(req, next);
+                }
+                if (error.status === 403) {
+                    this.handleUnauthorized();
+                    return EMPTY;
+                }
+                return throwError(() => error);
+            })
+        );
+    }
+
+    private addToken(req: HttpRequest<any>, token: string): HttpRequest<any> {
+        const headers: any = { Authorization: `Bearer ${token}` };
+        if (!(req.body instanceof FormData)) {
+            headers['Content-Type'] = 'application/json';
+        }
+        return req.clone({ setHeaders: headers });
+    }
+
+    private handleTokenRefresh(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+        if (!this.authService.getRefreshToken()) {
+            this.handleUnauthorized();
+            return EMPTY;
+        }
+
+        if (this.isRefreshing) {
+            // Esperar a que la renovación en curso termine y reintentar
+            return this.refreshTokenSubject.pipe(
+                filter(token => token !== null),
+                take(1),
+                switchMap(token => next.handle(this.addToken(req, token!)))
             );
         }
 
-        return next.handle(req);
+        this.isRefreshing = true;
+        this.refreshTokenSubject.next(null);
+
+        return this.authService.refreshAccessToken().pipe(
+            switchMap(response => {
+                this.isRefreshing = false;
+                this.refreshTokenSubject.next(response.access_token);
+                return next.handle(this.addToken(req, response.access_token));
+            }),
+            catchError(() => {
+                this.isRefreshing = false;
+                this.handleUnauthorized();
+                return EMPTY;
+            })
+        );
     }
 
     private handleUnauthorized(): void {
-        // Evitar múltiples redirecciones simultáneas
-        if (this.isRedirecting) {
-            return;
-        }
-
-        this.isRedirecting = true;
         this.authService.logout();
 
         const currentUrl = this.router.url;
         const slug = (currentUrl || '').replace(/^\//, '').split('/')[0] || this.entityContext.currentEntity?.slug || null;
 
-        this.router.navigate(slug ? ['/', slug, 'login'] : ['/']).then(() => {
-            this.isRedirecting = false;
-        });
+        this.router.navigate(slug ? ['/', slug, 'login'] : ['/']);
     }
 }

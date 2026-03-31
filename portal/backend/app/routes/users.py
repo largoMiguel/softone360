@@ -495,10 +495,20 @@ async def change_user_password(
     else:
         raise HTTPException(status_code=403, detail="No tienes permisos para esta acción")
 
+    from app.utils.auth import verify_password as _verify_password
+
     # Validaciones
     new_password = (payload.new_password or '').strip()
-    if len(new_password) < 6:
-        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 6 caracteres")
+    if len(new_password) < 8:
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 8 caracteres")
+
+    # Cuando el propio usuario cambia su contraseña, exigir la contraseña actual
+    if current_user.id == user_id and current_user.role not in [UserRole.SUPERADMIN, UserRole.ADMIN]:
+        old_password = (payload.old_password or '').strip()
+        if not old_password:
+            raise HTTPException(status_code=400, detail="Debes proporcionar tu contraseña actual")
+        if not _verify_password(old_password, user.hashed_password):
+            raise HTTPException(status_code=400, detail="La contraseña actual es incorrecta")
 
     # Actualizar hash
     user.hashed_password = get_password_hash(new_password)

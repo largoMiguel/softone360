@@ -1,5 +1,5 @@
-from datetime import datetime, timedelta
-from typing import Optional
+from datetime import datetime, timedelta, timezone
+from typing import Optional, Callable
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
@@ -9,9 +9,6 @@ from app.config.database import get_db
 from app.config.settings import settings
 from app.models.user import User
 from app.schemas.user import TokenData
-from sqlalchemy.orm import Session
-from app.config.database import get_db
-from typing import Callable
 
 # Configuración de encriptación
 pwd_context = CryptContext(
@@ -20,6 +17,10 @@ pwd_context = CryptContext(
     bcrypt__rounds=12
 )
 security = HTTPBearer()
+
+# Hash dummy para comparación en tiempo constante (previene enumeración de usuarios)
+# Se genera una sola vez al arrancar el módulo
+_DUMMY_HASH: str = pwd_context.hash("dummy-unreachable-password-xK9#mL2")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verifica si una contraseña coincide con su hash"""
@@ -55,16 +56,29 @@ def get_password_hash(password: str) -> str:
         raise ValueError(error_msg)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    """Crear token JWT"""
+    """Crear token JWT de acceso (corta duración)"""
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes)
     
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire, "type": "access"})
     encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
     return encoded_jwt
+
+
+def create_refresh_token(data: dict) -> str:
+    """Crear token JWT de refresco (larga duración)"""
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
+    to_encode.update({"exp": expire, "type": "refresh"})
+    return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+
+
+def get_dummy_hash() -> str:
+    """Devuelve el hash dummy para comparación en tiempo constante."""
+    return _DUMMY_HASH
 
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Verificar token JWT"""
@@ -90,21 +104,13 @@ def get_current_user(db: Session = Depends(get_db), token_data: TokenData = Depe
     from sqlalchemy.orm import joinedload
     
     # Eager load la entidad para evitar lazy loading issues
-    print(f"🔍 get_current_user: buscando usuario {token_data.username}")
     user = db.query(User).options(joinedload(User.entity)).filter(User.username == token_data.username).first()
     
     if user is None:
-        print(f"❌ Usuario no encontrado: {token_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Usuario no encontrado"
         )
-    
-    print(f"✅ Usuario encontrado: {user.username}")
-    print(f"   entity_id: {user.entity_id}")
-    print(f"   entity loaded: {user.entity is not None}")
-    if user.entity:
-        print(f"   entity.id: {user.entity.id}, entity.slug: {user.entity.slug}")
     
     return user
 

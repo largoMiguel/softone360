@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List
 from datetime import datetime
 from app.models.user import UserRole, UserType
@@ -27,6 +27,13 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
     secretaria: Optional[str] = None  # Nombre de la secretaría (se crea automáticamente)
+
+    @field_validator('password')
+    @classmethod
+    def password_min_length(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError('La contraseña debe tener al menos 8 caracteres')
+        return v
 
 class UserUpdate(BaseModel):
     username: Optional[str] = None
@@ -67,8 +74,14 @@ class UserLogin(BaseModel):
 
 class Token(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
     user: User
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
 
 class TokenData(BaseModel):
     username: Optional[str] = None
@@ -76,3 +89,4 @@ class TokenData(BaseModel):
 # Cambio de contraseña
 class ChangePasswordRequest(BaseModel):
     new_password: str
+    old_password: Optional[str] = None  # Requerido cuando el propio usuario cambia su contraseña

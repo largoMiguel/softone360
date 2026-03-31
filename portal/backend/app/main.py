@@ -5,10 +5,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy import inspect, text
 from app.config.database import engine, get_db, Base
 from app.config.settings import settings
-from app.routes import auth, pqrs, users, planes, entities, contratacion, alerts, secretarias, bpin, showcase, setup, predio_analysis, asistencia, servicios_ingenieria, admin_migrations, admin_migrations_stats, admin_debug, correspondencia
-from app.models import user, pqrs as pqrs_model, plan, entity, pdm as pdm_model, secretaria as secretaria_model, pdm_ejecucion, funcionario, correspondencia as correspondencia_model
+from app.routes import auth, pqrs, users, planes, entities, contratacion, alerts, secretarias, bpin, showcase, setup, predio_analysis, asistencia, servicios_ingenieria, admin_migrations, admin_migrations_stats, admin_debug, correspondencia, vias
+from app.models import user, pqrs as pqrs_model, plan, entity, pdm as pdm_model, secretaria as secretaria_model, pdm_ejecucion, funcionario, correspondencia as correspondencia_model, vias as vias_model
 from app.models.user import User, UserRole
 from app.utils.auth import get_password_hash
+from app.utils.rate_limiter import limiter
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 # Asegurar que el ENUM userrole existe en Postgres con todos los valores antes de crear tablas
 def ensure_postgres_enums():
@@ -121,21 +124,52 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Registrar rate limiter (slowapi)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# === Validación de secrets inseguros al arrancar ===
+_INSECURE_SECRET_KEY = "tu-clave-secreta-super-segura-cambiar-en-produccion"
+_INSECURE_SUPERADMIN_PWD = "changeMe!SuperSecure"
+_INSECURE_MIGRATION_KEY = "change-me-in-production-migration-key-2024"
+
+if settings.environment == "production":
+    errors = []
+    if settings.secret_key == _INSECURE_SECRET_KEY:
+        errors.append("SECRET_KEY")
+    if settings.superadmin_password == _INSECURE_SUPERADMIN_PWD:
+        errors.append("SUPERADMIN_PASSWORD")
+    if settings.migration_secret_key == _INSECURE_MIGRATION_KEY:
+        errors.append("MIGRATION_SECRET_KEY")
+    if errors:
+        raise RuntimeError(
+            f"[SEGURIDAD] Variables de entorno inseguras en producción: {', '.join(errors)}. "
+            "Configura valores únicos y secretos en el archivo .env de producción."
+        )
+elif settings.environment == "development":
+    if settings.secret_key == _INSECURE_SECRET_KEY:
+        print("⚠️  [SEGURIDAD] SECRET_KEY usa el valor por defecto. Cámbialo en producción.")
+    if settings.superadmin_password == _INSECURE_SUPERADMIN_PWD:
+        print("⚠️  [SEGURIDAD] SUPERADMIN_PASSWORD usa el valor por defecto. Cámbialo en producción.")
+
 # ============================================
 # IMPORTANTE: Handler de OPTIONS ANTES de middlewares
 # ============================================
 @app.options("/{full_path:path}")
-async def preflight_handler(full_path: str):
+async def preflight_handler(full_path: str, request: Request):
     """Maneja explícitamente todos los requests OPTIONS (CORS preflight)
     Este handler se ejecuta ANTES de los middlewares para evitar 502"""
+    origin = request.headers.get("origin", "")
+    allowed = origin if origin in settings.cors_origins else settings.cors_origins[0]
     return Response(
         status_code=200,
         headers={
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin": allowed,
             "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
             "Access-Control-Allow-Headers": "Content-Type, Authorization, Accept, Origin, X-Requested-With",
             "Access-Control-Allow-Credentials": "true",
             "Access-Control-Max-Age": "3600",
+            "Vary": "Origin",
         }
     )
 
@@ -231,6 +265,7 @@ app.include_router(admin_migrations.router, tags=["Admin Migrations"])
 app.include_router(admin_migrations_stats.router, tags=["Admin Migrations Stats"])
 app.include_router(admin_debug.router, tags=["Admin Debug"])
 app.include_router(correspondencia.router, prefix="/api", tags=["Correspondencia"])
+app.include_router(vias.router, prefix="/api", tags=["Vías Intervenidas"])
 
 @app.get("/")
 async def root():

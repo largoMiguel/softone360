@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, BehaviorSubject, tap } from 'rxjs';
 import { User, LoginRequest, LoginResponse, CreateUserRequest } from '../models/user.model';
 import { environment } from '../../environments/environment';
@@ -15,10 +15,14 @@ export class AuthService {
     private navState = inject(NavigationStateService);
 
     constructor(private http: HttpClient) {
-        // Verificar si hay un usuario guardado en localStorage
-        const savedUser = localStorage.getItem('user');
+        // Verificar si hay un usuario guardado en sessionStorage
+        const savedUser = sessionStorage.getItem('user');
         if (savedUser) {
-            this.currentUserSubject.next(JSON.parse(savedUser));
+            try {
+                this.currentUserSubject.next(JSON.parse(savedUser));
+            } catch {
+                sessionStorage.removeItem('user');
+            }
         }
     }
 
@@ -26,10 +30,9 @@ export class AuthService {
         return this.http.post<LoginResponse>(`${this.baseUrl}login`, credentials)
             .pipe(
                 tap(response => {
-                    // console.log('Login exitoso:', response);
-                    // Guardar token y usuario
-                    localStorage.setItem('token', response.access_token);
-                    localStorage.setItem('user', JSON.stringify(response.user));
+                    sessionStorage.setItem('token', response.access_token);
+                    sessionStorage.setItem('refresh_token', response.refresh_token);
+                    sessionStorage.setItem('user', JSON.stringify(response.user));
                     this.currentUserSubject.next(response.user);
                 })
             );
@@ -44,9 +47,10 @@ export class AuthService {
     }
 
     logout(): void {
-        // 1. Limpiar token y usuario del localStorage (mantener solo lo esencial)
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        // 1. Limpiar token y usuario del sessionStorage
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('refresh_token');
+        sessionStorage.removeItem('user');
         
         // 2. Limpiar el BehaviorSubject del usuario actual
         this.currentUserSubject.next(null);
@@ -64,9 +68,26 @@ export class AuthService {
     }
 
     getToken(): string | null {
-        const token = localStorage.getItem('token');
-        // console.log('Token obtenido:', token ? 'Presente' : 'No encontrado');
-        return token;
+        return sessionStorage.getItem('token');
+    }
+
+    getRefreshToken(): string | null {
+        return sessionStorage.getItem('refresh_token');
+    }
+
+    /**
+     * Renueva el access token usando el refresh token almacenado.
+     */
+    refreshAccessToken(): Observable<{ access_token: string; token_type: string }> {
+        const refreshToken = this.getRefreshToken();
+        return this.http.post<{ access_token: string; token_type: string }>(
+            `${this.baseUrl}refresh`,
+            { refresh_token: refreshToken }
+        ).pipe(
+            tap(response => {
+                sessionStorage.setItem('token', response.access_token);
+            })
+        );
     }
 
     /**
@@ -121,10 +142,10 @@ export class AuthService {
     }
 
     /**
-     * Actualiza el usuario actual en memoria y localStorage
+     * Actualiza el usuario actual en memoria y sessionStorage
      */
     updateCurrentUser(user: User): void {
-        localStorage.setItem('user', JSON.stringify(user));
+        sessionStorage.setItem('user', JSON.stringify(user));
         this.currentUserSubject.next(user);
     }
 

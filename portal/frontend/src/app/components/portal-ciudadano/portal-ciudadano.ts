@@ -52,7 +52,7 @@ export class PortalCiudadanoComponent implements OnInit {
 
         this.registerForm = this.fb.group({
             username: ['', Validators.required],
-            password: ['', [Validators.required, Validators.minLength(6)]],
+            password: ['', [Validators.required, Validators.minLength(8)]],
             password_confirm: ['', Validators.required],
             full_name: ['', Validators.required],
             email: ['', [Validators.required, Validators.email]],
