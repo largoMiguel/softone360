@@ -1,6 +1,9 @@
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+import traceback
 from sqlalchemy.orm import Session
 from sqlalchemy import inspect, text
 from app.config.database import engine, get_db, Base
@@ -195,10 +198,6 @@ app.add_middleware(
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
 # Middleware para manejar excepciones y asegurar CORS headers
-from fastapi import Request, Response
-from fastapi.responses import JSONResponse
-import traceback
-from fastapi.exceptions import RequestValidationError
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
