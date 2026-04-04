@@ -440,7 +440,7 @@ export class PdmComponent implements OnInit, OnDestroy {
         const verificar = () => {
             intentos++;
             const slug = this.pdmService.getEntitySlug();
-            const token = localStorage.getItem('token'); // Verificar también que el token esté disponible
+            const token = sessionStorage.getItem('token'); // Token almacenado en sessionStorage (migración seguridad)
             
             if (slug && token) {
                 // Agregar un delay adicional de 200ms para asegurar que el token esté completamente configurado
