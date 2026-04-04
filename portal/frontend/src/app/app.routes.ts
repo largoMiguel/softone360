@@ -13,7 +13,6 @@ import { ShowcaseComponent } from './components/showcase/showcase';
 import { ensureEntityGuard } from './guards/ensure-entity.guard';
 import { enforceUserEntityGuard } from './guards/enforce-user-entity.guard';
 import { entityResolver } from './resolvers/entity.resolver';
-import { defaultEntityGuard } from './guards/default-entity.guard';
 import { moduleAccessGuard } from './guards/module-access.guard';
 import { sessionRedirectGuard } from './guards/session-redirect.guard';
 import { showcaseSessionGuard } from './guards/showcase-session.guard';

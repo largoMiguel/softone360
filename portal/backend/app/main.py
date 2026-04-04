@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import inspect, text
 from app.config.database import engine, get_db, Base
 from app.config.settings import settings
-from app.routes import auth, pqrs, users, planes, entities, contratacion, alerts, secretarias, bpin, showcase, setup, predio_analysis, asistencia, servicios_ingenieria, admin_migrations, admin_migrations_stats, admin_debug, correspondencia, vias
+from app.routes import auth, pqrs, users, planes, entities, contratacion, alerts, secretarias, bpin, showcase, setup, asistencia, servicios_ingenieria, correspondencia, vias
 from app.models import user, pqrs as pqrs_model, plan, entity, pdm as pdm_model, secretaria as secretaria_model, pdm_ejecucion, funcionario, correspondencia as correspondencia_model, vias as vias_model
 from app.models.user import User, UserRole
 from app.utils.auth import get_password_hash
@@ -257,12 +257,8 @@ app.include_router(secretarias.router, prefix="/api", tags=["Secretarías"])
 app.include_router(bpin.router, tags=["BPIN"])
 app.include_router(showcase.router, prefix="/api", tags=["Showcase"])
 app.include_router(setup.router, prefix="/api", tags=["Setup"])
-app.include_router(predio_analysis.router, prefix="/api", tags=["Predios Analysis (Temporal)"])
 app.include_router(asistencia.router, prefix="/api", tags=["Asistencia"])
 app.include_router(servicios_ingenieria.router, prefix="/api", tags=["Servicios Ingeniería"])
-app.include_router(admin_migrations.router, tags=["Admin Migrations"])
-app.include_router(admin_migrations_stats.router, tags=["Admin Migrations Stats"])
-app.include_router(admin_debug.router, tags=["Admin Debug"])
 app.include_router(correspondencia.router, prefix="/api", tags=["Correspondencia"])
 app.include_router(vias.router, prefix="/api", tags=["Vías Intervenidas"])
 

@@ -47,20 +47,6 @@ export const loginGuard: CanActivateFn = (route, state) => {
     return true;
 };
 
-export const adminGuard: CanActivateFn = (route, state) => {
-    const authService = inject(AuthService);
-    const router = inject(Router);
-    const entityContext = inject(EntityContextService);
-
-    if (authService.isAuthenticated() && authService.isAdmin()) {
-        return true;
-    } else {
-        const slug = getSlugFromRoute(route, state.url, entityContext);
-        router.navigate(slug ? ['/', slug, 'dashboard'] : ['/']);
-        return false;
-    }
-};
-
 export const adminPortalGuard: CanActivateFn = (route, state) => {
     const authService = inject(AuthService);
     const router = inject(Router);
