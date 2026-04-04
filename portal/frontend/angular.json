@@ -30,7 +30,8 @@
               "html2canvas",
               "jspdf",
               "rgbcolor",
-              "raf"
+              "raf",
+              "leaflet"
             ],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
@@ -46,6 +47,7 @@
               }
             ],
             "styles": [
+              "node_modules/leaflet/dist/leaflet.css",
               "src/styles.scss"
             ],
             "scripts": [

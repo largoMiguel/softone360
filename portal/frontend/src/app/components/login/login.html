@@ -1,4 +1,80 @@
-<div class="login-container">
+<!-- ===== SELECTOR DE PORTAL (post-login) ===== -->
+<div class="login-container" *ngIf="showPortalSelector">
+    <div class="portal-selector-card">
+        <div class="text-center mb-4">
+            <img src="assets/logos/logo_administrativo.png" alt="SoftOne360" class="login-logo mb-3"
+                style="max-width: 70%;">
+            <h4 class="mb-1 text-primary">¡Bienvenido, {{ loggedUser?.full_name }}!</h4>
+            <p class="text-muted mb-0">Seleccione el portal al que desea acceder</p>
+        </div>
+        <div class="ps-portales-grid">
+
+            <!-- Portal Administrativo -->
+            <div class="ps-portal-item" (click)="irAPortalAdmin()">
+                <div class="ps-strip" style="background:linear-gradient(90deg,#1a6eb5,#36b9cc)"></div>
+                <div class="ps-body">
+                    <div class="ps-logo">
+                        <img src="assets/logos/logo_portal.png" alt="Portal Administrativo">
+                    </div>
+                    <strong class="ps-name">Portal Administrativo</strong>
+                    <p class="ps-desc">Para funcionarios y administradores del sistema.</p>
+                    <span class="ps-btn" style="background:linear-gradient(90deg,#1a6eb5,#2980b9)">
+                        <i class="fas fa-sign-in-alt me-1"></i>Ingresar
+                    </span>
+                </div>
+            </div>
+
+            <!-- Talento Humano (solo si la entidad lo tiene habilitado) -->
+            <div class="ps-portal-item" *ngIf="loggedUser?.entity?.enable_asistencia" (click)="irATalentoHumano()">
+                <div class="ps-strip" style="background:linear-gradient(90deg,#e67e22,#f39c12)"></div>
+                <div class="ps-body">
+                    <div class="ps-logo">
+                        <img src="assets/logos/logo_talento.png" alt="Talento Humano">
+                    </div>
+                    <strong class="ps-name">Talento Humano</strong>
+                    <p class="ps-desc">Control de asistencia y gestión del personal.</p>
+                    <span class="ps-btn" style="background:linear-gradient(90deg,#e67e22,#d35400)">
+                        <i class="fas fa-sign-in-alt me-1"></i>Ingresar
+                    </span>
+                </div>
+            </div>
+
+            <!-- Gestión Documental -->
+            <div class="ps-portal-item" (click)="irAGestionDocumental()">
+                <div class="ps-strip" style="background:linear-gradient(90deg,#7c3aed,#a855f7)"></div>
+                <div class="ps-body">
+                    <div class="ps-logo ps-logo--sm">
+                        <img src="assets/logos/logo_gestion_documental.jpg" alt="Gestión Documental">
+                    </div>
+                    <strong class="ps-name">Gestión Documental</strong>
+                    <p class="ps-desc">Radicación y trazabilidad de correspondencia oficial.</p>
+                    <span class="ps-btn" style="background:linear-gradient(90deg,#7c3aed,#6d28d9)">
+                        <i class="fas fa-sign-in-alt me-1"></i>Ingresar
+                    </span>
+                </div>
+            </div>
+
+            <!-- Mantenimiento Vial -->
+            <div class="ps-portal-item" (click)="irAMantenimientoVial()">
+                <div class="ps-strip" style="background:linear-gradient(90deg,#1a7a4a,#27ae60)"></div>
+                <div class="ps-body">
+                    <div class="ps-logo">
+                        <img src="assets/logos/logo_mantenimiento_vial.png" alt="Mantenimiento Vial">
+                    </div>
+                    <strong class="ps-name">Mantenimiento Vial</strong>
+                    <p class="ps-desc">Seguimiento e intervención de vías municipales.</p>
+                    <span class="ps-btn" style="background:linear-gradient(90deg,#1a7a4a,#1e8449)">
+                        <i class="fas fa-sign-in-alt me-1"></i>Ingresar
+                    </span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ===== FORMULARIO DE LOGIN ===== -->
+<div class="login-container" *ngIf="!showPortalSelector">
     <div class="login-card">
         <div class="card">
             <div class="card-header text-center">

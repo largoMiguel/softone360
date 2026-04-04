@@ -65,6 +65,10 @@ class Entity(Base):
     # Relaciones control de asistencia
     funcionarios = relationship("Funcionario", back_populates="entity", cascade="all, delete-orphan")
     equipos_registro = relationship("EquipoRegistro", back_populates="entity", cascade="all, delete-orphan")
-    
+
+    # Relaciones vías intervenidas
+    via_viajes = relationship("ViaViaje", back_populates="entity", cascade="all, delete-orphan")
+    via_tramos = relationship("ViaTramo", back_populates="entity", cascade="all, delete-orphan")
+
     def __repr__(self):
         return f"<Entity {self.code}: {self.name}>"

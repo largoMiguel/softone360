@@ -337,7 +337,6 @@ export class ShowcaseComponent implements OnInit {
     // Para el selector de entidades
     entities: any[] = [];
     showEntityModal = false;
-    showPortalesModal = false;
 
     // Para el modal de alertas
     showAlert = false;
@@ -390,31 +389,7 @@ export class ShowcaseComponent implements OnInit {
         window.open(url, '_blank');
     }
 
-    // Nuevos métodos para los portales de acceso
     irALogin(): void {
-        // Si ya hay una sesión activa, redirigir directamente al dashboard
-        if (this.authService.isAuthenticated()) {
-            const user = this.authService.getCurrentUserValue();
-            
-            if (user) {
-                // Redirigir según el rol del usuario
-                if (user.role === 'ciudadano') {
-                    // Ciudadano va al portal ciudadano
-                    const slug = user.entity?.slug;
-                    this.router.navigate(slug ? ['/', slug, 'portal-ciudadano'] : ['/']);
-                } else if (user.role === 'superadmin') {
-                    // Superadmin va a soft-admin
-                    this.router.navigate(['/soft-admin']);
-                } else if (user.role === 'admin' || user.role === 'secretario') {
-                    // Admin/Secretario va al dashboard
-                    const slug = user.entity?.slug;
-                    this.router.navigate(slug ? ['/', slug, 'dashboard'] : ['/']);
-                }
-                return;
-            }
-        }
-        
-        // Si no hay sesión activa, ir al login
         this.router.navigate(['/login']);
     }
 
@@ -465,25 +440,11 @@ export class ShowcaseComponent implements OnInit {
     }
 
     irATalento(): void {
-        // Redirigir directamente al login de Control de Asistencia
-        this.router.navigate(['/asistencia-login']);
+        this.router.navigate(['/login']);
     }
 
     irAGestionDocumental(): void {
-        // Gestión Documental es parte del portal administrativo
-        if (this.authService.isAuthenticated()) {
-            this.irALogin();
-        } else {
-            this.router.navigate(['/login']);
-        }
-    }
-
-    abrirPortalesModal(): void {
-        this.showPortalesModal = true;
-    }
-
-    cerrarPortalesModal(): void {
-        this.showPortalesModal = false;
+        this.router.navigate(['/login']);
     }
 
     mostrarAlerta(tipo: 'error' | 'warning' | 'success' | 'info', title: string, mensaje: string): void {

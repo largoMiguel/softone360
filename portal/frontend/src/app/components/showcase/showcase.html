@@ -19,8 +19,11 @@
                     <button class="btn btn-primary btn-lg me-3" (click)="scrollToSection('pdm-destacado')">
                         <i class="fas fa-map-marked-alt me-2"></i>Ver PDM 360°
                     </button>
-                    <button class="btn hero-acceder-btn btn-lg me-3" (click)="abrirPortalesModal()">
-                        <i class="fas fa-th-large me-2"></i>Acceder al Sistema
+                    <button class="btn hero-acceder-btn btn-lg me-3" (click)="irALogin()">
+                        <i class="fas fa-sign-in-alt me-2"></i>Acceder al Sistema
+                    </button>
+                    <button class="btn btn-outline-light btn-lg me-3" (click)="abrirSelectorEntidades()">
+                        <i class="fas fa-users me-2"></i>Ventanilla Única
                     </button>
                     <button class="btn btn-outline-light btn-lg"
                         (click)="contactarWhatsApp('Hola, me gustaría solicitar una demostración de SoftOne360 para mi entidad.')">
@@ -69,90 +72,11 @@
     </div>
 </section>
 
-<!-- ===== FAB PORTALES ===== -->
-<button class="portales-fab" (click)="abrirPortalesModal()" title="Acceder al Sistema">
-    <i class="fas fa-th-large"></i>
-    <span class="fab-label">Portales</span>
+<!-- ===== FAB ACCEDER ===== -->
+<button class="portales-fab" (click)="irALogin()" title="Acceder al Sistema">
+    <i class="fas fa-sign-in-alt"></i>
+    <span class="fab-label">Acceder</span>
 </button>
-
-<!-- ===== MODAL PORTALES ===== -->
-<div class="portales-modal-overlay" *ngIf="showPortalesModal" (click)="cerrarPortalesModal()">
-    <div class="portales-modal" (click)="$event.stopPropagation()">
-        <div class="portales-modal-header">
-            <div class="portales-modal-title">
-                <div class="portales-modal-icon"><i class="fas fa-th-large"></i></div>
-                <div>
-                    <h3>Acceder al Sistema</h3>
-                    <p>Seleccione el portal de su perfil</p>
-                </div>
-            </div>
-            <button class="portales-modal-close" (click)="cerrarPortalesModal()">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="portales-modal-body">
-            <div class="portales-grid">
-
-                <!-- Portal Administrativo -->
-                <div class="portal-item" (click)="irALogin(); cerrarPortalesModal()">
-                    <div class="portal-item-strip" style="background:linear-gradient(90deg,#1a6eb5,#36b9cc)"></div>
-                    <div class="portal-item-body">
-                        <div class="portal-item-logo">
-                            <img src="assets/logos/logo_portal.png" alt="Portal Administrativo">
-                        </div>
-                        <p class="portal-item-desc">Para funcionarios y administradores del sistema.</p>
-                        <span class="portal-item-btn" style="background:linear-gradient(90deg,#1a6eb5,#2980b9)">
-                            <i class="fas fa-sign-in-alt me-1"></i>Ingresar
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Ventanilla Única -->
-                <div class="portal-item" (click)="cerrarPortalesModal(); abrirSelectorEntidades()">
-                    <div class="portal-item-strip" style="background:linear-gradient(90deg,#0d8a6a,#1abc9c)"></div>
-                    <div class="portal-item-body">
-                        <div class="portal-item-logo">
-                            <img src="assets/logos/logo_ventanilla.png" alt="Ventanilla Única">
-                        </div>
-                        <p class="portal-item-desc">Portal ciudadano para PQRS y trámites en línea.</p>
-                        <span class="portal-item-btn" style="background:linear-gradient(90deg,#0d8a6a,#16a085)">
-                            <i class="fas fa-sign-in-alt me-1"></i>Ingresar
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Talento Humano -->
-                <div class="portal-item" (click)="irATalento(); cerrarPortalesModal()">
-                    <div class="portal-item-strip" style="background:linear-gradient(90deg,#e67e22,#f39c12)"></div>
-                    <div class="portal-item-body">
-                        <div class="portal-item-logo">
-                            <img src="assets/logos/logo_talento.png" alt="Talento Humano">
-                        </div>
-                        <p class="portal-item-desc">Control de asistencia y gestión del personal.</p>
-                        <span class="portal-item-btn" style="background:linear-gradient(90deg,#e67e22,#d35400)">
-                            <i class="fas fa-sign-in-alt me-1"></i>Ingresar
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Gestión Documental -->
-                <div class="portal-item" (click)="irAGestionDocumental(); cerrarPortalesModal()">
-                    <div class="portal-item-strip" style="background:linear-gradient(90deg,#7c3aed,#a855f7)"></div>
-                    <div class="portal-item-body">
-                        <div class="portal-item-logo portal-item-logo--sm">
-                            <img src="assets/logos/logo_gestion_documental.jpg" alt="Gestión Documental">
-                        </div>
-                        <p class="portal-item-desc">Radicación y trazabilidad de correspondencia oficial.</p>
-                        <span class="portal-item-btn" style="background:linear-gradient(90deg,#7c3aed,#6d28d9)">
-                            <i class="fas fa-sign-in-alt me-1"></i>Ingresar
-                        </span>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- ===== SECCIÓN PDM DESTACADA ===== -->
 <section class="pdm-hero-section" id="pdm-destacado">

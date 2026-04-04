@@ -6,6 +6,7 @@ import { AuthService } from '../../services/auth.service';
 import { AlertService } from '../../services/alert.service';
 import { EntityContextService } from '../../services/entity-context.service';
 import { SidebarService } from '../../services/sidebar.service';
+import { User } from '../../models/user.model';
 
 @Component({
   selector: 'app-login',
@@ -18,6 +19,8 @@ export class LoginComponent implements OnInit {
   loginForm: FormGroup;
   isLoading = false;
   errorMessage = '';
+  showPortalSelector = false;
+  loggedUser: User | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -68,11 +71,10 @@ export class LoginComponent implements OnInit {
                 this.isLoading = false;
                 this.router.navigate(['/soft-admin'], { replaceUrl: true });
               } else {
-                // Usuario administrativo válido (admin o secretario)
+                // Usuario administrativo válido (admin o secretario) — mostrar selector de portal
                 this.isLoading = false;
-                // Sidebar permanece cerrado - el usuario lo abrirá si lo necesita
-                const slug = user.entity?.slug;
-                this.router.navigate(slug ? ['/', slug, 'dashboard'] : ['/'], { replaceUrl: true });
+                this.loggedUser = user;
+                this.showPortalSelector = true;
               }
             },
             error: () => {
@@ -109,5 +111,24 @@ export class LoginComponent implements OnInit {
     } else {
       // console.log('Formulario inválido');
     }
+  }
+
+  irAPortalAdmin(): void {
+    const slug = this.loggedUser?.entity?.slug;
+    this.router.navigate(slug ? ['/', slug, 'dashboard'] : ['/'], { replaceUrl: true });
+  }
+
+  irATalentoHumano(): void {
+    this.router.navigate(['/talento-humano'], { replaceUrl: true });
+  }
+
+  irAGestionDocumental(): void {
+    const slug = this.loggedUser?.entity?.slug;
+    this.router.navigate(slug ? ['/', slug, 'dashboard'] : ['/'], { replaceUrl: true });
+  }
+
+  irAMantenimientoVial(): void {
+    const slug = this.loggedUser?.entity?.slug;
+    this.router.navigate(slug ? ['/', slug, 'seguimiento-vias'] : ['/'], { replaceUrl: true });
   }
 }

@@ -51,7 +51,7 @@ export class TalentoHumanoLayoutComponent implements OnInit {
 
     cerrarSesion() {
         this.authService.logout();
-        this.router.navigate(['/asistencia-login']);
+        this.router.navigate(['/login']);
     }
 
     isAdmin(): boolean {

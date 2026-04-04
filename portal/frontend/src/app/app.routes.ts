@@ -28,12 +28,6 @@ export const routes: Routes = [
     // Ruta de login global (sin slug de entidad)
     { path: 'login', component: LoginComponent, canActivate: [loginGuard] },
     
-    // Ruta de login para Control de Asistencia (independiente)
-    { 
-        path: 'asistencia-login', 
-        loadComponent: () => import('./components/ventanilla/login-asistencia/login-asistencia.component').then(m => m.LoginAsistenciaComponent)
-    },
-    
     // Módulo de Control de Asistencia (Talento Humano) - Completamente independiente del portal administrativo
     {
         path: 'talento-humano',
@@ -69,6 +63,8 @@ export const routes: Routes = [
             // Solicitudes
             { path: 'solicitudes/cdp', loadComponent: () => import('./components/solicitudes/solicitud-cdp/solicitud-cdp.component').then(m => m.SolicitudCDPComponent), canActivate: [adminPortalGuard, enforceUserEntityGuard] },
             { path: 'solicitudes/certificacion-bpp', loadComponent: () => import('./components/solicitudes/certificacion-bpp/certificacion-bpp.component').then(m => m.CertificacionBPPComponent), canActivate: [adminPortalGuard, enforceUserEntityGuard] },
+            // Módulo de seguimiento de vías intervenidas
+            { path: 'seguimiento-vias', loadComponent: () => import('./components/vias/vias-mapa.component').then(m => m.ViasMapaComponent), canActivate: [adminPortalGuard, enforceUserEntityGuard] },
             // Administración de usuarios se gestiona desde el Dashboard (vista interna ?v=usuarios)
         ]
     },

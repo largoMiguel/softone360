@@ -26,6 +26,7 @@ from app.models.funcionario import (
     RegistroAsistencia
 )
 from app.models.informe import InformeEstado
+from app.models.vias import ViaViaje, ViaTramo
 
 __all__ = [
     "User", 
@@ -49,5 +50,7 @@ __all__ = [
     "Funcionario",
     "EquipoRegistro",
     "RegistroAsistencia",
-    "InformeEstado"
+    "InformeEstado",
+    "ViaViaje",
+    "ViaTramo",
 ]

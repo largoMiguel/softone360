@@ -1,6 +1,7 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZoneChangeDetection, LOCALE_ID } from '@angular/core';
 import { provideRouter, withHashLocation } from '@angular/router';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideHttpClient, withInterceptorsFromDi, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { registerLocaleData } from '@angular/common';
 import localeEsCO from '@angular/common/locales/es-CO';
@@ -18,19 +19,8 @@ export const appConfig: ApplicationConfig = {
     // En S3, las rutas con "/" no funcionan bien sin CloudFront
     // Con hash: http://example.com/#/chiquiza-boyaca/pdm en lugar de http://example.com/chiquiza-boyaca/pdm
     provideRouter(routes, withHashLocation()),
-    provideHttpClient(withInterceptors([
-      (req, next) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-          req = req.clone({
-            setHeaders: {
-              Authorization: `Bearer ${token}`
-            }
-          });
-        }
-        return next(req);
-      }
-    ])),
+    provideHttpClient(withInterceptorsFromDi()),
+    { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
     provideAnimations(),
     { provide: LOCALE_ID, useValue: 'es-CO' }
   ]

@@ -81,3 +81,94 @@
         transform: translateY(0);
     }
 }
+
+// ===== SELECTOR DE PORTAL (post-login) =====
+
+.portal-selector-card {
+    width: 100%;
+    max-width: 900px;
+    margin: 20px;
+    background: white;
+    border-radius: 20px;
+    padding: 2.5rem;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    animation: fadeInDown 0.5s ease-out;
+}
+
+.ps-portales-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+}
+
+.ps-portal-item {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background: white;
+    border: 1px solid #e9ecef;
+
+    &:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 14px 35px rgba(0, 0, 0, 0.18);
+    }
+}
+
+.ps-strip {
+    height: 6px;
+}
+
+.ps-body {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.6rem;
+}
+
+.ps-logo {
+    img {
+        width: 80px;
+        height: 80px;
+        object-fit: contain;
+        border-radius: 12px;
+    }
+}
+
+.ps-logo--sm img {
+    width: 70px;
+    height: 70px;
+}
+
+.ps-name {
+    font-size: 1rem;
+    color: #2d3748;
+}
+
+.ps-desc {
+    font-size: 0.83rem;
+    color: #6c757d;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.ps-btn {
+    display: block;
+    color: white;
+    padding: 0.6rem 1.4rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    width: 100%;
+    text-align: center;
+    transition: opacity 0.2s ease, transform 0.15s ease;
+
+    &:hover {
+        opacity: 0.9;
+        transform: scale(1.02);
+    }
+}

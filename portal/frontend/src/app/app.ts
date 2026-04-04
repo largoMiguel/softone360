@@ -21,7 +21,6 @@ export class App {
     // Ocultar en rutas públicas: showcase, login, portal-ciudadano, root de entidad, soft-admin, talento-humano
     if (/^\/(\?|#|$)/.test(url)) return false; // Raíz (showcase/home)
     if (/^\/login(\?|#|$|\/)/i.test(url)) return false; // /login
-    if (/^\/asistencia-login(\?|#|$|\/)/i.test(url)) return false; // /asistencia-login
     if (/^\/talento-humano(\?|#|$|\/)/i.test(url)) return false; // /talento-humano (módulo independiente)
     if (/^\/showcase(\?|#|$|\/)/i.test(url)) return false; // /showcase
     if (/^\/soft-admin(\?|#|$|\/)/i.test(url)) return false; // /soft-admin

@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="theme-color" content="#f9a825" />
+  <title>Registro Maquinaria</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #fffde7;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: #f9a825;
+      color: white;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header .icon { font-size: 28px; }
+    header h1 { font-size: 18px; font-weight: 700; }
+    header p { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+    .badge-pendiente {
+      margin-left: auto;
+      background: white;
+      color: #f9a825;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      display: none;
+    }
+    main { flex: 1; padding: 20px; max-width: 480px; width: 100%; margin: 0 auto; }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 6px;
+      margin-top: 14px;
+    }
+    label:first-child { margin-top: 0; }
+    input, select, textarea {
+      width: 100%;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 16px;
+      transition: border-color 0.2s;
+      background: #fafafa;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #f9a825;
+      background: white;
+    }
+    textarea { resize: none; height: 80px; }
+
+    /* Panel de estado del tramo */
+    .estado-tramo {
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 16px;
+      transition: all 0.3s;
+    }
+    .estado-tramo.libre {
+      background: white;
+      border: 3px dashed #e0e0e0;
+    }
+    .estado-tramo.activo {
+      background: #fff8e1;
+      border: 3px solid #f9a825;
+    }
+    .estado-tramo .icono { font-size: 48px; margin-bottom: 10px; }
+    .estado-tramo .titulo {
+      font-size: 16px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 6px;
+    }
+    .estado-tramo .subtitulo {
+      font-size: 13px;
+      color: #777;
+    }
+    .estado-tramo .timer {
+      font-size: 28px;
+      font-weight: 700;
+      color: #f9a825;
+      margin: 8px 0;
+      letter-spacing: 2px;
+    }
+    .estado-tramo .coords {
+      font-size: 12px;
+      color: #aaa;
+      margin-top: 6px;
+    }
+
+    .gps-box {
+      background: #fffde7;
+      border: 2px solid #fff176;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 14px;
+      color: #555;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .gps-box.ok { background: #e8f5e9; border-color: #a5d6a7; color: #2e7d32; }
+    .gps-box.error { background: #ffebee; border-color: #ef9a9a; color: #c62828; }
+
+    .btn-iniciar {
+      width: 100%;
+      padding: 18px;
+      background: #2e7d32;
+      color: white;
+      border: none;
+      border-radius: 14px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .btn-iniciar:active { transform: scale(0.97); }
+    .btn-iniciar:disabled { background: #ccc; cursor: not-allowed; }
+
+    .btn-finalizar {
+      width: 100%;
+      padding: 18px;
+      background: #c62828;
+      color: white;
+      border: none;
+      border-radius: 14px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .btn-finalizar:active { transform: scale(0.97); }
+    .btn-finalizar:disabled { background: #ccc; cursor: not-allowed; }
+
+    .btn-sync {
+      width: 100%;
+      padding: 14px;
+      background: white;
+      color: #f9a825;
+      border: 2px solid #f9a825;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-sync:hover { background: #fffde7; }
+
+    .estado-sync {
+      text-align: center;
+      font-size: 13px;
+      color: #777;
+      margin-top: 10px;
+      min-height: 20px;
+    }
+    .estado-sync.ok { color: #2e7d32; font-weight: 600; }
+    .estado-sync.error { color: #c62828; }
+
+    .indicador-conexion {
+      text-align: center;
+      padding: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .indicador-conexion.online { background: #e8f5e9; color: #2e7d32; }
+    .indicador-conexion.offline { background: #ffebee; color: #c62828; }
+
+    .historial-item {
+      border-bottom: 1px solid #f0f0f0;
+      padding: 10px 0;
+      font-size: 13px;
+      color: #555;
+    }
+    .historial-item:last-child { border-bottom: none; }
+    .historial-item .hora { font-weight: 700; color: #f9a825; }
+    .historial-item .duracion { color: #777; }
+    .historial-item .pendiente { color: #f57c00; font-style: italic; }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 14px;
+    }
+
+    @media (max-width: 400px) {
+      main { padding: 14px; }
+      .card { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="icon">🚜</div>
+  <div>
+    <h1>Registro Maquinaria</h1>
+    <p>Tramos intervenidos — Alcaldía Municipal</p>
+  </div>
+  <div class="badge-pendiente" id="badgePendiente">0 pendientes</div>
+</header>
+
+<main>
+  <div class="indicador-conexion offline" id="indicadorConexion">● Sin conexión</div>
+
+  <!-- Datos del operador -->
+  <div class="card" id="cardDatos">
+    <div class="section-title">👷 Datos del operador</div>
+
+    <label>Operador *</label>
+    <input type="text" id="operador" placeholder="Su nombre completo" autocomplete="name" />
+
+    <label>Máquina *</label>
+    <select id="maquina">
+      <option value="">— Seleccione —</option>
+      <option>Motoniveladora</option>
+      <option>Excavadora</option>
+      <option>Retroexcavadora</option>
+      <option>Compactador / Vibrocompactador</option>
+      <option>Buldócer</option>
+      <option>Cargador frontal</option>
+      <option>Otra maquinaria</option>
+    </select>
+
+    <label>Tipo de trabajo</label>
+    <select id="tipoTrabajo">
+      <option value="">— Seleccione —</option>
+      <option>Perfilado de vía</option>
+      <option>Compactación</option>
+      <option>Conformación de cuneta</option>
+      <option>Nivelación</option>
+      <option>Apertura de vía</option>
+      <option>Limpieza de derrumbe</option>
+      <option>Otro</option>
+    </select>
+
+    <label>Observación (opcional)</label>
+    <textarea id="observacion" placeholder="Nombre de la vía, sector, condición..."></textarea>
+  </div>
+
+  <!-- Estado del tramo activo -->
+  <div class="estado-tramo libre" id="estadoTramo">
+    <div class="icono">⏸️</div>
+    <div class="titulo">Sin tramo activo</div>
+    <div class="subtitulo">Presione "Iniciar tramo" cuando llegue al punto de inicio</div>
+  </div>
+
+  <!-- GPS -->
+  <div class="card">
+    <label style="margin:0 0 8px 0">📍 Ubicación GPS</label>
+    <div class="gps-box" id="gpsBox">
+      <span>⏳</span> <span id="gpsTexto">Obteniendo ubicación...</span>
+    </div>
+  </div>
+
+  <!-- Botones de acción -->
+  <button class="btn-iniciar" id="btnIniciar" disabled>
+    <span>🟢</span> Iniciar tramo
+  </button>
+  <div style="height:12px"></div>
+  <button class="btn-finalizar" id="btnFinalizar" disabled style="display:none">
+    <span>🔴</span> Finalizar tramo
+  </button>
+
+  <!-- Sync -->
+  <div class="card" style="margin-top:16px">
+    <button class="btn-sync" id="btnSync">🔄 Sincronizar pendientes</button>
+    <div class="estado-sync" id="estadoSync"></div>
+  </div>
+
+  <!-- Historial -->
+  <div class="card" id="cardHistorial" style="display:none">
+    <div class="section-title">📋 Tramos recientes</div>
+    <div id="historialLista"></div>
+  </div>
+</main>
+
+<script>
+  // ── Configuración ───────────────────────────────────────────────
+  const params = new URLSearchParams(location.search);
+  const ENTITY_SLUG = params.get('entity') || '';
+  const API_BASE = location.origin.includes('localhost')
+    ? 'http://localhost:8000/api'
+    : '/api';
+  const STORAGE_KEY  = 'vias_tramos_pendientes_' + ENTITY_SLUG;
+  const TRAMO_KEY    = 'vias_tramo_activo_' + ENTITY_SLUG;
+  const HIST_KEY     = 'vias_tramos_historial_' + ENTITY_SLUG;
+
+  // ── Estado GPS ──────────────────────────────────────────────────
+  let gpsActual = null;
+  let watchId   = null;
+
+  function iniciarWatchGPS() {
+    if (!navigator.geolocation) {
+      setGPS(null, 'GPS no disponible en este dispositivo');
+      return;
+    }
+    watchId = navigator.geolocation.watchPosition(
+      pos => setGPS({ lat: pos.coords.latitude, lng: pos.coords.longitude }, null),
+      err => setGPS(null, 'No se pudo obtener ubicación'),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
+    );
+  }
+
+  function setGPS(coords, error) {
+    const box = document.getElementById('gpsBox');
+    const txt = document.getElementById('gpsTexto');
+    if (coords) {
+      gpsActual = coords;
+      box.className = 'gps-box ok';
+      txt.textContent = `✓ ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
+      actualizarBotones();
+    } else {
+      gpsActual = null;
+      box.className = 'gps-box error';
+      txt.textContent = error || 'GPS no disponible';
+      actualizarBotones();
+    }
+  }
+
+  iniciarWatchGPS();
+
+  // ── Estado del tramo activo ─────────────────────────────────────
+  let tramoActivo = null;
+  let timerInterval = null;
+
+  function cargarTramoActivo() {
+    try {
+      const saved = localStorage.getItem(TRAMO_KEY);
+      if (saved) {
+        tramoActivo = JSON.parse(saved);
+        renderEstadoActivo();
+        iniciarTimer();
+      }
+    } catch { tramoActivo = null; }
+  }
+
+  function renderEstadoActivo() {
+    const el = document.getElementById('estadoTramo');
+    if (!tramoActivo) {
+      el.className = 'estado-tramo libre';
+      el.innerHTML = `
+        <div class="icono">⏸️</div>
+        <div class="titulo">Sin tramo activo</div>
+        <div class="subtitulo">Presione "Iniciar tramo" cuando llegue al punto de inicio</div>
+      `;
+      document.getElementById('btnIniciar').style.display = 'flex';
+      document.getElementById('btnFinalizar').style.display = 'none';
+    } else {
+      el.className = 'estado-tramo activo';
+      const hora = new Date(tramoActivo.timestamp_inicio).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+      el.innerHTML = `
+        <div class="icono">🔄</div>
+        <div class="titulo">Tramo en curso — ${tramoActivo.nombre_maquina}</div>
+        <div class="subtitulo">Iniciado a las ${hora}</div>
+        <div class="timer" id="timerDisplay">00:00:00</div>
+        <div class="coords">Inicio: ${Number(tramoActivo.lat_inicio).toFixed(5)}, ${Number(tramoActivo.lng_inicio).toFixed(5)}</div>
+      `;
+      document.getElementById('btnIniciar').style.display = 'none';
+      document.getElementById('btnFinalizar').style.display = 'flex';
+    }
+    actualizarBotones();
+  }
+
+  function iniciarTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      const el = document.getElementById('timerDisplay');
+      if (!el || !tramoActivo) return;
+      const diff = Date.now() - new Date(tramoActivo.timestamp_inicio).getTime();
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      el.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }, 1000);
+  }
+
+  function actualizarBotones() {
+    const btnI = document.getElementById('btnIniciar');
+    const btnF = document.getElementById('btnFinalizar');
+    btnI.disabled = !gpsActual;
+    btnF.disabled = !gpsActual;
+  }
+
+  // ── Iniciar tramo ───────────────────────────────────────────────
+  document.getElementById('btnIniciar').addEventListener('click', () => {
+    const operador   = document.getElementById('operador').value.trim();
+    const maquina    = document.getElementById('maquina').value;
+    const tipoTrabajo = document.getElementById('tipoTrabajo').value;
+    const obs        = document.getElementById('observacion').value.trim();
+
+    if (!operador) { alert('Ingrese su nombre'); return; }
+    if (!maquina)  { alert('Seleccione la máquina'); return; }
+    if (!gpsActual) { alert('Esperando GPS, intente de nuevo'); return; }
+    if (!ENTITY_SLUG) { alert('URL inválida: falta parámetro ?entity='); return; }
+
+    tramoActivo = {
+      entity_slug: ENTITY_SLUG,
+      operador_nombre: operador,
+      nombre_maquina: maquina,
+      tipo_trabajo: tipoTrabajo || null,
+      observacion: obs || null,
+      lat_inicio: gpsActual.lat,
+      lng_inicio: gpsActual.lng,
+      timestamp_inicio: new Date().toISOString(),
+    };
+
+    localStorage.setItem(TRAMO_KEY, JSON.stringify(tramoActivo));
+    renderEstadoActivo();
+    iniciarTimer();
+  });
+
+  // ── Finalizar tramo ─────────────────────────────────────────────
+  document.getElementById('btnFinalizar').addEventListener('click', async () => {
+    if (!tramoActivo) return;
+    if (!gpsActual) { alert('Esperando GPS, no se puede registrar el punto de fin'); return; }
+
+    const registro = {
+      ...tramoActivo,
+      lat_fin: gpsActual.lat,
+      lng_fin: gpsActual.lng,
+      timestamp_fin: new Date().toISOString(),
+    };
+
+    const duracionMs = new Date(registro.timestamp_fin) - new Date(registro.timestamp_inicio);
+    const durMinutos = Math.round(duracionMs / 60000);
+
+    const histItem = {
+      timestamp: registro.timestamp_inicio,
+      operador: registro.operador_nombre,
+      maquina: registro.nombre_maquina,
+      duracion: durMinutos,
+      enviado: false,
+    };
+
+    const btn = document.getElementById('btnFinalizar');
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> Guardando...';
+
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+
+    let guardado = false;
+
+    if (navigator.onLine) {
+      try {
+        const res = await fetch(`${API_BASE}/vias/tramos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(registro),
+        });
+        if (res.ok) {
+          histItem.enviado = true;
+          guardado = true;
+          mostrarEstado('estadoSync', '✓ Tramo registrado correctamente', 'ok');
+        } else {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || res.statusText);
+        }
+      } catch {
+        guardarPendiente(registro);
+        mostrarEstado('estadoSync', '⚠️ Sin conexión — guardado para sincronizar', '');
+      }
+    } else {
+      guardarPendiente(registro);
+      mostrarEstado('estadoSync', '📴 Sin señal — se enviará al conectarse', '');
+    }
+
+    addHistorial(histItem);
+    localStorage.removeItem(TRAMO_KEY);
+    tramoActivo = null;
+    renderEstadoActivo();
+
+    btn.innerHTML = '<span>🔴</span> Finalizar tramo';
+  });
+
+  // ── Cola offline ────────────────────────────────────────────────
+  function getPendientes() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+    catch { return []; }
+  }
+  function setPendientes(arr) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+    actualizarBadge();
+  }
+  function guardarPendiente(r) {
+    const p = getPendientes();
+    p.push(r);
+    setPendientes(p);
+  }
+  function actualizarBadge() {
+    const n = getPendientes().length;
+    const b = document.getElementById('badgePendiente');
+    b.style.display = n > 0 ? 'block' : 'none';
+    b.textContent = n + (n === 1 ? ' pendiente' : ' pendientes');
+  }
+
+  // ── Historial local ─────────────────────────────────────────────
+  function getHistorial() {
+    try { return JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); }
+    catch { return []; }
+  }
+  function addHistorial(item) {
+    const h = getHistorial();
+    h.unshift(item);
+    if (h.length > 20) h.pop();
+    localStorage.setItem(HIST_KEY, JSON.stringify(h));
+    renderHistorial();
+  }
+  function renderHistorial() {
+    const h = getHistorial();
+    const card = document.getElementById('cardHistorial');
+    const lista = document.getElementById('historialLista');
+    if (h.length === 0) { card.style.display = 'none'; return; }
+    card.style.display = 'block';
+    lista.innerHTML = h.slice(0, 10).map(item => {
+      const hora = new Date(item.timestamp).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+      const fecha = new Date(item.timestamp).toLocaleDateString('es-CO');
+      const estado = item.enviado
+        ? `<span style="color:#2e7d32">✓ enviado</span>`
+        : `<span class="pendiente">⏳ pendiente</span>`;
+      return `<div class="historial-item">
+        <span class="hora">${hora}</span> · ${fecha}<br>
+        ${item.operador} · ${item.maquina}
+        ${item.duracion != null ? `<span class="duracion"> · ${item.duracion} min</span>` : ''}
+        <br>${estado}
+      </div>`;
+    }).join('');
+  }
+
+  // ── Sincronización manual ───────────────────────────────────────
+  document.getElementById('btnSync').addEventListener('click', sincronizar);
+
+  async function sincronizar() {
+    const pendientes = getPendientes();
+    if (pendientes.length === 0) {
+      mostrarEstado('estadoSync', 'Sin tramos pendientes', '');
+      return;
+    }
+    if (!navigator.onLine) {
+      mostrarEstado('estadoSync', '📴 No hay conexión', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('btnSync');
+    btn.disabled = true;
+    btn.textContent = '⏳ Sincronizando...';
+
+    try {
+      const res = await fetch(`${API_BASE}/vias/tramos/batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tramos: pendientes }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const hist = getHistorial().map(h => ({ ...h, enviado: true }));
+        localStorage.setItem(HIST_KEY, JSON.stringify(hist));
+        renderHistorial();
+        setPendientes([]);
+        mostrarEstado('estadoSync', `✓ ${data.guardados} tramos sincronizados`, 'ok');
+      } else {
+        throw new Error('Error del servidor');
+      }
+    } catch {
+      mostrarEstado('estadoSync', '⚠️ Error al sincronizar, intente de nuevo', 'error');
+    }
+
+    btn.disabled = false;
+    btn.textContent = '🔄 Sincronizar pendientes';
+  }
+
+  window.addEventListener('online', () => {
+    actualizarIndicadorConexion();
+    if (getPendientes().length > 0) sincronizar();
+  });
+  window.addEventListener('offline', actualizarIndicadorConexion);
+
+  function actualizarIndicadorConexion() {
+    const el = document.getElementById('indicadorConexion');
+    if (navigator.onLine) {
+      el.className = 'indicador-conexion online';
+      el.textContent = '● Conectado';
+    } else {
+      el.className = 'indicador-conexion offline';
+      el.textContent = '● Sin conexión — los tramos se guardan en el celular';
+    }
+  }
+
+  function mostrarEstado(id, msg, tipo) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = 'estado-sync ' + tipo;
+    setTimeout(() => { el.textContent = ''; el.className = 'estado-sync'; }, 5000);
+  }
+
+  // ── Inicio ──────────────────────────────────────────────────────
+  actualizarIndicadorConexion();
+  actualizarBadge();
+  renderHistorial();
+  cargarTramoActivo();
+
+  if (!ENTITY_SLUG) {
+    document.querySelector('main').innerHTML =
+      '<div class="card" style="color:#c62828;text-align:center;padding:30px">' +
+      '<p style="font-size:18px">⚠️ URL inválida</p>' +
+      '<p style="margin-top:8px">Escanee el código QR de la máquina</p></div>';
+  }
+</script>
+</body>
+</html>

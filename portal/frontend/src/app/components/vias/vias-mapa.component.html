@@ -1,0 +1,155 @@
+<div class="vias-container">
+
+  <!-- Header -->
+  <div class="vias-header">
+    <div class="header-icon">🗺️</div>
+    <div>
+      <h2>Seguimiento de Vías Intervenidas</h2>
+      <p>Maquinaria amarilla · Derrame de cargado</p>
+    </div>
+  </div>
+
+  <!-- Links QR para operadores -->
+  @if (entitySlug) {
+    <div class="qr-links">
+      <div class="qr-card volqueta">
+        <div class="qr-icon">🚛</div>
+        <div>
+          <div class="qr-title">Formulario Volqueta</div>
+          <div class="qr-url">{{ urlVolqueta }}</div>
+        </div>
+        <button class="btn-copiar" (click)="copiarUrl(urlVolqueta)">Copiar URL</button>
+      </div>
+      <div class="qr-card maquinaria">
+        <div class="qr-icon">🚜</div>
+        <div>
+          <div class="qr-title">Formulario Maquinaria</div>
+          <div class="qr-url">{{ urlMaquinaria }}</div>
+        </div>
+        <button class="btn-copiar" (click)="copiarUrl(urlMaquinaria)">Copiar URL</button>
+      </div>
+    </div>
+  }
+
+  <!-- Filtros -->
+  <div class="filtros-card">
+    <div class="filtros-row">
+      <div class="filtro-group">
+        <label>Fecha inicio</label>
+        <input type="date" [(ngModel)]="fechaInicio" />
+      </div>
+      <div class="filtro-group">
+        <label>Fecha fin</label>
+        <input type="date" [(ngModel)]="fechaFin" />
+      </div>
+      <button class="btn-buscar" (click)="buscar()" [disabled]="cargando()">
+        @if (cargando()) { ⏳ Cargando... } @else { 🔍 Consultar }
+      </button>
+    </div>
+    @if (error()) {
+      <div class="error-msg">⚠️ {{ error() }}</div>
+    }
+  </div>
+
+  <!-- Estadísticas -->
+  @if (totalViajes > 0 || totalTramos > 0) {
+    <div class="stats-row">
+      <div class="stat-card naranja">
+        <div class="stat-num">{{ totalViajes }}</div>
+        <div class="stat-label">🚛 Descargas de volqueta</div>
+      </div>
+      <div class="stat-card verde">
+        <div class="stat-num">{{ totalTramos }}</div>
+        <div class="stat-label">🚜 Tramos de maquinaria</div>
+      </div>
+    </div>
+  }
+
+  <!-- Mapa -->
+  <div class="mapa-wrapper">
+    <div id="mapa-vias"></div>
+    @if (!cargando() && totalViajes === 0 && totalTramos === 0) {
+      <div class="mapa-vacio">
+        <p>📍 No hay registros en el rango de fechas seleccionado</p>
+      </div>
+    }
+  </div>
+
+  <!-- Leyenda -->
+  <div class="leyenda">
+    <div class="leyenda-item">
+      <span class="leyenda-punto"></span> Descarga de volqueta
+    </div>
+    <div class="leyenda-item">
+      <span class="leyenda-linea"></span> Tramo de maquinaria amarilla
+    </div>
+    <div class="leyenda-item">
+      <span class="leyenda-inicio">I</span> Inicio de tramo
+    </div>
+    <div class="leyenda-item">
+      <span class="leyenda-fin">F</span> Fin de tramo
+    </div>
+  </div>
+
+  <!-- Tabla de registros recientes -->
+  @if (viajes().length > 0) {
+    <div class="tabla-card">
+      <h3>🚛 Descargas de volqueta</h3>
+      <div class="tabla-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Conductor</th>
+              <th>Placa</th>
+              <th>Material</th>
+              <th>Fecha y hora</th>
+              <th>Coordenadas</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (v of viajes(); track v.id) {
+              <tr>
+                <td>{{ v.conductor_nombre }}</td>
+                <td><span class="badge-placa">{{ v.placa_vehiculo }}</span></td>
+                <td>{{ v.tipo_material || '—' }}</td>
+                <td>{{ formatFecha(v.timestamp_registro) }}</td>
+                <td class="coords">{{ v.latitud }}, {{ v.longitud }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  @if (tramos().length > 0) {
+    <div class="tabla-card">
+      <h3>🚜 Tramos de maquinaria</h3>
+      <div class="tabla-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Operador</th>
+              <th>Máquina</th>
+              <th>Trabajo</th>
+              <th>Inicio</th>
+              <th>Fin</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (t of tramos(); track t.id) {
+              <tr>
+                <td>{{ t.operador_nombre }}</td>
+                <td>{{ t.nombre_maquina }}</td>
+                <td>{{ t.tipo_trabajo || '—' }}</td>
+                <td>{{ formatFecha(t.timestamp_inicio) }}</td>
+                <td>{{ formatFecha(t.timestamp_fin) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+</div>

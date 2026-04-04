@@ -13,21 +13,21 @@ export const asistenciaGuard: CanActivateFn = (route, state) => {
     
     const user = authService.getCurrentUserValue();
     
-    // Si no hay usuario autenticado, redirigir al login de asistencia
+    // Si no hay usuario autenticado, redirigir al login unificado
     if (!user) {
-        router.navigate(['/asistencia-login']);
+        router.navigate(['/login']);
         return false;
     }
     
     // Verificar que tenga entidad asociada
     if (!user.entity || !user.entity.slug) {
-        router.navigate(['/asistencia-login']);
+        router.navigate(['/login']);
         return false;
     }
     
     // Verificar que la entidad tenga el módulo de asistencia habilitado
     if (!user.entity.enable_asistencia) {
-        router.navigate(['/asistencia-login']);
+        router.navigate(['/']);
         return false;
     }
     
