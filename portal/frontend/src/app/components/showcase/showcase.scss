@@ -99,13 +99,13 @@ $dark: #212529;
     100% { background-position: 0% 50%; }
 }
 
-// ===== TYPEWRITER ANIMATION =====
-@keyframes tw-typing {
-    from { width: 0; }
-    to   { width: 23ch; }
-}
-@keyframes tw-blink {
-    50% { border-color: transparent; }
+// ===== TYPEWRITER ANIMATION (clip-path: sin colapso de layout) =====
+@keyframes tw-reveal {
+    0%   { clip-path: inset(0 100% 0 0); }
+    38%  { clip-path: inset(0 0%   0 0); }   // termina de escribirse
+    62%  { clip-path: inset(0 0%   0 0); }   // pausa visible
+    98%  { clip-path: inset(0 100% 0 0); }   // termina de borrarse
+    100% { clip-path: inset(0 100% 0 0); }   // pausa vacío antes de reiniciar
 }
 
 // ===== HERO SECTION - MOBILE FIRST =====
@@ -122,7 +122,7 @@ $dark: #212529;
         #0d1b4b 100%
     );
     background-size: 400% 400%;
-    animation: heroGradient 16s ease infinite;
+    animation: heroGradient 22s linear infinite;
     color: #fff;
     overflow: hidden;
     display: flex;
@@ -163,15 +163,15 @@ $dark: #212529;
         background-clip: text;
     }
 
+    .tw-line {
+        display: block;
+        min-height: 1.25em;  // reserva espacio para que el layout no salte
+    }
+
     .typewriter-text {
         display: inline-block;
-        overflow: hidden;
         white-space: nowrap;
-        vertical-align: bottom;
-        border-right: 3px solid rgba(255, 255, 255, 0.8);
-        animation:
-            tw-typing 2.6s steps(23, end) infinite alternate,
-            tw-blink 0.65s step-end infinite;
+        animation: tw-reveal 7s steps(24, end) infinite;
     }
 
     .hero-subtitle {
