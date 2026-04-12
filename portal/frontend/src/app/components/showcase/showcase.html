@@ -10,23 +10,23 @@
                 </div>
                 <h1 class="hero-title mb-4">
                     Gestión Pública <span class="text-gradient">360°</span> con
-                    <span class="tw-line"><span class="typewriter-text">Inteligencia Artificial</span></span>
+                    <span class="tw-line"><span class="typewriter-text"><span class="tw-accent">Inteligencia Artificial</span></span></span>
                 </h1>
                 <p class="hero-subtitle mb-4">
                     Plataforma integral que centraliza el <strong>PDM</strong>, PQRS, Contratación Pública y Planes Institucionales.
                     IA generativa con OpenAI, informes automáticos en PDF, dashboards en tiempo real y despliegue en AWS.
                 </p>
                 <div class="hero-actions">
-                    <button class="btn btn-primary btn-lg me-3" (click)="scrollToSection('pdm-destacado')">
+                    <button class="btn btn-primary btn-lg hero-btn" style="--delay:0.1s" (click)="scrollToSection('pdm-destacado')">
                         <i class="fas fa-map-marked-alt me-2"></i>Ver PDM 360°
                     </button>
-                    <button class="btn hero-acceder-btn btn-lg me-3" (click)="irALogin()">
+                    <button class="btn hero-acceder-btn btn-lg hero-btn" style="--delay:0.25s" (click)="irALogin()">
                         <i class="fas fa-sign-in-alt me-2"></i>Acceder al Sistema
                     </button>
-                    <button class="btn btn-outline-light btn-lg me-3" (click)="abrirSelectorEntidades()">
+                    <button class="btn btn-outline-light btn-lg hero-btn" style="--delay:0.4s" (click)="abrirSelectorEntidades()">
                         <i class="fas fa-users me-2"></i>Ventanilla Única
                     </button>
-                    <button class="btn btn-outline-light btn-lg"
+                    <button class="btn btn-outline-light btn-lg hero-btn" style="--delay:0.55s"
                         (click)="contactarWhatsApp('Hola, me gustaría solicitar una demostración de SoftOne360 para mi entidad.')">
                         <i class="fab fa-whatsapp me-2"></i>Solicitar Demo
                     </button>
@@ -41,24 +41,52 @@
                     </div>
                 </div>
             </div>
-            <div class="col-lg-5 d-none d-lg-block animate">
-                <div class="hero-illustration">
-                    <i class="fas fa-map-marked-alt illustration-icon"></i>
-                    <div class="floating-card card-1">
-                        <i class="fas fa-project-diagram text-primary"></i>
-                        <span>PDM Integrado</span>
+            <div class="col-lg-5 d-none d-lg-flex align-items-center justify-content-center animate">
+                <div class="hero-panel">
+                    <div class="hero-panel-item" style="--pi:0">
+                        <div class="hero-panel-icon" style="background:linear-gradient(135deg,#216ba8,#36b9cc)">
+                            <i class="fas fa-map-marked-alt"></i>
+                        </div>
+                        <div>
+                            <div class="hero-panel-title">PDM 360°</div>
+                            <div class="hero-panel-sub">Plan de Desarrollo Municipal</div>
+                        </div>
                     </div>
-                    <div class="floating-card card-2">
-                        <i class="fas fa-brain text-purple"></i>
-                        <span>IA con OpenAI</span>
+                    <div class="hero-panel-item" style="--pi:1">
+                        <div class="hero-panel-icon" style="background:linear-gradient(135deg,#7c3aed,#a855f7)">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <div>
+                            <div class="hero-panel-title">IA Generativa</div>
+                            <div class="hero-panel-sub">OpenAI GPT-4 integrado</div>
+                        </div>
                     </div>
-                    <div class="floating-card card-3">
-                        <i class="fas fa-file-pdf" style="color:#e74a3b"></i>
-                        <span>Informes PDF Auto</span>
+                    <div class="hero-panel-item" style="--pi:2">
+                        <div class="hero-panel-icon" style="background:linear-gradient(135deg,#e74a3b,#f97316)">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <div>
+                            <div class="hero-panel-title">Informes PDF</div>
+                            <div class="hero-panel-sub">Generación automática async</div>
+                        </div>
                     </div>
-                    <div class="floating-card card-4">
-                        <i class="fab fa-aws" style="color:#ff9900"></i>
-                        <span>100% en AWS</span>
+                    <div class="hero-panel-item" style="--pi:3">
+                        <div class="hero-panel-icon" style="background:linear-gradient(135deg,#ff9900,#f59e0b)">
+                            <i class="fab fa-aws"></i>
+                        </div>
+                        <div>
+                            <div class="hero-panel-title">100% en AWS</div>
+                            <div class="hero-panel-sub">99.9% disponibilidad garantizada</div>
+                        </div>
+                    </div>
+                    <div class="hero-panel-item" style="--pi:4">
+                        <div class="hero-panel-icon" style="background:linear-gradient(135deg,#1cc28e,#059669)">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div>
+                            <div class="hero-panel-title">Multi-Entidad</div>
+                            <div class="hero-panel-sub">6 módulos, roles y permisos</div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -99,6 +99,18 @@ $dark: #212529;
     100% { background-position: 0% 50%; }
 }
 
+// ===== BUTTON ENTRANCE ANIMATION =====
+@keyframes btnFadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+// ===== HERO PANEL ENTRANCE =====
+@keyframes panelSlideIn {
+    from { opacity: 0; transform: translateX(30px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
 // ===== TYPEWRITER ANIMATION (clip-path: sin colapso de layout) =====
 @keyframes tw-reveal {
     0%   { clip-path: inset(0 100% 0 0); }
@@ -165,13 +177,21 @@ $dark: #212529;
 
     .tw-line {
         display: block;
-        min-height: 1.25em;  // reserva espacio para que el layout no salte
+        min-height: 1.3em;
     }
 
     .typewriter-text {
         display: inline-block;
         white-space: nowrap;
-        animation: tw-reveal 7s steps(24, end) infinite;
+        animation: tw-reveal 5s steps(24, end) infinite;
+    }
+
+    .tw-accent {
+        background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-style: italic;
     }
 
     .hero-subtitle {
@@ -188,16 +208,29 @@ $dark: #212529;
         gap: clamp(10px, 1.5vw, 15px);
         margin-bottom: 2rem;
 
+        .hero-btn {
+            animation: btnFadeUp 0.55s ease both;
+            animation-delay: var(--delay, 0s);
+
+            i {
+                transition: transform 0.25s ease;
+            }
+
+            &:hover i {
+                transform: translateX(3px) scale(1.15);
+            }
+        }
+
         .btn {
             padding: clamp(10px, 1vw, 14px) clamp(16px, 2vw, 32px);
             border-radius: 8px;
             font-weight: 600;
             font-size: clamp(0.85rem, 1vw, 1rem);
-            transition: all 0.3s ease;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
 
             &:hover {
-                transform: translateY(-3px);
-                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+                transform: translateY(-4px);
+                box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
             }
         }
 
@@ -1343,13 +1376,70 @@ $pdm-gold: #f59e0b;
     }
 }
 
-// Hero card-4
+// Hero card-4 (legacy, kept so builds don't break if somehow referenced)
 .hero-illustration .card-4 {
     top: auto;
     bottom: 10%;
     left: -5%;
     animation-delay: 1.5s;
 }
+
+// ===== HERO PANEL (reemplaza la columna derecha del hero) =====
+.hero-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    max-width: 380px;
+
+    .hero-panel-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.15);
+        backdrop-filter: blur(12px);
+        border-radius: 14px;
+        padding: 16px 20px;
+        animation: panelSlideIn 0.5s ease both;
+        animation-delay: calc(var(--pi, 0) * 0.1s + 0.3s);
+        transition: transform 0.25s ease, background 0.25s ease;
+
+        &:hover {
+            transform: translateX(6px);
+            background: rgba(255,255,255,0.14);
+        }
+    }
+
+    .hero-panel-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+
+        i {
+            font-size: 1.25rem;
+            color: #fff;
+        }
+    }
+
+    .hero-panel-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1.2;
+    }
+
+    .hero-panel-sub {
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.65);
+        margin-top: 2px;
+    }
+}
+
 
 .text-purple { color: #a855f7 !important; }
 
