@@ -352,9 +352,13 @@ export class ShowcaseComponent implements OnInit {
     ) { }
 
     ngOnInit(): void {
-        // Showcase carga instantáneamente con datos por defecto
-        // No depende de la BD
         this.animateOnScroll();
+        // Hero stats: counter al cargar
+        setTimeout(() => {
+            document.querySelectorAll('.hero-stats .stat-value').forEach(el =>
+                this.animateCounter(el as HTMLElement, 1400)
+            );
+        }, 500);
     }
 
     animateOnScroll(): void {
@@ -363,6 +367,10 @@ export class ShowcaseComponent implements OnInit {
                 entries.forEach((entry) => {
                     if (entry.isIntersecting) {
                         entry.target.classList.add('animate-in');
+                        // Counters para stats PDM (HTML estático, sin binding Angular)
+                        entry.target.querySelectorAll('.pdm-stat-value').forEach(el =>
+                            this.animateCounter(el as HTMLElement)
+                        );
                         observer.unobserve(entry.target);
                     }
                 });
@@ -394,14 +402,39 @@ export class ShowcaseComponent implements OnInit {
                 (el as HTMLElement).style.setProperty('--si', String(i % 4));
             });
 
-            // Stagger module blocks
+            // Stagger module blocks con dirección alternada (Apple zig-zag)
             document.querySelectorAll('.module-v2-block.animate').forEach((el, i) => {
-                (el as HTMLElement).style.setProperty('--si', String(i % 2));
+                const htmlEl = el as HTMLElement;
+                htmlEl.style.setProperty('--si', String(i % 2));
+                if (i % 2 === 1) htmlEl.classList.add('from-right');
+                else htmlEl.classList.add('from-left');
             });
 
             // Observar todos los elementos con animate
             document.querySelectorAll('.animate').forEach(el => observer.observe(el));
         }, 150);
+    }
+
+    /**
+     * Anima un elemento contando su valor numérico de 0 al valor objetivo.
+     * Ignora textos sin número inicial (ej: "PDM", "GPT-4", "IA").
+     */
+    animateCounter(el: HTMLElement, duration = 1600): void {
+        const text = el.textContent?.trim() || '';
+        const match = text.match(/^([\d.]+)(.*)/);
+        if (!match) return;
+        const target = parseFloat(match[1]);
+        const suffix = match[2];
+        const decimals = match[1].includes('.') ? match[1].split('.')[1].length : 0;
+        const startTime = performance.now();
+        const step = (now: number) => {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3); // ease-out cúbico
+            el.textContent = (target * eased).toFixed(decimals) + suffix;
+            if (progress < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
     }
 
     scrollToSection(sectionId: string): void {
