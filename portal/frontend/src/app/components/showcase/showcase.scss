@@ -111,6 +111,12 @@ $dark: #212529;
     to   { opacity: 1; transform: translateX(0); }
 }
 
+// ===== ICON ROTATION =====
+@keyframes iconRotate {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
 // ===== TYPEWRITER ANIMATION (clip-path: sin colapso de layout) =====
 @keyframes tw-reveal {
     0%   { clip-path: inset(0 100% 0 0); }
@@ -191,7 +197,6 @@ $dark: #212529;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
-        font-style: italic;
     }
 
     .hero-subtitle {
@@ -1423,6 +1428,7 @@ $pdm-gold: #f59e0b;
         i {
             font-size: 1.25rem;
             color: #fff;
+            animation: iconRotate 6s linear infinite;
         }
     }
 
