@@ -99,6 +99,27 @@ $dark: #212529;
     100% { background-position: 0% 50%; }
 }
 
+// ===== STAT ICON ANIMATIONS =====
+@keyframes statFloat {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-6px); }
+}
+@keyframes statSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+@keyframes statPulse {
+    0%, 100% { transform: scale(1);    opacity: 0.85; }
+    50%       { transform: scale(1.2); opacity: 1; }
+}
+@keyframes statBeat {
+    0%, 100% { transform: scale(1); }
+    14%      { transform: scale(1.2); }
+    28%      { transform: scale(1); }
+    42%      { transform: scale(1.15); }
+    56%      { transform: scale(1); }
+}
+
 // ===== BUTTON ENTRANCE ANIMATION =====
 @keyframes btnFadeUp {
     from { opacity: 0; transform: translateY(18px); }
@@ -109,12 +130,6 @@ $dark: #212529;
 @keyframes panelSlideIn {
     from { opacity: 0; transform: translateX(30px); }
     to   { opacity: 1; transform: translateX(0); }
-}
-
-// ===== ICON ROTATION =====
-@keyframes iconRotate {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
 }
 
 // ===== TYPEWRITER ANIMATION (clip-path: sin colapso de layout) =====
@@ -259,9 +274,19 @@ $dark: #212529;
             flex-direction: column;
             gap: 8px;
 
+            // Módulos (fa-cubes) — flota arriba/abajo
+            &:nth-child(1) .stat-icon { animation: statFloat 3s ease-in-out infinite; }
+            // Gestión (fa-sync-alt) — gira
+            &:nth-child(2) .stat-icon { animation: statSpin 4s linear infinite; }
+            // AWS (fa-server) — pulso
+            &:nth-child(3) .stat-icon { animation: statPulse 2s ease-in-out infinite; }
+            // IA (fa-brain) — latido
+            &:nth-child(4) .stat-icon { animation: statBeat 1.8s ease-in-out infinite; }
+
             .stat-icon {
                 font-size: clamp(1.5rem, 2vw, 2rem);
-                opacity: 0.8;
+                opacity: 0.85;
+                display: inline-block;
             }
 
             .stat-value {
@@ -1428,7 +1453,6 @@ $pdm-gold: #f59e0b;
         i {
             font-size: 1.25rem;
             color: #fff;
-            animation: iconRotate 6s linear infinite;
         }
     }
 
