@@ -363,16 +363,45 @@ export class ShowcaseComponent implements OnInit {
                 entries.forEach((entry) => {
                     if (entry.isIntersecting) {
                         entry.target.classList.add('animate-in');
+                        observer.unobserve(entry.target);
                     }
                 });
             },
-            { threshold: 0.1 }
+            { threshold: 0.08, rootMargin: '0px 0px -50px 0px' }
         );
 
-        // Observar elementos con clase 'animate'
         setTimeout(() => {
-            document.querySelectorAll('.animate').forEach((el) => observer.observe(el));
-        }, 100);
+            // Asignar índice de stagger a hijos de grids
+            const gridSelectors = [
+                '.features-section .row.g-4',
+                '.benefits-section .row.g-4',
+                '.use-cases-section .row.g-4',
+                '.pdm-hero-section .row.g-4',
+            ];
+            gridSelectors.forEach(sel => {
+                document.querySelector(sel)?.querySelectorAll('.animate').forEach((el, i) => {
+                    (el as HTMLElement).style.setProperty('--si', String(i));
+                });
+            });
+
+            // Stagger PDM stat boxes
+            document.querySelectorAll('.pdm-stats-row .animate').forEach((el, i) => {
+                (el as HTMLElement).style.setProperty('--si', String(i));
+            });
+
+            // Stagger tech items
+            document.querySelectorAll('.tech-stack .animate').forEach((el, i) => {
+                (el as HTMLElement).style.setProperty('--si', String(i % 4));
+            });
+
+            // Stagger module blocks
+            document.querySelectorAll('.module-v2-block.animate').forEach((el, i) => {
+                (el as HTMLElement).style.setProperty('--si', String(i % 2));
+            });
+
+            // Observar todos los elementos con animate
+            document.querySelectorAll('.animate').forEach(el => observer.observe(el));
+        }, 150);
     }
 
     scrollToSection(sectionId: string): void {
