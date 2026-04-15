@@ -31,6 +31,15 @@
                         <i class="fab fa-whatsapp me-2"></i>Solicitar Demo
                     </button>
                 </div>
+                <div class="hero-conocenos animate" style="--si:3">
+                    <button class="btn-conocenos" (click)="scrollToSection('about')">
+                        <span class="btn-conocenos-text">Conoce Softone360</span>
+                        <span class="btn-conocenos-arrow">
+                            <i class="fas fa-chevron-down"></i>
+                        </span>
+                    </button>
+                    <span class="btn-conocenos-hint">Nuestra misión, visión y propuesta de valor</span>
+                </div>
                 <div class="hero-stats mt-5">
                     <div class="stat-item" *ngFor="let stat of stats">
                         <i [class]="stat.icon + ' stat-icon'"></i>
@@ -445,6 +454,22 @@
         </div>
     </div>
 </section>
+
+<!-- ===== SPOTLIGHT NOSOTROS ===== -->
+<div class="about-spotlight" (click)="scrollToSection('about')">
+    <div class="about-spotlight-inner">
+        <div class="about-spotlight-tag"><i class="fas fa-building me-2"></i>Nuestra Empresa</div>
+        <h2 class="about-spotlight-title">
+            Arquitectos de <span class="about-spotlight-accent">Soluciones Digitales</span>
+        </h2>
+        <p class="about-spotlight-sub">Misión &bull; Visión &bull; Objetivos &bull; Inteligencia Estratégica</p>
+        <div class="about-spotlight-cta">
+            <span>Conocé nuestra historia</span>
+            <i class="fas fa-arrow-right ms-3"></i>
+        </div>
+    </div>
+    <div class="about-spotlight-bg-text" aria-hidden="true">360°</div>
+</div>
 
 <!-- ===== SOBRE NOSOTROS ===== -->
 <section class="about-section" id="about">

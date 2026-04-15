@@ -784,6 +784,194 @@ $dark: #212529;
     }
 }
 
+// ===== HERO CONOCENOS BUTTON =====
+.hero-conocenos {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-top: 2rem;
+}
+
+@keyframes arrowBounce {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(5px); }
+}
+
+.btn-conocenos {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1.5px solid rgba(255, 255, 255, 0.4);
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 11px 22px;
+    border-radius: 50px;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: background 0.28s, border-color 0.28s, transform 0.28s;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.7);
+        transform: translateY(-3px);
+    }
+
+    .btn-conocenos-arrow {
+        width: 28px;
+        height: 28px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        i {
+            font-size: 0.75rem;
+            animation: arrowBounce 1.4s ease-in-out infinite;
+        }
+    }
+}
+
+.btn-conocenos-hint {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.55);
+    font-style: italic;
+}
+
+// ===== ABOUT SPOTLIGHT BANNER =====
+@keyframes spotlightShimmer {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes arrowSlide {
+    0%, 100% { transform: translateX(0); }
+    50%       { transform: translateX(8px); }
+}
+
+.about-spotlight {
+    position: relative;
+    background: linear-gradient(120deg, #0a0f2e 0%, #12244e 30%, #1a1050 60%, #0f0a2a 100%);
+    background-size: 300% 300%;
+    animation: spotlightShimmer 12s ease infinite;
+    overflow: hidden;
+    cursor: pointer;
+    padding: clamp(56px, 8vw, 110px) 1.5rem;
+    text-align: center;
+    transition: filter 0.3s;
+
+    &:hover {
+        filter: brightness(1.08);
+
+        .about-spotlight-cta i { animation: arrowSlide 0.6s ease infinite; }
+        .about-spotlight-title { letter-spacing: -0.01em; }
+    }
+
+    // partícula decorativa superior
+    &::before {
+        content: '';
+        position: absolute;
+        top: -80px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 600px;
+        height: 300px;
+        background: radial-gradient(ellipse, rgba(56, 189, 248, 0.18) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    &::after {
+        content: '';
+        position: absolute;
+        bottom: -60px;
+        right: 10%;
+        width: 400px;
+        height: 250px;
+        background: radial-gradient(ellipse, rgba(168, 85, 247, 0.15) 0%, transparent 70%);
+        pointer-events: none;
+    }
+}
+
+.about-spotlight-inner {
+    position: relative;
+    z-index: 2;
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+.about-spotlight-tag {
+    display: inline-block;
+    background: rgba(56, 189, 248, 0.15);
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    color: #38bdf8;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    padding: 7px 20px;
+    border-radius: 50px;
+    text-transform: uppercase;
+    margin-bottom: 1.4rem;
+}
+
+.about-spotlight-title {
+    font-size: clamp(2rem, 5.5vw, 4rem);
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 1rem;
+    transition: letter-spacing 0.4s ease;
+}
+
+.about-spotlight-accent {
+    background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.about-spotlight-sub {
+    font-size: clamp(0.9rem, 1.5vw, 1.05rem);
+    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 1px;
+    margin-bottom: 2.2rem;
+}
+
+.about-spotlight-cta {
+    display: inline-flex;
+    align-items: center;
+    font-size: clamp(1rem, 1.6vw, 1.2rem);
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #216ba8, #7c3aed);
+    padding: 16px 40px;
+    border-radius: 50px;
+    box-shadow: 0 12px 40px rgba(124, 58, 237, 0.4);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+    .about-spotlight:hover & {
+        transform: scale(1.04);
+        box-shadow: 0 18px 50px rgba(124, 58, 237, 0.55);
+    }
+
+    i { font-size: 1rem; }
+}
+
+.about-spotlight-bg-text {
+    position: absolute;
+    bottom: -0.1em;
+    right: 3%;
+    font-size: clamp(8rem, 18vw, 20rem);
+    font-weight: 900;
+    color: rgba(255, 255, 255, 0.03);
+    line-height: 1;
+    user-select: none;
+    pointer-events: none;
+    z-index: 1;
+}
+
 // ===== SOBRE NOSOTROS SECTION =====
 .about-section {
     overflow: hidden;
