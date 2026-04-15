@@ -30,15 +30,9 @@
                         (click)="contactarWhatsApp('Hola, me gustaría solicitar una demostración de SoftOne360 para mi entidad.')">
                         <i class="fab fa-whatsapp me-2"></i>Solicitar Demo
                     </button>
-                </div>
-                <div class="hero-conocenos animate" style="--si:3">
-                    <a class="btn-conocenos" routerLink="/nosotros">
-                        <span class="btn-conocenos-text">Conoce Softone360</span>
-                        <span class="btn-conocenos-arrow">
-                            <i class="fas fa-chevron-down"></i>
-                        </span>
+                    <a class="hero-btn hero-btn-nosotros" style="--delay:0.7s" routerLink="/nosotros">
+                        <i class="fas fa-building me-2"></i>Conócenos
                     </a>
-                    <span class="btn-conocenos-hint">Nuestra misión, visión y propuesta de valor</span>
                 </div>
                 <div class="hero-stats mt-5">
                     <div class="stat-item" *ngFor="let stat of stats">

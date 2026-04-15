@@ -337,6 +337,14 @@ $dark: #212529;
         }
     }
 
+    .hero-btn-nosotros {
+        text-decoration: none;
+        border-style: dashed;
+        opacity: 0.75;
+
+        &:hover { opacity: 1; }
+    }
+
     .hero-stats {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
