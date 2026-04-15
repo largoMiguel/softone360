@@ -175,12 +175,6 @@ $dark: #212529;
     100% { background-position: 0% 50%; }
 }
 
-@keyframes nosotrosGradientShift {
-    0%   { background-position: 0% 50%; }
-    50%  { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
 // ===== STAT ICON ANIMATIONS =====
 @keyframes statFloat {
     0%, 100% { transform: translateY(0); }
@@ -345,19 +339,10 @@ $dark: #212529;
 
     .hero-btn-nosotros {
         text-decoration: none;
-        background: linear-gradient(270deg, #38bdf8, #818cf8, #c084fc, #38bdf8);
-        background-size: 300% 300%;
-        border-color: transparent;
-        animation: btnFadeUp 0.55s ease both,
-                   nosotrosGradientShift 4s ease infinite;
-        animation-delay: var(--delay, 0s), 0s;
+        border-style: dashed;
+        opacity: 0.75;
 
-        &:hover {
-            background-size: 300% 300%;
-            border-color: transparent;
-            transform: translateY(-3px);
-            box-shadow: 0 10px 28px rgba(129, 140, 248, 0.45);
-        }
+        &:hover { opacity: 1; }
     }
 
     .hero-stats {

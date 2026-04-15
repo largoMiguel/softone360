@@ -9,9 +9,12 @@ $dark:    #212529;
     50%       { transform: scale(1.2); opacity: 1; }
 }
 
-@keyframes nosShimmer {
+@keyframes nosColorCycle {
     0%   { background-position: 0% 50%; }
-    50%  { background-position: 100% 50%; }
+    20%  { background-position: 40% 80%; }
+    40%  { background-position: 100% 50%; }
+    60%  { background-position: 60% 20%; }
+    80%  { background-position: 20% 60%; }
     100% { background-position: 0% 50%; }
 }
 
@@ -31,9 +34,20 @@ $dark:    #212529;
 // ===== HERO =====
 .nos-hero {
     position: relative;
-    background: linear-gradient(120deg, #090d24 0%, #11234e 35%, #17104a 65%, #090b20 100%);
-    background-size: 300% 300%;
-    animation: nosShimmer 14s ease infinite;
+    background: linear-gradient(
+        -45deg,
+        #090d24,
+        #0a3d6e,
+        #1a0d50,
+        #0d4a6e,
+        #2e1065,
+        #0d3060,
+        #061540,
+        #0a4a40,
+        #090d24
+    );
+    background-size: 500% 500%;
+    animation: nosColorCycle 16s ease infinite;
     overflow: hidden;
     padding: clamp(90px, 12vw, 150px) 1.5rem clamp(80px, 10vw, 120px);
     text-align: center;
@@ -370,7 +384,18 @@ $dark:    #212529;
 // ===== INTEL SECTION =====
 .nos-intel {
     padding: clamp(60px, 7vw, 100px) 1rem clamp(50px, 6vw, 80px);
-    background: linear-gradient(150deg, #0d1b4b 0%, #1a3a6e 35%, #0d4a6e 65%, #0d2b4b 100%);
+    background: linear-gradient(
+        -45deg,
+        #0d1b4b,
+        #1a3a6e,
+        #0d4a6e,
+        #1a1060,
+        #0d2b4b,
+        #0a4060,
+        #0d1b4b
+    );
+    background-size: 400% 400%;
+    animation: nosColorCycle 20s ease infinite;
     color: #fff;
     position: relative;
     overflow: hidden;
@@ -469,7 +494,17 @@ $dark:    #212529;
 }
 
 .nos-cta-box {
-    background: linear-gradient(135deg, $primary, #216ba8 40%, #7c3aed);
+    background: linear-gradient(
+        -45deg,
+        $primary,
+        #1a4a8e,
+        #7c3aed,
+        #216ba8,
+        #5b21b6,
+        $primary
+    );
+    background-size: 400% 400%;
+    animation: nosColorCycle 14s ease infinite;
     border-radius: 24px;
     padding: clamp(32px, 4vw, 60px) clamp(24px, 3vw, 56px);
     color: #fff;
