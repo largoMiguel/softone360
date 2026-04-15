@@ -18,6 +18,7 @@ import { sessionRedirectGuard } from './guards/session-redirect.guard';
 import { showcaseSessionGuard } from './guards/showcase-session.guard';
 import { IgacViewerComponent } from './components/igac-viewer/igac-viewer.component';
 import { ServiciosIngenieriaComponent } from './components/servicios-ingenieria/servicios-ingenieria.component';
+import { NosotrosComponent } from './components/nosotros/nosotros';
 
 export const routes: Routes = [
     // Ruta raíz: muestra el showcase como home
@@ -42,6 +43,9 @@ export const routes: Routes = [
 
     // Ruta pública para servicios de ingeniería vial (debe ir ANTES del :slug)
     { path: 'ingenieria-vial', component: ServiciosIngenieriaComponent },
+
+    // Página Nosotros / Sobre la empresa
+    { path: 'nosotros', component: NosotrosComponent },
 
     // Rutas por entidad (con slug). Ej: /chiquiza-boyaca/
     {

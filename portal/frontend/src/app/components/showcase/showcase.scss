@@ -804,6 +804,7 @@ $dark: #212529;
     background: rgba(255, 255, 255, 0.1);
     border: 1.5px solid rgba(255, 255, 255, 0.4);
     color: #fff;
+    text-decoration: none;
     font-size: 0.95rem;
     font-weight: 600;
     padding: 11px 22px;
@@ -853,6 +854,9 @@ $dark: #212529;
 }
 
 .about-spotlight {
+    display: block;
+    text-decoration: none;
+    color: inherit;
     position: relative;
     background: linear-gradient(120deg, #0a0f2e 0%, #12244e 30%, #1a1050 60%, #0f0a2a 100%);
     background-size: 300% 300%;

@@ -32,12 +32,12 @@
                     </button>
                 </div>
                 <div class="hero-conocenos animate" style="--si:3">
-                    <button class="btn-conocenos" (click)="scrollToSection('about')">
+                    <a class="btn-conocenos" routerLink="/nosotros">
                         <span class="btn-conocenos-text">Conoce Softone360</span>
                         <span class="btn-conocenos-arrow">
                             <i class="fas fa-chevron-down"></i>
                         </span>
-                    </button>
+                    </a>
                     <span class="btn-conocenos-hint">Nuestra misión, visión y propuesta de valor</span>
                 </div>
                 <div class="hero-stats mt-5">
@@ -456,7 +456,7 @@
 </section>
 
 <!-- ===== SPOTLIGHT NOSOTROS ===== -->
-<div class="about-spotlight" (click)="scrollToSection('about')">
+<a class="about-spotlight" routerLink="/nosotros">
     <div class="about-spotlight-inner">
         <div class="about-spotlight-tag"><i class="fas fa-building me-2"></i>Nuestra Empresa</div>
         <h2 class="about-spotlight-title">
@@ -469,186 +469,10 @@
         </div>
     </div>
     <div class="about-spotlight-bg-text" aria-hidden="true">360°</div>
-</div>
+</a>
 
-<!-- ===== SOBRE NOSOTROS ===== -->
-<section class="about-section" id="about">
-
-    <!-- Bloque 1: Quiénes somos + Misión + Visión -->
-    <div class="about-intro">
-        <div class="container">
-            <div class="section-header text-center animate">
-                <div class="about-chip"><i class="fas fa-building me-2"></i>NUESTRA EMPRESA</div>
-                <h2 class="section-title">Quiénes Somos</h2>
-                <p class="section-subtitle">Arquitectos de soluciones digitales al servicio del sector público y privado</p>
-            </div>
-            <div class="row align-items-start g-5 mt-1">
-                <div class="col-lg-6 animate from-left">
-                    <p class="about-body">
-                        En <strong>Softone360</strong>, somos arquitectos de soluciones digitales dedicados a potenciar la eficiencia organizacional mediante la integración estratégica de tecnología de última generación. Nuestra razón de ser es cerrar la brecha entre los desafíos operativos y las posibilidades tecnológicas, consolidándonos como el aliado estratégico de quienes no solo buscan digitalizarse, sino liderar una verdadera <strong>transformación cultural y funcional</strong>.
-                    </p>
-                    <p class="about-body">
-                        Nuestro equipo multidisciplinario, experto en ingeniería de sistemas, infraestructura de redes y consultoría administrativa, nos permite ofrecer una perspectiva integral <strong>360°</strong>. Más allá de implementar software o hardware, diseñamos ecosistemas robustos y escalables que armonizan con las dinámicas del mercado y las rigurosas exigencias normativas del Estado.
-                    </p>
-                    <div class="about-badges">
-                        <span class="about-badge"><i class="fas fa-code me-2"></i>Ingeniería de Software</span>
-                        <span class="about-badge"><i class="fas fa-network-wired me-2"></i>Infraestructura de Redes</span>
-                        <span class="about-badge"><i class="fas fa-user-tie me-2"></i>Consultoría TI</span>
-                        <span class="about-badge"><i class="fas fa-cloud me-2"></i>Cloud &amp; AWS</span>
-                    </div>
-                </div>
-                <div class="col-lg-6 animate from-right">
-                    <div class="about-mv-card about-mv-mission">
-                        <div class="about-mv-icon">
-                            <i class="fas fa-rocket"></i>
-                        </div>
-                        <div>
-                            <div class="about-mv-label">Misión</div>
-                            <p class="about-mv-text">Impulsar la evolución digital de las organizaciones a través de soluciones tecnológicas integrales y personalizadas. Transformamos procesos complejos en experiencias ágiles mediante desarrollo de software de vanguardia, infraestructura robusta y asesoría estratégica, garantizando seguridad, escalabilidad y competitividad.</p>
-                        </div>
-                    </div>
-                    <div class="about-mv-card about-mv-vision">
-                        <div class="about-mv-icon">
-                            <i class="fas fa-eye"></i>
-                        </div>
-                        <div>
-                            <div class="about-mv-label">Visión 2030</div>
-                            <p class="about-mv-text">Consolidarnos como el aliado tecnológico referente en el sector público y privado, reconocidos por nuestra innovación y excelencia. Aspiramos a liderar la transición hacia modelos de <strong>Gestión Digital Inteligente</strong>, expandiendo nuestro impacto mediante soluciones que definan el futuro de la productividad organizacional.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Bloque 2: Objetivos Corporativos -->
-    <div class="about-objectives">
-        <div class="container">
-            <div class="section-header text-center animate">
-                <h2 class="section-title">Objetivos Corporativos</h2>
-                <p class="section-subtitle">Los cinco pilares que guían cada decisión y proyecto en Softone360</p>
-            </div>
-            <div class="row g-4 mt-2">
-                <div class="col-md-6 col-lg-4 animate">
-                    <div class="obj-card">
-                        <div class="obj-icon" style="background:linear-gradient(135deg,#216ba8,#36b9cc)">
-                            <i class="fas fa-lightbulb"></i>
-                        </div>
-                        <h5 class="obj-title">Innovación Continua</h5>
-                        <p class="obj-text">Desarrollar y desplegar soluciones de software con las últimas tendencias tecnológicas para resolver necesidades emergentes del mercado.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4 animate">
-                    <div class="obj-card">
-                        <div class="obj-icon" style="background:linear-gradient(135deg,#1cc28e,#059669)">
-                            <i class="fas fa-network-wired"></i>
-                        </div>
-                        <h5 class="obj-title">Excelencia en Infraestructura</h5>
-                        <p class="obj-text">Garantizar la continuidad del negocio de nuestros aliados mediante el diseño y mantenimiento de redes y sistemas de alta disponibilidad.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4 animate">
-                    <div class="obj-card">
-                        <div class="obj-icon" style="background:linear-gradient(135deg,#e74a3b,#dc2626)">
-                            <i class="fas fa-shield-alt"></i>
-                        </div>
-                        <h5 class="obj-title">Seguridad y Cumplimiento</h5>
-                        <p class="obj-text">Implementar protocolos de ciberseguridad y estándares técnicos que aseguren la integridad de la información y el cumplimiento normativo (MIPG, Gobierno Digital).</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-6 animate">
-                    <div class="obj-card">
-                        <div class="obj-icon" style="background:linear-gradient(135deg,#7c3aed,#a855f7)">
-                            <i class="fas fa-handshake"></i>
-                        </div>
-                        <h5 class="obj-title">Fidelización Estratégica</h5>
-                        <p class="obj-text">Establecer relaciones de confianza a largo plazo basadas en soporte técnico especializado, transferencia de conocimiento y optimización de la inversión tecnológica.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-6 animate">
-                    <div class="obj-card">
-                        <div class="obj-icon" style="background:linear-gradient(135deg,#ff9900,#f59e0b)">
-                            <i class="fas fa-chart-line"></i>
-                        </div>
-                        <h5 class="obj-title">Sostenibilidad Operativa</h5>
-                        <p class="obj-text">Mantener un crecimiento constante mediante la eficiencia en la ejecución de proyectos y la capacitación continua de nuestro talento humano.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Bloque 3: Inteligencia Estratégica para la Gestión Pública -->
-    <div class="about-intel">
-        <div class="container">
-            <div class="section-header text-center animate">
-                <div class="about-chip about-chip-light"><i class="fas fa-brain me-2"></i>ENFOQUE SECTOR PÚBLICO</div>
-                <h2 class="section-title text-white">Inteligencia Estratégica para la Gestión Pública</h2>
-                <p class="section-subtitle text-white-50">Entendemos que el futuro de la administración radica en la capacidad de respuesta. Nuestras soluciones están diseñadas para revolucionar la gestión pública.</p>
-            </div>
-            <div class="row g-4 mt-2">
-                <div class="col-md-6 animate">
-                    <div class="intel-item">
-                        <div class="intel-icon"><i class="fas fa-database"></i></div>
-                        <div>
-                            <h5 class="intel-title">Decisiones Basadas en Evidencia</h5>
-                            <p class="intel-text">Empoderamos a las instituciones con herramientas que capturan, procesan y analizan datos reales en tiempo real, garantizando que cada decisión estratégica esté respaldada por información precisa.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 animate">
-                    <div class="intel-item">
-                        <div class="intel-icon"><i class="fas fa-balance-scale"></i></div>
-                        <div>
-                            <h5 class="intel-title">Transparencia, Eficiencia y Progreso</h5>
-                            <p class="intel-text">Optimizamos los procesos institucionales con enfoque en el bienestar del ciudadano, facilitando el cumplimiento de Gobierno Digital y el modelo MIPG.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 animate">
-                    <div class="intel-item">
-                        <div class="intel-icon"><i class="fas fa-map-marked-alt"></i></div>
-                        <div>
-                            <h5 class="intel-title">Seguimiento al Plan de Desarrollo</h5>
-                            <p class="intel-text">Herramientas que monitorean el avance de metas y programas de gobierno, transformando la planeación administrativa en progreso visible para las comunidades.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 animate">
-                    <div class="intel-item">
-                        <div class="intel-icon"><i class="fas fa-tachometer-alt"></i></div>
-                        <div>
-                            <h5 class="intel-title">Visibilidad de Indicadores en Tiempo Real</h5>
-                            <p class="intel-text">Tableros de control que exponen indicadores de cumplimiento de cara al ciudadano, fortaleciendo la transparencia y permitiendo una rendición de cuentas dinámica.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 animate">
-                    <div class="intel-item">
-                        <div class="intel-icon"><i class="fas fa-users"></i></div>
-                        <div>
-                            <h5 class="intel-title">Administración Cercana y Ágil</h5>
-                            <p class="intel-text">Al automatizar la medición del impacto social, logramos que la administración pública sea más eficiente, reduciendo brechas y garantizando que los recursos tecnológicos se traduzcan en mejor calidad de vida.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 animate">
-                    <div class="intel-item">
-                        <div class="intel-icon"><i class="fas fa-seedling"></i></div>
-                        <div>
-                            <h5 class="intel-title">Impacto Social Sostenible</h5>
-                            <p class="intel-text">Convertimos la infraestructura técnica en progreso tangible. Al mejorar la calidad de datos y velocidad de procesos, maximizamos el impacto positivo de las políticas públicas.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <p class="about-intel-closing animate">
-                En Softone360, no solo construimos sistemas; entregamos la claridad técnica necesaria para gobernar con precisión y proyectar a las organizaciones hacia un futuro de éxito sostenible.
-            </p>
-        </div>
-    </div>
-
-</section>
+<!-- anchor para footer -->
+<div id="about" style="display:none"></div>
 
 <!-- Use Cases Section -->
 <section class="use-cases-section py-5 bg-light">
@@ -780,8 +604,7 @@
                         </a>
                     </li>
                     <li class="mb-2">
-                        <a class="text-white-50 text-decoration-none" (click)="scrollToSection('about')"
-                            style="cursor: pointer;">
+                        <a class="text-white-50 text-decoration-none" routerLink="/nosotros">
                             <i class="fas fa-chevron-right me-2"></i>Nosotros
                         </a>
                     </li>
