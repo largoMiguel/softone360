@@ -194,8 +194,13 @@
                         <button type="button" class="btn btn-secondary" (click)="cancelarInforme()">
                             <i class="fas fa-times me-2"></i>Cancelar
                         </button>
-                        <button type="button" class="btn btn-success" (click)="generarInforme()">
-                            <i class="fas fa-file-pdf me-2"></i>Generar Informe PDF
+                        <button type="button" class="btn btn-info" (click)="generarInforme()" 
+                                title="Genera PDF en el navegador (puede ser más lento para informes grandes)">
+                            <i class="fas fa-desktop me-2"></i>Generar en Navegador
+                        </button>
+                        <button type="button" class="btn btn-success" (click)="generarInformeBackend()"
+                                title="Genera PDF en el servidor con gráficos profesionales y template personalizado">
+                            <i class="fas fa-server me-2"></i>Generar en Servidor (Recomendado)
                         </button>
                     </div>
                 </div>

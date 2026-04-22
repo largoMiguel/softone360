@@ -48,6 +48,9 @@ class Entity(Base):
     header_text = Column(Text, nullable=True)  # Texto personalizado del encabezado
     footer_text = Column(Text, nullable=True)  # Texto personalizado del pie de página
     
+    # Personalización de informes PQRS - Template PDF con membrete
+    pdf_template_url = Column(String(500), nullable=True)  # URL del PDF template en S3 (membrete institucional)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

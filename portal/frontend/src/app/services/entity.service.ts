@@ -74,4 +74,31 @@ export class EntityService {
     getEntityUsers(id: number): Observable<any[]> {
         return this.http.get<any[]>(`${this.baseUrl}/${id}/users`);
     }
+
+    /**
+     * Template PDF management methods
+     */
+
+    /**
+     * Subir template PDF para informes PQRS (solo superadmin)
+     */
+    uploadPdfTemplate(entityId: number, file: File): Observable<any> {
+        const formData = new FormData();
+        formData.append('file', file);
+        return this.http.post(`${this.baseUrl}/${entityId}/upload-pdf-template`, formData);
+    }
+
+    /**
+     * Eliminar template PDF (solo superadmin)
+     */
+    deletePdfTemplate(entityId: number): Observable<any> {
+        return this.http.delete(`${this.baseUrl}/${entityId}/pdf-template`);
+    }
+
+    /**
+     * Obtener información del template PDF actual
+     */
+    getPdfTemplateInfo(entityId: number): Observable<any> {
+        return this.http.get(`${this.baseUrl}/${entityId}/pdf-template-info`);
+    }
 }

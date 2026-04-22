@@ -36,10 +36,10 @@ engine = create_engine(
     db_url,
     connect_args=connect_args,
     pool_pre_ping=True,      # Verifica la conexión antes de usarla
-    pool_recycle=300,        # Recicla conexiones cada 5 min
+    pool_recycle=1800,       # Recicla conexiones cada 30 min (RDS cierra inactivas a los 10min)
     pool_size=3,             # Muy reducido para free tier de Render (máximo 5 conexiones totales)
     max_overflow=2,          # Solo 2 adicionales para evitar saturar
-    pool_timeout=60,         # Timeout más largo para esperar conexión disponible
+    pool_timeout=30,         # Reducido: falla rápido si no hay conexión disponible
     echo=False               # No mostrar SQL en logs (cambiar a True para debug)
 )
 

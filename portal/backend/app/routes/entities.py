@@ -1,7 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
+import boto3
+from botocore.exceptions import ClientError
+from datetime import datetime
 from app.config.database import get_db
 from app.models.entity import Entity
 from app.models.user import User, UserRole
@@ -9,6 +12,11 @@ from app.schemas.entity import EntityCreate, EntityUpdate, EntityResponse, Entit
 from app.utils.auth import require_superadmin, get_current_active_user
 
 router = APIRouter(prefix="/entities", tags=["Entidades"])
+
+# Configuración S3
+S3_BUCKET = "softone360-pqrs-archivos"
+S3_REGION = "us-east-1"
+s3_client = boto3.client('s3', region_name=S3_REGION)
 
 
 @router.get("/by-slug/{slug}", response_model=EntityResponse)
@@ -416,3 +424,216 @@ async def get_entity_users(
         }
         for user in users
     ]
+
+
+@router.post("/{entity_id}/upload-pdf-template", response_model=dict)
+async def upload_pdf_template(
+    entity_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_superadmin)
+):
+    """
+    Subir PDF template con membrete institucional (solo superadmin).
+    Este PDF se usará como fondo/overlay en los informes de PQRS.
+    
+    El template debe ser:
+    - PDF válido
+    - Tamaño carta (letter)
+    - Máximo 5 MB
+    - Preferiblemente 1 página (se repetirá en todas las páginas del informe)
+    """
+    # Validar que la entidad existe
+    entity = db.query(Entity).filter(Entity.id == entity_id).first()
+    if not entity:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Entidad ID {entity_id} no encontrada"
+        )
+    
+    # Validar tipo de archivo
+    if file.content_type != "application/pdf":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Tipo de archivo no permitido: {file.content_type}. Solo se permiten archivos PDF"
+        )
+    
+    # Validar tamaño (5MB máximo)
+    file_content = await file.read()
+    file_size_mb = len(file_content) / (1024 * 1024)
+    
+    if file_size_mb > 5:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Archivo muy grande: {file_size_mb:.2f} MB. Máximo permitido: 5 MB"
+        )
+    
+    try:
+        # Generar nombre único para el archivo
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_key = f"pdf-templates/{entity.slug}/template_{timestamp}.pdf"
+        
+        print(f"📤 Subiendo template PDF para entidad '{entity.name}'")
+        print(f"   Tamaño: {file_size_mb:.2f} MB")
+        print(f"   Key: {file_key}")
+        
+        # Subir a S3
+        s3_client.put_object(
+            Bucket=S3_BUCKET,
+            Key=file_key,
+            Body=file_content,
+            ContentType='application/pdf',
+            Metadata={
+                "entity_id": str(entity_id),
+                "entity_slug": entity.slug,
+                "uploaded_by": current_user.username,
+                "upload_date": timestamp
+            }
+        )
+        
+        # Eliminar template anterior si existe
+        if entity.pdf_template_url:
+            try:
+                old_key = entity.pdf_template_url.split(f"{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/")[1]
+                s3_client.delete_object(Bucket=S3_BUCKET, Key=old_key)
+                print(f"🗑️  Template anterior eliminado: {old_key}")
+            except Exception as e:
+                print(f"⚠️  Error eliminando template anterior: {e}")
+        
+        # Actualizar URL en la entidad
+        file_url = f"https://{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/{file_key}"
+        entity.pdf_template_url = file_url
+        db.commit()
+        
+        print(f"✅ Template PDF subido exitosamente")
+        
+        return {
+            "message": "Template PDF subido exitosamente",
+            "template_url": file_url,
+            "file_key": file_key,
+            "file_size_mb": round(file_size_mb, 2)
+        }
+        
+    except ClientError as e:
+        print(f"❌ Error subiendo a S3: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al subir el archivo: {str(e)}"
+        )
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error procesando el archivo: {str(e)}"
+        )
+
+
+@router.delete("/{entity_id}/pdf-template")
+async def delete_pdf_template(
+    entity_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_superadmin)
+):
+    """
+    Eliminar template PDF de una entidad (solo superadmin).
+    Los informes se generarán sin membrete personalizado.
+    """
+    entity = db.query(Entity).filter(Entity.id == entity_id).first()
+    if not entity:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Entidad ID {entity_id} no encontrada"
+        )
+    
+    if not entity.pdf_template_url:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Esta entidad no tiene template PDF configurado"
+        )
+    
+    try:
+        # Eliminar de S3
+        file_key = entity.pdf_template_url.split(f"{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/")[1]
+        s3_client.delete_object(Bucket=S3_BUCKET, Key=file_key)
+        print(f"🗑️  Template eliminado de S3: {file_key}")
+        
+        # Limpiar URL en BD
+        entity.pdf_template_url = None
+        db.commit()
+        
+        return {
+            "message": "Template PDF eliminado exitosamente",
+            "entity_id": entity_id,
+            "entity_name": entity.name
+        }
+        
+    except ClientError as e:
+        print(f"❌ Error eliminando de S3: {e}")
+        # Aunque falle S3, limpiar la BD
+        entity.pdf_template_url = None
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al eliminar el archivo: {str(e)}"
+        )
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error procesando la solicitud: {str(e)}"
+        )
+
+
+@router.get("/{entity_id}/pdf-template-info", response_model=dict)
+async def get_pdf_template_info(
+    entity_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Obtener información del template PDF de una entidad.
+    Disponible para admins y superadmins.
+    """
+    entity = db.query(Entity).filter(Entity.id == entity_id).first()
+    if not entity:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Entidad ID {entity_id} no encontrada"
+        )
+    
+    # Verificar permisos
+    if current_user.role not in [UserRole.SUPERADMIN, UserRole.ADMIN]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos para ver esta información"
+        )
+    
+    if current_user.role == UserRole.ADMIN and current_user.entity_id != entity_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo puedes ver información de tu propia entidad"
+        )
+    
+    has_template = entity.pdf_template_url is not None
+    
+    result = {
+        "entity_id": entity_id,
+        "entity_name": entity.name,
+        "has_template": has_template,
+        "template_url": entity.pdf_template_url if has_template else None
+    }
+    
+    # Si tiene template, añadir info adicional
+    if has_template:
+        try:
+            file_key = entity.pdf_template_url.split(f"{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/")[1]
+            # Obtener metadata del archivo
+            response = s3_client.head_object(Bucket=S3_BUCKET, Key=file_key)
+            result["file_size_bytes"] = response.get('ContentLength', 0)
+            result["file_size_mb"] = round(response.get('ContentLength', 0) / (1024 * 1024), 2)
+            result["last_modified"] = response.get('LastModified').isoformat() if response.get('LastModified') else None
+        except Exception as e:
+            print(f"⚠️  Error obteniendo metadata del template: {e}")
+    
+    return result

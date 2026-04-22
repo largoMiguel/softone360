@@ -136,4 +136,31 @@ export class PqrsService {
     getHistorialAsignaciones(pqrsId: number): Observable<any[]> {
         return this.http.get<any[]>(`${this.baseUrl}${pqrsId}/historial-asignaciones`);
     }
+
+    /**
+     * Generar informe PDF en el backend con gráficos y template personalizado
+     */
+    generarInformePdf(request: {
+        fecha_inicio: string;
+        fecha_fin: string;
+        estado?: string;
+        tipo?: string;
+        usar_ia?: boolean;
+    }): Observable<{
+        download_url: string;
+        file_size_mb: number;
+        total_pqrs: number;
+        tasa_resolucion: number;
+        used_template: boolean;
+        used_ai: boolean;
+    }> {
+        return this.http.post<{
+            download_url: string;
+            file_size_mb: number;
+            total_pqrs: number;
+            tasa_resolucion: number;
+            used_template: boolean;
+            used_ai: boolean;
+        }>(`${this.baseUrl}generar-informe-pdf`, request);
+    }
 }

@@ -104,6 +104,11 @@ export class SoftAdminComponent implements OnInit {
     loading = false;
     currentUserRole: string = '';
 
+    // Template PDF management
+    selectedTemplateFile: File | null = null;
+    uploadingTemplate: boolean = false;
+    templateInfo: any = null;
+
     constructor(
         private entityService: EntityService,
         private userService: UserService,
@@ -750,5 +755,114 @@ export class SoftAdminComponent implements OnInit {
      */
     canDeleteUser(targetUser: any): boolean {
         return this.canEditUser(targetUser);
+    }
+
+    /**
+     * Template PDF Management Methods
+     */
+
+    /**
+     * Maneja la selección de archivo de template PDF
+     */
+    onTemplateFileSelected(event: any, entity: EntityWithStats): void {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // Validar tipo de archivo
+        if (file.type !== 'application/pdf') {
+            this.alertService.error('Solo se permiten archivos PDF');
+            event.target.value = '';
+            return;
+        }
+
+        // Validar tamaño (5MB máximo)
+        const maxSize = 5 * 1024 * 1024; // 5MB en bytes
+        if (file.size > maxSize) {
+            this.alertService.error('El archivo PDF no puede superar los 5 MB');
+            event.target.value = '';
+            return;
+        }
+
+        this.selectedTemplateFile = file;
+        // Auto-upload
+        this.uploadTemplate(entity);
+    }
+
+    /**
+     * Sube el template PDF seleccionado
+     */
+    uploadTemplate(entity: EntityWithStats): void {
+        if (!this.selectedTemplateFile) {
+            this.alertService.error('No se ha seleccionado ningún archivo');
+            return;
+        }
+
+        this.uploadingTemplate = true;
+        this.entityService.uploadPdfTemplate(entity.id, this.selectedTemplateFile).subscribe({
+            next: (response: any) => {
+                this.alertService.success('Template PDF subido exitosamente');
+                this.uploadingTemplate = false;
+                this.selectedTemplateFile = null;
+                // Recargar info del template
+                this.loadTemplateInfo(entity);
+            },
+            error: (error: any) => {
+                this.alertService.error('Error al subir template: ' + (error.error?.detail || error.message));
+                this.uploadingTemplate = false;
+                this.selectedTemplateFile = null;
+            }
+        });
+    }
+
+    /**
+     * Elimina el template PDF actual
+     */
+    deleteTemplate(entity: EntityWithStats): void {
+        if (!confirm('¿Estás seguro de eliminar el template PDF? Los informes se generarán sin membrete institucional.')) {
+            return;
+        }
+
+        this.entityService.deletePdfTemplate(entity.id).subscribe({
+            next: () => {
+                this.alertService.success('Template PDF eliminado exitosamente');
+                this.templateInfo = null;
+                // Recargar info del template
+                this.loadTemplateInfo(entity);
+            },
+            error: (error: any) => {
+                this.alertService.error('Error al eliminar template: ' + (error.error?.detail || error.message));
+            }
+        });
+    }
+
+    /**
+     * Carga la información del template PDF
+     */
+    loadTemplateInfo(entity: EntityWithStats): void {
+        this.entityService.getPdfTemplateInfo(entity.id).subscribe({
+            next: (info: any) => {
+                this.templateInfo = {
+                    ...info,
+                    entity_id: entity.id  // Añadir entity_id para identificar en el template
+                };
+            },
+            error: (error: any) => {
+                console.error('Error cargando info del template:', error);
+                this.templateInfo = null;
+            }
+        });
+    }
+
+    /**
+     * Descarga el template PDF actual
+     */
+    downloadTemplate(entity: EntityWithStats): void {
+        if (!this.templateInfo || !this.templateInfo.template_url) {
+            this.alertService.warning('No hay template PDF configurado');
+            return;
+        }
+
+        // Abrir en nueva pestaña para descargar
+        window.open(this.templateInfo.template_url, '_blank');
     }
 }

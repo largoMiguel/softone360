@@ -63,6 +63,10 @@
                     <button class="btn btn-sm btn-primary" (click)="showEditEntity(entity)">
                         ✏️ Editar
                     </button>
+                    <button class="btn btn-sm btn-purple" (click)="loadTemplateInfo(entity)" 
+                            title="Gestionar template PDF para informes PQRS">
+                        📄 Template PDF
+                    </button>
                     <button class="btn btn-sm" [class.btn-warning]="entity.is_active"
                         [class.btn-secondary]="!entity.is_active" (click)="toggleEntityStatus(entity)">
                         {{ entity.is_active ? '🔒 Desactivar' : '🔓 Activar' }}
@@ -70,6 +74,63 @@
                     <button class="btn btn-sm btn-danger" (click)="deleteEntity(entity)">
                         🗑️ Eliminar
                     </button>
+                </div>
+
+                <!-- Sección de Template PDF (se muestra al hacer click en Template PDF) -->
+                <div *ngIf="templateInfo && templateInfo.entity_id === entity.id" class="template-section">
+                    <hr>
+                    <h4>📄 Template PDF para Informes PQRS</h4>
+                    <p class="template-description">
+                        El template PDF se usa como membrete institucional en los informes generados.
+                        Debe ser un PDF tamaño carta con encabezado y pie de página.
+                    </p>
+
+                    <div *ngIf="templateInfo.has_template" class="template-info">
+                        <div class="template-details">
+                            <p><strong>✅ Template configurado</strong></p>
+                            <p *ngIf="templateInfo.file_size_mb">
+                                <strong>Tamaño:</strong> {{ templateInfo.file_size_mb }} MB
+                            </p>
+                            <p *ngIf="templateInfo.last_modified">
+                                <strong>Última modificación:</strong> 
+                                {{ templateInfo.last_modified | date: 'dd/MM/yyyy HH:mm' }}
+                            </p>
+                        </div>
+                        <div class="template-actions">
+                            <button class="btn btn-sm btn-info" (click)="downloadTemplate(entity)">
+                                📥 Descargar
+                            </button>
+                            <button class="btn btn-sm btn-danger" (click)="deleteTemplate(entity)">
+                                🗑️ Eliminar
+                            </button>
+                        </div>
+                    </div>
+
+                    <div *ngIf="!templateInfo.has_template" class="template-upload">
+                        <p class="no-template">❌ No hay template PDF configurado</p>
+                        <p class="upload-hint">
+                            Los informes se generarán sin membrete institucional personalizado.
+                        </p>
+                    </div>
+
+                    <!-- Input para subir nuevo template -->
+                    <div class="upload-section">
+                        <label class="file-upload-label">
+                            <input 
+                                type="file" 
+                                [id]="'templateFile_' + entity.id"
+                                accept="application/pdf"
+                                (change)="onTemplateFileSelected($event, entity)"
+                                [disabled]="uploadingTemplate"
+                                style="display: none">
+                            <span class="btn btn-sm btn-success">
+                                {{ uploadingTemplate ? '⏳ Subiendo...' : '📤 Subir Nuevo Template' }}
+                            </span>
+                        </label>
+                        <small class="upload-requirements">
+                            Requisitos: PDF, máximo 5 MB, tamaño carta recomendado
+                        </small>
+                    </div>
                 </div>
             </div>
         </div>

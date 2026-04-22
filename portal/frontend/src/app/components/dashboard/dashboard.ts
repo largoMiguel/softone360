@@ -2450,6 +2450,62 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return `${fechaMin.toLocaleDateString('es-CO', opciones)} - ${fechaMax.toLocaleDateString('es-CO', opciones)}`;
   }
 
+  /**
+   * Genera informe PQRS en el backend con gráficos profesionales
+   * y template institucional personalizado
+   */
+  generarInformeBackend(): void {
+    if (!this.fechaInicio || !this.fechaFin) {
+      this.alertService.error('Debes seleccionar un rango de fechas');
+      return;
+    }
+
+    const request = {
+      fecha_inicio: this.fechaInicio,
+      fecha_fin: this.fechaFin,
+      estado: this.filtroEstado || undefined,
+      tipo: this.filtroTipo || undefined,
+      usar_ia: this.entityContext.currentEntity?.enable_ai_reports ?? false
+    };
+
+    this.alertService.info('Generando informe en el servidor...');
+
+    this.pqrsService.generarInformePdf(request).subscribe({
+      next: (response: any) => {
+        // Cerrar modal de generación
+        this.mostrarSelectorFechas = false;
+
+        // Construir mensaje de éxito detallado
+        let mensaje = `
+          <div style="text-align: left;">
+            <strong>✅ Informe generado exitosamente</strong><br><br>
+            <strong>📊 Estadísticas:</strong><br>
+            • Total PQRS: ${response.total_pqrs}<br>
+            • Tasa de resolución: ${response.tasa_resolucion}%<br>
+            • Tamaño: ${response.file_size_mb} MB<br>
+            ${response.used_template ? '• ✅ Con template institucional<br>' : '• ℹ️ Sin template personalizado<br>'}
+            ${response.used_ai ? '• 🤖 Con análisis IA incluido<br>' : ''}
+            <br>
+            <strong>🔗 Descarga:</strong><br>
+            <a href="${response.download_url}" target="_blank" style="color: #007bff;">
+              Click aquí para descargar
+            </a><br>
+            <small style="color: #666;">Válido por 7 días</small>
+          </div>
+        `;
+
+        this.alertService.success(mensaje, 'Informe Generado');
+
+        // Auto-abrir PDF en nueva pestaña
+        window.open(response.download_url, '_blank');
+      },
+      error: (error: any) => {
+        const errorMsg = error.error?.detail || error.message || 'Error desconocido';
+        this.alertService.error(`Error al generar informe: ${errorMsg}`);
+      }
+    });
+  }
+
   logout() {
     this.authService.logout();
     
