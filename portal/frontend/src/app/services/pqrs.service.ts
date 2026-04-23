@@ -163,4 +163,41 @@ export class PqrsService {
             used_ai: boolean;
         }>(`${this.baseUrl}generar-informe-pdf`, request);
     }
+
+    /** Obtiene alertas de anomalías detectadas por IA en los últimos 90 días */
+    getAlertasIA(): Observable<{
+        total_pqrs_analizadas: number;
+        periodo_dias: number;
+        alertas: Array<{
+            nivel: 'critica' | 'advertencia' | 'informacion';
+            tipo: string;
+            titulo: string;
+            descripcion: string;
+            accion: string;
+            detalles?: any[];
+        }>;
+        resumen: {
+            pendientes: number;
+            en_proceso: number;
+            resueltas: number;
+            cerradas: number;
+            vencidas: number;
+            sin_asignar: number;
+        };
+    }> {
+        return this.http.get<any>(`${this.baseUrl}alertas-ia`);
+    }
+
+    /** Lista los últimos informes PDF generados en S3 */
+    getHistoricoInformes(): Observable<{
+        informes: Array<{
+            nombre: string;
+            fecha: string;
+            tamano_mb: number;
+            download_url: string;
+        }>;
+        total: number;
+    }> {
+        return this.http.get<any>(`${this.baseUrl}historico-informes`);
+    }
 }

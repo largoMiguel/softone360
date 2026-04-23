@@ -112,6 +112,55 @@ Analiza los siguientes datos de PQRS del {entity_name} para el período {fecha_i
 **DISTRIBUCIÓN POR TIPO:**
 {tipos_str}
 
+Por favor genera un análisis profesional estructurado EXACTAMENTE en estas secciones:
+
+1. **ANÁLISIS DE LA INFORMACIÓN** (2-3 párrafos)
+   - Frase inicial: "De acuerdo con la información suministrada por [nombre entidad], pudo establecer que dentro del periodo objeto de evaluación..."
+   - Descripción del comportamiento general del período
+   - Contexto de la gestión institucional
+
+2. **ANÁLISIS GENERAL** (2-3 párrafos)
+   - Análisis de las métricas principales y su significado
+   - Fortalezas y debilidades identificadas
+   - Comparación con estándares legales (Ley 1755/2015 - 15 días de respuesta)
+
+3. **ANÁLISIS DE TENDENCIAS** (2-3 párrafos)
+   - Patrones identificados en el período
+   - Tipos de solicitud más frecuentes y su implicación
+   - Comportamiento temporal y proyección
+
+4. **RECOMENDACIONES** (5 párrafos completos, NO listas con guiones)
+   - Cada recomendación como un párrafo de 3-4 líneas explicando contexto y acción
+   - Referencia a Modelo Estándar de Control Interno (MECI)
+   - Capacitación, seguimiento, normativa, mejora continua, satisfacción ciudadana
+
+5. **CONCLUSIONES** (1-2 párrafos)
+   - Síntesis del estado actual y logros
+   - Perspectiva y compromisos para próximos períodos
+
+**IMPORTANTE:**
+- Usa lenguaje técnico-jurídico colombiano
+- Referencia normas: Ley 1474/2011 Art. 76, Ley 1755/2015, Decreto 1166/2016, Resolución 001519/2020
+- RECOMENDACIONES deben ser párrafos extensos (no viñetas cortas)
+- Datos numéricos concretos en cada sección
+- Tono formal para presentación a directivos y organismos de control
+
+Inicia directamente con el análisis, sin preámbulos."""
+
+Analiza los siguientes datos de PQRS del {entity_name} para el período {fecha_inicio} a {fecha_fin}:
+
+**INDICADORES CLAVE:**
+• Total de PQRS: {analytics.get('totalPqrs', 0)}
+• Pendientes: {analytics.get('pendientes', 0)}
+• En proceso: {analytics.get('enProceso', 0)}
+• Resueltas: {analytics.get('resueltas', 0)}
+• Cerradas: {analytics.get('cerradas', 0)}
+• Tasa de resolución: {analytics.get('tasaResolucion', 0)}%
+• Tiempo promedio de respuesta: {analytics.get('tiempoPromedioRespuesta', 0)} días
+
+**DISTRIBUCIÓN POR TIPO:**
+{tipos_str}
+
 Por favor genera un análisis profesional estructurado en las siguientes secciones:
 
 1. **INTRODUCCIÓN EJECUTIVA** (2-3 párrafos)
@@ -150,26 +199,59 @@ Inicia directamente con el análisis, sin preámbulos."""
 
     def _parse_response(self, content: str) -> Dict[str, Any]:
         """Parsear respuesta de Claude en estructura esperada"""
-        
-        # Dividir por secciones
         sections = {
+            'analisisInformacion': '',
             'introduccion': '',
             'analisisGeneral': '',
             'analisisTendencias': '',
             'recomendaciones': [],
             'conclusiones': ''
         }
-        
-        # Buscar cada sección
+
         lines = content.split('\n')
         current_section = None
-        current_text = []
-        
+        current_text: List[str] = []
+
+        # Mapa de detectores de sección
+        _section_map = {
+            'analisis de la información': 'analisisInformacion',
+            'análisis de la información': 'analisisInformacion',
+            'análisis de la informacion': 'analisisInformacion',
+            'introducción ejecutiva': 'introduccion',
+            'introduccion ejecutiva': 'introduccion',
+            'análisis general': 'analisisGeneral',
+            'analisis general': 'analisisGeneral',
+            'análisis de tendencias': 'analisisTendencias',
+            'analisis de tendencias': 'analisisTendencias',
+            'tendencias': 'analisisTendencias',
+            'recomendaciones': 'recomendaciones',
+            'conclusiones': 'conclusiones',
+        }
+
         for line in lines:
-            line_lower = line.lower()
-            
-            # Detectar encabezado de sección
-            if 'introducción ejecutiva' in line_lower:
+            line_stripped = line.strip()
+            line_lower = line_stripped.lower().lstrip('*# 0123456789.')
+
+            detected = next(
+                (sec for key, sec in _section_map.items() if key in line_lower),
+                None
+            )
+            if detected and len(line_stripped) < 80:  # encabezado, no párrafo
+                if current_section and current_text:
+                    self._save_section(sections, current_section, current_text)
+                current_section = detected
+                current_text = []
+            elif current_section and line_stripped:
+                current_text.append(line_stripped)
+
+        if current_section and current_text:
+            self._save_section(sections, current_section, current_text)
+
+        # Si no se encontró analisisInformacion, usar introduccion
+        if not sections['analisisInformacion'] and sections['introduccion']:
+            sections['analisisInformacion'] = sections['introduccion']
+
+        return sections
                 if current_section and current_text:
                     self._save_section(sections, current_section, current_text)
                 current_section = 'introduccion'
@@ -216,6 +298,53 @@ Inicia directamente con el análisis, sin preámbulos."""
 
     def _save_section(self, sections: Dict, section_name: str, text_lines: List[str]) -> None:
         """Guardar sección procesada"""
+        # Limpiar marcado markdown (**bold**, *italic*)
+        clean_lines = []
+        for line in text_lines:
+            import re
+            line = re.sub(r'\*\*(.+?)\*\*', r'\1', line)  # **bold** → bold
+            line = re.sub(r'\*(.+?)\*', r'\1', line)       # *italic* → italic
+            line = re.sub(r'^#+\s*', '', line)              # ## headings
+            if line.strip():
+                clean_lines.append(line.strip())
+
+        if section_name == 'recomendaciones':
+            # Para recomendaciones, agrupar en párrafos cuando hay numeración
+            items: List[str] = []
+            current_item: List[str] = []
+            for line in clean_lines:
+                if any(line.startswith(f"{i}.") or line.startswith(f"{i})") for i in range(1, 10)):
+                    if current_item:
+                        items.append(' '.join(current_item))
+                    current_item = [line]
+                elif current_item:
+                    current_item.append(line)
+                else:
+                    items.append(line)
+            if current_item:
+                items.append(' '.join(current_item))
+            sections[section_name] = [i for i in items if i.strip() and len(i.strip()) > 10]
+        else:
+            sections[section_name] = '\n\n'.join(
+                ' '.join(para)
+                for para in self._group_into_paragraphs(clean_lines)
+            )
+
+    @staticmethod
+    def _group_into_paragraphs(lines: List[str]) -> List[List[str]]:
+        """Agrupa líneas en párrafos (separadas por vacías)"""
+        paragraphs: List[List[str]] = []
+        current: List[str] = []
+        for line in lines:
+            if line.strip():
+                current.append(line)
+            else:
+                if current:
+                    paragraphs.append(current)
+                    current = []
+        if current:
+            paragraphs.append(current)
+        return paragraphs if paragraphs else [lines]
         if section_name == 'recomendaciones':
             # Para recomendaciones, guardar como lista
             text = '\n'.join(text_lines)
