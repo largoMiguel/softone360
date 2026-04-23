@@ -11,6 +11,10 @@ import boto3
 from botocore.exceptions import ClientError
 import os
 import sys
+import logging
+
+# Configurar logger
+logger = logging.getLogger(__name__)
 from app.config.database import get_db
 from app.models.pqrs import PQRS, EstadoPQRS, AsignacionAuditoria
 from app.models.user import User, UserRole
