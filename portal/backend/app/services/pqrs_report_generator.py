@@ -903,6 +903,12 @@ class PQRSReportGenerator:
         # Generar gráficas (ahora incluye 5 gráficos)
         charts = self.generate_charts()
         
+        # Subsección: Introducción (IA)
+        if 'introduccion' in self.ai_analysis and self.ai_analysis['introduccion']:
+            self.story.append(Paragraph("Introducción", subheading_style))
+            self.story.append(Paragraph(self.ai_analysis['introduccion'], normal_style))
+            self.story.append(Spacer(1, 0.3*inch))
+        
         # Subsección: Análisis General (IA)
         self.story.append(Paragraph("Análisis General", subheading_style))
         self.story.append(Paragraph(self.ai_analysis['analisisGeneral'], normal_style))
