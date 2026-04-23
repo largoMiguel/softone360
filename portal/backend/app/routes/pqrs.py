@@ -1240,37 +1240,42 @@ async def generar_informe_pdf(
         
         print(f"📈 Analytics calculadas: {analytics['totalPqrs']} total, {analytics['tasaResolucion']}% resolución")
         
-        # Obtener análisis de IA si está habilitado
+        # Obtener análisis de IA si está habilitado (Bedrock + Claude 3)
         ai_analysis = None
         if request.usar_ia and entity.enable_ai_reports:
             try:
-                from app.services.ai_service import AIService
-                ai_service = AIService()
+                print(f"🤖 Solicitando análisis de IA con Bedrock (Claude 3)...")
+                from app.services.bedrock_ai_service import get_bedrock_service
                 
-                ai_request = {
-                    **analytics,
-                    'fechaInicio': request.fecha_inicio,
-                    'fechaFin': request.fecha_fin,
-                    'entityName': entity.name
-                }
-                
-                print(f"🤖 Solicitando análisis de IA...")
-                # Esta es una versión simplificada - debes adaptar según tu servicio de IA
-                ai_analysis = {
-                    'introduccion': f"Informe de PQRS de {entity.name} para el período {request.fecha_inicio} - {request.fecha_fin}.",
-                    'analisisGeneral': f"Durante el período se registraron {total} PQRS con una tasa de resolución del {analytics['tasaResolucion']}%.",
-                    'analisisTendencias': f"Tiempo promedio de respuesta: {tiempo_promedio} días.",
-                    'recomendaciones': [
-                        "Mantener el seguimiento periódico de las PQRS",
-                        "Optimizar los tiempos de respuesta",
-                        "Fortalecer los canales de atención ciudadana"
-                    ],
-                    'conclusiones': "El sistema de PQRS funciona adecuadamente y responde a las necesidades de los ciudadanos."
-                }
-                print(f"✅ Análisis de IA generado")
+                bedrock_service = get_bedrock_service()
+                ai_analysis = bedrock_service.analizar_pqrs(
+                    analytics=analytics,
+                    entity_name=entity.name,
+                    fecha_inicio=request.fecha_inicio,
+                    fecha_fin=request.fecha_fin,
+                    pqrs_list=pqrs_list
+                )
+                print(f"✅ Análisis IA con Bedrock completado")
             except Exception as e:
                 print(f"⚠️ Error generando análisis de IA: {e}")
+                import traceback
+                print(f"Traceback: {traceback.format_exc()}")
+                # Fallback a análisis genérico si Bedrock falla
                 ai_analysis = None
+        
+        # Si no hay IA o falló, usar análisis por defecto
+        if not ai_analysis:
+            ai_analysis = {
+                'introduccion': f"Informe de PQRS de {entity.name} para el período {request.fecha_inicio} - {request.fecha_fin}.",
+                'analisisGeneral': f"Durante el período se registraron {total} PQRS con una tasa de resolución del {analytics['tasaResolucion']}%.",
+                'analisisTendencias': f"Tiempo promedio de respuesta: {tiempo_promedio} días.",
+                'recomendaciones': [
+                    "Mantener el seguimiento periódico de las PQRS",
+                    "Optimizar los tiempos de respuesta",
+                    "Fortalecer los canales de atención ciudadana"
+                ],
+                'conclusiones': "El sistema de PQRS funciona adecuadamente y responde a las necesidades de los ciudadanos."
+            }
         
         # Generar PDF en executor (no bloquea el event loop)
         print(f"📄 Generando PDF...")
