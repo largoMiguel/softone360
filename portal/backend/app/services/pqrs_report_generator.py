@@ -14,7 +14,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT, TA_RIGHT
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
     PageBreak, Image as RLImage, Frame, PageTemplate
@@ -69,6 +69,42 @@ class PQRSReportGenerator:
                 "Fortalecer los canales de comunicación con los ciudadanos"
             ],
             "conclusiones": "Las PQRS reflejan la interacción entre la ciudadanía y la entidad."
+        }
+    
+    def _calcular_trimestre(self) -> Dict[str, Any]:
+        """
+        Calcula el trimestre basado en las fechas del informe.
+        Retorna el número de trimestre, fechas de inicio y fin del periodo.
+        """
+        from datetime import datetime
+        
+        # Parsear fechas
+        fecha_inicio = datetime.strptime(self.fecha_inicio, '%Y-%m-%d')
+        fecha_fin = datetime.strptime(self.fecha_fin, '%Y-%m-%d')
+        
+        # Determinar trimestre basado en el mes de inicio
+        mes_inicio = fecha_inicio.month
+        
+        if 1 <= mes_inicio <= 3:
+            trimestre = 1
+            texto_periodo = "1° PERIODO (01 de enero a 31 de marzo"
+        elif 4 <= mes_inicio <= 6:
+            trimestre = 2
+            texto_periodo = "2° PERIODO (01 de abril a 30 de junio"
+        elif 7 <= mes_inicio <= 9:
+            trimestre = 3
+            texto_periodo = "3° PERIODO (01 de julio a 30 de septiembre"
+        else:  # 10-12
+            trimestre = 4
+            texto_periodo = "4° PERIODO (01 de octubre a 31 de diciembre"
+        
+        # Año del informe
+        año = fecha_inicio.year
+        
+        return {
+            'trimestre': trimestre,
+            'texto_periodo': f"{texto_periodo}",
+            'año': str(año)
         }
     
     def generate_charts(self) -> Dict[str, BytesIO]:
@@ -257,28 +293,351 @@ class PQRSReportGenerator:
             spaceAfter=8
         )
         
-        # ***** PORTADA *****
-        self.story.append(Spacer(1, 0.5*inch))
-        self.story.append(Paragraph("INFORME DE PQRS", title_style))
-        self.story.append(Paragraph(self.entity.name, 
-                                   ParagraphStyle('Subtitle', parent=heading_style, alignment=TA_CENTER)))
-        self.story.append(Spacer(1, 0.3*inch))
+        # ***** PORTADA PERSONALIZADA *****
+        # Calcular trimestre y mes de generación
+        trimestre_info = self._calcular_trimestre()
+        _meses_es_portada = {
+            1:"Enero",2:"Febrero",3:"Marzo",4:"Abril",5:"Mayo",6:"Junio",
+            7:"Julio",8:"Agosto",9:"Septiembre",10:"Octubre",11:"Noviembre",12:"Diciembre"
+        }
+        _hoy = datetime.now()
+        mes_generacion = f"{_meses_es_portada[_hoy.month]} {_hoy.year}"
         
-        # Fecha del reporte
-        fecha_reporte = datetime.now().strftime('%d de %B de %Y')
-        self.story.append(Paragraph(f"<b>Fecha de Generación:</b> {fecha_reporte}", normal_style))
-        self.story.append(Spacer(1, 0.3*inch))
+        # Espaciado inicial
+        self.story.append(Spacer(1, 0.8*inch))
         
-        # ***** ALCANCE *****
-        self.story.append(Paragraph("ALCANCE", heading_style))
-        alcance = f"El seguimiento se realiza a las PQRSD radicadas durante el período comprendido entre {self.fecha_inicio} y {self.fecha_fin}, con base en la información del sistema de PQRS institucional."
-        self.story.append(Paragraph(alcance, normal_style))
-        self.story.append(Spacer(1, 0.2*inch))
+        # Encabezado verde oscuro con título principal
+        header_data = [[Paragraph("<b>Informe de Seguimiento</b><br/>Proceso de Peticiones, Quejas, Reclamos, Solicitudes,<br/>Denuncias y Felicitaciones (PQRSDF)", 
+                                 ParagraphStyle('HeaderText', 
+                                              parent=normal_style, 
+                                              alignment=TA_CENTER,
+                                              fontSize=14,
+                                              textColor=colors.white,
+                                              fontName='Helvetica-Bold',
+                                              leading=18))]]
         
-        # ***** INTRODUCCIÓN *****
+        header_table = Table(header_data, colWidths=[6.5*inch])
+        header_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#2d5016')),  # Verde oscuro
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 20),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 20),
+            ('LEFTPADDING', (0, 0), (-1, -1), 20),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 20),
+        ]))
+        self.story.append(header_table)
+        self.story.append(Spacer(1, 0.1*inch))
+        
+        # Nombre de la entidad en caja verde claro
+        entity_data = [[Paragraph(f"<b>{self.entity.name.upper()}</b>", 
+                                 ParagraphStyle('EntityText', 
+                                              parent=normal_style, 
+                                              alignment=TA_CENTER,
+                                              fontSize=16,
+                                              textColor=colors.black,
+                                              fontName='Helvetica-Bold'))]]
+        
+        entity_table = Table(entity_data, colWidths=[6.5*inch])
+        entity_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#c3d69b')),  # Verde claro
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 15),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 15),
+        ]))
+        self.story.append(entity_table)
+        self.story.append(Spacer(1, 0.8*inch))
+        
+        # Periodo trimestral en caja verde claro
+        periodo_text = f"<b>{trimestre_info['texto_periodo']}<br/>{trimestre_info['año']}</b>"
+        periodo_data = [[Paragraph(periodo_text, 
+                                  ParagraphStyle('PeriodoText', 
+                                               parent=normal_style, 
+                                               alignment=TA_RIGHT,
+                                               fontSize=14,
+                                               textColor=colors.black,
+                                               fontName='Helvetica-Bold',
+                                               leading=20))]]
+        
+        periodo_table = Table(periodo_data, colWidths=[6.5*inch])
+        periodo_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#c3d69b')),  # Verde claro
+            ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 15),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 15),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 30),
+        ]))
+        self.story.append(periodo_table)
+        self.story.append(Spacer(1, 1.0*inch))
+        
+        # Mes de generación (alineado a la derecha)
+        mes_style = ParagraphStyle(
+            'MesStyle',
+            parent=normal_style,
+            fontSize=14,
+            alignment=TA_RIGHT,
+            fontName='Helvetica'
+        )
+        self.story.append(Paragraph(mes_generacion, mes_style))
         self.story.append(PageBreak())
-        self.story.append(Paragraph("INTRODUCCIÓN", heading_style))
-        self.story.append(Paragraph(self.ai_analysis['introduccion'], normal_style))
+
+        # ---- Datos dinámicos de la entidad ----
+        entity_name      = self.entity.name        # Ej: "Alcaldía Municipal de Sora"
+        entity_email     = self.entity.email or "contactenos@entidad.gov.co"
+        entity_slug      = self.entity.slug or ""  # Ej: "sora-boyaca"
+        entity_website   = f"https://www.{entity_slug}.gov.co" if entity_slug else "el sitio web institucional"
+        pqrs_url         = f"{entity_website}/peticiones-quejas-reclamos"
+
+        # Número de trimestre en palabras
+        _trimestre_palabras = {1: "primer", 2: "segundo", 3: "tercer", 4: "cuarto"}
+        _tri_num = trimestre_info['trimestre']
+        trimestre_palabra = _trimestre_palabras.get(_tri_num, "")
+        año_informe = trimestre_info['año']
+
+        # Fechas del periodo formateadas en español
+        from datetime import datetime as _dt
+        _meses_es = {
+            1:"enero",2:"febrero",3:"marzo",4:"abril",5:"mayo",6:"junio",
+            7:"julio",8:"agosto",9:"septiembre",10:"octubre",11:"noviembre",12:"diciembre"
+        }
+        _fi = _dt.strptime(self.fecha_inicio, '%Y-%m-%d')
+        _ff = _dt.strptime(self.fecha_fin,    '%Y-%m-%d')
+        fecha_inicio_larga = f"{_fi.day:02d} de {_meses_es[_fi.month]} de {_fi.year}"
+        fecha_fin_larga    = f"{_ff.day:02d} de {_meses_es[_ff.month]} de {_ff.year}"
+        periodo_texto = f"{_fi.day:02d} de {_meses_es[_fi.month]} y {_ff.day:02d} de {_meses_es[_ff.month]} de {_ff.year}"
+
+        section_style = ParagraphStyle(
+            'SectionHeading',
+            parent=heading_style,
+            fontSize=11,
+            textColor=colors.black,
+            fontName='Helvetica-Bold',
+            spaceAfter=6,
+            spaceBefore=14
+        )
+
+        # ***** INTRODUCCIÓN *****
+        self.story.append(Paragraph("INTRODUCCIÓN", section_style))
+        intro1 = (
+            "En cumplimiento al Artículo 76 de la Ley 1474 de 2011, <i>\"En toda entidad pública, "
+            "deberá existir por lo menos una dependencia encargada de recibir, tramitar y resolver "
+            "las quejas, sugerencias y reclamos que los ciudadanos formulen, y que se relacionen con "
+            "el cumplimiento de la misión de la entidad. La Oficina de Control Interno deberá vigilar "
+            "que la atención se preste de acuerdo con las normas legales vigentes y rendirá a la "
+            "administración de la entidad un informe semestral sobre el particular\"</i> así mismo la "
+            "Ley 1755 de 2015 <i>\"Por medio de la cual se regula el Derecho Fundamental de Petición\"</i>. "
+            "Decreto 1166 de Julio 19 de 2016 <i>\"Por el cual se adiciona el capítulo 12 al Título 3 "
+            "de la Parte 2 del Libro 2 del Decreto 1069 de 2015, Decreto Único Reglamentario del Sector "
+            "Justicia y del Derecho, relacionado con la presentación, tratamiento y radicación de las "
+            "peticiones presentadas verbalmente\"</i>. Resolución N° 001519 de 24 de agosto de 2020 "
+            "<i>\"Por la cual se definen los estándares y directrices para publicar la información "
+            "señalada en la Ley 1712 del 2014 y se definen los requisitos materia de acceso a la "
+            "información pública, accesibilidad web, seguridad digital, y datos abiertos\"</i>. "
+            "Circular 100-010-2021 Directrices para fortalecer la implementación de lenguaje claro."
+        )
+        self.story.append(Paragraph(intro1, normal_style))
+        self.story.append(Spacer(1, 0.1*inch))
+
+        intro2 = (
+            f"El {entity_name} realiza el seguimiento a las Peticiones, Quejas, Reclamos, Solicitudes "
+            f"y Denuncias (PQRSD) presentadas por los ciudadanos o grupo de ciudadanos con el fin de "
+            f"verificar su oportunidad, materialidad, congruencia y veracidad para lo cual se apoya en "
+            f"los registros del sistema de información del sitio web institucional, el cual lleva el "
+            f"registro desde su radicación hasta la salida de su respuesta, adicionalmente permite "
+            f"generar reportes permanentes sobre el estado de las PQRSD, buscando determinar las "
+            f"posibles debilidades y fortalezas para ser llevadas a la alta dirección en busca del "
+            f"mejoramiento continuo de la Entidad y con ella, afianzar la confianza del ciudadano en "
+            f"las instituciones públicas."
+        )
+        self.story.append(Paragraph(intro2, normal_style))
+        self.story.append(Spacer(1, 0.1*inch))
+
+        intro3 = (
+            f"Así mismo el {entity_name} en desarrollo del Plan Anual de Auditoría {año_informe} y "
+            f"dando cumplimiento a lo estipulado en el Artículo 17 del Decreto 648 de 2017, respecto "
+            f"al desarrollo de sus roles de evaluación y seguimiento, liderazgo estratégico y enfoque "
+            f"hacia la prevención; efectuó seguimiento a la gestión del {trimestre_palabra} trimestre "
+            f"de {año_informe} relacionada con la atención de las PQRS tramitadas por cada una de las "
+            f"dependencias que conforman el {entity_name}."
+        )
+        self.story.append(Paragraph(intro3, normal_style))
+        self.story.append(Spacer(1, 0.15*inch))
+
+        # ***** OBJETIVO *****
+        self.story.append(Paragraph("OBJETIVO.", section_style))
+        objetivo = (
+            f"Garantizar la efectividad del ejercicio de los derechos reconocidos en la Constitución "
+            f"y facilitar la participación de los ciudadanos en las decisiones que los afectan mediante "
+            f"la promoción específica de la participación ciudadana, optimizando el procedimiento de "
+            f"atención a las PQRSD."
+        )
+        self.story.append(Paragraph(objetivo, normal_style))
+        self.story.append(Spacer(1, 0.15*inch))
+
+        # ***** ALCANCE *****
+        self.story.append(Paragraph("ALCANCE.", section_style))
+        alcance = (
+            f"El seguimiento se realiza a las PQRSD radicadas durante el periodo comprendido entre "
+            f"el {periodo_texto}, con base en la información suministrada por el sistema de PQRS "
+            f"del sitio web institucional del {entity_name}."
+        )
+        self.story.append(Paragraph(alcance, normal_style))
+        self.story.append(Spacer(1, 0.15*inch))
+
+        # ***** METODOLOGÍA *****
+        self.story.append(Paragraph("METODOLOGÍA.", section_style))
+        meto_intro = (
+            f"El {entity_name} con los canales de atención busca que los cuales los ciudadanos y "
+            f"grupos de interés pueden formular peticiones, quejas, reclamos, sugerencias y denuncias "
+            f"sobre temas competencia de la entidad."
+        )
+        self.story.append(Paragraph(meto_intro, normal_style))
+        self.story.append(Spacer(1, 0.08*inch))
+
+        canales = [
+            (
+                "Canal Virtual",
+                f"El {entity_name} ha dispuesto de un link en su página web "
+                f"<u>{pqrs_url}</u> para la radicación, a través del cual se pueden formular las "
+                f"PQRSD, al igual que el ciudadano las puede radicar a través del correo electrónico "
+                f"institucional <u>{entity_email}</u>."
+            ),
+            (
+                "Canal Escrito",
+                "Conformado por los mecanismos de recepción de documentos escritos a través de "
+                "correo postal o radicación personal o mediante el buzón."
+            ),
+            (
+                "Canal Presencial",
+                "Se puede acceder en el contacto directo con el personal de Atención al Ciudadano "
+                "a través de la Ventanilla Única en el segundo nivel de servicio, con el fin de "
+                "brindar información personalizada frente a peticiones, quejas, reclamos, sugerencias "
+                "y denuncias o recibir la misma de manera verbal adelantando el trámite de radicación, "
+                "en el evento de ser necesario."
+            ),
+            (
+                "Canal Telefónico",
+                f"La Administración municipal ha dispuesto diferentes líneas telefónicas para atender "
+                f"las solicitudes y/o quejas que requieran presentar."
+            ),
+        ]
+
+        canal_label_style = ParagraphStyle(
+            'CanalLabel',
+            parent=normal_style,
+            fontName='Helvetica-Bold',
+            fontSize=10
+        )
+        for titulo, descripcion in canales:
+            self.story.append(Paragraph(f"{titulo}:", canal_label_style))
+            self.story.append(Paragraph(descripcion, normal_style))
+            self.story.append(Spacer(1, 0.05*inch))
+
+        self.story.append(Spacer(1, 0.1*inch))
+        self.story.append(Paragraph(
+            "A continuación, se relacionan los canales de atención con su especificación del "
+            "servicio a prestar:", normal_style
+        ))
+        self.story.append(Spacer(1, 0.15*inch))
+
+        # ***** CANALES DE SERVICIO *****
+        self.story.append(PageBreak())
+        self.story.append(Paragraph("1. CANALES DE SERVICIO", section_style))
+        canales_intro = (
+            f"Los canales de atención que ofrece el {entity_name} son: Presencial, virtual y telefónico:"
+        )
+        self.story.append(Paragraph(canales_intro, normal_style))
+        self.story.append(Spacer(1, 0.1*inch))
+
+        self.story.append(Paragraph("2.1. Atención presencial:", canal_label_style))
+        self.story.append(Spacer(1, 0.05*inch))
+
+        presencial_texto = (
+            f"Se presta atención personal en cada una de las secretarías dependiendo la necesidad "
+            f"del ciudadano en nuestras oficinas ubicadas en {entity_name} en:"
+        )
+        self.story.append(Paragraph(presencial_texto, normal_style))
+
+        if self.entity.address:
+            self.story.append(Paragraph(f"Dirección: {self.entity.address}", normal_style))
+        if self.entity.horario_atencion:
+            self.story.append(Paragraph(f"Horario de atención: {self.entity.horario_atencion}", normal_style))
+
+        radicacion_texto = (
+            f"Para radicación de PQRSDF: Las pueden realizar a través de la ventanilla única ubicada "
+            f"en {self.entity.address or 'las instalaciones de la entidad'} en el horario de atención "
+            f"mencionado anteriormente. Con el número de radicado, usted podrá realizar el seguimiento "
+            f"a su petición, queja, reclamo, sugerencia o denuncia."
+        )
+        self.story.append(Paragraph(radicacion_texto, normal_style))
+        self.story.append(Paragraph(
+            "Buzón de sugerencias: Adicionalmente, las peticiones, quejas, reclamos, sugerencias y "
+            "denuncias, podrán presentarse utilizando el buzón de sugerencias ubicado en las "
+            "instalaciones de la Entidad.", normal_style
+        ))
+        self.story.append(Spacer(1, 0.08*inch))
+
+        self.story.append(Paragraph("Telefónico: A través de las líneas celulares:", canal_label_style))
+        self.story.append(Spacer(1, 0.1*inch))
+
+        # Tabla teléfonos
+        phone_val = self.entity.phone or "—"
+        phone_data = [
+            [Paragraph("<b>SECRETARIA/OFICINA</b>", normal_style),
+             Paragraph("<b>LÍNEAS CELULARES</b>", normal_style)],
+            ["Despacho", phone_val],
+        ]
+        phone_table = Table(phone_data, colWidths=[3.5*inch, 3.0*inch])
+        phone_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d9d9d9')),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        self.story.append(phone_table)
+        self.story.append(Spacer(1, 0.2*inch))
+
+        # ***** INFORME DE GESTIÓN INSTITUCIONAL *****
+        self.story.append(Paragraph("INFORME DE GESTIÓN INSTITUCIONAL", section_style))
+        gestion_intro = (
+            "Con el fin de dar cumplimiento a las respuestas de las distintas PQRSD, la entidad "
+            "establece como puntos de control acorde a la Ley 1755 de 2015 Artículo 14. Términos "
+            "para resolver las distintas modalidades de peticiones los siguientes:"
+        )
+        self.story.append(Paragraph(gestion_intro, normal_style))
+        self.story.append(Spacer(1, 0.1*inch))
+
+        terminos_data = [
+            [Paragraph("<b>CLASE TERMINO</b>", normal_style),
+             Paragraph("<b>CLASE TERMINO</b>", normal_style)],
+            ["Petición en interés general y particular",
+             "Dentro de los quince (15) días siguientes a su recepción"],
+            ["Peticiones de Documentos e Información",
+             "Dentro los diez (10) días siguientes a su recepción"],
+            ["Consultas",
+             "Dentro de los treinta (30) días siguientes a su recepción"],
+            ["Peticiones entre autoridades",
+             "Dentro de los cinco (5) días siguientes a su recepción"],
+            ["Informes a concejales",
+             "Dentro de los cinco (5) días siguientes a su recepción"],
+        ]
+        terminos_table = Table(terminos_data, colWidths=[3.25*inch, 3.25*inch])
+        terminos_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d9d9d9')),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ]))
+        self.story.append(terminos_table)
         self.story.append(Spacer(1, 0.2*inch))
         
         # ***** INDICADORES GENERALES *****

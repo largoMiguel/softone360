@@ -72,11 +72,11 @@ class InformeGeneratorService:
         
         print(f"🚀 Iniciando generación async del informe {informe.id}...", flush=True)
         
-        # Iniciar generación en background (NO daemon para debugging)
+        # Iniciar generación en background (daemon=True para no bloquear shutdown del worker)
         thread = threading.Thread(
             target=self._generar_informe_background,
             args=(informe.id, slug),
-            daemon=False,  # Cambiar a False temporalmente para debug
+            daemon=True,
             name=f"informe-{informe.id}"
         )
         thread.start()

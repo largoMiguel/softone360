@@ -286,4 +286,9 @@ async def health_check():
             "error": str(e)
         }
 
+@app.get("/api/health")
+async def health_check_api():
+    """Alias de /health bajo prefijo /api para compatibilidad con ALB y frontend"""
+    return await health_check()
+
 # Seed en startup eliminado; usar endpoint /api/auth/init-superadmin si se necesita

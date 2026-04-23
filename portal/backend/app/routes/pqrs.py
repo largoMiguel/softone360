@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from pydantic import BaseModel
+import asyncio
+import gc
 import json
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
@@ -1270,7 +1272,7 @@ async def generar_informe_pdf(
                 print(f"⚠️ Error generando análisis de IA: {e}")
                 ai_analysis = None
         
-        # Generar PDF
+        # Generar PDF en executor (no bloquea el event loop)
         print(f"📄 Generando PDF...")
         from app.services.pqrs_report_generator import PQRSReportGenerator
         
@@ -1283,19 +1285,23 @@ async def generar_informe_pdf(
             fecha_fin=request.fecha_fin
         )
         
-        pdf_buffer = generator.generate_pdf()
+        loop = asyncio.get_event_loop()
+        pdf_buffer = await loop.run_in_executor(None, generator.generate_pdf)
         pdf_content = pdf_buffer.read()
         pdf_size_mb = len(pdf_content) / (1024 * 1024)
+        del pdf_buffer
+        del generator
+        gc.collect()
         
         print(f"✅ PDF generado: {pdf_size_mb:.2f} MB")
         
-        # Subir a S3
+        # Subir a S3 en executor (no bloquea el event loop)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         file_key = f"informes-pqrs/{entity.slug}/informe_{request.fecha_inicio}_{request.fecha_fin}_{timestamp}.pdf"
         
         print(f"📤 Subiendo a S3: {file_key}")
         
-        s3_client.put_object(
+        s3_put_kwargs = dict(
             Bucket=S3_BUCKET,
             Key=file_key,
             Body=pdf_content,
@@ -1310,6 +1316,7 @@ async def generar_informe_pdf(
                 "timestamp": timestamp
             }
         )
+        await loop.run_in_executor(None, lambda: s3_client.put_object(**s3_put_kwargs))
         
         file_url = f"https://{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/{file_key}"
         
