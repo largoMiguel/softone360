@@ -31,6 +31,7 @@ import os
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import matplotlib.patheffects
 import numpy as np
 from matplotlib import patches
 plt.rcParams['font.family'] = 'DejaVu Sans'
@@ -116,43 +117,57 @@ class PQRSReportGenerator:
         print(f"📊 Generando gráficas con {len(self.pqrs_list)} PQRS...")
         
         # Gráfico 1: Distribución por Estado (Pie Chart mejorado)
-        fig1, ax1 = plt.subplots(figsize=(7, 5))
+        fig1, ax1 = plt.subplots(figsize=(8, 6), facecolor='white')
         estados_labels = []
         valores_estados = []
         colores_estados = []
         
-        # Obtener datos reales de analytics
+        # Obtener datos reales de analytics con colores profesionales
         data_estados = [
-            ('Pendiente', self.analytics.get('pendientes', 0), '#FFA726'),
-            ('En Proceso', self.analytics.get('enProceso', 0), '#42A5F5'),
-            ('Resueltas', self.analytics.get('resueltas', 0), '#66BB6A'),
-            ('Cerradas', self.analytics.get('cerradas', 0), '#78909C')
+            ('Pendiente', self.analytics.get('pendientes', 0), '#3498db'),  # Azul profesional
+            ('En Proceso', self.analytics.get('enProceso', 0), '#f39c12'),  # Naranja elegante
+            ('Resueltas', self.analytics.get('resueltas', 0), '#2ecc71'),  # Verde éxito
+            ('Cerradas', self.analytics.get('cerradas', 0), '#95a5a6')  # Gris neutro
         ]
         
         # Filtrar solo valores > 0 para mejor visualización
         for label, valor, color in data_estados:
             if valor > 0:
-                estados_labels.append(f'{label}\\n({valor})')
+                estados_labels.append(f'{label}\n({valor})')
                 valores_estados.append(valor)
                 colores_estados.append(color)
         
         if valores_estados:
+            # Explotar levemente el primer segmento
+            explode = [0.08 if i == 0 else 0.03 for i in range(len(valores_estados))]
+            
             wedges, texts, autotexts = ax1.pie(
                 valores_estados, 
+                explode=explode,
                 labels=estados_labels, 
                 autopct='%1.1f%%',
                 colors=colores_estados, 
-                startangle=90,
-                textprops={'fontsize': 10, 'weight': 'bold'}
+                startangle=45,
+                shadow=True,  # Sombra para profundidad
+                textprops={'fontsize': 11, 'weight': 'bold'},
+                wedgeprops={'edgecolor': 'white', 'linewidth': 2.5, 'antialiased': True}
             )
-            # Mejorar visibilidad de porcentajes
+            
+            # Mejorar visibilidad de porcentajes con efecto de contraste
             for autotext in autotexts:
                 autotext.set_color('white')
-                autotext.set_fontsize(11)
+                autotext.set_fontsize(12)
                 autotext.set_weight('bold')
+                autotext.set_path_effects([
+                    matplotlib.patheffects.withStroke(linewidth=2, foreground='black', alpha=0.3)
+                ])
+        else:
+            ax1.text(0.5, 0.5, 'Sin datos disponibles', 
+                    ha='center', va='center', transform=ax1.transAxes,
+                    fontsize=12, color='gray')
         
         ax1.set_title(f"Distribución por Estado (Total: {self.analytics.get('totalPqrs', 0)})", 
-                     fontsize=13, fontweight='bold', pad=20)
+                     fontsize=14, fontweight='bold', pad=25, color='#2c3e50')
         
         buffer1 = BytesIO()
         plt.savefig(buffer1, format='png', dpi=150, bbox_inches='tight')
@@ -161,7 +176,7 @@ class PQRSReportGenerator:
         plt.close(fig1)
         
         # Gráfico 2: Distribución por Tipo (Bar Chart mejorado)
-        fig2, ax2 = plt.subplots(figsize=(9, 5))
+        fig2, ax2 = plt.subplots(figsize=(10, 6), facecolor='white')
         tipos_pqrs = self.analytics.get('tiposPqrs', {})
         
         if tipos_pqrs:
@@ -173,22 +188,30 @@ class PQRSReportGenerator:
             # Capitalizar y formatear tipos
             tipos_capitalizados = [t.replace('_', ' ').title() for t in tipos]
             
-            # Colores degradados
-            colores = plt.cm.viridis(np.linspace(0.3, 0.9, len(tipos)))
+            # Paleta de colores profesional (azul a verde)
+            colores = ['#3498db', '#5dade2', '#48c9b0', '#52be80', '#58d68d', '#7dcea0']
+            colores_chart = (colores * (len(tipos) // len(colores) + 1))[:len(tipos)]
             
-            bars = ax2.barh(tipos_capitalizados, cantidades, color=colores)
-            ax2.set_xlabel('Cantidad de Solicitudes', fontsize=11, fontweight='bold')
-            ax2.set_title('Distribución por Tipo de Solicitud', fontsize=13, fontweight='bold', pad=15)
-            ax2.grid(axis='x', alpha=0.3, linestyle='--')
+            bars = ax2.barh(tipos_capitalizados, cantidades, color=colores_chart, 
+                          edgecolor='white', linewidth=1.5, height=0.7)
+            
+            # Sombra sutil en las barras
+            for bar in bars:
+                bar.set_alpha(0.85)
+            
+            ax2.set_xlabel('Cantidad de Solicitudes', fontsize=12, fontweight='bold', color='#2c3e50')
+            ax2.set_title('Distribución por Tipo de Solicitud', fontsize=14, fontweight='bold', pad=20, color='#2c3e50')
+            ax2.grid(axis='x', alpha=0.2, linestyle='--', linewidth=0.8)
+            ax2.set_axisbelow(True)  # Grid detrás de las barras
             
             # Añadir valores y porcentajes en las barras
             total_tipos = sum(cantidades)
             for i, (bar, cant) in enumerate(zip(bars, cantidades)):
                 width = bar.get_width()
                 porcentaje = (cant / total_tipos * 100) if total_tipos > 0 else 0
-                ax2.text(width, bar.get_y() + bar.get_height()/2, 
-                        f' {int(width)} ({porcentaje:.1f}%)', 
-                        ha='left', va='center', fontsize=10, fontweight='bold')
+                ax2.text(width + max(cantidades)*0.02, bar.get_y() + bar.get_height()/2, 
+                        f'{int(width)} ({porcentaje:.1f}%)', 
+                        ha='left', va='center', fontsize=10, fontweight='bold', color='#34495e')
         
         buffer2 = BytesIO()
         plt.savefig(buffer2, format='png', dpi=150, bbox_inches='tight')
@@ -197,7 +220,7 @@ class PQRSReportGenerator:
         plt.close(fig2)
         
         # Gráfico 3: Tendencia Mensual (Line Chart mejorado)
-        fig3, ax3 = plt.subplots(figsize=(9, 5))
+        fig3, ax3 = plt.subplots(figsize=(10, 6), facecolor='white')
         
         # Agrupar PQRS por mes con conteo real
         meses_dict = {}
@@ -229,24 +252,30 @@ class PQRSReportGenerator:
                 label_es = meses_es.get(mes_abr, mes_abr) + ' ' + label_en.split()[1]
                 meses_labels.append(label_es)
             
-            # Gráfica de línea con área sombreada
-            ax3.plot(meses_labels, valores_meses, marker='o', linewidth=2.5, 
-                    color='#10B981', markersize=8, markerfacecolor='#10B981', 
-                    markeredgecolor='white', markeredgewidth=2, label='PQRS Recibidas')
-            ax3.fill_between(range(len(meses_labels)), valores_meses, alpha=0.3, color='#10B981')
+            # Gráfica de línea elegante con gradiente
+            ax3.plot(meses_labels, valores_meses, marker='o', linewidth=3, 
+                    color='#e74c3c', markersize=10, markerfacecolor='#e74c3c', 
+                    markeredgecolor='white', markeredgewidth=2.5, label='PQRS Recibidas',
+                    zorder=3)  # Línea al frente
             
-            ax3.set_xlabel('Período', fontsize=11, fontweight='bold')
-            ax3.set_ylabel('Cantidad de PQRS', fontsize=11, fontweight='bold')
-            ax3.set_title('Evolución Temporal de PQRS', fontsize=13, fontweight='bold', pad=15)
-            ax3.grid(True, alpha=0.3, linestyle='--')
-            ax3.legend(loc='upper left', fontsize=10)
+            # Área sombreada con gradiente suave
+            ax3.fill_between(range(len(meses_labels)), valores_meses, alpha=0.25, 
+                           color='#e74c3c', zorder=2)
             
-            # Añadir valores sobre cada punto
+            ax3.set_xlabel('Período', fontsize=12, fontweight='bold', color='#2c3e50')
+            ax3.set_ylabel('Cantidad de PQRS', fontsize=12, fontweight='bold', color='#2c3e50')
+            ax3.set_title('Evolución Temporal de PQRS', fontsize=14, fontweight='bold', pad=20, color='#2c3e50')
+            ax3.grid(True, alpha=0.2, linestyle='--', linewidth=0.8, zorder=1)
+            ax3.legend(loc='upper left', fontsize=11, framealpha=0.9, edgecolor='gray')
+            ax3.set_axisbelow(True)
+            
+            # Añadir valores sobre cada punto con fondo
             for i, (x, y) in enumerate(zip(range(len(meses_labels)), valores_meses)):
-                ax3.text(x, y + max(valores_meses)*0.02, str(y), 
-                        ha='center', va='bottom', fontsize=9, fontweight='bold')
+                ax3.text(x, y + max(valores_meses)*0.03, str(y), 
+                        ha='center', va='bottom', fontsize=10, fontweight='bold',
+                        bbox=dict(boxstyle='round,pad=0.3', facecolor='white', edgecolor='gray', alpha=0.8))
             
-            plt.xticks(rotation=45, ha='right')
+            plt.xticks(rotation=45, ha='right', fontsize=10)
         else:
             # Sin datos temporales
             ax3.text(0.5, 0.5, 'Sin datos temporales disponibles', 
@@ -260,7 +289,7 @@ class PQRSReportGenerator:
         plt.close(fig3)
         
         # Gráfico 4: Tiempos de Respuesta (Nuevo)
-        fig4, ax4 = plt.subplots(figsize=(8, 5))
+        fig4, ax4 = plt.subplots(figsize=(10, 6), facecolor='white')
         
         # Calcular distribución de tiempos
         tiempos = []
@@ -279,34 +308,42 @@ class PQRSReportGenerator:
                 len([t for t in tiempos if t > 20])
             ]
             
-            colores_tiempos = ['#66BB6A', '#FFA726', '#FF7043', '#EF5350', '#B71C1C']
-            bars = ax4.bar(rangos, conteos, color=colores_tiempos, edgecolor='white', linewidth=1.5)
+            # Colores semafóricos profesionales
+            colores_tiempos = ['#27ae60', '#2ecc71', '#f39c12', '#e67e22', '#c0392b']
+            bars = ax4.bar(rangos, conteos, color=colores_tiempos, edgecolor='white', 
+                          linewidth=2, width=0.7, alpha=0.85)
             
-            ax4.set_ylabel('Cantidad de PQRS', fontsize=11, fontweight='bold')
-            ax4.set_title('Distribución de Tiempos de Respuesta', fontsize=13, fontweight='bold', pad=15)
-            ax4.grid(axis='y', alpha=0.3, linestyle='--')
+            ax4.set_ylabel('Cantidad de PQRS', fontsize=12, fontweight='bold', color='#2c3e50')
+            ax4.set_title('Distribución de Tiempos de Respuesta', fontsize=14, fontweight='bold', 
+                         pad=20, color='#2c3e50')
+            ax4.grid(axis='y', alpha=0.2, linestyle='--', linewidth=0.8)
+            ax4.set_axisbelow(True)
             
-            # Línea de referencia legal (15 días)
-            ax4.axhline(y=max(conteos)*0.5, color='red', linestyle='--', 
-                       linewidth=2, alpha=0.5, label='Plazo legal: 15 días')
+            # Línea de referencia legal elegante
+            if max(conteos) > 0:
+                ax4.axhline(y=max(conteos)*0.5, color='#e74c3c', linestyle='--', 
+                           linewidth=2.5, alpha=0.6, label='Referencia legal: 15 días')
             
-            # Añadir valores sobre barras
+            # Añadir valores sobre barras con fondo
             for bar, conteo in zip(bars, conteos):
                 if conteo > 0:
                     height = bar.get_height()
-                    ax4.text(bar.get_x() + bar.get_width()/2., height,
+                    ax4.text(bar.get_x() + bar.get_width()/2., height + max(conteos)*0.02,
                             f'{int(conteo)}',
-                            ha='center', va='bottom', fontsize=10, fontweight='bold')
+                            ha='center', va='bottom', fontsize=11, fontweight='bold',
+                            bbox=dict(boxstyle='round,pad=0.3', facecolor='white', 
+                                    edgecolor='gray', alpha=0.9))
             
-            ax4.legend(loc='upper right', fontsize=9)
-            plt.xticks(rotation=15, ha='right')
+            ax4.legend(loc='upper right', fontsize=10, framealpha=0.9, edgecolor='gray')
+            plt.xticks(rotation=20, ha='right', fontsize=10)
             
-            # Añadir promedio como texto
+            # Añadir promedio con estilo profesional
             promedio = sum(tiempos) / len(tiempos)
-            ax4.text(0.02, 0.98, f'Promedio: {promedio:.1f} días', 
-                    transform=ax4.transAxes, fontsize=11, fontweight='bold',
-                    verticalalignment='top', bbox=dict(boxstyle='round', 
-                    facecolor='wheat', alpha=0.5))
+            ax4.text(0.02, 0.98, f'⏱ Promedio: {promedio:.1f} días', 
+                    transform=ax4.transAxes, fontsize=12, fontweight='bold',
+                    verticalalignment='top', color='#2c3e50',
+                    bbox=dict(boxstyle='round,pad=0.5', facecolor='#ecf0f1', 
+                            edgecolor='#34495e', alpha=0.9, linewidth=2))
         else:
             ax4.text(0.5, 0.5, 'Datos de tiempos no disponibles', 
                     ha='center', va='center', transform=ax4.transAxes, 
@@ -319,7 +356,7 @@ class PQRSReportGenerator:
         plt.close(fig4)
         
         # Gráfico 5: Comparativa Estado vs Tipo (Heatmap)
-        fig5, ax5 = plt.subplots(figsize=(10, 6))
+        fig5, ax5 = plt.subplots(figsize=(11, 7), facecolor='white')
         
         # Crear matriz de estado vs tipo
         if tipos_pqrs and self.pqrs_list:
@@ -338,16 +375,16 @@ class PQRSReportGenerator:
                     j = tipos_lista.index(tipo)
                     matriz[i, j] += 1
             
-            # Crear heatmap
-            im = ax5.imshow(matriz, cmap='YlOrRd', aspect='auto')
+            # Crear heatmap con paleta profesional
+            im = ax5.imshow(matriz, cmap='RdYlGn_r', aspect='auto', alpha=0.85)
             
-            # Etiquetas
+            # Etiquetas con mejor formato
             estados_labels = [e.replace('_', ' ').title() for e in estados_lista]
             tipos_labels = [t.replace('_', ' ').title() for t in tipos_lista]
             
             ax5.set_xticks(np.arange(len(tipos_labels)))
             ax5.set_yticks(np.arange(len(estados_labels)))
-            ax5.set_xticklabels(tipos_labels, rotation=45, ha='right')
+            ax5.set_xticklabels(tipos_labels, rotation=45, ha='right', fontsize=10)
             ax5.set_yticklabels(estados_labels)
             
             # Añadir valores en cada celda
@@ -990,6 +1027,87 @@ class PQRSReportGenerator:
         )
         self.story.append(Paragraph(marco_legal, normal_style))
         self.story.append(Spacer(1, 0.2*inch))
+        
+        # ***** SECCIÓN DE FIRMA *****
+        self.story.append(PageBreak())
+        self.story.append(Spacer(1, 1.5*inch))
+        
+        # Estilo para la sección de firma
+        firma_style = ParagraphStyle(
+            'FirmaStyle',
+            parent=normal_style,
+            fontSize=11,
+            alignment=TA_CENTER,
+            spaceAfter=8,
+            textColor=colors.HexColor('#2c3e50')
+        )
+        
+        nombre_firma_style = ParagraphStyle(
+            'NombreFirmaStyle',
+            parent=normal_style,
+            fontSize=12,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold',
+            spaceAfter=4,
+            textColor=colors.HexColor('#2c3e50')
+        )
+        
+        cargo_firma_style = ParagraphStyle(
+            'CargoFirmaStyle',
+            parent=normal_style,
+            fontSize=10,
+            alignment=TA_CENTER,
+            spaceAfter=15,
+            textColor=colors.HexColor('#34495e')
+        )
+        
+        # Línea de firma elegante
+        firma_table_data = [
+            [''],  # Espacio para la firma
+            ['_' * 60],  # Línea de firma
+        ]
+        
+        firma_table = Table(firma_table_data, colWidths=[6*inch])
+        firma_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'BOTTOM'),
+            ('FONTNAME', (0, 1), (0, 1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (0, 1), 10),
+            ('TEXTCOLOR', (0, 1), (0, 1), colors.HexColor('#7f8c8d')),
+            ('TOPPADDING', (0, 0), (0, 0), 30),  # Espacio para firma manuscrita
+        ]))
+        
+        self.story.append(firma_table)
+        self.story.append(Spacer(1, 0.15*inch))
+        
+        # Nombre y cargo del representante legal
+        if self.entity.representante_legal:
+            self.story.append(Paragraph(
+                f"<b>{self.entity.representante_legal.upper()}</b>",
+                nombre_firma_style
+            ))
+        else:
+            self.story.append(Paragraph(
+                "<b>_______________________________________</b>",
+                nombre_firma_style
+            ))
+        
+        if self.entity.cargo_representante:
+            self.story.append(Paragraph(
+                self.entity.cargo_representante,
+                cargo_firma_style
+            ))
+        else:
+            self.story.append(Paragraph(
+                "Representante Legal",
+                cargo_firma_style
+            ))
+        
+        self.story.append(Spacer(1, 0.2*inch))
+        self.story.append(Paragraph(
+            f"<i>{self.entity.name}</i>",
+            firma_style
+        ))
         
         # Construir PDF
         doc.build(self.story)
