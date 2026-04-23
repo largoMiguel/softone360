@@ -1188,6 +1188,11 @@ async def generar_informe_pdf(
         # Convertir a diccionarios para el generador
         pqrs_list = []
         for pqrs in pqrs_query_result:
+            # Calcular días de respuesta si existe fecha_respuesta
+            dias_respuesta = None
+            if pqrs.fecha_respuesta and pqrs.fecha_solicitud:
+                dias_respuesta = (pqrs.fecha_respuesta - pqrs.fecha_solicitud).days
+            
             pqrs_dict = {
                 'id': pqrs.id,
                 'numero_radicado': pqrs.numero_radicado,
@@ -1195,6 +1200,7 @@ async def generar_informe_pdf(
                 'estado': pqrs.estado.value if hasattr(pqrs.estado, 'value') else str(pqrs.estado),
                 'fecha_solicitud': pqrs.fecha_solicitud.isoformat() if pqrs.fecha_solicitud else None,
                 'fecha_respuesta': pqrs.fecha_respuesta.isoformat() if pqrs.fecha_respuesta else None,
+                'dias_respuesta': dias_respuesta,
                 'asunto': pqrs.asunto,
                 'assigned_to': {
                     'full_name': pqrs.assigned_to.full_name
@@ -1241,6 +1247,10 @@ async def generar_informe_pdf(
         print(f"📈 Analytics calculadas: {analytics['totalPqrs']} total, {analytics['tasaResolucion']}% resolución")
         
         # Obtener análisis de IA si está habilitado (Bedrock + Claude 3)
+        print(f"🔍 DEBUG - request.usar_ia: {request.usar_ia}")
+        print(f"🔍 DEBUG - entity.enable_ai_reports: {entity.enable_ai_reports}")
+        print(f"🔍 DEBUG - entity.name: {entity.name}")
+        
         ai_analysis = None
         if request.usar_ia and entity.enable_ai_reports:
             try:
@@ -1265,6 +1275,7 @@ async def generar_informe_pdf(
         
         # Si no hay IA o falló, usar análisis por defecto
         if not ai_analysis:
+            print(f"⚠️ Usando análisis por defecto (IA no disponible)")
             ai_analysis = {
                 'introduccion': f"Informe de PQRS de {entity.name} para el período {request.fecha_inicio} - {request.fecha_fin}.",
                 'analisisGeneral': f"Durante el período se registraron {total} PQRS con una tasa de resolución del {analytics['tasaResolucion']}%. Se evidencia un desempeño {'satisfactorio' if analytics['tasaResolucion'] >= 70 else 'que requiere mejora'} en la gestión de solicitudes ciudadanas.",

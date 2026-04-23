@@ -109,24 +109,50 @@ class PQRSReportGenerator:
     
     def generate_charts(self) -> Dict[str, BytesIO]:
         """
-        Genera gráficos estadísticos con matplotlib
+        Genera gráficos estadísticos avanzados con matplotlib
         Retorna diccionario con buffers de imágenes PNG
         """
         charts = {}
+        print(f"📊 Generando gráficas con {len(self.pqrs_list)} PQRS...")
         
-        # Gráfico 1: Distribución por Estado (Pie Chart)
-        fig1, ax1 = plt.subplots(figsize=(6, 4))
-        estados = ['Pendiente', 'En Proceso', 'Resuelto', 'Cerrado']
-        valores = [
-            self.analytics.get('pendientes', 0),
-            self.analytics.get('enProceso', 0),
-            self.analytics.get('resueltas', 0),
-            self.analytics.get('cerradas', 0)
+        # Gráfico 1: Distribución por Estado (Pie Chart mejorado)
+        fig1, ax1 = plt.subplots(figsize=(7, 5))
+        estados_labels = []
+        valores_estados = []
+        colores_estados = []
+        
+        # Obtener datos reales de analytics
+        data_estados = [
+            ('Pendiente', self.analytics.get('pendientes', 0), '#FFA726'),
+            ('En Proceso', self.analytics.get('enProceso', 0), '#42A5F5'),
+            ('Resueltas', self.analytics.get('resueltas', 0), '#66BB6A'),
+            ('Cerradas', self.analytics.get('cerradas', 0), '#78909C')
         ]
-        colores = ['#FFA726', '#42A5F5', '#66BB6A', '#78909C']
         
-        ax1.pie(valores, labels=estados, autopct='%1.1f%%', colors=colores, startangle=90)
-        ax1.set_title('Distribución por Estado', fontsize=12, fontweight='bold')
+        # Filtrar solo valores > 0 para mejor visualización
+        for label, valor, color in data_estados:
+            if valor > 0:
+                estados_labels.append(f'{label}\\n({valor})')
+                valores_estados.append(valor)
+                colores_estados.append(color)
+        
+        if valores_estados:
+            wedges, texts, autotexts = ax1.pie(
+                valores_estados, 
+                labels=estados_labels, 
+                autopct='%1.1f%%',
+                colors=colores_estados, 
+                startangle=90,
+                textprops={'fontsize': 10, 'weight': 'bold'}
+            )
+            # Mejorar visibilidad de porcentajes
+            for autotext in autotexts:
+                autotext.set_color('white')
+                autotext.set_fontsize(11)
+                autotext.set_weight('bold')
+        
+        ax1.set_title(f'Distribución por Estado (Total: {self.analytics.get(\"totalPqrs\", 0)})', 
+                     fontsize=13, fontweight='bold', pad=20)
         
         buffer1 = BytesIO()
         plt.savefig(buffer1, format='png', dpi=150, bbox_inches='tight')
@@ -134,27 +160,35 @@ class PQRSReportGenerator:
         charts['estados'] = buffer1
         plt.close(fig1)
         
-        # Gráfico 2: Distribución por Tipo (Bar Chart)
-        fig2, ax2 = plt.subplots(figsize=(8, 4))
+        # Gráfico 2: Distribución por Tipo (Bar Chart mejorado)
+        fig2, ax2 = plt.subplots(figsize=(9, 5))
         tipos_pqrs = self.analytics.get('tiposPqrs', {})
         
         if tipos_pqrs:
-            tipos = list(tipos_pqrs.keys())
-            cantidades = list(tipos_pqrs.values())
+            # Ordenar por cantidad (mayor a menor)
+            tipos_sorted = sorted(tipos_pqrs.items(), key=lambda x: x[1], reverse=True)
+            tipos = [t[0] for t in tipos_sorted]
+            cantidades = [t[1] for t in tipos_sorted]
             
-            # Capitalizar tipos
+            # Capitalizar y formatear tipos
             tipos_capitalizados = [t.replace('_', ' ').title() for t in tipos]
             
-            bars = ax2.barh(tipos_capitalizados, cantidades, color='#667EEA')
-            ax2.set_xlabel('Cantidad', fontsize=10)
-            ax2.set_title('Distribución por Tipo de Solicitud', fontsize=12, fontweight='bold')
-            ax2.grid(axis='x', alpha=0.3)
+            # Colores degradados
+            colores = plt.cm.viridis(np.linspace(0.3, 0.9, len(tipos)))
             
-            # Añadir valores en las barras
-            for i, bar in enumerate(bars):
+            bars = ax2.barh(tipos_capitalizados, cantidades, color=colores)
+            ax2.set_xlabel('Cantidad de Solicitudes', fontsize=11, fontweight='bold')
+            ax2.set_title('Distribución por Tipo de Solicitud', fontsize=13, fontweight='bold', pad=15)
+            ax2.grid(axis='x', alpha=0.3, linestyle='--')
+            
+            # Añadir valores y porcentajes en las barras
+            total_tipos = sum(cantidades)
+            for i, (bar, cant) in enumerate(zip(bars, cantidades)):
                 width = bar.get_width()
+                porcentaje = (cant / total_tipos * 100) if total_tipos > 0 else 0
                 ax2.text(width, bar.get_y() + bar.get_height()/2, 
-                        f' {int(width)}', ha='left', va='center', fontsize=9)
+                        f' {int(width)} ({porcentaje:.1f}%)', 
+                        ha='left', va='center', fontsize=10, fontweight='bold')
         
         buffer2 = BytesIO()
         plt.savefig(buffer2, format='png', dpi=150, bbox_inches='tight')
@@ -162,27 +196,62 @@ class PQRSReportGenerator:
         charts['tipos'] = buffer2
         plt.close(fig2)
         
-        # Gráfico 3: Tendencia Mensual (Line Chart) - simulado si no hay datos
-        fig3, ax3 = plt.subplots(figsize=(8, 4))
+        # Gráfico 3: Tendencia Mensual (Line Chart mejorado)
+        fig3, ax3 = plt.subplots(figsize=(9, 5))
         
-        # Agrupar PQRS por mes
+        # Agrupar PQRS por mes con conteo real
         meses_dict = {}
         for pqrs in self.pqrs_list:
-            fecha = datetime.fromisoformat(str(pqrs.get('fecha_solicitud', '')).replace('Z', '+00:00'))
-            mes_key = fecha.strftime('%Y-%m')
-            meses_dict[mes_key] = meses_dict.get(mes_key, 0) + 1
+            try:
+                fecha_str = str(pqrs.get('fecha_solicitud', ''))
+                if fecha_str:
+                    fecha = datetime.fromisoformat(fecha_str.replace('Z', '+00:00'))
+                    mes_key = fecha.strftime('%Y-%m')
+                    meses_dict[mes_key] = meses_dict.get(mes_key, 0) + 1
+            except:
+                continue
         
-        if meses_dict:
+        if meses_dict and len(meses_dict) > 0:
             meses_ordenados = sorted(meses_dict.keys())
             valores_meses = [meses_dict[m] for m in meses_ordenados]
-            meses_labels = [datetime.strptime(m, '%Y-%m').strftime('%b %Y') for m in meses_ordenados]
             
-            ax3.plot(meses_labels, valores_meses, marker='o', linewidth=2, color='#10B981', markersize=6)
-            ax3.set_xlabel('Mes', fontsize=10)
-            ax3.set_ylabel('Cantidad de PQRS', fontsize=10)
-            ax3.set_title('Tendencia Mensual', fontsize=12, fontweight='bold')
-            ax3.grid(True, alpha=0.3)
+            # Formatear etiquetas de meses en español
+            meses_es = {
+                'Jan': 'Ene', 'Feb': 'Feb', 'Mar': 'Mar', 'Apr': 'Abr',
+                'May': 'May', 'Jun': 'Jun', 'Jul': 'Jul', 'Aug': 'Ago',
+                'Sep': 'Sep', 'Oct': 'Oct', 'Nov': 'Nov', 'Dec': 'Dic'
+            }
+            meses_labels = []
+            for m in meses_ordenados:
+                fecha_temp = datetime.strptime(m, '%Y-%m')
+                label_en = fecha_temp.strftime('%b %Y')
+                mes_abr = label_en.split()[0]
+                label_es = meses_es.get(mes_abr, mes_abr) + ' ' + label_en.split()[1]
+                meses_labels.append(label_es)
+            
+            # Gráfica de línea con área sombreada
+            ax3.plot(meses_labels, valores_meses, marker='o', linewidth=2.5, 
+                    color='#10B981', markersize=8, markerfacecolor='#10B981', 
+                    markeredgecolor='white', markeredgewidth=2, label='PQRS Recibidas')
+            ax3.fill_between(range(len(meses_labels)), valores_meses, alpha=0.3, color='#10B981')
+            
+            ax3.set_xlabel('Período', fontsize=11, fontweight='bold')
+            ax3.set_ylabel('Cantidad de PQRS', fontsize=11, fontweight='bold')
+            ax3.set_title('Evolución Temporal de PQRS', fontsize=13, fontweight='bold', pad=15)
+            ax3.grid(True, alpha=0.3, linestyle='--')
+            ax3.legend(loc='upper left', fontsize=10)
+            
+            # Añadir valores sobre cada punto
+            for i, (x, y) in enumerate(zip(range(len(meses_labels)), valores_meses)):
+                ax3.text(x, y + max(valores_meses)*0.02, str(y), 
+                        ha='center', va='bottom', fontsize=9, fontweight='bold')
+            
             plt.xticks(rotation=45, ha='right')
+        else:
+            # Sin datos temporales
+            ax3.text(0.5, 0.5, 'Sin datos temporales disponibles', 
+                    ha='center', va='center', transform=ax3.transAxes, 
+                    fontsize=12, color='gray')
         
         buffer3 = BytesIO()
         plt.savefig(buffer3, format='png', dpi=150, bbox_inches='tight')
@@ -190,6 +259,113 @@ class PQRSReportGenerator:
         charts['tendencias'] = buffer3
         plt.close(fig3)
         
+        # Gráfico 4: Tiempos de Respuesta (Nuevo)
+        fig4, ax4 = plt.subplots(figsize=(8, 5))
+        
+        # Calcular distribución de tiempos
+        tiempos = []
+        for pqrs in self.pqrs_list:
+            if pqrs.get('dias_respuesta') and pqrs['dias_respuesta'] > 0:
+                tiempos.append(pqrs['dias_respuesta'])
+        
+        if tiempos:
+            # Crear rangos de tiempo
+            rangos = ['0-5 días', '6-10 días', '11-15 días', '16-20 días', '>20 días']
+            conteos = [
+                len([t for t in tiempos if 0 <= t <= 5]),
+                len([t for t in tiempos if 6 <= t <= 10]),
+                len([t for t in tiempos if 11 <= t <= 15]),
+                len([t for t in tiempos if 16 <= t <= 20]),
+                len([t for t in tiempos if t > 20])
+            ]
+            
+            colores_tiempos = ['#66BB6A', '#FFA726', '#FF7043', '#EF5350', '#B71C1C']
+            bars = ax4.bar(rangos, conteos, color=colores_tiempos, edgecolor='white', linewidth=1.5)
+            
+            ax4.set_ylabel('Cantidad de PQRS', fontsize=11, fontweight='bold')
+            ax4.set_title('Distribución de Tiempos de Respuesta', fontsize=13, fontweight='bold', pad=15)
+            ax4.grid(axis='y', alpha=0.3, linestyle='--')
+            
+            # Línea de referencia legal (15 días)
+            ax4.axhline(y=max(conteos)*0.5, color='red', linestyle='--', 
+                       linewidth=2, alpha=0.5, label='Plazo legal: 15 días')
+            
+            # Añadir valores sobre barras
+            for bar, conteo in zip(bars, conteos):
+                if conteo > 0:
+                    height = bar.get_height()
+                    ax4.text(bar.get_x() + bar.get_width()/2., height,
+                            f'{int(conteo)}',
+                            ha='center', va='bottom', fontsize=10, fontweight='bold')
+            
+            ax4.legend(loc='upper right', fontsize=9)
+            plt.xticks(rotation=15, ha='right')
+            
+            # Añadir promedio como texto
+            promedio = sum(tiempos) / len(tiempos)
+            ax4.text(0.02, 0.98, f'Promedio: {promedio:.1f} días', 
+                    transform=ax4.transAxes, fontsize=11, fontweight='bold',
+                    verticalalignment='top', bbox=dict(boxstyle='round', 
+                    facecolor='wheat', alpha=0.5))
+        else:
+            ax4.text(0.5, 0.5, 'Datos de tiempos no disponibles', 
+                    ha='center', va='center', transform=ax4.transAxes, 
+                    fontsize=12, color='gray')
+        
+        buffer4 = BytesIO()
+        plt.savefig(buffer4, format='png', dpi=150, bbox_inches='tight')
+        buffer4.seek(0)
+        charts['tiempos'] = buffer4
+        plt.close(fig4)
+        
+        # Gráfico 5: Comparativa Estado vs Tipo (Heatmap)
+        fig5, ax5 = plt.subplots(figsize=(10, 6))
+        
+        # Crear matriz de estado vs tipo
+        if tipos_pqrs and self.pqrs_list:
+            estados_lista = ['pendiente', 'en_proceso', 'resuelto', 'cerrado']
+            tipos_lista = list(tipos_pqrs.keys())
+            
+            # Matriz de conteo
+            matriz = np.zeros((len(estados_lista), len(tipos_lista)))
+            
+            for pqrs in self.pqrs_list:
+                estado = pqrs.get('estado', '').lower()
+                tipo = pqrs.get('tipo_solicitud', '').lower()
+                
+                if estado in estados_lista and tipo in tipos_lista:
+                    i = estados_lista.index(estado)
+                    j = tipos_lista.index(tipo)
+                    matriz[i, j] += 1
+            
+            # Crear heatmap
+            im = ax5.imshow(matriz, cmap='YlOrRd', aspect='auto')
+            
+            # Etiquetas
+            estados_labels = [e.replace('_', ' ').title() for e in estados_lista]
+            tipos_labels = [t.replace('_', ' ').title() for t in tipos_lista]
+            
+            ax5.set_xticks(np.arange(len(tipos_labels)))
+            ax5.set_yticks(np.arange(len(estados_labels)))
+            ax5.set_xticklabels(tipos_labels, rotation=45, ha='right')
+            ax5.set_yticklabels(estados_labels)
+            
+            # Añadir valores en cada celda
+            for i in range(len(estados_lista)):\n                for j in range(len(tipos_lista)):
+                    text = ax5.text(j, i, int(matriz[i, j]),
+                                   ha=\"center\", va=\"center\", color=\"black\", 
+                                   fontsize=10, fontweight='bold')
+            
+            ax5.set_title('Matriz: Estado vs Tipo de Solicitud', fontsize=13, fontweight='bold', pad=15)
+            plt.colorbar(im, ax=ax5, label='Cantidad')
+        
+        buffer5 = BytesIO()
+        plt.savefig(buffer5, format='png', dpi=150, bbox_inches='tight')
+        buffer5.seek(0)
+        charts['matriz'] = buffer5
+        plt.close(fig5)
+        
+        print(f\"✅ {len(charts)} gráficas generadas exitosamente\")
         return charts
     
     @staticmethod
@@ -684,7 +860,7 @@ class PQRSReportGenerator:
         self.story.append(Paragraph("ANÁLISIS DE LA INFORMACIÓN", heading_style))
         self.story.append(Spacer(1, 0.15*inch))
         
-        # Generar gráficas
+        # Generar gráficas (ahora incluye 5 gráficos)
         charts = self.generate_charts()
         
         # Subsección: Análisis General (IA)
@@ -695,14 +871,14 @@ class PQRSReportGenerator:
         # Gráfica 1: Distribución por Estado
         if 'estados' in charts:
             self.story.append(Paragraph("Distribución de PQRS por Estado", subheading_style))
-            img = RLImage(charts['estados'], width=4.5*inch, height=2.8*inch)
+            img = RLImage(charts['estados'], width=5*inch, height=3.5*inch)
             self.story.append(img)
             self.story.append(Spacer(1, 0.3*inch))
         
         # Gráfica 2: Distribución por Tipo
         if 'tipos' in charts:
             self.story.append(Paragraph("Distribución de PQRS por Tipo de Solicitud", subheading_style))
-            img = RLImage(charts['tipos'], width=5*inch, height=2.8*inch)
+            img = RLImage(charts['tipos'], width=5.5*inch, height=3*inch)
             self.story.append(img)
             self.story.append(Spacer(1, 0.3*inch))
         
@@ -713,14 +889,34 @@ class PQRSReportGenerator:
         self.story.append(Spacer(1, 0.2*inch))
         
         if 'tendencias' in charts:
-            img = RLImage(charts['tendencias'], width=5.5*inch, height=3*inch)
+            img = RLImage(charts['tendencias'], width=5.5*inch, height=3.2*inch)
             self.story.append(img)
             self.story.append(Spacer(1, 0.3*inch))
         
-        # Subsección: Análisis de Tiempos de Respuesta (IA)
+        # Subsección: Análisis de Tiempos de Respuesta (IA + Gráfica)
         if 'analisisTiempos' in self.ai_analysis and self.ai_analysis['analisisTiempos']:
             self.story.append(Paragraph("Análisis de Tiempos de Respuesta", subheading_style))
             self.story.append(Paragraph(self.ai_analysis['analisisTiempos'], normal_style))
+            self.story.append(Spacer(1, 0.2*inch))
+            
+            # Gráfica 4: Distribución de Tiempos
+            if 'tiempos' in charts:
+                img = RLImage(charts['tiempos'], width=5.5*inch, height=3.2*inch)
+                self.story.append(img)
+                self.story.append(Spacer(1, 0.3*inch))
+        
+        # Gráfica 5: Matriz Estado vs Tipo
+        self.story.append(PageBreak())
+        if 'matriz' in charts:
+            self.story.append(Paragraph("Análisis Cruzado: Estado vs Tipo", subheading_style))
+            self.story.append(Paragraph(
+                "Esta matriz permite identificar patrones en la gestión de diferentes tipos de solicitudes "
+                "según su estado actual, facilitando la detección de cuellos de botella o áreas de mejora.",
+                normal_style
+            ))
+            self.story.append(Spacer(1, 0.2*inch))
+            img = RLImage(charts['matriz'], width=6*inch, height=3.5*inch)
+            self.story.append(img)
             self.story.append(Spacer(1, 0.3*inch))
         
         # Subsección: RECOMENDACIONES (IA)
