@@ -151,7 +151,7 @@ class PQRSReportGenerator:
                 autotext.set_fontsize(11)
                 autotext.set_weight('bold')
         
-        ax1.set_title(f'Distribución por Estado (Total: {self.analytics.get(\"totalPqrs\", 0)})', 
+        ax1.set_title(f"Distribución por Estado (Total: {self.analytics.get('totalPqrs', 0)})", 
                      fontsize=13, fontweight='bold', pad=20)
         
         buffer1 = BytesIO()
