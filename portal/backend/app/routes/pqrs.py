@@ -1112,7 +1112,7 @@ class GenerarInformeRequest(BaseModel):
 @router.get("/alertas-ia", response_model=dict)
 async def get_alertas_ia(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
 ):
     """
     Detecta anomalías en las PQRS usando reglas predefinidas.
@@ -1239,7 +1239,7 @@ async def get_alertas_ia(
 @router.get("/historico-informes", response_model=dict)
 async def get_historico_informes(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
 ):
     """
     Lista los últimos informes PDF generados en S3 para la entidad.
