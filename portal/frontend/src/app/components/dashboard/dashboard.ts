@@ -2270,13 +2270,19 @@ export class DashboardComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Validar que se seleccione usuario firmante (OBLIGATORIO)
+    if (!this.usuarioFirmanteId) {
+      this.alertService.error('⚠️ OBLIGATORIO: Debes seleccionar quién firma el informe antes de generar', 'Selecciona Firmante');
+      return;
+    }
+
     const request = {
       fecha_inicio: this.fechaInicio,
       fecha_fin: this.fechaFin,
       estado: this.filtroEstado || undefined,
       tipo: this.filtroTipo || undefined,
       usar_ia: this.entityContext.currentEntity?.enable_ai_reports ?? false,
-      usuario_firmante_id: this.usuarioFirmanteId || undefined
+      usuario_firmante_id: this.usuarioFirmanteId
     };
 
     this.alertService.info('Generando informe en el servidor...');
