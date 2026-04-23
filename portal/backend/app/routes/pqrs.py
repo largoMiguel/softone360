@@ -1246,17 +1246,17 @@ async def generar_informe_pdf(
             'tiposPqrs': tipos_pqrs
         }
         
-        print(f"📈 Analytics calculadas: {analytics['totalPqrs']} total, {analytics['tasaResolucion']}% resolución", flush=True)
+        logger.info(f"📈 Analytics calculadas: {analytics['totalPqrs']} total, {analytics['tasaResolucion']}% resolución")
         
         # Obtener análisis de IA si está habilitado (Bedrock + Claude 3)
-        print(f"🔍 DEBUG - request.usar_ia: {request.usar_ia}", flush=True)
-        print(f"🔍 DEBUG - entity.enable_ai_reports: {entity.enable_ai_reports}", flush=True)
-        print(f"🔍 DEBUG - entity.name: {entity.name}", flush=True)
+        logger.info(f"🔍 DEBUG - request.usar_ia: {request.usar_ia}")
+        logger.info(f"🔍 DEBUG - entity.enable_ai_reports: {entity.enable_ai_reports}")
+        logger.info(f"🔍 DEBUG - entity.name: {entity.name}")
         
         ai_analysis = None
         if request.usar_ia and entity.enable_ai_reports:
             try:
-                print(f"🤖 Solicitando análisis de IA con Bedrock (Claude 3)...", flush=True)
+                logger.info(f"🤖 Solicitando análisis de IA con Bedrock (Claude 3)...")
                 from app.services.bedrock_ai_service import get_bedrock_service
                 
                 bedrock_service = get_bedrock_service()
@@ -1267,18 +1267,18 @@ async def generar_informe_pdf(
                     fecha_fin=request.fecha_fin,
                     pqrs_list=pqrs_list
                 )
-                print(f"✅ Análisis IA con Bedrock completado", flush=True)
-                print(f"🔍 Usando respuesta de IA - Introducción: {ai_analysis.get('introduccion', '')[:100]}...", flush=True)
+                logger.info(f"✅ Análisis IA con Bedrock completado")
+                logger.info(f"🔍 Usando respuesta de IA - Introducción: {ai_analysis.get('introduccion', '')[:100]}...")
             except Exception as e:
-                print(f"⚠️ Error generando análisis de IA: {e}", flush=True)
+                logger.error(f"⚠️ Error generando análisis de IA: {e}")
                 import traceback
-                print(f"Traceback: {traceback.format_exc()}", flush=True)
+                logger.error(f"Traceback: {traceback.format_exc()}")
                 # Fallback a análisis genérico si Bedrock falla
                 ai_analysis = None
         
         # Si no hay IA o falló, usar análisis por defecto
         if not ai_analysis:
-            print(f"⚠️ Usando análisis por defecto (IA no disponible)", flush=True)
+            logger.warning(f"⚠️ Usando análisis por defecto (IA no disponible)")
             
             # Calcular métricas adicionales para análisis más rico
             tipos_ordenados = sorted(analytics['tiposPqrs'].items(), key=lambda x: x[1], reverse=True)
