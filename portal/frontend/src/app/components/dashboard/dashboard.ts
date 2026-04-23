@@ -109,6 +109,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   filtroSecretario: string = '';
   filtroEstado: string = '';
   filtroTipo: string = '';
+  usuarioFirmanteId: number | null = null;
 
   // Fechas para el informe de correspondencia
   fechaInicioCorrespondencia: string = '';
@@ -2274,7 +2275,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       fecha_fin: this.fechaFin,
       estado: this.filtroEstado || undefined,
       tipo: this.filtroTipo || undefined,
-      usar_ia: this.entityContext.currentEntity?.enable_ai_reports ?? false
+      usar_ia: this.entityContext.currentEntity?.enable_ai_reports ?? false,
+      usuario_firmante_id: this.usuarioFirmanteId || undefined
     };
 
     this.alertService.info('Generando informe en el servidor...');

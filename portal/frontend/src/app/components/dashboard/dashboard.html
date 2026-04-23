@@ -189,6 +189,31 @@
                                 </select>
                             </div>
                         </div>
+                        
+                        <hr>
+                        
+                        <!-- Selector de Usuario Firmante -->
+                        <h6 class="text-muted mb-3">
+                            <i class="fas fa-signature me-2"></i>Firma del Informe
+                        </h6>
+                        
+                        <div class="row g-3 mb-3">
+                            <div class="col-12">
+                                <label for="usuarioFirmante" class="form-label fw-bold">
+                                    <i class="fas fa-user-tie me-1"></i>Seleccionar quien firma el informe
+                                </label>
+                                <select class="form-select" id="usuarioFirmante" [(ngModel)]="usuarioFirmanteId">
+                                    <option [value]="null">Seleccione un usuario</option>
+                                    <option *ngFor="let usuario of secretariosList" [value]="usuario.id">
+                                        {{ usuario.full_name }} - {{ usuario.secretaria || usuario.role }}
+                                    </option>
+                                </select>
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    El nombre y cargo seleccionado aparecerá en la sección de firma del informe PDF
+                                </small>
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" (click)="cancelarInforme()">

@@ -46,7 +46,8 @@ class PQRSReportGenerator:
         analytics: Dict[str, Any],
         ai_analysis: Optional[Dict[str, Any]] = None,
         fecha_inicio: str = None,
-        fecha_fin: str = None
+        fecha_fin: str = None,
+        usuario_firmante = None
     ):
         self.entity = entity
         self.pqrs_list = pqrs_list
@@ -54,6 +55,7 @@ class PQRSReportGenerator:
         self.ai_analysis = ai_analysis or self._default_analysis()
         self.fecha_inicio = fecha_inicio
         self.fecha_fin = fecha_fin
+        self.usuario_firmante = usuario_firmante
         self.buffer = BytesIO()
         self.styles = getSampleStyleSheet()
         self.story = []
@@ -1080,28 +1082,24 @@ class PQRSReportGenerator:
         self.story.append(firma_table)
         self.story.append(Spacer(1, 0.15*inch))
         
-        # Nombre y cargo del representante legal
-        if self.entity.representante_legal:
+        # Nombre y cargo del firmante
+        if self.usuario_firmante:
+            # Usar datos del usuario seleccionado
             self.story.append(Paragraph(
-                f"<b>{self.entity.representante_legal.upper()}</b>",
+                f"<b>{self.usuario_firmante.full_name.upper()}</b>",
                 nombre_firma_style
             ))
+            
+            # Usar secretaría o rol como cargo
+            cargo = self.usuario_firmante.secretaria or self.usuario_firmante.role.value.replace('_', ' ').title()
+            self.story.append(Paragraph(cargo, cargo_firma_style))
         else:
+            # Si no hay usuario seleccionado, mostrar líneas para llenar manualmente
             self.story.append(Paragraph(
                 "<b>_______________________________________</b>",
                 nombre_firma_style
             ))
-        
-        if self.entity.cargo_representante:
-            self.story.append(Paragraph(
-                self.entity.cargo_representante,
-                cargo_firma_style
-            ))
-        else:
-            self.story.append(Paragraph(
-                "Representante Legal",
-                cargo_firma_style
-            ))
+            self.story.append(Paragraph("Nombre del Firmante", cargo_firma_style))
         
         self.story.append(Spacer(1, 0.2*inch))
         self.story.append(Paragraph(

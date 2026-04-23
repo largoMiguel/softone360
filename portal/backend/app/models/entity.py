@@ -51,10 +51,6 @@ class Entity(Base):
     # Personalización de informes PQRS - Template PDF con membrete
     pdf_template_url = Column(String(500), nullable=True)  # URL del PDF template en S3 (membrete institucional)
     
-    # Información del representante legal para firma de informes
-    representante_legal = Column(String(300), nullable=True)  # Nombre completo del representante legal
-    cargo_representante = Column(String(300), nullable=True)  # Cargo del representante (ej: Secretario General y de Gobierno)
-    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

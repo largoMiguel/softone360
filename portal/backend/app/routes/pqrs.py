@@ -1107,6 +1107,7 @@ class GenerarInformeRequest(BaseModel):
     estado: Optional[str] = None  # Filtro por estado
     tipo: Optional[str] = None  # Filtro por tipo
     usar_ia: bool = True  # Usar análisis de IA
+    usuario_firmante_id: Optional[int] = None  # ID del usuario que firma el informe
 
 
 @router.post("/generar-informe-pdf", response_model=dict)
@@ -1360,13 +1361,24 @@ async def generar_informe_pdf(
         print(f"📄 Generando PDF...")
         from app.services.pqrs_report_generator import PQRSReportGenerator
         
+        # Cargar usuario firmante si se especificó
+        usuario_firmante = None
+        if request.usuario_firmante_id:
+            usuario_firmante = db.query(User).filter(
+                User.id == request.usuario_firmante_id,
+                User.entity_id == current_user.entity_id
+            ).first()
+            if usuario_firmante:
+                print(f"✍️ Firmante: {usuario_firmante.full_name} - {usuario_firmante.secretaria or usuario_firmante.role.value}")
+        
         generator = PQRSReportGenerator(
             entity=entity,
             pqrs_list=pqrs_list,
             analytics=analytics,
             ai_analysis=ai_analysis,
             fecha_inicio=request.fecha_inicio,
-            fecha_fin=request.fecha_fin
+            fecha_fin=request.fecha_fin,
+            usuario_firmante=usuario_firmante
         )
         
         loop = asyncio.get_event_loop()
