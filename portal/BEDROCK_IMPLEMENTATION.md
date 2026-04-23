@@ -20,7 +20,8 @@ La solución genera análisis profesionales y contextualizados de las métricas 
 - **`_construir_prompt(analytics, entity_name, ...)`**
   - Formatea datos en prompt contextualizado
   - Incluye: métricas, indicadores, normas colombianas (Ley 1755/2015)
-  - ~1600 caracteres de contexto
+  - Solicita 6 secciones: Introducción, Análisis General, Tendencias, **Tiempos**, Recomendaciones, Conclusiones
+  - ~1800 caracteres de contexto
 
 - **`_parse_response(content)`**
   - Extrae secciones de respuesta de Claude
@@ -131,10 +132,33 @@ Frontend: Descarga presigned URL (7 días)
   'introduccion': str,                    # 2-3 párrafos ejecutivos
   'analisisGeneral': str,                 # Análisis de métricas clave
   'analisisTendencias': str,              # Patrones identificados
+  'analisisTiempos': str,                 # Análisis tiempos vs Ley 1755/2015 (15 días)
   'recomendaciones': List[str],           # 5 puntos accionables priorizados
   'conclusiones': str                     # Síntesis y perspectiva
 }
 ```
+
+## Estructura del PDF Generado
+
+El informe PDF se organiza en las siguientes secciones:
+
+1. **PORTADA** - Con trimestre automático y mes de generación
+2. **INTRODUCCIÓN** - Marco legal y contexto
+3. **OBJETIVO** - Propósito del informe
+4. **ALCANCE** - Período y cobertura
+5. **METODOLOGÍA** - Canales de recepción (4 canales)
+6. **CANALES DE SERVICIO** - Información de contacto
+7. **INFORME DE GESTIÓN INSTITUCIONAL** - Tabla de indicadores
+8. **ANÁLISIS DE LA INFORMACIÓN** ⭐ (Sección principal con IA)
+   - **Análisis General** (texto IA + contexto)
+   - **Gráfica: Distribución por Estado** (pie chart)
+   - **Gráfica: Distribución por Tipo** (bar chart)
+   - **Análisis de Tendencias Temporales** (texto IA)
+   - **Gráfica: Tendencias Mensuales** (line chart)
+   - **Análisis de Tiempos de Respuesta** (texto IA comparando con Ley 1755/2015)
+   - **RECOMENDACIONES** (5 puntos numerados generados por IA)
+9. **DETALLE DE PQRS RECIENTES** - Tabla con últimas 20 PQRS
+10. **CONCLUSIONES** - Síntesis final (IA)
 
 ## Costos
 
