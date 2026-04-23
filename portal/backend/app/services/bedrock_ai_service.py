@@ -54,7 +54,7 @@ class BedrockAIService:
                 accept='application/json',
                 body=json.dumps({
                     'anthropic_version': 'bedrock-2023-06-01',
-                    'max_tokens': 2000,
+                    'max_tokens': 4096,  # Aumentado para generar textos extensos
                     'messages': [{
                         'role': 'user',
                         'content': prompt
@@ -112,43 +112,60 @@ Analiza los siguientes datos de PQRS del {entity_name} para el período {fecha_i
 **DISTRIBUCIÓN POR TIPO:**
 {tipos_str}
 
-Por favor genera un análisis profesional estructurado en las siguientes secciones:
+Por favor genera un análisis profesional EXTENSO y DETALLADO estructurado en las siguientes secciones:
 
-1. **INTRODUCCIÓN EJECUTIVA** (2-3 párrafos)
-   - Resumen del período y volumen
-   - Contexto de la gestión
+1. **INTRODUCCIÓN EJECUTIVA** (3-4 párrafos extensos, mínimo 400 palabras)
+   - Resumen detallado del período y volumen de gestión
+   - Contexto amplio de la gestión institucional
+   - Principales hallazgos y métricas destacadas
 
-2. **ANÁLISIS GENERAL** (2-3 párrafos)
-   - Análisis de las métricas principales
-   - Fortalezas y debilidades identificadas
-   - Comparación con estándares legales (Ley 1755/2015)
+2. **ANÁLISIS GENERAL** (4-5 párrafos extensos, mínimo 500 palabras)
+   - Análisis profundo de las métricas principales con interpretación
+   - Fortalezas identificadas con evidencia numérica
+   - Debilidades y áreas de oportunidad con análisis de causas
+   - Comparación exhaustiva con estándares legales (Ley 1755/2015)
+   - Impacto en la satisfacción ciudadana
 
-3. **ANÁLISIS DE TENDENCIAS** (2-3 párrafos)
-   - Patrones identificados
-   - Tipos de solicitud más frecuentes
-   - Comportamiento temporal
+3. **ANÁLISIS DE TENDENCIAS** (4-5 párrafos extensos, mínimo 500 palabras)
+   - Patrones identificados con análisis estadístico
+   - Tipos de solicitud más frecuentes y su significado
+   - Comportamiento temporal con interpretación de variaciones
+   - Análisis de estacionalidad y factores externos
+   - Proyecciones y expectativas
 
-4. **ANÁLISIS DE TIEMPOS DE RESPUESTA** (2-3 párrafos)
-   - Evaluación del tiempo promedio de respuesta ({analytics.get('tiempoPromedioRespuesta', 0)} días)
+4. **ANÁLISIS DE TIEMPOS DE RESPUESTA** (3-4 párrafos extensos, mínimo 400 palabras)
+   - Evaluación detallada del tiempo promedio de respuesta ({analytics.get('tiempoPromedioRespuesta', 0)} días)
    - Comparación con plazos legales (Ley 1755/2015: 15 días hábiles)
-   - Identificación de cuellos de botella
-   - Recomendaciones específicas para optimización de tiempos
+   - Identificación de cuellos de botella y causas raíz
+   - Impacto de los tiempos en la percepción ciudadana
+   - Recomendaciones específicas para optimización
 
-5. **RECOMENDACIONES** (5 puntos numerados)
-   - Acciones concretas para mejorar
-   - Priorización según impacto
+5. **RECOMENDACIONES** (5 recomendaciones extensas, cada una con 3-4 párrafos, mínimo 100 palabras por recomendación)
+   - Cada recomendación debe incluir:
+     * Descripción detallada de la acción propuesta
+     * Justificación con datos y normativa aplicable
+     * Pasos de implementación específicos
+     * Beneficios esperados y métricas de éxito
+     * Responsables sugeridos y plazos
+   - Priorización según impacto (Alto, Medio, Bajo)
    - Orientadas a cumplimiento legal y mejora continua
 
-6. **CONCLUSIONES** (1-2 párrafos)
-   - Síntesis del estado actual
-   - Perspectiva para próximos períodos
+6. **CONCLUSIONES** (4-5 párrafos extensos, mínimo 500 palabras)
+   - Síntesis integral del estado actual de la gestión PQRS
+   - Valoración del cumplimiento normativo
+   - Reconocimiento de logros y avances
+   - Identificación de desafíos pendientes
+   - Perspectiva y proyección para próximos períodos
+   - Compromiso institucional con la mejora continua
 
 **IMPORTANTE:**
-- Usa lenguaje técnico pero accesible
-- Referencia normas colombianas aplicables (Ley 1474/2011, Ley 1755/2015)
+- Genera textos EXTENSOS y DETALLADOS en cada sección
+- Usa lenguaje técnico pero accesible para directivos
+- Incluye referencias específicas a normas colombianas (Ley 1474/2011, Ley 1755/2015, Decreto 1166/2016, Resolución 001519/2020)
 - Enfoque en mejora continua y cumplimiento legal
-- Datos concretos y numéricos en recomendaciones
-- Tono profesional para presentación a directivos
+- Datos concretos y numéricos en cada análisis
+- Tono profesional, formal y propositivo
+- Evita respuestas genéricas, sé específico con los datos proporcionados
 
 Inicia directamente con el análisis, sin preámbulos."""
 

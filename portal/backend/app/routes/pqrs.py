@@ -1276,19 +1276,84 @@ async def generar_informe_pdf(
         # Si no hay IA o falló, usar análisis por defecto
         if not ai_analysis:
             print(f"⚠️ Usando análisis por defecto (IA no disponible)")
+            
+            # Calcular métricas adicionales para análisis más rico
+            tipos_ordenados = sorted(analytics['tiposPqrs'].items(), key=lambda x: x[1], reverse=True)
+            tipo_principal = tipos_ordenados[0] if tipos_ordenados else ('N/A', 0)
+            
             ai_analysis = {
-                'introduccion': f"Informe de PQRS de {entity.name} para el período {request.fecha_inicio} - {request.fecha_fin}.",
-                'analisisGeneral': f"Durante el período se registraron {total} PQRS con una tasa de resolución del {analytics['tasaResolucion']}%. Se evidencia un desempeño {'satisfactorio' if analytics['tasaResolucion'] >= 70 else 'que requiere mejora'} en la gestión de solicitudes ciudadanas.",
-                'analisisTendencias': f"El análisis del período muestra un total de {total} solicitudes, distribuidas en {len(analytics['tiposPqrs'])} tipos diferentes. Los tipos más frecuentes reflejan las necesidades prioritarias de la ciudadanía.",
-                'analisisTiempos': f"El tiempo promedio de respuesta es de {tiempo_promedio} días. De acuerdo con la Ley 1755 de 2015, el término legal para responder PQRS es de 15 días hábiles. {'Se cumple con los estándares legales' if tiempo_promedio <= 15 else 'Se recomienda optimizar los tiempos para cumplir con los plazos legales'}.",
+                'introduccion': (
+                    f"El presente informe corresponde a la gestión de Peticiones, Quejas, Reclamos, Solicitudes y Denuncias (PQRS) "
+                    f"del {entity.name} durante el período comprendido entre {request.fecha_inicio} y {request.fecha_fin}. "
+                    f"Durante este período se registró un total de {total} solicitudes ciudadanas, las cuales han sido atendidas "
+                    f"a través de los diferentes canales de atención dispuestos por la entidad. "
+                    f"Este informe presenta un análisis detallado de los indicadores de gestión, tiempos de respuesta, "
+                    f"distribución por tipo y estado, así como recomendaciones orientadas a la mejora continua del servicio. "
+                    f"La gestión de PQRS constituye un mecanismo fundamental para garantizar el derecho fundamental de petición "
+                    f"consagrado en la Constitución Política y desarrollado en la Ley 1755 de 2015."
+                ),
+                'analisisGeneral': (
+                    f"Durante el período analizado se registraron {total} PQRS, alcanzando una tasa de resolución del "
+                    f"{analytics['tasaResolucion']:.1f}%, lo que refleja un desempeño "
+                    f"{'satisfactorio y acorde con los estándares de calidad esperados' if analytics['tasaResolucion'] >= 70 else 'que requiere fortalecimiento para alcanzar niveles óptimos de gestión'}. "
+                    f"Del total de solicitudes, {pendientes} se encuentran pendientes, {en_proceso} en proceso de atención, "
+                    f"{resueltas} han sido resueltas satisfactoriamente y {cerradas} fueron cerradas. "
+                    f"Estos indicadores permiten evidenciar el compromiso institucional con la atención oportuna y eficaz de las "
+                    f"solicitudes ciudadanas. La distribución por estado refleja el flujo operativo del proceso de gestión de PQRS "
+                    f"y permite identificar las etapas que requieren mayor atención o recursos. Es fundamental mantener un equilibrio "
+                    f"adecuado entre las solicitudes en proceso y las resueltas para garantizar tiempos de respuesta óptimos. "
+                    f"La gestión eficiente de PQRS no solo cumple con el marco normativo vigente, sino que además fortalece "
+                    f"la confianza ciudadana en las instituciones públicas."
+                ),
+                'analisisTendencias': (
+                    f"El análisis del período muestra un total de {total} solicitudes distribuidas en {len(analytics['tiposPqrs'])} "
+                    f"tipos diferentes de PQRS. El tipo de solicitud más frecuente corresponde a "
+                    f"{tipo_principal[0].replace('_', ' ').title()} con {tipo_principal[1]} casos, representando el "
+                    f"{(tipo_principal[1]/total*100):.1f}% del total. Esta distribución permite identificar las principales "
+                    f"necesidades y preocupaciones de la ciudadanía, orientando la toma de decisiones institucionales. "
+                    f"Los tipos más frecuentes reflejan las prioridades y problemáticas que requieren atención por parte de la entidad. "
+                    f"Es importante analizar si estos patrones son consistentes con períodos anteriores o si representan nuevas "
+                    f"tendencias que requieran respuestas específicas. El comportamiento temporal de las solicitudes permite "
+                    f"identificar posibles estacionalidades o eventos específicos que incrementan la demanda en determinados momentos. "
+                    f"Este análisis debe orientar la planificación de recursos humanos y técnicos para garantizar una atención "
+                    f"oportuna y de calidad en todo momento."
+                ),
+                'analisisTiempos': (
+                    f"El tiempo promedio de respuesta registrado durante el período fue de {tiempo_promedio:.1f} días. "
+                    f"De acuerdo con la Ley 1755 de 2015, el término legal general para responder PQRS es de 15 días hábiles, "
+                    f"pudiendo prorrogarse por 10 días más cuando existan circunstancias excepcionales debidamente justificadas. "
+                    f"{'El tiempo promedio se encuentra dentro de los parámetros legales establecidos, lo que evidencia el cumplimiento normativo de la entidad' if tiempo_promedio <= 15 else 'Se recomienda implementar acciones de mejora para optimizar los tiempos de respuesta y garantizar el cumplimiento de los plazos legales establecidos'}. "
+                    f"Los tiempos de respuesta constituyen un indicador crítico de la eficiencia operativa y del compromiso "
+                    f"institucional con la satisfacción ciudadana. Es fundamental mantener un monitoreo constante de este indicador "
+                    f"e identificar oportunamente aquellos casos que puedan estar próximos al vencimiento de términos. "
+                    f"La implementación de alertas tempranas y la asignación eficiente de responsables son estrategias clave "
+                    f"para mantener y mejorar los tiempos de respuesta. Adicionalmente, es importante analizar las causas "
+                    f"de demoras cuando estas se presenten, con el fin de implementar acciones correctivas específicas."
+                ),
                 'recomendaciones': [
-                    "Mantener el seguimiento periódico de las PQRS para garantizar cumplimiento de términos legales",
-                    "Optimizar los tiempos de respuesta mediante revisión de procesos internos",
-                    "Fortalecer los canales de atención ciudadana para mejorar accesibilidad",
-                    "Implementar indicadores de gestión para monitoreo continuo",
-                    "Capacitar al personal en normativa vigente (Ley 1755/2015)"
+                    "FORTALECIMIENTO DEL SEGUIMIENTO: Implementar un sistema de seguimiento periódico y automatizado de las PQRS para garantizar el cumplimiento de términos legales establecidos en la Ley 1755 de 2015. Este sistema debe incluir alertas tempranas para casos próximos al vencimiento, asignación clara de responsables y mecanismos de escalamiento cuando sea necesario. El seguimiento debe ser documentado y reportado mensualmente a la alta dirección.",
+                    
+                    "OPTIMIZACIÓN DE PROCESOS: Realizar una revisión exhaustiva de los procesos internos de gestión de PQRS con el objetivo de identificar cuellos de botella, tiempos muertos y actividades redundantes. Implementar mejoras basadas en principios de eficiencia operativa, simplificación de trámites y automatización de tareas repetitivas. Esta optimización debe buscar reducir los tiempos de respuesta sin comprometer la calidad de las mismas.",
+                    
+                    "FORTALECIMIENTO DE CANALES: Ampliar y fortalecer los canales de atención ciudadana (presencial, virtual, telefónico y escrito) para mejorar la accesibilidad al sistema de PQRS. Garantizar que todos los canales cuenten con personal capacitado, infraestructura tecnológica adecuada y procedimientos estandarizados. Implementar mecanismos de medición de satisfacción ciudadana en cada canal de atención.",
+                    
+                    "SISTEMA DE INDICADORES: Desarrollar e implementar un tablero integral de indicadores de gestión que permita el monitoreo continuo y en tiempo real del proceso de PQRS. Este debe incluir métricas de volumen, tiempos de respuesta, tasas de resolución, satisfacción ciudadana y cumplimiento normativo. Los indicadores deben ser revisados periódicamente en comités de gestión y desempeño.",
+                    
+                    "CAPACITACIÓN Y CULTURA: Diseñar e implementar un programa permanente de capacitación para funcionarios y contratistas sobre la normativa vigente (Ley 1755/2015, Decreto 1166/2016, Resolución 001519/2020) y mejores prácticas en atención ciudadana. Fomentar una cultura institucional orientada al servicio, la transparencia y el respeto por los derechos de los ciudadanos. La capacitación debe ser continua y evaluada en su efectividad."
                 ],
-                'conclusiones': "El sistema de PQRS funciona adecuadamente y responde a las necesidades de los ciudadanos. Se recomienda continuar con el monitoreo y mejora continua del proceso."
+                'conclusiones': (
+                    f"La gestión de PQRS del {entity.name} durante el período analizado demuestra el compromiso institucional "
+                    f"con la atención oportuna y eficaz de las solicitudes ciudadanas. Con un total de {total} PQRS gestionadas "
+                    f"y una tasa de resolución del {analytics['tasaResolucion']:.1f}%, se evidencia un sistema funcional que "
+                    f"responde a las necesidades de los ciudadanos. Sin embargo, como en todo proceso de mejora continua, existen "
+                    f"oportunidades de fortalecimiento que han sido identificadas en este análisis. "
+                    f"Es fundamental mantener el enfoque en la calidad de las respuestas, no solo en su oportunidad, garantizando "
+                    f"que cada solicitud reciba una atención integral que resuelva efectivamente la situación planteada. "
+                    f"La implementación de las recomendaciones formuladas permitirá elevar los estándares de gestión y consolidar "
+                    f"un sistema de PQRS que sea referente de buenas prácticas en la administración pública. "
+                    f"Se recomienda continuar con el monitoreo constante de los indicadores y la evaluación periódica del proceso, "
+                    f"así como la socialización de resultados con todos los actores involucrados."
+                )
             }
         
         # Generar PDF en executor (no bloquea el event loop)

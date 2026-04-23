@@ -969,6 +969,27 @@ class PQRSReportGenerator:
         self.story.append(PageBreak())
         self.story.append(Paragraph("CONCLUSIONES", heading_style))
         self.story.append(Paragraph(self.ai_analysis['conclusiones'], normal_style))
+        self.story.append(Spacer(1, 0.3*inch))
+        
+        # Marco legal y consideraciones finales
+        marco_legal = (
+            "Es pertinente considerar todos los requerimientos como derecho de petición teniendo en cuenta la "
+            "<b>Ley 1755 de 2015</b> \"Por medio de la cual se regula el Derecho Fundamental de Petición\". "
+            "<b>Decreto 1166 de Julio 19 de 2016</b> \"Por el cual se adiciona el capítulo 12 al Título 3 de la Parte 2 "
+            "del Libro 2 del Decreto 1069 de 2015, Decreto Único Reglamentario del Sector Justicia y del Derecho, "
+            "relacionado con la presentación, tratamiento y radicación de las peticiones presentadas verbalmente\". "
+            "<b>Resolución N° 001519 de 24 de agosto de 2020</b> \"Por la cual se definen los estándares y directrices "
+            "para publicar la información señalada en la Ley 1712 del 2014\"; se debe tener en cuenta como un mecanismo "
+            "de respuesta oportuna a la comunidad, ante tantas necesidades presentadas para solución de parte de la "
+            "Administración Pública, en donde se deben evidenciar las acciones eficientes y efectivas que se reflejen "
+            "en el valor público generado por los funcionarios y contratistas de la Administración; por tanto es "
+            "responsabilidad de la Institución Pública verificar dichos indicadores generando una mejora continua; "
+            "es menester de la Alta dirección mediante el Comité Institucional de Gestión y Desempeño autoevaluar la "
+            "política, especialmente analizar las respuestas inoportunas, planteando plan de mejora interno por parte "
+            "de la Secretaría General quien lidera esta política así como la calidad de respuesta."
+        )
+        self.story.append(Paragraph(marco_legal, normal_style))
+        self.story.append(Spacer(1, 0.2*inch))
         
         # Construir PDF
         doc.build(self.story)
