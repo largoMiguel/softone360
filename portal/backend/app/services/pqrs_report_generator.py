@@ -351,9 +351,10 @@ class PQRSReportGenerator:
             ax5.set_yticklabels(estados_labels)
             
             # Añadir valores en cada celda
-            for i in range(len(estados_lista)):\n                for j in range(len(tipos_lista)):
+            for i in range(len(estados_lista)):
+                for j in range(len(tipos_lista)):
                     text = ax5.text(j, i, int(matriz[i, j]),
-                                   ha=\"center\", va=\"center\", color=\"black\", 
+                                   ha='center', va='center', color='black', 
                                    fontsize=10, fontweight='bold')
             
             ax5.set_title('Matriz: Estado vs Tipo de Solicitud', fontsize=13, fontweight='bold', pad=15)
@@ -365,7 +366,7 @@ class PQRSReportGenerator:
         charts['matriz'] = buffer5
         plt.close(fig5)
         
-        print(f\"✅ {len(charts)} gráficas generadas exitosamente\")
+        print(f"✅ {len(charts)} gráficas generadas exitosamente")
         return charts
     
     @staticmethod
