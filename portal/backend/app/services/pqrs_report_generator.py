@@ -285,6 +285,15 @@ class PQRSReportGenerator:
             fontName='Helvetica-Bold'
         )
         
+        subheading_style = ParagraphStyle(
+            'CustomSubheading',
+            parent=self.styles['Heading3'],
+            fontSize=12,
+            textColor=colors.HexColor('#2d5016'),
+            spaceAfter=8,
+            fontName='Helvetica-Bold'
+        )
+        
         normal_style = ParagraphStyle(
             'CustomNormal',
             parent=self.styles['Normal'],
@@ -670,44 +679,61 @@ class PQRSReportGenerator:
         self.story.append(indicadores_table)
         self.story.append(Spacer(1, 0.3*inch))
         
-        # ***** GRÁFICOS *****
+        # ***** ANÁLISIS DE LA INFORMACIÓN *****
         self.story.append(PageBreak())
-        self.story.append(Paragraph("GRÁFICOS ESTADÍSTICOS", heading_style))
+        self.story.append(Paragraph("ANÁLISIS DE LA INFORMACIÓN", heading_style))
+        self.story.append(Spacer(1, 0.15*inch))
         
+        # Generar gráficas
         charts = self.generate_charts()
         
-        if 'estados' in charts:
-            self.story.append(Paragraph("Distribución por Estado", normal_style))
-            img = RLImage(charts['estados'], width=4*inch, height=2.5*inch)
-            self.story.append(img)
-            self.story.append(Spacer(1, 0.2*inch))
-        
-        if 'tipos' in charts:
-            self.story.append(Paragraph("Distribución por Tipo", normal_style))
-            img = RLImage(charts['tipos'], width=5*inch, height=2.5*inch)
-            self.story.append(img)
-            self.story.append(Spacer(1, 0.2*inch))
-        
-        # ***** ANÁLISIS GENERAL *****
-        self.story.append(PageBreak())
-        self.story.append(Paragraph("ANÁLISIS GENERAL", heading_style))
+        # Subsección: Análisis General (IA)
+        self.story.append(Paragraph("Análisis General", subheading_style))
         self.story.append(Paragraph(self.ai_analysis['analisisGeneral'], normal_style))
+        self.story.append(Spacer(1, 0.3*inch))
+        
+        # Gráfica 1: Distribución por Estado
+        if 'estados' in charts:
+            self.story.append(Paragraph("Distribución de PQRS por Estado", subheading_style))
+            img = RLImage(charts['estados'], width=4.5*inch, height=2.8*inch)
+            self.story.append(img)
+            self.story.append(Spacer(1, 0.3*inch))
+        
+        # Gráfica 2: Distribución por Tipo
+        if 'tipos' in charts:
+            self.story.append(Paragraph("Distribución de PQRS por Tipo de Solicitud", subheading_style))
+            img = RLImage(charts['tipos'], width=5*inch, height=2.8*inch)
+            self.story.append(img)
+            self.story.append(Spacer(1, 0.3*inch))
+        
+        # Subsección: Análisis de Tendencias (IA + Gráfica)
+        self.story.append(PageBreak())
+        self.story.append(Paragraph("Análisis de Tendencias Temporales", subheading_style))
+        self.story.append(Paragraph(self.ai_analysis['analisisTendencias'], normal_style))
         self.story.append(Spacer(1, 0.2*inch))
         
-        # ***** TENDENCIAS *****
         if 'tendencias' in charts:
-            self.story.append(Paragraph("ANÁLISIS DE TENDENCIAS", heading_style))
-            self.story.append(Paragraph(self.ai_analysis['analisisTendencias'], normal_style))
-            img = RLImage(charts['tendencias'], width=5*inch, height=2.5*inch)
+            img = RLImage(charts['tendencias'], width=5.5*inch, height=3*inch)
             self.story.append(img)
-            self.story.append(Spacer(1, 0.2*inch))
+            self.story.append(Spacer(1, 0.3*inch))
         
-        # ***** RECOMENDACIONES *****
+        # Subsección: Análisis de Tiempos de Respuesta (IA)
+        if 'analisisTiempos' in self.ai_analysis and self.ai_analysis['analisisTiempos']:
+            self.story.append(Paragraph("Análisis de Tiempos de Respuesta", subheading_style))
+            self.story.append(Paragraph(self.ai_analysis['analisisTiempos'], normal_style))
+            self.story.append(Spacer(1, 0.3*inch))
+        
+        # Subsección: RECOMENDACIONES (IA)
         self.story.append(PageBreak())
         self.story.append(Paragraph("RECOMENDACIONES", heading_style))
+        self.story.append(Spacer(1, 0.15*inch))
         
+        # Renderizar cada recomendación como párrafo separado
         for i, rec in enumerate(self.ai_analysis['recomendaciones'], 1):
-            self.story.append(Paragraph(f"{i}. {rec}", normal_style))
+            # Limpiar formato de markdown si viene de IA
+            rec_clean = rec.strip().lstrip('0123456789.-• ').strip()
+            self.story.append(Paragraph(f"{i}. {rec_clean}", normal_style))
+            self.story.append(Spacer(1, 0.1*inch))
         
         self.story.append(Spacer(1, 0.2*inch))
         

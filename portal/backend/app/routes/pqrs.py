@@ -1109,184 +1109,6 @@ class GenerarInformeRequest(BaseModel):
     usar_ia: bool = True  # Usar análisis de IA
 
 
-@router.get("/alertas-ia", response_model=dict)
-async def get_alertas_ia(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
-):
-    """
-    Detecta anomalías en las PQRS usando reglas predefinidas.
-    Retorna lista de alertas con nivel (critica/advertencia/informacion) y acciones recomendadas.
-    """
-    from datetime import timedelta
-    entity_id = current_user.entity_id
-    hoy = datetime.now()
-    fecha_inicio_90 = hoy - timedelta(days=90)
-
-    pqrs_q = (
-        db.query(PQRS)
-        .filter(PQRS.entity_id == entity_id, PQRS.fecha_solicitud >= fecha_inicio_90)
-        .all()
-    )
-
-    total     = len(pqrs_q)
-    pendientes = sum(1 for p in pqrs_q if str(getattr(p.estado, 'value', p.estado)) == 'pendiente')
-    en_proceso = sum(1 for p in pqrs_q if str(getattr(p.estado, 'value', p.estado)) == 'en_proceso')
-    resueltas  = sum(1 for p in pqrs_q if str(getattr(p.estado, 'value', p.estado)) == 'resuelto')
-    cerradas   = sum(1 for p in pqrs_q if str(getattr(p.estado, 'value', p.estado)) == 'cerrado')
-
-    alertas = []
-
-    # 1. Alta tasa de pendencia
-    if total > 0:
-        pct_pend = (pendientes / total) * 100
-        if pct_pend > 40:
-            alertas.append({
-                'nivel': 'critica',
-                'tipo': 'alta_pendencia',
-                'titulo': f'{pendientes} PQRS pendientes sin atender ({pct_pend:.0f}%)',
-                'descripcion': (
-                    f'{pendientes} de {total} PQRS están pendientes de atención en los últimos 90 días. '
-                    'Este nivel supera el umbral crítico del 40%.'
-                ),
-                'accion': 'Revisar y reasignar PQRS pendientes a las secretarías correspondientes.'
-            })
-        elif pct_pend > 25:
-            alertas.append({
-                'nivel': 'advertencia',
-                'tipo': 'pendencia_media',
-                'titulo': f'Pendencia elevada: {pct_pend:.0f}% de PQRS sin resolver',
-                'descripcion': f'{pendientes} PQRS están pendientes de atención en los últimos 90 días.',
-                'accion': 'Monitorear la gestión de PQRS pendientes semanalmente.'
-            })
-
-    # 2. PQRS vencidas (> 15 días sin respuesta, Ley 1755/2015)
-    pqrs_vencidas = []
-    for p in pqrs_q:
-        estado_val = str(getattr(p.estado, 'value', p.estado))
-        if estado_val in ('pendiente', 'en_proceso') and p.fecha_solicitud:
-            dias = (hoy - p.fecha_solicitud.replace(tzinfo=None)).days
-            if dias > 15:
-                pqrs_vencidas.append({
-                    'radicado': p.numero_radicado,
-                    'dias': dias,
-                    'tipo': str(getattr(p.tipo_solicitud, 'value', p.tipo_solicitud))
-                })
-    if pqrs_vencidas:
-        alertas.append({
-            'nivel': 'critica' if len(pqrs_vencidas) > 3 else 'advertencia',
-            'tipo': 'pqrs_vencidas',
-            'titulo': f'{len(pqrs_vencidas)} PQRS superaron el término legal (Ley 1755/2015)',
-            'descripcion': (
-                f'{len(pqrs_vencidas)} PQRS llevan más de 15 días sin respuesta, '
-                'incumpliendo los términos del Artículo 14 de la Ley 1755 de 2015.'
-            ),
-            'accion': 'Gestionar respuesta inmediata. Priorizar radicados más antiguos.',
-            'detalles': sorted(pqrs_vencidas, key=lambda x: x['dias'], reverse=True)[:5]
-        })
-
-    # 3. Baja tasa de resolución
-    if total > 0:
-        tasa = ((resueltas + cerradas) / total) * 100
-        if tasa < 30:
-            alertas.append({
-                'nivel': 'critica',
-                'tipo': 'baja_resolucion',
-                'titulo': f'Baja tasa de resolución: {tasa:.0f}%',
-                'descripcion': (
-                    f'Solo el {tasa:.0f}% de las PQRS han sido resueltas o cerradas en los últimos 90 días. '
-                    'El estándar recomendado es superior al 70%.'
-                ),
-                'accion': 'Priorizar el cierre de PQRS en proceso. Revisar cuellos de botella.'
-            })
-
-    # 4. Sin PQRS recientes
-    if total == 0:
-        alertas.append({
-            'nivel': 'informacion',
-            'tipo': 'sin_datos',
-            'titulo': 'Sin PQRS registradas en los últimos 90 días',
-            'descripcion': 'No se han registrado PQRS en el período reciente.',
-            'accion': 'Verificar que el sistema de recepción esté activo y accesible.'
-        })
-
-    # 5. PQRS sin asignar
-    sin_asignar = sum(1 for p in pqrs_q if not p.assigned_to_id)
-    if sin_asignar > 0:
-        alertas.append({
-            'nivel': 'advertencia',
-            'tipo': 'sin_asignar',
-            'titulo': f'{sin_asignar} PQRS sin asignar a secretaría',
-            'descripcion': f'{sin_asignar} PQRS no tienen funcionario o secretaría responsable asignado.',
-            'accion': 'Asignar PQRS pendientes a los funcionarios correspondientes.'
-        })
-
-    return {
-        'total_pqrs_analizadas': total,
-        'periodo_dias': 90,
-        'alertas': alertas,
-        'resumen': {
-            'pendientes': pendientes,
-            'en_proceso': en_proceso,
-            'resueltas': resueltas,
-            'cerradas': cerradas,
-            'vencidas': len(pqrs_vencidas),
-            'sin_asignar': sin_asignar
-        }
-    }
-
-
-@router.get("/historico-informes", response_model=dict)
-async def get_historico_informes(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
-):
-    """
-    Lista los últimos informes PDF generados en S3 para la entidad.
-    Retorna hasta 10 informes recientes con su URL de descarga.
-    """
-    try:
-        import boto3 as _boto3
-        entity = db.query(Entity).filter(Entity.id == current_user.entity_id).first()
-        if not entity:
-            return {'informes': []}
-
-        S3_BUCKET = "softone360-pqrs-archivos"
-        S3_REGION = "us-east-1"
-        prefix = f"informes-pqrs/{entity.slug}/"
-
-        s3 = _boto3.client('s3', region_name=S3_REGION)
-        response = s3.list_objects_v2(
-            Bucket=S3_BUCKET,
-            Prefix=prefix,
-            MaxKeys=20
-        )
-
-        informes = []
-        for obj in sorted(
-            response.get('Contents', []),
-            key=lambda x: x['LastModified'],
-            reverse=True
-        )[:10]:
-            presigned = s3.generate_presigned_url(
-                'get_object',
-                Params={'Bucket': S3_BUCKET, 'Key': obj['Key']},
-                ExpiresIn=3600  # 1 hora
-            )
-            nombre = obj['Key'].split('/')[-1]
-            informes.append({
-                'nombre': nombre,
-                'fecha': obj['LastModified'].isoformat(),
-                'tamano_mb': round(obj['Size'] / 1024 / 1024, 2),
-                'download_url': presigned
-            })
-
-        return {'informes': informes, 'total': len(informes)}
-    except Exception as e:
-        print(f"Error listando histórico: {e}")
-        return {'informes': [], 'total': 0}
-
-
 @router.post("/generar-informe-pdf", response_model=dict)
 async def generar_informe_pdf(
     request: GenerarInformeRequest,
@@ -1374,10 +1196,8 @@ async def generar_informe_pdf(
                 'fecha_solicitud': pqrs.fecha_solicitud.isoformat() if pqrs.fecha_solicitud else None,
                 'fecha_respuesta': pqrs.fecha_respuesta.isoformat() if pqrs.fecha_respuesta else None,
                 'asunto': pqrs.asunto,
-                'correo_asignado': pqrs.assigned_to.email if pqrs.assigned_to else None,
                 'assigned_to': {
-                    'full_name': pqrs.assigned_to.full_name,
-                    'email': pqrs.assigned_to.email
+                    'full_name': pqrs.assigned_to.full_name
                 } if pqrs.assigned_to else None
             }
             pqrs_list.append(pqrs_dict)
@@ -1447,14 +1267,17 @@ async def generar_informe_pdf(
         if not ai_analysis:
             ai_analysis = {
                 'introduccion': f"Informe de PQRS de {entity.name} para el período {request.fecha_inicio} - {request.fecha_fin}.",
-                'analisisGeneral': f"Durante el período se registraron {total} PQRS con una tasa de resolución del {analytics['tasaResolucion']}%.",
-                'analisisTendencias': f"Tiempo promedio de respuesta: {tiempo_promedio} días.",
+                'analisisGeneral': f"Durante el período se registraron {total} PQRS con una tasa de resolución del {analytics['tasaResolucion']}%. Se evidencia un desempeño {'satisfactorio' if analytics['tasaResolucion'] >= 70 else 'que requiere mejora'} en la gestión de solicitudes ciudadanas.",
+                'analisisTendencias': f"El análisis del período muestra un total de {total} solicitudes, distribuidas en {len(analytics['tiposPqrs'])} tipos diferentes. Los tipos más frecuentes reflejan las necesidades prioritarias de la ciudadanía.",
+                'analisisTiempos': f"El tiempo promedio de respuesta es de {tiempo_promedio} días. De acuerdo con la Ley 1755 de 2015, el término legal para responder PQRS es de 15 días hábiles. {'Se cumple con los estándares legales' if tiempo_promedio <= 15 else 'Se recomienda optimizar los tiempos para cumplir con los plazos legales'}.",
                 'recomendaciones': [
-                    "Mantener el seguimiento periódico de las PQRS",
-                    "Optimizar los tiempos de respuesta",
-                    "Fortalecer los canales de atención ciudadana"
+                    "Mantener el seguimiento periódico de las PQRS para garantizar cumplimiento de términos legales",
+                    "Optimizar los tiempos de respuesta mediante revisión de procesos internos",
+                    "Fortalecer los canales de atención ciudadana para mejorar accesibilidad",
+                    "Implementar indicadores de gestión para monitoreo continuo",
+                    "Capacitar al personal en normativa vigente (Ley 1755/2015)"
                 ],
-                'conclusiones': "El sistema de PQRS funciona adecuadamente y responde a las necesidades de los ciudadanos."
+                'conclusiones': "El sistema de PQRS funciona adecuadamente y responde a las necesidades de los ciudadanos. Se recomienda continuar con el monitoreo y mejora continua del proceso."
             }
         
         # Generar PDF en executor (no bloquea el event loop)

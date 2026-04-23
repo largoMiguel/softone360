@@ -102,24 +102,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // Realce visual al abrir detalle desde alerta
   highlightDetalle = false;
 
-  // Fechas e IA para el informe
+  // Fechas para el informe
   fechaInicio: string = '';
   fechaFin: string = '';
   mostrarSelectorFechas: boolean = false;
   filtroSecretario: string = '';
   filtroEstado: string = '';
   filtroTipo: string = '';
-  usarIa: boolean = true;
-
-  // Alertas IA de anomalías
-  alertasIA: any[] = [];
-  loadingAlertasIA: boolean = false;
-  mostrarAlertasIA: boolean = false;
-
-  // Histórico de informes generados
-  historicoInformes: any[] = [];
-  loadingHistorico: boolean = false;
-  mostrarHistorico: boolean = false;
 
   // Fechas para el informe de correspondencia
   fechaInicioCorrespondencia: string = '';
@@ -2270,57 +2259,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.filtroTipo = '';
   }
 
-  /** Cargar alertas IA de anomalías en PQRS */
-  cargarAlertasIA(): void {
-    this.loadingAlertasIA = true;
-    this.pqrsService.getAlertasIA().subscribe({
-      next: (data) => {
-        this.alertasIA = data.alertas || [];
-        this.loadingAlertasIA = false;
-        this.mostrarAlertasIA = true;
-      },
-      error: (err) => {
-        console.error('Error cargando alertas IA:', err);
-        this.loadingAlertasIA = false;
-      }
-    });
-  }
-
-  /** Cargar histórico de informes generados */
-  cargarHistoricoInformes(): void {
-    this.loadingHistorico = true;
-    this.pqrsService.getHistoricoInformes().subscribe({
-      next: (data) => {
-        this.historicoInformes = data.informes || [];
-        this.loadingHistorico = false;
-        this.mostrarHistorico = true;
-      },
-      error: (err) => {
-        console.error('Error cargando histórico:', err);
-        this.loadingHistorico = false;
-        this.historicoInformes = [];
-      }
-    });
-  }
-
-  getNivelAlertaClass(nivel: string): string {
-    const map: Record<string, string> = {
-      'critica': 'danger',
-      'advertencia': 'warning',
-      'informacion': 'info'
-    };
-    return map[nivel] || 'secondary';
-  }
-
-  getNivelAlertaIcon(nivel: string): string {
-    const map: Record<string, string> = {
-      'critica': 'fas fa-exclamation-circle',
-      'advertencia': 'fas fa-exclamation-triangle',
-      'informacion': 'fas fa-info-circle'
-    };
-    return map[nivel] || 'fas fa-bell';
-  }
-
   /**
    * Genera informe PQRS en el backend con gráficos profesionales
    * y template institucional personalizado
@@ -2336,7 +2274,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       fecha_fin: this.fechaFin,
       estado: this.filtroEstado || undefined,
       tipo: this.filtroTipo || undefined,
-      usar_ia: this.usarIa
+      usar_ia: this.entityContext.currentEntity?.enable_ai_reports ?? false
     };
 
     this.alertService.info('Generando informe en el servidor...');

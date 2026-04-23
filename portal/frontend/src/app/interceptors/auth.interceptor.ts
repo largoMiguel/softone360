@@ -19,8 +19,10 @@ export class AuthInterceptor implements HttpInterceptor {
     intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
         const token = this.authService.getToken();
 
-        // Si el token existe pero expiró, intentar renovarlo antes de la petición
-        if (token && this.authService.isTokenExpired()) {
+        // Si el token existe pero expiró, intentar renovarlo antes de la petición.
+        // Excluir explícitamente /auth/login y /auth/refresh para evitar bucles.
+        const isAuthEndpoint = req.url.includes('/auth/login') || req.url.includes('/auth/refresh') || req.url.includes('/auth/register');
+        if (token && this.authService.isTokenExpired() && !isAuthEndpoint) {
             return this.handleTokenRefresh(req, next);
         }
 
@@ -72,10 +74,12 @@ export class AuthInterceptor implements HttpInterceptor {
                 this.refreshTokenSubject.next(response.access_token);
                 return next.handle(this.addToken(req, response.access_token));
             }),
-            catchError(() => {
+            catchError((err) => {
                 this.isRefreshing = false;
+                // Desbloquear requests en espera antes de navegar
+                this.refreshTokenSubject.next(null);
                 this.handleUnauthorized();
-                return EMPTY;
+                return throwError(() => err);
             })
         );
     }

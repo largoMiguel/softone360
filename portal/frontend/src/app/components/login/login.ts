@@ -96,6 +96,11 @@ export class LoginComponent implements OnInit {
               'Tu cuenta ha sido desactivada. Por favor, contacta al administrador del sistema para más información.',
               'Cuenta Inactiva'
             );
+          } else if (error.status === 0) {
+            this.alertService.error(
+              'No se pudo conectar con el servidor. Verifica tu conexión a internet e intenta nuevamente.',
+              'Error de Conexión'
+            );
           } else if (error.status === 401) {
             this.alertService.error(
               'El usuario o la contraseña son incorrectos. Por favor, verifica tus credenciales e intenta nuevamente.',
