@@ -1267,6 +1267,7 @@ async def generar_informe_pdf(
                     pqrs_list=pqrs_list
                 )
                 print(f"✅ Análisis IA con Bedrock completado")
+                print(f"🔍 Usando respuesta de IA - Introducción: {ai_analysis.get('introduccion', '')[:100]}...")
             except Exception as e:
                 print(f"⚠️ Error generando análisis de IA: {e}")
                 import traceback

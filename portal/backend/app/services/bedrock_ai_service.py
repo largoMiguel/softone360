@@ -67,9 +67,21 @@ class BedrockAIService:
             content = result['content'][0]['text']
             
             print(f"✅ Análisis IA completado ({len(content)} caracteres)")
+            print(f"📝 Primeros 500 caracteres de respuesta IA:")
+            print(content[:500])
             
             # Estructurar respuesta
-            return self._parse_response(content)
+            parsed = self._parse_response(content)
+            
+            # Debug: Mostrar lo que se parseó
+            print(f"🔍 Secciones parseadas:")
+            for key, value in parsed.items():
+                if isinstance(value, list):
+                    print(f"  • {key}: {len(value)} items")
+                else:
+                    print(f"  • {key}: {len(str(value))} caracteres")
+            
+            return parsed
             
         except ClientError as e:
             if e.response['Error']['Code'] == 'AccessDenied':
