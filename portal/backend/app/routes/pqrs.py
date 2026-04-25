@@ -1462,7 +1462,7 @@ async def generar_informe_pdf(
         # Crear notificación para el usuario
         alert_informe = Alert(
             entity_id=entity.id,
-            user_id=current_user.id,
+            recipient_user_id=current_user.id,
             type='INFORME_PQRS_READY',
             title='Informe PQRS listo',
             message=f'El informe del período {request.fecha_inicio} al {request.fecha_fin} está disponible para descarga.',
