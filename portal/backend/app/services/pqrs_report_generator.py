@@ -17,7 +17,7 @@ from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT, TA_RIGHT
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
-    PageBreak, Image as RLImage, Frame, PageTemplate
+    PageBreak, Image as RLImage, Frame, PageTemplate, KeepTogether
 )
 from reportlab.platypus.doctemplate import BaseDocTemplate
 from reportlab.lib.utils import ImageReader
@@ -60,12 +60,44 @@ class PQRSReportGenerator:
         self.styles = getSampleStyleSheet()
         self.story = []
         
+    def _render_text_block(self, text_or_list, style, story=None):
+        """Renderiza texto de IA en el PDF, manejando saltos de línea y markdown."""
+        import re
+        if story is None:
+            story = self.story
+        from reportlab.platypus import Spacer
+        from reportlab.lib.units import inch
+
+        lines = text_or_list if isinstance(text_or_list, list) else str(text_or_list).split('\n')
+
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            # Eliminar markdown: **bold**, *italic*, ## headers, - bullets, • bullets
+            line = re.sub(r'\*\*(.+?)\*\*', r'\1', line)
+            line = re.sub(r'\*(.+?)\*', r'\1', line)
+            line = re.sub(r'^#{1,6}\s*', '', line)
+            line = re.sub(r'^[-•]\s+', '', line)
+            # Quitar numeración tipo "1.", "2)", "Recomendación 1:", etc.
+            line = re.sub(r'^\d+[\.):]\s+', '', line)
+            line = re.sub(r'^Recomendaci[oó]n\s+\d+[:.)]?\s*', '', line, flags=re.IGNORECASE)
+            # Escapar caracteres XML problemáticos para ReportLab
+            line = line.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            if line.strip():
+                try:
+                    from reportlab.platypus import Paragraph as RLParagraph
+                    story.append(RLParagraph(line, style))
+                    story.append(Spacer(1, 0.06 * inch))
+                except Exception:
+                    pass
+
     def _default_analysis(self) -> Dict[str, Any]:
         """Análisis por defecto cuando no hay IA"""
         return {
             "introduccion": "Informe generado automáticamente del sistema de PQRS.",
             "analisisGeneral": "Análisis estadístico de las PQRS registradas en el período seleccionado.",
-            "analisisTendencias": "Tendencias identificadas en el período de análisis.",
+            "analisisTiempos": "",
             "recomendaciones": [
                 "Continuar con el seguimiento periódico de las PQRS",
                 "Mantener los tiempos de respuesta dentro de los estándares",
@@ -486,7 +518,7 @@ class PQRSReportGenerator:
             'CustomTitle',
             parent=self.styles['Heading1'],
             fontSize=18,
-            textColor=colors.HexColor('#667EEA'),
+            textColor=colors.black,
             spaceAfter=12,
             alignment=TA_CENTER,
             fontName='Helvetica-Bold'
@@ -496,7 +528,7 @@ class PQRSReportGenerator:
             'CustomHeading',
             parent=self.styles['Heading2'],
             fontSize=14,
-            textColor=colors.HexColor('#667EEA'),
+            textColor=colors.black,
             spaceAfter=10,
             fontName='Helvetica-Bold'
         )
@@ -505,7 +537,7 @@ class PQRSReportGenerator:
             'CustomSubheading',
             parent=self.styles['Heading3'],
             fontSize=12,
-            textColor=colors.HexColor('#2d5016'),
+            textColor=colors.black,
             spaceAfter=8,
             fontName='Helvetica-Bold'
         )
@@ -516,6 +548,14 @@ class PQRSReportGenerator:
             fontSize=10,
             alignment=TA_JUSTIFY,
             spaceAfter=8
+        )
+        
+        table_header_style = ParagraphStyle(
+            'TableHeaderStyle',
+            parent=self.styles['Normal'],
+            fontSize=10,
+            fontName='Helvetica-Bold',
+            alignment=TA_CENTER
         )
         
         # ***** PORTADA PERSONALIZADA *****
@@ -810,13 +850,13 @@ class PQRSReportGenerator:
         # Tabla teléfonos
         phone_val = self.entity.phone or "—"
         phone_data = [
-            [Paragraph("<b>SECRETARIA/OFICINA</b>", normal_style),
-             Paragraph("<b>LÍNEAS CELULARES</b>", normal_style)],
+            ["SECRETARIA/OFICINA", "LÍNEAS CELULARES"],
             ["Despacho", phone_val],
         ]
         phone_table = Table(phone_data, colWidths=[3.5*inch, 3.0*inch])
         phone_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d9d9d9')),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2d5016')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 9),
@@ -838,8 +878,7 @@ class PQRSReportGenerator:
         self.story.append(Spacer(1, 0.1*inch))
 
         terminos_data = [
-            [Paragraph("<b>CLASE TERMINO</b>", normal_style),
-             Paragraph("<b>CLASE TERMINO</b>", normal_style)],
+            ["CLASE TERMINO", "CLASE TERMINO"],
             ["Petición en interés general y particular",
              "Dentro de los quince (15) días siguientes a su recepción"],
             ["Peticiones de Documentos e Información",
@@ -853,7 +892,8 @@ class PQRSReportGenerator:
         ]
         terminos_table = Table(terminos_data, colWidths=[3.25*inch, 3.25*inch])
         terminos_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d9d9d9')),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2d5016')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
@@ -869,36 +909,39 @@ class PQRSReportGenerator:
         self.story.append(Paragraph("INDICADORES GENERALES", heading_style))
         
         indicadores_data = [
-            ['Indicador', 'Valor'],
+            ["Indicador", "Valor"],
             ['Total de PQRS', str(self.analytics.get('totalPqrs', 0))],
             ['PQRS Pendientes', str(self.analytics.get('pendientes', 0))],
-            ['PQRS En Proceso', str(self.analytics.get('enProceso', 0))],
-            ['PQRS Resueltas', str(self.analytics.get('resueltas', 0))],
-            ['PQRS Cerradas', str(self.analytics.get('cerradas', 0))],
-            ['Tasa de Resolución', f"{self.analytics.get('tasaResolucion', 0)}%"],
-            ['Tiempo Promedio de Respuesta', f"{self.analytics.get('tiempoPromedioRespuesta', 0)} días"]
         ]
+        # Solo mostrar filas con valor > 0 para estados intermedios
+        if self.analytics.get('enProceso', 0) > 0:
+            indicadores_data.append(['PQRS En Proceso', str(self.analytics.get('enProceso', 0))])
+        indicadores_data.append(['PQRS Resueltas', str(self.analytics.get('resueltas', 0))])
+        if self.analytics.get('cerradas', 0) > 0:
+            indicadores_data.append(['PQRS Cerradas', str(self.analytics.get('cerradas', 0))])
+        indicadores_data.append(['Tasa de Resolución', f"{self.analytics.get('tasaResolucion', 0)}%"])
+        tiempo = self.analytics.get('tiempoPromedioRespuesta', 0)
+        indicadores_data.append(['Tiempo Promedio de Respuesta', f"{tiempo} días" if tiempo > 0 else 'No registrado'])
         
         indicadores_table = Table(indicadores_data, colWidths=[4*inch, 2*inch])
         indicadores_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#667EEA')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2d5016')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('ALIGN', (1, 1), (1, -1), 'CENTER'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 10),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey)
         ]))
         
         self.story.append(indicadores_table)
-        self.story.append(Spacer(1, 0.3*inch))
+        self.story.append(Spacer(1, 0.1*inch))
         
         # ***** ANÁLISIS DE LA INFORMACIÓN *****
-        self.story.append(PageBreak())
         self.story.append(Paragraph("ANÁLISIS DE LA INFORMACIÓN", heading_style))
-        self.story.append(Spacer(1, 0.15*inch))
+        self.story.append(Spacer(1, 0.08*inch))
         
         # Generar gráficas (ahora incluye 5 gráficos)
         charts = self.generate_charts()
@@ -906,78 +949,80 @@ class PQRSReportGenerator:
         # Subsección: Introducción (IA)
         if 'introduccion' in self.ai_analysis and self.ai_analysis['introduccion']:
             self.story.append(Paragraph("Introducción", subheading_style))
-            self.story.append(Paragraph(self.ai_analysis['introduccion'], normal_style))
-            self.story.append(Spacer(1, 0.3*inch))
+            self._render_text_block(self.ai_analysis['introduccion'], normal_style)
+            self.story.append(Spacer(1, 0.1*inch))
         
         # Subsección: Análisis General (IA)
         self.story.append(Paragraph("Análisis General", subheading_style))
-        self.story.append(Paragraph(self.ai_analysis['analisisGeneral'], normal_style))
-        self.story.append(Spacer(1, 0.3*inch))
+        self._render_text_block(self.ai_analysis['analisisGeneral'], normal_style)
+        self.story.append(Spacer(1, 0.1*inch))
         
         # Gráfica 1: Distribución por Estado
         if 'estados' in charts:
-            self.story.append(Paragraph("Distribución de PQRS por Estado", subheading_style))
-            img = RLImage(charts['estados'], width=5*inch, height=3.5*inch)
-            self.story.append(img)
-            self.story.append(Spacer(1, 0.3*inch))
+            self.story.append(KeepTogether([
+                Paragraph("Distribución de PQRS por Estado", subheading_style),
+                RLImage(charts['estados'], width=4.5*inch, height=2.8*inch),
+                Spacer(1, 0.1*inch)
+            ]))
         
         # Gráfica 2: Distribución por Tipo
         if 'tipos' in charts:
-            self.story.append(Paragraph("Distribución de PQRS por Tipo de Solicitud", subheading_style))
-            img = RLImage(charts['tipos'], width=5.5*inch, height=3*inch)
-            self.story.append(img)
-            self.story.append(Spacer(1, 0.3*inch))
-        
-        # Subsección: Análisis de Tendencias (IA + Gráfica)
-        self.story.append(PageBreak())
-        self.story.append(Paragraph("Análisis de Tendencias Temporales", subheading_style))
-        self.story.append(Paragraph(self.ai_analysis['analisisTendencias'], normal_style))
-        self.story.append(Spacer(1, 0.2*inch))
-        
-        if 'tendencias' in charts:
-            img = RLImage(charts['tendencias'], width=5.5*inch, height=3.2*inch)
-            self.story.append(img)
-            self.story.append(Spacer(1, 0.3*inch))
+            self.story.append(KeepTogether([
+                Paragraph("Distribución de PQRS por Tipo de Solicitud", subheading_style),
+                RLImage(charts['tipos'], width=5*inch, height=2.6*inch),
+                Spacer(1, 0.1*inch)
+            ]))
         
         # Subsección: Análisis de Tiempos de Respuesta (IA + Gráfica)
         if 'analisisTiempos' in self.ai_analysis and self.ai_analysis['analisisTiempos']:
-            self.story.append(Paragraph("Análisis de Tiempos de Respuesta", subheading_style))
-            self.story.append(Paragraph(self.ai_analysis['analisisTiempos'], normal_style))
-            self.story.append(Spacer(1, 0.2*inch))
-            
-            # Gráfica 4: Distribución de Tiempos
+            tiempos_block = [
+                Paragraph("Análisis de Tiempos de Respuesta", subheading_style),
+            ]
+            # Añadir texto como párrafos individuales al bloque
+            for line in str(self.ai_analysis['analisisTiempos']).split('\n'):
+                line = line.strip()
+                if line:
+                    tiempos_block.append(Paragraph(line, normal_style))
             if 'tiempos' in charts:
-                img = RLImage(charts['tiempos'], width=5.5*inch, height=3.2*inch)
-                self.story.append(img)
-                self.story.append(Spacer(1, 0.3*inch))
+                tiempos_block.append(Spacer(1, 0.06*inch))
+                tiempos_block.append(RLImage(charts['tiempos'], width=4.5*inch, height=2.2*inch))
+            tiempos_block.append(Spacer(1, 0.08*inch))
+            self.story.append(KeepTogether(tiempos_block))
         
         # Gráfica 5: Matriz Estado vs Tipo
-        self.story.append(PageBreak())
         if 'matriz' in charts:
-            self.story.append(Paragraph("Análisis Cruzado: Estado vs Tipo", subheading_style))
-            self.story.append(Paragraph(
-                "Esta matriz permite identificar patrones en la gestión de diferentes tipos de solicitudes "
-                "según su estado actual, facilitando la detección de cuellos de botella o áreas de mejora.",
-                normal_style
-            ))
-            self.story.append(Spacer(1, 0.2*inch))
-            img = RLImage(charts['matriz'], width=6*inch, height=3.5*inch)
-            self.story.append(img)
-            self.story.append(Spacer(1, 0.3*inch))
+            self.story.append(KeepTogether([
+                Paragraph("Análisis Cruzado: Estado vs Tipo", subheading_style),
+                Paragraph(
+                    "Esta matriz permite identificar patrones en la gestión de diferentes tipos de solicitudes "
+                    "según su estado actual, facilitando la detección de cuellos de botella o áreas de mejora.",
+                    normal_style
+                ),
+                Spacer(1, 0.06*inch),
+                RLImage(charts['matriz'], width=4.8*inch, height=2.4*inch),
+                Spacer(1, 0.08*inch)
+            ]))
         
         # Subsección: RECOMENDACIONES (IA)
-        self.story.append(PageBreak())
         self.story.append(Paragraph("RECOMENDACIONES", heading_style))
-        self.story.append(Spacer(1, 0.15*inch))
+        self.story.append(Spacer(1, 0.08*inch))
         
-        # Renderizar cada recomendación como párrafo separado
-        for i, rec in enumerate(self.ai_analysis['recomendaciones'], 1):
-            # Limpiar formato de markdown si viene de IA
-            rec_clean = rec.strip().lstrip('0123456789.-• ').strip()
-            self.story.append(Paragraph(f"{i}. {rec_clean}", normal_style))
-            self.story.append(Spacer(1, 0.1*inch))
+        # Renderizar recomendaciones (lista o texto)
+        recs = self.ai_analysis.get('recomendaciones', [])
+        print(f"🔍 DEBUG recomendaciones type={type(recs).__name__} len={len(recs) if isinstance(recs, (list,str)) else '?'} preview={str(recs)[:300]}", flush=True)
+        # Saltar la primera recomendación (index 0)
+        if isinstance(recs, list) and len(recs) > 1:
+            for rec in recs[1:]:
+                rec = rec.strip()
+                if rec:
+                    self.story.append(Paragraph(rec, normal_style))
+                    self.story.append(Spacer(1, 0.15*inch))
+        elif isinstance(recs, list) and recs:
+            self._render_text_block(recs, normal_style)
+        elif isinstance(recs, str) and recs:
+            self._render_text_block(recs, normal_style)
         
-        self.story.append(Spacer(1, 0.2*inch))
+        self.story.append(Spacer(1, 0.1*inch))
         
         # ***** DETALLE DE PQRS *****
         self.story.append(PageBreak())
@@ -997,8 +1042,8 @@ class PQRSReportGenerator:
         
         pqrs_table = Table(pqrs_data, colWidths=[1.5*inch, 1.5*inch, 1.5*inch, 1.5*inch])
         pqrs_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#667EEA')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2d5016')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 9),
@@ -1013,8 +1058,8 @@ class PQRSReportGenerator:
         # ***** CONCLUSIONES *****
         self.story.append(PageBreak())
         self.story.append(Paragraph("CONCLUSIONES", heading_style))
-        self.story.append(Paragraph(self.ai_analysis['conclusiones'], normal_style))
-        self.story.append(Spacer(1, 0.3*inch))
+        self._render_text_block(self.ai_analysis['conclusiones'], normal_style)
+        self.story.append(Spacer(1, 0.1*inch))
         
         # Marco legal y consideraciones finales
         marco_legal = (
@@ -1037,8 +1082,7 @@ class PQRSReportGenerator:
         self.story.append(Spacer(1, 0.2*inch))
         
         # ***** SECCIÓN DE FIRMA *****
-        self.story.append(PageBreak())
-        self.story.append(Spacer(1, 1.5*inch))
+        self.story.append(Spacer(1, 0.3*inch))
         
         # Estilo para la sección de firma
         firma_style = ParagraphStyle(
@@ -1191,8 +1235,10 @@ class PQRSReportGenerator:
                 for patron in ["Página 1 de 1", "Pagina 1 de 1", "página 1 de 1"]:
                     rects = page.search_for(patron)
                     for rect in rects:
-                        # Tapar el texto original con un rectángulo blanco
-                        page.draw_rect(rect, color=None, fill=(1, 1, 1))
+                        # Expandir rect para cubrir el texto original + espacio para números más largos
+                        expanded = fitz.Rect(rect.x0 - 2, rect.y0 - 2, rect.x1 + 60, rect.y1 + 2)
+                        page.add_redact_annot(expanded)
+                        page.apply_redactions()
                         # Escribir el nuevo número de página en la misma posición
                         page.insert_text(
                             (rect.x0, rect.y1 - 1),

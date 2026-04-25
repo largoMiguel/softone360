@@ -15,7 +15,8 @@ class BedrockAIService:
     def __init__(self, region_name: str = 'us-east-1'):
         """Inicializar cliente Bedrock con credenciales IAM"""
         self.client = boto3.client('bedrock-runtime', region_name=region_name)
-        self.model_id = 'anthropic.claude-3-sonnet-20240229-v1:0'
+        # Usar cross-region inference profile (prefijo us.) para mayor disponibilidad
+        self.model_id = 'us.anthropic.claude-3-haiku-20240307-v1:0'
 
     def analizar_pqrs(
         self,

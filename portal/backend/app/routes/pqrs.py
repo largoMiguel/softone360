@@ -1260,24 +1260,24 @@ async def generar_informe_pdf(
         ai_analysis = None
         if request.usar_ia and entity.enable_ai_reports:
             try:
-                logger.info(f"🤖 Solicitando análisis de IA con Bedrock (Claude 3)...")
-                from app.services.bedrock_ai_service import get_bedrock_service
+                logger.info(f"🤖 Solicitando análisis de IA con OpenAI (GPT-4.1-nano)...")
+                from app.services.openai_ai_service import get_openai_service
                 
-                bedrock_service = get_bedrock_service()
-                ai_analysis = bedrock_service.analizar_pqrs(
+                openai_service = get_openai_service()
+                ai_analysis = openai_service.analizar_pqrs(
                     analytics=analytics,
                     entity_name=entity.name,
                     fecha_inicio=request.fecha_inicio,
                     fecha_fin=request.fecha_fin,
                     pqrs_list=pqrs_list
                 )
-                logger.info(f"✅ Análisis IA con Bedrock completado")
+                logger.info(f"✅ Análisis IA con OpenAI completado")
                 logger.info(f"🔍 Usando respuesta de IA - Introducción: {ai_analysis.get('introduccion', '')[:100]}...")
             except Exception as e:
                 logger.error(f"⚠️ Error generando análisis de IA: {e}")
                 import traceback
                 logger.error(f"Traceback: {traceback.format_exc()}")
-                # Fallback a análisis genérico si Bedrock falla
+                # Fallback a análisis genérico si OpenAI falla
                 ai_analysis = None
         
         # Si no hay IA o falló, usar análisis por defecto
