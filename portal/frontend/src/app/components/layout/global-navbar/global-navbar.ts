@@ -1,5 +1,6 @@
 import { Component, HostListener, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Observable } from 'rxjs';
 import { Router } from '@angular/router';
 import { EntityContextService } from '../../../services/entity-context.service';
 import { AuthService } from '../../../services/auth.service';
@@ -26,7 +27,7 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
     // Informes PQRS
     showInformesPanel = false;
     informes: InformePqrs[] = [];
-    informesCount = 0;
+    informesNuevos$!: Observable<number>;
     cargandoInformes = false;
 
     private router = inject(Router);
@@ -43,6 +44,7 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
     ) {
         this.alerts$ = this.notifications.alertsStream;
         this.unreadCount$ = this.notifications.unreadCountStream;
+        this.informesNuevos$ = this.informesPqrsService.nuevos$;
     }
 
     ngOnInit() {
@@ -64,7 +66,7 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
             }
         });
 
-        // Auto-refresh de alertas cada 60 segundos
+        // Auto-refresh de alertas e informes cada 60 segundos
         this.refreshInterval = setInterval(() => {
             if (!this.auth.isAuthenticated()) {
                 if (this.refreshInterval) {
@@ -77,6 +79,12 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
             const entity = this.entityContext.currentEntity;
             if (user && entity) {
                 this.notifications.fetch(true).subscribe();
+                // Refrescar badge de informes en background
+                if (user.role === 'admin' || user.role === 'superadmin') {
+                    if (this.isAdmin() && this.pqrsEnabled()) {
+                        this.informesPqrsService.cargar().subscribe();
+                    }
+                }
             }
         }, 60000);
     }
@@ -121,8 +129,11 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
         this.informesPqrsService.cargar().subscribe({
             next: (informes) => {
                 this.informes = informes;
-                this.informesCount = informes.length;
                 this.cargandoInformes = false;
+                // Si el panel está abierto, marcar como vistos tras cargar
+                if (this.showInformesPanel) {
+                    this.informesPqrsService.marcarTodosVistos();
+                }
             },
             error: () => { this.cargandoInformes = false; }
         });

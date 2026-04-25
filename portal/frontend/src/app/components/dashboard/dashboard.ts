@@ -19,6 +19,7 @@ import { Chart, ChartConfiguration, ChartData, ChartType, registerables } from '
 import { Subscription, combineLatest, filter } from 'rxjs';
 import { NotificationsService, AlertItem } from '../../services/notifications.service';
 import { AlertsEventsService } from '../../services/alerts-events.service';
+import { InformesPqrsService } from '../../services/informes-pqrs.service';
 
 // Registrar todos los componentes de Chart.js
 Chart.register(...registerables);
@@ -242,7 +243,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     public entityContext: EntityContextService,
     private notificationsService: NotificationsService,
     private alertsEvents: AlertsEventsService,
-    private correspondenciaService: CorrespondenciaService
+    private correspondenciaService: CorrespondenciaService,
+    private informesPqrsService: InformesPqrsService
   ) {
     // Inicializar streams de alertas con el servicio inyectado
     this.alerts$ = this.notificationsService.alertsStream;
@@ -2287,34 +2289,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     this.alertService.info('Generando informe en el servidor...');
 
+    // Cerrar modal inmediatamente — no se espera a que termine
+    this.mostrarSelectorFechas = false;
+    this.alertService.success(
+      '📄 Se ha solicitado la generación del informe. Recibirás la notificación en el ícono PDF de la barra superior cuando esté listo para descargar.',
+      'Informe en proceso'
+    );
+
     this.pqrsService.generarInformePdf(request).subscribe({
       next: (response: any) => {
-        // Cerrar modal de generación
-        this.mostrarSelectorFechas = false;
-
-        // Construir mensaje de éxito detallado
-        let mensaje = `
-          <div style="text-align: left;">
-            <strong>✅ Informe generado exitosamente</strong><br><br>
-            <strong>📊 Estadísticas:</strong><br>
-            • Total PQRS: ${response.total_pqrs}<br>
-            • Tasa de resolución: ${response.tasa_resolucion}%<br>
-            • Tamaño: ${response.file_size_mb} MB<br>
-            ${response.used_template ? '• ✅ Con template institucional<br>' : '• ℹ️ Sin template personalizado<br>'}
-            ${response.used_ai ? '• 🤖 Con análisis IA incluido<br>' : ''}
-            <br>
-            <strong>🔗 Descarga:</strong><br>
-            <a href="${response.download_url}" target="_blank" style="color: #007bff;">
-              Click aquí para descargar
-            </a><br>
-            <small style="color: #666;">Válido por 7 días</small>
-          </div>
-        `;
-
-        this.alertService.success(mensaje, 'Informe Generado');
-
-        // Auto-abrir PDF en nueva pestaña
-        window.open(response.download_url, '_blank');
+        // Recargar panel de informes → badge se actualizará
+        this.informesPqrsService.cargar().subscribe();
       },
       error: (error: any) => {
         const errorMsg = error.error?.detail || error.message || 'Error desconocido';
