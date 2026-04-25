@@ -63,6 +63,44 @@ nav.navbar {
     background-color: #f5f8ff;
 }
 
+// Panel informes PQRS
+.informes-panel {
+    position: absolute;
+    right: 0;
+    top: 48px;
+    width: 380px;
+    max-height: 450px;
+    overflow: auto;
+    z-index: 1050;
+    border: 1px solid rgba(0,0,0,.15);
+
+    .informes-list {
+        overflow-y: auto;
+        max-height: 320px;
+    }
+
+    .informe-item {
+        padding: 0.6rem 0.8rem;
+        font-size: 0.85rem;
+        transition: background 0.15s;
+
+        &:hover {
+            background-color: #f8f9fa;
+        }
+    }
+
+    .card-header {
+        background: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        font-size: 0.9rem;
+    }
+
+    .card-footer {
+        background: #fafafa;
+        border-top: 1px solid #dee2e6;
+    }
+}
+
 .user-dropdown {
     display: flex;
     align-items: center;

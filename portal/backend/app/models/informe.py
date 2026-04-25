@@ -15,8 +15,11 @@ class InformeEstado(Base):
     entity_id = Column(Integer, ForeignKey("entities.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     
+    # Tipo de informe: 'pdm' o 'pqrs'
+    tipo = Column(String(20), nullable=False, default='pdm', index=True)
+    
     # Configuración del informe solicitado
-    anio = Column(Integer, nullable=False)
+    anio = Column(Integer, nullable=True)
     formato = Column(String(10), nullable=False, default='pdf')  # pdf, docx, xlsx
     filtros = Column(JSON, nullable=True)  # secretaria_ids, fechas, estados, etc.
     
@@ -29,6 +32,13 @@ class InformeEstado(Base):
     s3_key = Column(String(512), nullable=True)  # Key en S3 para eliminación posterior
     filename = Column(String(256), nullable=True)
     file_size = Column(Integer, nullable=True)  # bytes
+    
+    # Configuración adicional para PQRS
+    fecha_inicio = Column(String(20), nullable=True)  # YYYY-MM-DD
+    fecha_fin = Column(String(20), nullable=True)     # YYYY-MM-DD
+    total_pqrs = Column(Integer, nullable=True)
+    tasa_resolucion = Column(Integer, nullable=True)
+    used_ai = Column(Boolean, default=False)
     
     # Errores
     error_message = Column(Text, nullable=True)

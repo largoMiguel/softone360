@@ -19,6 +19,7 @@ from app.config.database import get_db
 from app.models.pqrs import PQRS, EstadoPQRS, AsignacionAuditoria
 from app.models.user import User, UserRole
 from app.models.entity import Entity
+from app.models.informe import InformeEstado
 from app.schemas.pqrs import PQRSCreate, PQRSUpdate, PQRS as PQRSSchema, PQRSWithDetails, PQRSResponse
 from app.models.alert import Alert
 from app.utils.auth import get_current_active_user, require_admin
@@ -1432,6 +1433,45 @@ async def generar_informe_pdf(
         print(f"✅ Informe generado exitosamente")
         print(f"{'='*70}\n")
         
+        # Guardar registro en DB
+        from datetime import timedelta
+        expires_at = datetime.utcnow() + timedelta(days=7)
+        informe_record = InformeEstado(
+            entity_id=entity.id,
+            user_id=current_user.id,
+            tipo='pqrs',
+            anio=fecha_fin_dt.year,
+            formato='pdf',
+            estado='completed',
+            progreso=100,
+            s3_url=download_url,
+            s3_key=file_key,
+            filename=f"informe_pqrs_{request.fecha_inicio}_{request.fecha_fin}.pdf",
+            file_size=len(pdf_content),
+            fecha_inicio=request.fecha_inicio,
+            fecha_fin=request.fecha_fin,
+            total_pqrs=total,
+            tasa_resolucion=int(analytics['tasaResolucion']),
+            used_ai=(ai_analysis is not None),
+            started_at=datetime.utcnow(),
+            completed_at=datetime.utcnow(),
+            expires_at=expires_at
+        )
+        db.add(informe_record)
+        
+        # Crear notificación para el usuario
+        alert_informe = Alert(
+            entity_id=entity.id,
+            user_id=current_user.id,
+            type='INFORME_PQRS_READY',
+            title='Informe PQRS listo',
+            message=f'El informe del período {request.fecha_inicio} al {request.fecha_fin} está disponible para descarga.',
+            data=json.dumps({'tipo': 'pqrs', 'fecha_inicio': request.fecha_inicio, 'fecha_fin': request.fecha_fin})
+        )
+        db.add(alert_informe)
+        db.commit()
+        db.refresh(informe_record)
+        
         return {
             "success": True,
             "message": "Informe generado exitosamente",
@@ -1456,3 +1496,68 @@ async def generar_informe_pdf(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error generando informe: {str(e)}"
         )
+
+
+@router.get("/informes", response_model=list)
+async def listar_informes_pqrs(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Lista todos los informes PQRS generados para la entidad del usuario.
+    Solo muestra informes no expirados (últimos 7 días).
+    """
+    if current_user.role not in [UserRole.ADMIN, UserRole.SUPERADMIN]:
+        raise HTTPException(status_code=403, detail="No tienes permisos para ver informes")
+
+    from datetime import timezone
+    ahora = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    informes = (
+        db.query(InformeEstado)
+        .filter(
+            InformeEstado.entity_id == current_user.entity_id,
+            InformeEstado.tipo == 'pqrs',
+            InformeEstado.estado == 'completed',
+            InformeEstado.expires_at > ahora
+        )
+        .order_by(InformeEstado.created_at.desc())
+        .limit(50)
+        .all()
+    )
+
+    result = []
+    for inf in informes:
+        # Regenerar URL pre-firmada fresca (7 días desde ahora)
+        fresh_url = None
+        if inf.s3_key:
+            try:
+                fresh_url = s3_client.generate_presigned_url(
+                    'get_object',
+                    Params={'Bucket': S3_BUCKET, 'Key': inf.s3_key},
+                    ExpiresIn=604800
+                )
+            except Exception:
+                fresh_url = inf.s3_url
+
+        dias_restantes = None
+        if inf.expires_at:
+            delta = inf.expires_at - ahora
+            dias_restantes = max(0, delta.days)
+
+        result.append({
+            "id": inf.id,
+            "filename": inf.filename,
+            "fecha_inicio": inf.fecha_inicio,
+            "fecha_fin": inf.fecha_fin,
+            "total_pqrs": inf.total_pqrs,
+            "tasa_resolucion": inf.tasa_resolucion,
+            "used_ai": inf.used_ai,
+            "file_size_mb": round((inf.file_size or 0) / (1024 * 1024), 2),
+            "download_url": fresh_url,
+            "created_at": inf.created_at.isoformat() if inf.created_at else None,
+            "expires_at": inf.expires_at.isoformat() if inf.expires_at else None,
+            "dias_restantes": dias_restantes
+        })
+
+    return result

@@ -58,6 +58,62 @@
                 </button>
             </div>
 
+            <!-- Botón Informes PQRS -->
+            <div class="informes-pqrs-bell position-relative" *ngIf="isAdmin() && pqrsEnabled()">
+                <button type="button" class="btn btn-link nav-link text-white p-0 position-relative btn-icon-navbar"
+                    (click)="toggleInformesPanel()"
+                    title="Informes PQRS generados">
+                    <i class="fas fa-file-pdf fa-lg"></i>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success"
+                        *ngIf="informesCount > 0">
+                        {{ informesCount }}
+                    </span>
+                </button>
+
+                <!-- Panel Informes -->
+                <div class="informes-panel card shadow" *ngIf="showInformesPanel" (click)="$event.stopPropagation()">
+                    <div class="card-header d-flex justify-content-between align-items-center py-2">
+                        <strong><i class="fas fa-file-pdf me-2 text-danger"></i>Informes PQRS</strong>
+                        <button class="btn btn-sm btn-outline-secondary" (click)="cargarInformes()" title="Actualizar">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    <div class="list-group list-group-flush informes-list">
+                        <div *ngIf="cargandoInformes" class="text-center text-muted py-3">
+                            <i class="fas fa-spinner fa-spin me-2"></i>Cargando...
+                        </div>
+                        <div *ngIf="!cargandoInformes && informes.length === 0" class="text-center text-muted py-3">
+                            <i class="fas fa-folder-open me-2"></i>No hay informes disponibles
+                        </div>
+                        <div *ngFor="let inf of informes"
+                            class="list-group-item list-group-item-action informe-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1 me-2">
+                                    <div class="fw-semibold small">
+                                        <i class="fas fa-calendar-alt me-1 text-muted"></i>
+                                        {{ inf.fecha_inicio | date:'dd/MM/yy' }} – {{ inf.fecha_fin | date:'dd/MM/yy' }}
+                                    </div>
+                                    <div class="text-muted" style="font-size:0.75rem">
+                                        {{ inf.total_pqrs }} PQRS · {{ inf.tasa_resolucion }}% resueltas
+                                        <span *ngIf="inf.used_ai" class="ms-1 badge bg-info text-dark" style="font-size:0.65rem">IA</span>
+                                    </div>
+                                    <div class="text-muted" style="font-size:0.7rem">
+                                        <i class="fas fa-clock me-1"></i>Expira en {{ inf.dias_restantes }} día{{ inf.dias_restantes !== 1 ? 's' : '' }}
+                                    </div>
+                                </div>
+                                <a [href]="inf.download_url" target="_blank" rel="noopener"
+                                    class="btn btn-sm btn-outline-danger" title="Descargar PDF">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer text-muted py-2 text-center" style="font-size:0.75rem">
+                        <i class="fas fa-info-circle me-1"></i>Los informes están disponibles 7 días
+                    </div>
+                </div>
+            </div>
+
             <!-- Botón de Usuarios (solo para admins) -->
             <div class="nav-item" *ngIf="isAdmin() && usersAdminEnabled()">
                 <button type="button" class="btn btn-link nav-link text-white p-0 position-relative btn-icon-navbar"

@@ -8,6 +8,7 @@ import { AlertsEventsService } from '../../../services/alerts-events.service';
 import { SidebarService } from '../../../services/sidebar.service';
 import { NavigationStateService } from '../../../services/navigation-state.service';
 import { PdmService } from '../../../services/pdm.service';
+import { InformesPqrsService, InformePqrs } from '../../../services/informes-pqrs.service';
 
 @Component({
     selector: 'app-global-navbar',
@@ -22,6 +23,12 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
     unreadCount$!: import('rxjs').Observable<number>;
     private refreshInterval: any;
 
+    // Informes PQRS
+    showInformesPanel = false;
+    informes: InformePqrs[] = [];
+    informesCount = 0;
+    cargandoInformes = false;
+
     private router = inject(Router);
     private navState = inject(NavigationStateService);
 
@@ -31,7 +38,8 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
         private notifications: NotificationsService,
         private alertsEvents: AlertsEventsService,
         public sidebar: SidebarService,
-        private pdmService: PdmService
+        private pdmService: PdmService,
+        private informesPqrsService: InformesPqrsService
     ) {
         this.alerts$ = this.notifications.alertsStream;
         this.unreadCount$ = this.notifications.unreadCountStream;
@@ -49,6 +57,10 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
             const user = this.auth.getCurrentUserValue();
             if (user && entity) {
                 this.notifications.fetch(true).subscribe();
+                // Cargar conteo de informes PQRS
+                if (user.role === 'admin' || user.role === 'superadmin') {
+                    this.cargarInformes();
+                }
             }
         });
 
@@ -83,6 +95,10 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
         if (!isBell && this.showAlertsPanel) {
             this.showAlertsPanel = false;
         }
+        const isInformes = target.closest('.informes-pqrs-bell');
+        if (!isInformes && this.showInformesPanel) {
+            this.showInformesPanel = false;
+        }
     }
 
     toggleAlertsPanel() {
@@ -90,6 +106,26 @@ export class GlobalNavbarComponent implements OnInit, OnDestroy {
         if (this.showAlertsPanel) {
             this.notifications.fetch(true).subscribe();
         }
+    }
+
+    toggleInformesPanel() {
+        this.showInformesPanel = !this.showInformesPanel;
+        if (this.showInformesPanel) {
+            this.cargarInformes();
+        }
+    }
+
+    cargarInformes() {
+        if (!this.isAdmin() || !this.pqrsEnabled()) return;
+        this.cargandoInformes = true;
+        this.informesPqrsService.cargar().subscribe({
+            next: (informes) => {
+                this.informes = informes;
+                this.informesCount = informes.length;
+                this.cargandoInformes = false;
+            },
+            error: () => { this.cargandoInformes = false; }
+        });
     }
 
     verTodasAlertas() {
